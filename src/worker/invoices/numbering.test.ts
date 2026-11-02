@@ -1,7 +1,8 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
+import { encodeFileProgressive } from "../../shared/fatturapa/file-name";
 import { applyMigrations } from "../auth/test-helpers";
-import { releaseNumber, reserveNumber } from "./numbering";
+import { addTransmissionAttempt, releaseNumber, reserveNumber } from "./numbering";
 
 const db = env.DB;
 const ISSUER = { idPaese: "IT", idCodice: "12345678903" };
@@ -90,7 +91,7 @@ describe("number reservation", () => {
     expect(first.year).toBe(2030);
     expect(first.issueDate).toBe("2030-03-10");
     expect(first.transmission.fileName).toBe(
-      `IT12345678903_${String(first.transmission.fileProgressive).padStart(5, "0")}.xml`,
+      `IT12345678903_${encodeFileProgressive(first.transmission.fileProgressive)}.xml`,
     );
     expect(second.transmission.fileProgressive).toBe(first.transmission.fileProgressive + 1);
     const row = await db
@@ -264,5 +265,54 @@ describe("number release", () => {
       code: "conflict",
       detail: "not_numbered",
     });
+  });
+});
+
+describe("transmission attempts", () => {
+  const attempt = (invoiceId: string) =>
+    addTransmissionAttempt(db, { invoiceId, now: new Date(), ...ISSUER });
+
+  it("names the file in base 36 from the global counter, as the TypeScript encoder does", async () => {
+    await db.prepare("UPDATE file_sequence SET last_value = 1295 WHERE id = 1").run();
+    const reservation = await reserve(await insertInvoice(), "2046-01-10T10:00:00Z");
+    expect(reservation.transmission.fileProgressive).toBe(1296);
+    expect(reservation.transmission.fileName).toBe("IT12345678903_00100.xml");
+    expect(encodeFileProgressive(1296)).toBe("00100");
+  });
+
+  it("gives a resend a new progressive and file name and keeps number and date", async () => {
+    const id = await insertInvoice();
+    const first = await reserve(id, "2047-02-03T10:00:00Z");
+    await db
+      .prepare("UPDATE invoices SET state = 'rejected', state_rank = 6 WHERE id = ?")
+      .bind(id)
+      .run();
+    const second = await attempt(id);
+    expect(second.attempt).toBe(2);
+    expect(second.fileProgressive).toBeGreaterThan(first.transmission.fileProgressive);
+    expect(second.fileName).not.toBe(first.transmission.fileName);
+    expect(second.fileName).toBe(
+      `IT12345678903_${encodeFileProgressive(second.fileProgressive)}.xml`,
+    );
+    const row = await db
+      .prepare("SELECT number_int, issue_date FROM invoices WHERE id = ?")
+      .bind(id)
+      .first();
+    expect(row).toEqual({ number_int: first.number, issue_date: first.issueDate });
+  });
+
+  it("allocates nothing for an unnumbered or locked invoice", async () => {
+    const before = await db.prepare("SELECT last_value FROM file_sequence WHERE id = 1").first();
+    expect(await failure(attempt(await insertInvoice()))).toMatchObject({ detail: "not_numbered" });
+    const sent = await insertInvoice({
+      state: "delivered",
+      year: 2048,
+      number: 1,
+      issueDate: "2048-01-01",
+    });
+    expect(await failure(attempt(sent))).toMatchObject({ detail: "invoice_locked" });
+    expect(await db.prepare("SELECT last_value FROM file_sequence WHERE id = 1").first()).toEqual(
+      before,
+    );
   });
 });

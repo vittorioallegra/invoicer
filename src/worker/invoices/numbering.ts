@@ -1,4 +1,5 @@
 import { romeDateTime } from "../../shared/cron";
+import { fileProgressiveSql } from "../../shared/fatturapa/file-name";
 import { makeError } from "../problem";
 
 /**
@@ -144,7 +145,7 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
         .prepare(
           `INSERT INTO transmissions
              (id, invoice_id, attempt, file_progressive, file_name, channel, send_outcome, created_at)
-           SELECT ?1, ?2, 1, last_value, ?3 || ?4 || '_' || printf('%05d', last_value) || '.xml',
+           SELECT ?1, ?2, 1, last_value, ?3 || ?4 || '_' || ${fileProgressiveSql("last_value")} || '.xml',
                   'pec', 'none', ?5
            FROM file_sequence WHERE id = 1`,
         )
@@ -259,5 +260,78 @@ export async function releaseNumber(db: D1Database, invoiceId: string): Promise<
     state: invoice.planned_date === null ? "draft" : "planned",
     number,
     year,
+  };
+}
+
+export interface TransmissionAttempt {
+  id: string;
+  attempt: number;
+  fileProgressive: number;
+  fileName: string;
+}
+
+const RESENDABLE_STATES = "('sending', 'rejected')";
+
+/**
+ * Starts a new transmission attempt for an already numbered invoice (a resend after a rejection
+ * or a retry of an unknown send): a new file progressive from `file_sequence` and a new file name,
+ * while invoice number and issue date stay untouched. One guarded batch like the reservation: the
+ * first statement fails (NOT NULL) when the invoice has no number or is not in a resendable state,
+ * and then nothing is allocated. Whether a retry is allowed at all (quiet period, outcome checks)
+ * is decided by the send flow before it calls this.
+ */
+export async function addTransmissionAttempt(
+  db: D1Database,
+  input: { invoiceId: string; now: Date; idPaese: string; idCodice: string },
+): Promise<TransmissionAttempt> {
+  const { invoiceId, idPaese, idCodice } = input;
+  const id = crypto.randomUUID();
+  const eligible = `EXISTS (SELECT 1 FROM invoices WHERE id = ?1 AND number_int IS NOT NULL
+               AND state IN ${RESENDABLE_STATES})`;
+  try {
+    await db.batch([
+      // 1. Allocate the progressive; the counter becomes NULL (NOT NULL) when the guard fails.
+      db
+        .prepare(
+          `INSERT INTO file_sequence (id, last_value)
+           VALUES (1, CASE WHEN ${eligible} THEN 1 ELSE NULL END)
+           ON CONFLICT (id) DO UPDATE SET
+             last_value = CASE WHEN ${eligible} THEN last_value + 1 ELSE NULL END`,
+        )
+        .bind(invoiceId),
+      db
+        .prepare(
+          `INSERT INTO transmissions
+             (id, invoice_id, attempt, file_progressive, file_name, channel, send_outcome, created_at)
+           SELECT ?1, ?2,
+                  COALESCE((SELECT MAX(attempt) FROM transmissions WHERE invoice_id = ?2), 0) + 1,
+                  last_value, ?3 || ?4 || '_' || ${fileProgressiveSql("last_value")} || '.xml',
+                  'pec', 'none', ?5
+           FROM file_sequence WHERE id = 1`,
+        )
+        .bind(id, invoiceId, idPaese, idCodice, input.now.getTime()),
+    ]);
+  } catch (error) {
+    const invoice = await db
+      .prepare("SELECT state, number_int FROM invoices WHERE id = ?")
+      .bind(invoiceId)
+      .first<{ state: string; number_int: number | null }>();
+    if (!invoice) throw makeError("not_found");
+    if (invoice.number_int === null) throw makeError("conflict", "not_numbered");
+    if (invoice.state !== "sending" && invoice.state !== "rejected") {
+      throw makeError("conflict", "invoice_locked");
+    }
+    throw error;
+  }
+  const row = await db
+    .prepare("SELECT id, attempt, file_progressive, file_name FROM transmissions WHERE id = ?")
+    .bind(id)
+    .first<{ id: string; attempt: number; file_progressive: number; file_name: string }>();
+  if (!row) throw makeError("internal_error");
+  return {
+    id: row.id,
+    attempt: row.attempt,
+    fileProgressive: row.file_progressive,
+    fileName: row.file_name,
   };
 }
