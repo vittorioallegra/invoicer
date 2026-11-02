@@ -27,8 +27,35 @@ export function fakeSocket(
   script: readonly ScriptStep[],
   options: { chunkSize?: number } = {},
 ): FakeSocket {
-  let controller!: ReadableStreamDefaultController<Uint8Array>;
   let step = 0;
+  const socket = fakeServer(
+    greeting,
+    (line) => {
+      const current = script[step++];
+      const matches =
+        current &&
+        (typeof current.expect === "string" ? current.expect === line : current.expect.test(line));
+      if (!current || !matches) {
+        return `* BAD unexpected command in test script: ${line.split(" ")[0]}\r\n`;
+      }
+      return current.reply;
+    },
+    options,
+  );
+  socket.remaining = () => script.length - step;
+  return socket;
+}
+
+/**
+ * A fake server driven by a function: it receives each client line and returns what the server
+ * answers (possibly nothing). Lets a test model a whole mailbox instead of a fixed transcript.
+ */
+export function fakeServer(
+  greeting: string,
+  respond: (line: string) => string,
+  options: { chunkSize?: number } = {},
+): FakeSocket {
+  let controller!: ReadableStreamDefaultController<Uint8Array>;
   let pending = "";
   const received: string[] = [];
   const chunk = options.chunkSize ?? Number.POSITIVE_INFINITY;
@@ -59,17 +86,7 @@ export function fakeSocket(
         const line = pending.slice(0, end);
         pending = pending.slice(end + 2);
         received.push(line);
-        const current = script[step++];
-        const matches =
-          current &&
-          (typeof current.expect === "string"
-            ? current.expect === line
-            : current.expect.test(line));
-        if (!current || !matches) {
-          send(`* BAD unexpected command in test script: ${line.split(" ")[0]}\r\n`);
-          continue;
-        }
-        send(current.reply);
+        send(respond(line));
       }
     },
   });
@@ -79,7 +96,7 @@ export function fakeSocket(
     writable,
     received,
     closed: false,
-    remaining: () => script.length - step,
+    remaining: () => 0,
     close() {
       socket.closed = true;
       try {

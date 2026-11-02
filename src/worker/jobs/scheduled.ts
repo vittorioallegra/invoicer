@@ -1,11 +1,12 @@
 import { jobForCron, romeDateTime, shouldRunDaily } from "../../shared/cron";
 import type { Bindings } from "../env";
+import { pollMailbox } from "../pec/poll";
 
 type Handler = (env: Bindings) => Promise<void>;
 
-/** Jobs are registered by later steps (mailbox polling, daily jobs). */
+/** Mailbox polling runs on every tick; the daily jobs are registered by a later step. */
 export const handlers: { poll: Handler[]; daily: Handler[] } = {
-  poll: [],
+  poll: [async (env) => void (await pollMailbox(env))],
   daily: [],
 };
 
