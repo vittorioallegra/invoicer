@@ -15,7 +15,7 @@ interface LogRow {
 }
 
 const STORAGE_KEY = "spike-secret";
-const PBKDF2_COUNTS = [1000, 5000, 10000, 20000, 50000, 100000];
+const PBKDF2_COUNTS = [1000, 5000, 10000, 20000, 50000, 100000, 200000];
 const BIND_OK = "invoice-1|sha256-of-final-xml";
 
 function loadSecret(): string {

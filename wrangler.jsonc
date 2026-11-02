@@ -4,7 +4,8 @@
 //
 // Secrets (set with `wrangler secret put <NAME>`, never in this file):
 //   BETTER_AUTH_SECRET, SETUP_TOKEN, OPENAPI_READ_TOKEN, OPENAPI_SEND_TOKEN, WEBHOOK_SECRET,
-//   RESEND_API_KEY (optional: courtesy email), VAPID_PRIVATE_KEY (optional: push)
+//   RESEND_API_KEY (optional: courtesy email), VAPID_PRIVATE_KEY (optional: push),
+//   SPIKE_SECRET and OPENAPI_SANDBOX_TOKEN (temporary risk spike, step 2)
 // Plain vars (owner-specific, set in the Cloudflare dashboard or via CI):
 //   APP_ORIGIN, MAIL_FROM_ADDRESS, VAPID_PUBLIC_KEY, VAPID_SUBJECT
 // See .dev.vars.example for the full list and README for the deploy guide.

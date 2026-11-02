@@ -33,7 +33,9 @@ Worker secrets (set with `wrangler secret put <NAME>`, never committed):
 | `OPENAPI_READ_TOKEN`, `OPENAPI_SEND_TOKEN` | Openapi SDI calls (minimum scopes) |
 | `WEBHOOK_SECRET` | authenticating Openapi callbacks |
 | `RESEND_API_KEY` | courtesy email (optional) |
-| `VAPID_PRIVATE_KEY` | push notifications (optional) |
+| `VAPID_PRIVATE_KEY` | push notifications (optional); one-line JWK from `pnpm exec pushforge vapid` |
+| `SPIKE_SECRET` | temporary risk-spike page `/spike` (step 2, removed in step 20) |
+| `OPENAPI_SANDBOX_TOKEN` | spike only: Openapi sandbox checks (optional) |
 
 Plain variables: `APP_ORIGIN`, `MAIL_FROM_ADDRESS`, `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`.
 
@@ -46,6 +48,9 @@ Skeleton: this section grows with every step; the complete guide is written in s
 - Repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. Repository variables:
   `D1_DATABASE_ID`, `R2_BUCKET_NAME`, `APP_DOMAIN`, `APP_ORIGIN`, `MAIL_FROM_ADDRESS`,
   `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`.
+- First manual deploy (before CI is set up) and the step 2 device checks: follow the owner
+  checklist in `docs/notes/spike.md` (create D1/R2, set secrets, generate VAPID keys, deploy, open
+  `/spike`). Without a custom domain the Worker is served on its `workers.dev` address.
 
 ## Troubleshooting
 
