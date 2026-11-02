@@ -116,6 +116,9 @@ export interface StoredMessage {
   size: number;
   classification: Classification;
   rawFileId: string | null;
+  /** The received invoice's original file (extracted attachment, or the raw message). */
+  receivedFileId?: string | null;
+  receivedInvoiceId?: string;
   receivedAt: number | null;
   /** Why the message was recorded without being read in full, when it was not. */
   problem?: "oversize" | "vanished" | "parse_error";
@@ -213,11 +216,31 @@ async function processMailbox(
         })
       ).id;
     }
+    // A received invoice keeps its original file: the extracted attachment, or (too large to
+    // parse here) the raw message, which the browser opens.
+    const receivedInvoiceId = crypto.randomUUID();
+    let receivedFileId: string | null = rawFileId;
+    if (classification.kind === "received_invoice" && classification.attachment) {
+      const attachment = classification.attachment;
+      receivedFileId = (
+        await storage.put({
+          kind: "received",
+          filename: attachment.filename,
+          contentType: /\.p7m$/i.test(attachment.filename)
+            ? "application/pkcs7-mime"
+            : "application/xml",
+          content: attachment.content,
+          receivedInvoiceId,
+        })
+      ).id;
+    }
     try {
       await commitMessage(env, {
         ...base,
         classification,
         rawFileId,
+        receivedFileId,
+        receivedInvoiceId,
         receivedAt: classification.sentAt,
         problem: parseFailed ? "parse_error" : undefined,
       });
@@ -225,6 +248,7 @@ async function processMailbox(
       counts[classification.kind] = ((counts[classification.kind] as number | undefined) ?? 0) + 1;
     } catch (error) {
       if (rawFileId) await storage.delete(rawFileId);
+      if (receivedFileId && receivedFileId !== rawFileId) await storage.delete(receivedFileId);
       throw error;
     }
   }
@@ -239,7 +263,17 @@ const IGNORED: Classification = { kind: "ignored", messageId: null, sentAt: null
 async function commitMessage(env: Bindings, message: StoredMessage): Promise<void> {
   const { classification: c } = message;
   const now = Date.now();
-  const plan = await planEffects(env.DB, c, message.messageId, now);
+  const plan = await planEffects(
+    env.DB,
+    c,
+    {
+      id: message.id,
+      messageId: message.messageId,
+      receivedInvoiceId: message.receivedInvoiceId ?? crypto.randomUUID(),
+      receivedFileId: message.receivedFileId ?? message.rawFileId,
+    },
+    now,
+  );
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO pec_messages (id, message_id, uid_validity, uid, kind, sdi_message_type,

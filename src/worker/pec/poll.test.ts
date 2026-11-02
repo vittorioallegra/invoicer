@@ -85,7 +85,8 @@ describe("mailbox polling: cursor and storage", () => {
     expect(inv).toMatchObject({ file: "IT09876543211_00007.xml", fileKind: "pec_raw" });
     expect(junk?.rawSize).toBeNull();
     expect(other?.rawSize).toBeNull();
-    expect(await count("files")).toBe(2);
+    // Raw receipt, raw invoice message and the invoice's extracted original.
+    expect(await count("files")).toBe(3);
   });
 
   it("is read-only: EXAMINE, UID SEARCH and PEEK fetches only", async () => {

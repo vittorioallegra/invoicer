@@ -1,6 +1,6 @@
 import { INVOICE_STATES, type InvoiceState } from "../../shared/invoice-state";
 import { isSdiAddress, normalizeMessageId, type SdiMessageType } from "../../shared/sdi-messages";
-import { type NotificationType, outboxStatement } from "../outbox";
+import { type NotificationType, notificationStatement, outboxStatement } from "../outbox";
 import type { Classification } from "./classify";
 
 /**
@@ -127,12 +127,24 @@ async function sdiAddressOf(db: D1Database): Promise<string | null> {
   return row?.address ?? null;
 }
 
+/** Rows and files the message already has by the time its batch is planned. */
+export interface MessageContext {
+  /** Primary key of the message's `pec_messages` row. */
+  id: string;
+  messageId: string;
+  /** Pre-generated id for the received invoice row, when the message carries one. */
+  receivedInvoiceId: string;
+  /** The invoice's original file: the extracted attachment, or the raw message when too large. */
+  receivedFileId: string | null;
+}
+
 export async function planEffects(
   db: D1Database,
   c: Classification,
-  messageId: string,
+  ctx: MessageContext,
   now = Date.now(),
 ): Promise<Plan> {
+  const messageId = ctx.messageId;
   const done: Plan = { statements: [], processed: true };
   const sourceId = `pec:${normalizeMessageId(messageId) ?? messageId}`;
   const occurredAt = c.sentAt ?? now;
@@ -247,6 +259,22 @@ export async function planEffects(
       }
     }
     return { statements, processed: true };
+  }
+
+  if (c.kind === "received_invoice") {
+    // Parsing waits for the browser (`parse_status = pending`); the Worker only stores the file.
+    return {
+      statements: [
+        db
+          .prepare(
+            `INSERT INTO received_invoices (id, pec_message_id, parse_status, file_id, created_at)
+             VALUES (?, ?, 'pending', ?, ?)`,
+          )
+          .bind(ctx.receivedInvoiceId, ctx.id, ctx.receivedFileId, now),
+        notificationStatement(db, "received_invoice", { file: c.fileName }, now),
+      ],
+      processed: true,
+    };
   }
 
   return done;
