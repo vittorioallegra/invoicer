@@ -141,6 +141,7 @@ describe("rules", () => {
     expect(rivalsa.ritenutaCents).toBe(20800);
     expect(cassa.ritenutaCents).toBe(20000);
     expect(defaultCassaSubjectToRitenuta("rivalsa_inps")).toBe(true);
+    expect(defaultCassaSubjectToRitenuta("TC22")).toBe(true);
     expect(defaultCassaSubjectToRitenuta("TC04")).toBe(false);
   });
 

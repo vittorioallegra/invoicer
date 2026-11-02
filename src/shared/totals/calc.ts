@@ -15,9 +15,12 @@ export const STAMP_CENTS = 200;
 /** Natura amounts strictly above this (77.47 EUR) call for the stamp. */
 export const STAMP_THRESHOLD_CENTS = 7747;
 
-/** Rivalsa INPS is subject to ritenuta by default; casse previdenziali (TC01-TC22) are not. */
+/**
+ * Rivalsa INPS (TC22, gestione separata) is subject to ritenuta by default; the other casse
+ * previdenziali (TC01-TC21) are not.
+ */
 export function defaultCassaSubjectToRitenuta(type: CassaType): boolean {
-  return type === "rivalsa_inps";
+  return type === "rivalsa_inps" || type === "TC22";
 }
 
 const mulRate = (cents: number, rateBp: number) => divRound(cents * rateBp, 10000);

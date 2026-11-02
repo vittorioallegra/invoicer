@@ -54,7 +54,7 @@ export const CASSA_TYPE_CODES = [
 ] as const;
 export type CassaTypeCode = (typeof CASSA_TYPE_CODES)[number];
 
-/** Rivalsa INPS (gestione separata) is modelled apart from the TC codes. */
+/** Rivalsa INPS (gestione separata) is modelled apart from the TC codes; the XML builder (step 10) emits rivalsa_inps as TipoCassa TC22. */
 export type CassaType = "rivalsa_inps" | CassaTypeCode;
 
 /** `excluded`: amounts exclude the contribution; `included`: amounts are "cassa inclusa". */

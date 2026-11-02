@@ -449,7 +449,7 @@ Approved: yes (2026-11-02)
 - Courtesy email through Resend, not Cloudflare Email Sending (needs Workers Paid) (2026-11-02).
 - Channel switch Openapi -> PEC (2026-11-02): Openapi needs a 50 EUR minimum top-up; the owner already has a free PEC mailbox (Aruba infrastructure, provided by the Ordine degli Ingegneri, used for nothing else, tied to the partita IVA), so cost goes to 0 EUR. `PEC_USERNAME`/`PEC_PASSWORD` are Worker secrets (one password for IMAP, SMTP and webmail: if stolen, the mailbox can be read and PEC sent as the owner; accepted for a single-user app, mitigated by a generated password, second factors and the per-send passkey). SMTP send via `worker-mailer` 1.3.0, MIME parsing via `postal-mime` 4.2.0, a minimal in-repo IMAP client; `imapflow` rejected (Node net/tls, heavy dependencies); polling cron `*/10 * * * *` (3 of 5 free cron triggers); credit section replaced by a mailbox quota warning; manual AdE portal channel kept as fallback; Openapi kept as a possible future channel (out of v1).
 - Step 12 send handler must compute the SHA-256 of the stored final XML itself and pass it to `verifySendAuthorization`; that check is what binds the authorization to the XML (2026-11-02).
-- Totals rules (2026-11-02, owner): VAT on the contribution at the lines' rate; ritenuta on taxable + rivalsa INPS, not on cassa contributo integrativo (per-cassa flag); bollo 2.00 when natura lines exceed 77.47; `included` split per line; half-up rounding to the cent; fixture amounts chosen in step 6 and recorded in the spec; natura legal texts as Italian constants in src/shared; totals in document currency, EUR conversion verified in step 10.
+- Totals rules (2026-11-02, owner): VAT on the contribution at the lines' rate; ritenuta on taxable + rivalsa INPS, not on cassa contributo integrativo TC01-TC21 (per-cassa flag; TC22 = INPS, subject); bollo 2.00 when natura lines exceed 77.47; `included` split per line; half-up rounding to the cent; fixture amounts chosen in step 6 and recorded in the spec; natura legal texts as Italian constants in src/shared; totals in document currency, EUR conversion verified in step 10.
 - No notifications for non-SdI PEC messages: the app ignores them and the owner reads them in the Aruba app (2026-11-02).
 
 - Liquid Glass styling after Milestone A, as a dedicated step 14 once the real screens exist (2026-11-02, owner request).
@@ -459,6 +459,7 @@ Approved: yes (2026-11-02)
 
 ### Open questions
 - See "Open questions for the architecture phase" in the spec; most are assigned to the step 2 spike.
+- Bollo on non-EUR invoices (fixture d): the stamp is a EUR amount; decide in step 9/10 how it is shown and totalled (fixture d currently has bollo off).
 
 ### Next
 Step 7: Profile, onboarding, settings.
