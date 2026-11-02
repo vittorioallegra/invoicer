@@ -234,24 +234,34 @@ export async function listInvoices(
     results.filter((row) => row.state === "rejected").map((row) => row.id),
   );
   const today = romeDateTime(now).date;
-  return results
-    .filter((row) => scope !== "reserved" || reserved.has(row.id))
-    .map((row) => ({
-      id: row.id,
-      documentType: row.document_type,
-      state: row.state,
-      paymentFlag: effectivePayment(row, today),
-      clientName: row.client_name,
-      number: row.number_raw,
-      issueDate: row.issue_date,
-      plannedDate: row.planned_date,
-      dueDate: row.due_date,
-      currency: row.currency,
-      totalCents: row.total_cents,
-      numberReserved: reserved.has(row.id),
-      linkedInvoiceId: row.linked_invoice_id,
-      rejectionDeadline: rejections.get(row.id)?.deadline ?? null,
-    }));
+  const shown = results.filter((row) => scope !== "reserved" || reserved.has(row.id));
+  // A reserved number can be released only while it is the highest of its year.
+  const releasable = new Set<string>();
+  for (const row of shown) {
+    if (!reserved.has(row.id) || row.year === null || row.number_int === null) continue;
+    const higher = await db
+      .prepare("SELECT 1 AS hit FROM invoices WHERE year = ? AND number_int > ?")
+      .bind(row.year, row.number_int)
+      .first();
+    if (!higher) releasable.add(row.id);
+  }
+  return shown.map((row) => ({
+    id: row.id,
+    documentType: row.document_type,
+    state: row.state,
+    paymentFlag: effectivePayment(row, today),
+    clientName: row.client_name,
+    number: row.number_raw,
+    issueDate: row.issue_date,
+    plannedDate: row.planned_date,
+    dueDate: row.due_date,
+    currency: row.currency,
+    totalCents: row.total_cents,
+    numberReserved: reserved.has(row.id),
+    releasable: releasable.has(row.id),
+    linkedInvoiceId: row.linked_invoice_id,
+    rejectionDeadline: rejections.get(row.id)?.deadline ?? null,
+  }));
 }
 
 type Extra = { reissuesInvoiceId?: string | null };

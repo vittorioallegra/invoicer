@@ -54,10 +54,18 @@ const settings = {
   adeGuideDone: false,
 };
 
-function respond(routes: Record<string, unknown>) {
+/** Home also loads the invoice lists; they are empty unless a test says otherwise. */
+const EMPTY_LISTS = {
+  "/api/invoices?scope=to_issue": { invoices: [] },
+  "/api/invoices?scope=issued": { invoices: [] },
+  "/api/invoices?scope=reserved": { invoices: [] },
+};
+
+function respond(overrides: Record<string, unknown>) {
+  const routes = { ...EMPTY_LISTS, ...overrides };
   mocks.api.mockImplementation(async (path: string) => {
     if (!(path in routes)) throw new Error(`unexpected ${path}`);
-    const value = routes[path];
+    const value = routes[path as keyof typeof routes];
     if (value instanceof Error) throw value;
     return value;
   });

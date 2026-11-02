@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { FileText, Inbox } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { InvoiceList } from "../components/invoice-list";
 import { Page } from "../components/page";
 import { buttonVariants } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
@@ -11,10 +12,15 @@ export function IssuedPage() {
   const { t } = useTranslation();
   return (
     <Page title={t("pages.issued.title")}>
-      <EmptyState
-        icon={FileText}
-        title={t("pages.issued.emptyTitle")}
-        description={t("pages.issued.emptyBody")}
+      <InvoiceList
+        scope="issued"
+        empty={
+          <EmptyState
+            icon={FileText}
+            title={t("pages.issued.emptyTitle")}
+            description={t("pages.issued.emptyBody")}
+          />
+        }
       />
     </Page>
   );

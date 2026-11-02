@@ -3,10 +3,12 @@ import { Link } from "@tanstack/react-router";
 import { Check, Circle, FileText, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { ChecklistItemId, OnboardingStatus } from "../../shared/onboarding";
+import { InvoiceList, ReservedList } from "../components/invoice-list";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button, buttonVariants } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
+import { invoicesQuery } from "../lib/invoices-api";
 import { onboardingQuery } from "../lib/settings-api";
 
 /** Where each pending item is fixed. Passkey and TOTP resume the setup flow of the signed-in owner. */
@@ -89,6 +91,9 @@ export function HomePage() {
   const status = query.data;
   // First run: the call to action leads to the first thing to fix, then to the editor.
   const profileMissing = status?.send.reasons.includes("profile_incomplete");
+  const toIssue = useQuery(invoicesQuery("to_issue"));
+  const issued = useQuery(invoicesQuery("issued"));
+  const noInvoices = toIssue.data?.invoices.length === 0 && issued.data?.invoices.length === 0;
 
   return (
     <Page title={t("pages.home.title")}>
@@ -111,23 +116,40 @@ export function HomePage() {
       ) : null}
       {status && !status.complete ? <Checklist status={status} /> : null}
       {status ? <SendBlocked status={status} /> : null}
-      <EmptyState
-        icon={FileText}
-        title={t("pages.home.emptyTitle")}
-        description={profileMissing ? t("pages.home.emptyBodyProfile") : t("pages.home.emptyBody")}
-        action={
-          profileMissing ? (
-            <Link to="/settings/profile" className={buttonVariants()}>
-              {t("pages.home.profileAction")}
-            </Link>
-          ) : (
-            <Link to="/invoices/new" className={buttonVariants()}>
-              <Plus aria-hidden />
-              {t("pages.home.emptyAction")}
-            </Link>
-          )
-        }
-      />
+      <ReservedList />
+      {noInvoices ? (
+        <EmptyState
+          icon={FileText}
+          title={t("pages.home.emptyTitle")}
+          description={
+            profileMissing ? t("pages.home.emptyBodyProfile") : t("pages.home.emptyBody")
+          }
+          action={
+            profileMissing ? (
+              <Link to="/settings/profile" className={buttonVariants()}>
+                {t("pages.home.profileAction")}
+              </Link>
+            ) : (
+              <Link to="/invoices/new" className={buttonVariants()}>
+                <Plus aria-hidden />
+                {t("pages.home.emptyAction")}
+              </Link>
+            )
+          }
+        />
+      ) : (
+        <section aria-labelledby="to-issue-title" className="flex flex-col gap-2">
+          <h2 id="to-issue-title" className="text-base font-semibold">
+            {t("invoice.list.toIssueTitle")}
+          </h2>
+          <InvoiceList
+            scope="to_issue"
+            empty={
+              <p className="text-sm text-muted-foreground">{t("invoice.list.toIssueEmpty")}</p>
+            }
+          />
+        </section>
+      )}
     </Page>
   );
 }

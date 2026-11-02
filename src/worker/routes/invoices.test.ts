@@ -280,10 +280,11 @@ describe("reserving a number through the API", () => {
     });
 
     // Home lists it as "number reserved, not sent"; releasing it puts it back to draft.
-    const reservedList = await owner.json<{ invoices: { id: string }[] }>(
+    const reservedList = await owner.json<{ invoices: { id: string; releasable: boolean }[] }>(
       "/api/invoices?scope=reserved",
     );
     expect(reservedList.body.invoices.map((i) => i.id)).toContain(ready.id);
+    expect(reservedList.body.invoices.find((i) => i.id === ready.id)?.releasable).toBe(true);
     const released = await owner.json<Invoice>(`/api/invoices/${ready.id}/release-number`, {
       body: {},
     });

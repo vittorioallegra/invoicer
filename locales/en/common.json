@@ -496,6 +496,27 @@
     },
     "send": {
       "pending": "Sending is available once the send flow is in place."
+    },
+    "list": {
+      "draft": "Draft",
+      "creditNoteDraft": "Credit note draft",
+      "number": "No. {{number}}",
+      "creditNoteNumber": "Credit note {{number}}",
+      "noClient": "No client",
+      "issued": "Issued {{date}}",
+      "planned": "Planned {{date}}",
+      "toIssueTitle": "To issue",
+      "toIssueEmpty": "Nothing to issue.",
+      "issuedEmpty": "Invoices you send appear here."
+    },
+    "reserved": {
+      "title": "Number reserved, not sent",
+      "intro": "These invoices already hold a number but were not sent. Send them, or release the number while it is still the highest of its year.",
+      "release": "Release number",
+      "mustSend": "Its number is not the highest of the year anymore, so this invoice must be sent.",
+      "releaseFailed": "The number could not be released.",
+      "info": "A number is reserved for this invoice but it was not sent yet.",
+      "releaseConfirm": "Release number"
     }
   }
 }

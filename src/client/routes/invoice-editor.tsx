@@ -51,6 +51,7 @@ import {
   invoiceQuery,
   invoicesQuery,
   patchInvoice,
+  releaseNumber,
   updateInvoice,
 } from "../lib/invoices-api";
 import { useOnline } from "../lib/online";
@@ -221,6 +222,15 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
     },
   });
 
+  const release = useMutation({
+    mutationFn: (id: string) => releaseNumber(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      await queryClient.invalidateQueries({ queryKey: ["invoice"] });
+      void navigate({ to: "/" });
+    },
+  });
+
   const creditNote = useMutation({
     mutationFn: (id: string) => createCreditNote(id),
     onSuccess: async ({ invoice }) => {
@@ -283,6 +293,29 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
       ) : null}
       {saved ? <Banner tone="success">{t("invoice.saved")}</Banner> : null}
       {locked ? <Banner tone="info">{t("invoice.readOnly")}</Banner> : null}
+      {record?.numberReserved ? (
+        <Banner
+          tone="warning"
+          action={
+            record.releasable ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!online || release.isPending}
+                onClick={() => release.mutate(record.id)}
+              >
+                {t("invoice.reserved.release")}
+              </Button>
+            ) : null
+          }
+        >
+          <p>{t("invoice.reserved.info")}</p>
+          {record.releasable ? null : <p>{t("invoice.reserved.mustSend")}</p>}
+        </Banner>
+      ) : null}
+      {release.isError ? (
+        <Banner tone="danger">{t("invoice.reserved.releaseFailed")}</Banner>
+      ) : null}
       {submitted && !structural.ok ? <Banner tone="danger">{t("invoice.fixErrors")}</Banner> : null}
       {warning ? <Banner tone="warning">{t(`invoice.warnings.${warning}`)}</Banner> : null}
       {suggestBollo ? (

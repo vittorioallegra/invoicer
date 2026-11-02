@@ -311,6 +311,7 @@ export type InvoiceSummary = Pick<
   | "currency"
   | "totalCents"
   | "numberReserved"
+  | "releasable"
   | "linkedInvoiceId"
 > & { rejectionDeadline: number | null };
 

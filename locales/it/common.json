@@ -496,6 +496,27 @@
     },
     "send": {
       "pending": "L'invio sarà disponibile quando sarà pronto il flusso di invio."
+    },
+    "list": {
+      "draft": "Bozza",
+      "creditNoteDraft": "Bozza di nota di credito",
+      "number": "N. {{number}}",
+      "creditNoteNumber": "Nota di credito {{number}}",
+      "noClient": "Nessun cliente",
+      "issued": "Emessa il {{date}}",
+      "planned": "Prevista il {{date}}",
+      "toIssueTitle": "Da emettere",
+      "toIssueEmpty": "Niente da emettere.",
+      "issuedEmpty": "Le fatture che invii compaiono qui."
+    },
+    "reserved": {
+      "title": "Numero riservato, non inviata",
+      "intro": "Queste fatture hanno già un numero ma non sono state inviate. Inviale, oppure rilascia il numero finché è il più alto dell'anno.",
+      "release": "Rilascia il numero",
+      "mustSend": "Il suo numero non è più il più alto dell'anno, quindi questa fattura va inviata.",
+      "releaseFailed": "Non è stato possibile rilasciare il numero.",
+      "info": "Per questa fattura è riservato un numero ma non è ancora stata inviata.",
+      "releaseConfirm": "Rilascia il numero"
     }
   }
 }
