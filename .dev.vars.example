@@ -1,0 +1,25 @@
+# Copy to .dev.vars (git-ignored) for local development. Local dev and `pnpm test` need no
+# external account: Openapi, Resend and push are off or mocked unless you fill them in.
+# In production set secrets with `wrangler secret put <NAME>`; never commit values.
+
+# --- Secrets -------------------------------------------------------------------------------
+# Better Auth signing secret (any long random string).
+BETTER_AUTH_SECRET=local-dev-only-change-me
+# Required to create the owner account on first run.
+SETUP_TOKEN=local-dev-setup-token
+# Openapi SDI tokens (minimum scopes: read token for lookups, send token for POST /invoices).
+# Leave empty locally: the dev mock channel is used.
+OPENAPI_READ_TOKEN=
+OPENAPI_SEND_TOKEN=
+# Shared secret that Openapi sends in the webhook header.
+WEBHOOK_SECRET=local-dev-webhook-secret
+# Optional: courtesy email via Resend. Off when empty.
+RESEND_API_KEY=
+# Optional: Web Push. Off when empty.
+VAPID_PRIVATE_KEY=
+
+# --- Plain vars (owner-specific) ------------------------------------------------------------
+APP_ORIGIN=http://localhost:5173
+MAIL_FROM_ADDRESS=
+VAPID_PUBLIC_KEY=
+VAPID_SUBJECT=

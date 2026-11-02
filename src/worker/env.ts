@@ -1,0 +1,73 @@
+import { ApiError, ERROR_CODES, ERROR_TYPE_BASE, errorAnchor } from "../shared/errors";
+
+/** Worker bindings, plain-text vars and secrets. See `.dev.vars.example` and wrangler.jsonc. */
+export interface Bindings {
+  DB: D1Database;
+  FILES: R2Bucket;
+  ASSETS: Fetcher;
+
+  // Plain vars (owner-specific, set in the deploy config or `.dev.vars`).
+  APP_ORIGIN?: string;
+  MAIL_FROM_ADDRESS?: string;
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_SUBJECT?: string;
+
+  // Secrets (set with `wrangler secret put <NAME>`).
+  BETTER_AUTH_SECRET?: string;
+  SETUP_TOKEN?: string;
+  OPENAPI_READ_TOKEN?: string;
+  OPENAPI_SEND_TOKEN?: string;
+  WEBHOOK_SECRET?: string;
+  RESEND_API_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
+}
+
+/**
+ * Secrets required per route group. A missing one fails that group only, naming the variable
+ * and the fix command, never a value.
+ */
+export const REQUIRED_SECRETS = {
+  auth: ["BETTER_AUTH_SECRET", "SETUP_TOKEN"],
+  openapi: ["OPENAPI_READ_TOKEN", "OPENAPI_SEND_TOKEN"],
+  webhook: ["WEBHOOK_SECRET"],
+} as const satisfies Record<string, readonly (keyof Bindings)[]>;
+
+/** Optional features: when their secrets are missing they are "off" (settings banner). */
+export const OPTIONAL_FEATURES = {
+  email: ["RESEND_API_KEY", "MAIL_FROM_ADDRESS"],
+  push: ["VAPID_PRIVATE_KEY", "VAPID_PUBLIC_KEY", "VAPID_SUBJECT"],
+} as const satisfies Record<string, readonly (keyof Bindings)[]>;
+
+export type SecretGroup = keyof typeof REQUIRED_SECRETS;
+export type OptionalFeature = keyof typeof OPTIONAL_FEATURES;
+
+function isSet(env: Bindings, name: keyof Bindings): boolean {
+  const value = env[name];
+  return typeof value === "string" && value.length > 0;
+}
+
+export function missingSecrets(env: Bindings, group: SecretGroup): string[] {
+  return REQUIRED_SECRETS[group].filter((name) => !isSet(env, name));
+}
+
+/** Throws a `missing_secret` ApiError naming each variable and the `wrangler secret put` fix. */
+export function requireSecrets(env: Bindings, group: SecretGroup): void {
+  const missing = missingSecrets(env, group);
+  if (missing.length === 0) return;
+  throw new ApiError({
+    type: `${ERROR_TYPE_BASE}missing_secret`,
+    title: ERROR_CODES.missing_secret.title,
+    status: ERROR_CODES.missing_secret.status,
+    code: "missing_secret",
+    anchor: errorAnchor("missing_secret"),
+    detail: `Missing configuration: ${missing.join(", ")}.`,
+    missing,
+    fix: missing.map((name) => `wrangler secret put ${name}`).join(" && "),
+  });
+}
+
+/** Which optional features are configured; the UI shows a banner for the ones that are off. */
+export function featureStatus(env: Bindings): Record<OptionalFeature, boolean> {
+  const on = (names: readonly (keyof Bindings)[]) => names.every((name) => isSet(env, name));
+  return { email: on(OPTIONAL_FEATURES.email), push: on(OPTIONAL_FEATURES.push) };
+}

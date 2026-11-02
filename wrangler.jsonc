@@ -1,0 +1,35 @@
+// Tracked config contains no owner-specific values. Resource IDs below are placeholders that
+// CI replaces (scripts/render-wrangler-config.mjs) from repository variables; local dev and
+// tests use local D1/R2 emulation, so the placeholders are fine there.
+//
+// Secrets (set with `wrangler secret put <NAME>`, never in this file):
+//   BETTER_AUTH_SECRET, SETUP_TOKEN, OPENAPI_READ_TOKEN, OPENAPI_SEND_TOKEN, WEBHOOK_SECRET,
+//   RESEND_API_KEY (optional: courtesy email), VAPID_PRIVATE_KEY (optional: push)
+// Plain vars (owner-specific, set in the Cloudflare dashboard or via CI):
+//   APP_ORIGIN, MAIL_FROM_ADDRESS, VAPID_PUBLIC_KEY, VAPID_SUBJECT
+// See .dev.vars.example for the full list and README for the deploy guide.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "invoicer",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-08-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "assets": {
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "invoicer",
+      "database_id": "__D1_DATABASE_ID__",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "invoicer-files" }],
+  // At most 2 cron triggers (free plan: 5 per account). One scheduled handler dispatches on
+  // event.cron: see src/worker/jobs/scheduled.ts (keep the expressions in sync).
+  "triggers": { "crons": ["0 4 * * *", "0 3 * * 0"] }
+}
