@@ -338,6 +338,23 @@ settle the open ones):
    `included` mode, typed amount 1,040.00 → base 1,000.00 + contribution 40.00, and typed
    amount 999.99 → base + contribution = 999.99 exactly; (g) TD04 partial credit note
    linked to fixture (a) with DatiFattureCollegate.
+
+   Fixture inputs and expected totals (source of truth, worked out by hand; implemented in
+   `src/shared/fixtures/invoices.ts`). Rules: VAT per rate group on the rounded group taxable,
+   the contribution takes the group's rate (or natura), ritenuta on lines + rivalsa INPS (not on
+   a cassa contributo integrativo), bollo 2.00 added to the amount due, half-up rounding to the
+   cent, TD04 amounts positive with the document type giving the sign. Amounts in cents/100.
+
+   | Fix. | Inputs | Contribution | Taxable | VAT | Ritenuta | Stamp | Doc. total | Due |
+   |------|--------|-------------:|--------:|----:|---------:|------:|-----------:|----:|
+   | a | RF01, IT company; 1 x 1,200.00 + 7.5 x 65.30 (489.75), 22%; rivalsa INPS 4% excluded; ritenuta 20% | 67.59 | 1,757.34 | 386.61 | 351.47 | 0 | 2,143.95 | 1,792.48 |
+   | b | RF19, IT private; 1 x 800.00 + 3 x 41.70, N2.2; bollo | 0 | 925.10 | 0 | 0 | 2.00 | 927.10 | 927.10 |
+   | c | RF01, EU company (XXXXXXX); 12.5 x 87.30 (1,091.25) + 1 x 250.00, N2.1; bollo | 0 | 1,341.25 | 0 | 0 | 2.00 | 1,343.25 | 1,343.25 |
+   | d | RF01, non-EU company (XXXXXXX), USD; 1 x 2,500.00 + 3 x 479.99, N2.1; no bollo (EUR amount, see step 10) | 0 | 3,939.97 | 0 | 0 | 0 | 3,939.97 | 3,939.97 |
+   | e | RF01, IT company; 1 x 3,200.00 + 18.5 x 71.30 (1,319.05), 22%; cassa TC04 4% excluded, 22% on the contribution, not subject to ritenuta; ritenuta 20% on 4,519.05 | 180.76 | 4,699.81 | 1,033.96 | 903.81 | 0 | 5,733.77 | 4,829.96 |
+   | f1 | RF01, IT company; typed 1,040.00 at 22%; rivalsa INPS 4% included (base 1,000.00 + 40.00) | 40.00 | 1,040.00 | 228.80 | 0 | 0 | 1,268.80 | 1,268.80 |
+   | f2 | as f1, typed 999.99 (base 961.53 + 38.46) | 38.46 | 999.99 | 220.00 | 0 | 0 | 1,219.99 | 1,219.99 |
+   | g | TD04 linked to (a) (no. 1, 2026-03-15); 3 x 65.30 (195.90), 22%; rivalsa INPS 4% excluded; ritenuta 20% | 7.84 | 203.74 | 44.82 | 40.75 | 0 | 248.56 | 207.81 (signed -207.81) |
 7. Using recorded IMAP/SMTP fixtures and a fake socket (no network), a sent invoice goes to
    `sent` on the PEC delivery receipt and then to `delivered`, `not_delivered` or `rejected`
    from the matching SdI message; a rejection shows the SdI error text; a PEC non-delivery
