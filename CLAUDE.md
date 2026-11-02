@@ -52,7 +52,7 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
   that CI fills (`scripts/render-wrangler-config.mjs`).
 - Biome ignores Markdown; do not run it over `docs/`. Dependency versions are pinned exactly.
 - The PEC password gives full mailbox access (one password for IMAP, SMTP, webmail); the IMAP client
-  is read-only by design (EXAMINE, PEEK, no delete). Cron triggers: max 3 (`*/10 * * * *` polling,
-  daily, weekly); Cloudflare day-of-week syntax is `SUN`, not `0`.
+  is read-only by design (EXAMINE, PEEK, no delete). One cron trigger only (`*/10 * * * *`): every run polls the mailbox; the daily jobs run
+  from it at 09:00 Europe/Rome, once per Rome day (`shouldRunDaily` in `src/shared/cron.ts`).
 - Free-plan limits matter: 10 ms CPU per request; heavy work (XML/XSD, PDF, P7M) runs in the browser.
 - No automated test talks to the real SdI; use recorded IMAP/SMTP fixtures and the fake socket (`src/worker/pec/fake-socket.ts`).

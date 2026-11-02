@@ -56,8 +56,10 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
      never talks to the PEC servers), Origin check on state-changing `/api/*` calls, parsed external data rendered as
      text only, stored originals served with `Content-Disposition: attachment` and
      `X-Content-Type-Options: nosniff`.
-   - One `scheduled` handler dispatching on `event.cron`, at most 3 cron triggers (the free
-     plan allows 5 per account; mailbox polling `*/10 * * * *`, daily, weekly; Cloudflare day-of-week syntax, `SUN` not `0`).
+   - One `scheduled` handler for the single `*/10 * * * *` cron trigger: every run polls the mailbox
+     and runs the daily jobs when `shouldRunDaily` says so (09:00 Europe/Rome or later, today's Rome
+     date not completed yet; pure and tested, DST through `Intl`). Persisting the last completed
+     Rome date comes with `job_runs` in step 3, which supplies the lookup the dispatcher takes.
    - README skeleton (deploy section grown by every later step). Create `CLAUDE.md` with the
      commands, including the single-test failures-only command.
    - Tests: health route, one i18n render, problem+json shape, missing-secret error.
@@ -68,7 +70,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    pass threshold below the 10 ms free-plan limit, for PBKDF2 password hashing at the reduced
    iteration count, a passkey assertion verification, Web Push payload encryption
    (`@pushforge/builder`), `postal-mime` parsing of an SdI receipt, a PEC envelope and a large
-   invoice message, and the cron handlers (mailbox polling, data export, subrequest count under
+   invoice message, and the cron handlers (mailbox polling, daily jobs, subrequest count under
    the free-plan cap). A **PEC probe** behind `PEC_USERNAME`/`PEC_PASSWORD` (skipped with a clear
    message when unset): IMAP login over `cloudflare:sockets`, list the latest N message headers,
    `GETQUOTAROOT`, IMAP fetch + `postal-mime` parse of the newest message with its CPU time, and
@@ -101,7 +103,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    parsed SdI message type, original file name, size, raw message as a `files` id, `processed_at`;
    UNIQUE on Message-ID and on UIDVALIDITY + UID), `received_invoices` (unique on the source
    `pec_messages` id, `parse_status`, original file as a `files` id), `files` (id, kind
-   `xml`/`pdf`/`received`/`import`/`backup`/`pec_raw`, invoice / transmission or received-invoice
+   `xml`/`pdf`/`received`/`import`/`pec_raw`, invoice / transmission or received-invoice
    reference, filename, content type, size, sha256, `content` BLOB, created_at; CHECK size
    <= 2 MB, larger files are refused with a clear error; all file access goes through one
    storage interface so R2 can be reintroduced later), `events` (SdI receipts and error events,
@@ -270,16 +272,15 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
 17. **Push and notifications.** Web Push subscriptions and sender (`@pushforge/builder`,
     VAPID secret), service worker handler, deep link from a push to its invoice, per-type
     toggles, in-app notification list. Tests: AC 15 (push parts with mocks).
-18. **Cron jobs, recurring, mailbox quota.** Daily cron: planned due, overdue unpaid, recurring
+18. **Daily jobs, recurring, mailbox quota.** Daily jobs (09:00 Europe/Rome, from the 10-minute cron): planned due, overdue unpaid, recurring
     drafts exactly once (AC 12), mailbox quota check, each run in `job_runs` with the last run
     shown in Settings; recurring templates UI with empty state; mailbox quota section (IMAP
     `GETQUOTAROOT` when Aruba supports it, else an estimate from the stored messages' sizes;
     configurable threshold, banner and push) and a prominent warning with a push when the
     mailbox login starts failing (AC 16). Tests: AC 12, 15 (cron parts), 16.
-19. **Backup.** Settings "Download backup" (reusing the step 13 export, JSON/ZIP including
-    the `files` content) plus a monthly cron reminder notification to download it; restore
-    procedure documented in the README next to D1 Time Travel. Test: export contains every
-    table.
+19. **Restore documentation.** No automatic backup and no reminder. README section on restoring:
+    D1 Time Travel point-in-time restore (7 days on the free plan) and the Settings "Download
+    all data" export from step 13 for manual use.
 20. **Hardening and release.** Remove the spike page and drop its throwaway `spike_kv` D1 table (`DROP TABLE spike_kv`, created at runtime, no migration); responsive and accessibility pass at
     375 px; secrets audit test (AC 4 full, including browser-side error reports); README
     deploy guide (Cloudflare resources, secrets, GitHub auto-deploy, subdomain, Resend DNS
@@ -326,7 +327,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
   step 2 probe; per-run caps, `waitUntil`, smaller fetches; manual AdE channel as fallback.
 - Mailbox full or password changed → polling and sending stop → quota warning and login-failure
   notification (step 18); manual AdE channel stays available.
-- Data loss on D1 → Time Travel plus the downloadable backup and its monthly reminder (step 19).
+- Data loss on D1 → Time Travel (7 days) plus the manual "Download all data" export; no automatic backup (step 19 documents the restore).
 
 ## Architecture
 
@@ -413,7 +414,7 @@ Approved: yes (2026-11-02)
 - [ ] 16. Courtesy email
 - [ ] 17. Push and notifications
 - [ ] 18. Cron jobs, recurring, mailbox quota
-- [ ] 19. Backup
+- [ ] 19. Restore documentation
 - [ ] 20. Hardening and release
 
 ### Verification
@@ -439,6 +440,8 @@ Approved: yes (2026-11-02)
 - Courtesy email through Resend, not Cloudflare Email Sending (needs Workers Paid) (2026-11-02).
 - Channel switch Openapi -> PEC (2026-11-02): Openapi needs a 50 EUR minimum top-up; the owner already has a free PEC mailbox (Aruba infrastructure, provided by the Ordine degli Ingegneri, used for nothing else, tied to the partita IVA), so cost goes to 0 EUR. `PEC_USERNAME`/`PEC_PASSWORD` are Worker secrets (one password for IMAP, SMTP and webmail: if stolen, the mailbox can be read and PEC sent as the owner; accepted for a single-user app, mitigated by a generated password, second factors and the per-send passkey). SMTP send via `worker-mailer` 1.3.0, MIME parsing via `postal-mime` 4.2.0, a minimal in-repo IMAP client; `imapflow` rejected (Node net/tls, heavy dependencies); polling cron `*/10 * * * *` (3 of 5 free cron triggers); credit section replaced by a mailbox quota warning; manual AdE portal channel kept as fallback; Openapi kept as a possible future channel (out of v1).
 - No notifications for non-SdI PEC messages: the app ignores them and the owner reads them in the Aruba app (2026-11-02).
+
+- Scheduling (2026-11-02): one cron trigger `*/10 * * * *` only; every run polls the mailbox and the daily jobs run once per Rome day from 09:00 Europe/Rome, tracked in `job_runs` with catch-up of missed ticks. No weekly job, no automatic backup and no monthly reminder: restore relies on D1 Time Travel and the manual "Download all data" export.
 
 ### Open questions
 - See "Open questions for the architecture phase" in the spec; most are assigned to the step 2 spike.

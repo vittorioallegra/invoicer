@@ -48,7 +48,7 @@ real invoices in December 2026, so the owner can decide whether to cancel FiC.
 | Backend | Cloudflare Worker (API) | Auth, data API, send authorization, PEC send (SMTP) and mailbox polling (IMAP), push sender, courtesy email sender |
 | Database | Cloudflare D1 | Profile, clients, invoices, events, settings |
 | Files | Cloudflare D1 (BLOBs, max 2 MB each) | Invoice XML, PDF, received invoice files, imports |
-| Scheduled jobs | Cloudflare Cron Triggers | Mailbox polling every 10 minutes, reminders, recurring drafts, weekly jobs |
+| Scheduled jobs | Cloudflare Cron Triggers | One `*/10 * * * *` trigger: mailbox polling every run; daily jobs (reminders, recurring drafts, quota) at 09:00 Europe/Rome |
 | SdI channel | The owner's PEC mailbox: SMTP send and IMAP polling over `cloudflare:sockets` (`worker-mailer`, `postal-mime`, a minimal in-repo IMAP client); defaults are Aruba's `smtps.pec.aruba.it:465` and `imaps.pec.aruba.it:993` | Send, SdI receipts, received invoices |
 | Email | Resend | Courtesy email from `no-reply@invoicer.vittorioallegra.com` (configurable) |
 | Push | Web Push (VAPID) | Notifications on iPhone (Home screen PWA, iOS 16.4+) and Mac browsers |
@@ -211,7 +211,7 @@ settle the open ones):
 
 - A recurring template stores client, lines, settings and a schedule: every N months
   (monthly, quarterly, yearly), day of month, start date, optional end date or count.
-- A daily cron job creates a `planned` draft for each occurrence N days ahead (default 3,
+- The daily job (09:00 Europe/Rome) creates a `planned` draft for each occurrence N days ahead (default 3,
   configurable) and notifies the owner. Drafts are never sent automatically.
 - Editing a template affects future occurrences only; pausing and deleting a template
   keeps the drafts already created.
@@ -472,6 +472,6 @@ The owner keeps FiC active until 2026-12-31, so a failed v1 costs no lost invoic
   first reply, and what that reply looks like (re-check against Allegato A and a real reply).
 - Maximum message size accepted by Aruba and by the SdI, against the 2 MB per-blob cap.
 - Web Push on iOS: delivery reliability for a Home screen PWA.
-- D1 Time Travel retention on the free plan, and an extra periodic export (a downloadable backup with a monthly reminder).
+- D1 Time Travel retention on the free plan (7 days expected); there is no automatic backup, only the manual "Download all data" export.
 - Whether FatturaPA amounts in a non-EUR currency need an EUR equivalent on the XML or PDF;
   check the current AdE specification.

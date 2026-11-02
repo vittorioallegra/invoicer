@@ -52,6 +52,10 @@ Skeleton: this section grows with every step; the complete guide is written in s
   checklist in `docs/notes/spike.md` (create D1, set secrets, generate VAPID keys, deploy, open
   `/spike`). The Worker is served on the custom domain (workers.dev is disabled), e.g.
   `https://invoicer.vittorioallegra.com/spike`.
+- Scheduling: a single cron trigger (`*/10 * * * *`) in `wrangler.jsonc`. Every run polls the PEC
+  mailbox; the daily jobs run once per day from the first run at or after 09:00 Europe/Rome
+  (missed runs are caught up). There is no automatic backup: restore with D1 Time Travel (step 19
+  documents it).
 
 ## Troubleshooting
 

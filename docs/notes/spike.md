@@ -27,9 +27,9 @@ Design notes and limits of the spike:
 - **Challenge.** Stateless (nonce + expiry + HMAC), 120 s TTL, not single-use. Step 5 stores
   single-use challenges in D1 (`send_challenges`); the spike only proves a signature over a
   server challenge bound to a given string verifies, and that a different binding is refused.
-- **Cron handlers** (mailbox polling, data export) do not exist yet (the `*/10 * * * *` trigger is
-  registered and dispatches to nothing); their CPU and subrequest counts are measured when steps 13,
-  18 and 19 are built (the plan keeps `waitUntil` / browser-side
+- **Cron handlers** (mailbox polling, daily jobs) do not exist yet (the single `*/10 * * * *` trigger is
+  registered; the daily jobs run from it at 09:00 Europe/Rome and dispatch to nothing yet); their CPU
+  and subrequest counts are measured when steps 13 and 18 are built (the plan keeps `waitUntil` / browser-side
   work as the fallback). Not covered here.
 - **`@pushforge/builder` 2.0.5 encrypts with the legacy `aesgcm` content encoding**
   (`Content-Encoding: aesgcm`, `Crypto-Key`/`Encryption` headers), not RFC 8291 `aes128gcm`.
