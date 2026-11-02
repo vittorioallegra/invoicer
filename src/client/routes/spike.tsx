@@ -4,6 +4,7 @@ import { startAuthentication, startRegistration } from "@simplewebauthn/browser"
 import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { ViewportDiagnostics } from "./viewport-diagnostics";
 
 type Outcome = "PASS" | "FAIL" | "INFO" | "SKIP";
 interface LogRow {
@@ -223,6 +224,8 @@ export function SpikePage() {
         Temporary page (removed in step 21). Device: {deviceLabel()}. Instructions:
         docs/notes/spike.md.
       </p>
+
+      <ViewportDiagnostics />
 
       <section className="flex flex-col gap-2">
         <h2 className="text-lg font-medium">Spike secret</h2>
