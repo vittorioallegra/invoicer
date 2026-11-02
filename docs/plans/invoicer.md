@@ -15,8 +15,8 @@ commands it ran green (e.g. `pnpm vitest run --project shared <file> --reporter=
 
 ### Milestone A — can issue real invoices
 
-Steps 1–13 are the shortest path to a real invoice sent through the production Openapi
-account (spec AC 21). Nothing from Milestone B blocks it. No calendar dates: before FiC's
+Steps 1–13 are the shortest path to a real invoice sent through the production PEC
+mailbox (spec AC 21). Nothing from Milestone B blocks it. No calendar dates: before FiC's
 renewal the owner decides, based on Milestone A, whether to cut over or renew FiC.
 
 1. **Scaffolding.** `package.json` (pnpm, lockfile committed, CI uses
@@ -32,7 +32,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    - Scripts: `dev`, `build`, `test`, `test:e2e`, `lint`, `typecheck`, `db:generate`,
      `db:migrate:local`, `db:migrate:remote`, `db:seed` (local demo data), `deploy`.
    - `.dev.vars.example` listing every secret/binding; local dev and `pnpm test` need no
-     external account (Openapi, Resend and push are off or mocked by default).
+     external account (the PEC mailbox, Resend and push are off or mocked by default).
    - API error contract: Hono `onError` returns problem+json with a stable `code` and a
      README anchor; typed client error in `src/shared`. Env validation per route group: a
      missing secret names the variable and the `wrangler secret put <NAME>` fix, never a
@@ -53,11 +53,11 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
      (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and the D1 ID as repository
      secrets/vars that generate the deploy config).
    - Security baseline: strict CSP (no inline script; `connect-src` self only: the browser
-     never calls Openapi), Origin check on state-changing `/api/*` calls, parsed external data rendered as
+     never talks to the PEC servers), Origin check on state-changing `/api/*` calls, parsed external data rendered as
      text only, stored originals served with `Content-Disposition: attachment` and
      `X-Content-Type-Options: nosniff`.
-   - One `scheduled` handler dispatching on `event.cron`, at most 2 cron triggers (the free
-     plan allows 5 per account).
+   - One `scheduled` handler dispatching on `event.cron`, at most 3 cron triggers (the free
+     plan allows 5 per account; mailbox polling `*/10 * * * *`, daily, weekly; Cloudflare day-of-week syntax, `SUN` not `0`).
    - README skeleton (deploy section grown by every later step). Create `CLAUDE.md` with the
      commands, including the single-test failures-only command.
    - Tests: health route, one i18n render, problem+json shape, missing-secret error.
@@ -66,35 +66,46 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    Mac Safari (same iCloud passkey) verifies in the Worker against a bound challenge; Web Push
    delivery with the app closed (iPhone Home screen PWA, Mac); CPU time per request, with a
    pass threshold below the 10 ms free-plan limit, for PBKDF2 password hashing at the reduced
-   iteration count, a passkey assertion verification, an Openapi POST from the Worker, Web Push
-   payload encryption (`@pushforge/builder`), a sample callback and the cron handlers
-   (reconciliation, data export, subrequest count under the free-plan cap); one send + simulated
-   receipt + simulated supplier invoice on the Openapi sandbox. Also record, from docs or the
-   sandbox: exact Openapi scope strings for the read and send tokens, callback retry and
-   signing behaviour, minimum top-up, `/simulate` behaviour, current codice destinatario,
-   D1 Time Travel retention on the free plan, the FatturaPA schema version in force, and
-   whether a non-EUR invoice needs an EUR equivalent (precondition for step 10, fixture d),
-   whether Openapi keeps our XML file name or renames it and whose fiscal ID goes in
-   `IT<id>`, and whether callbacks/list responses carry parsed fields of received P7M
-   invoices. For each CPU check that fails, the named fallback (browser-side work,
-   `waitUntil`) is chosen. Password hashing uses the highest PBKDF2 iteration count that fits
-   the limit (decided: reduced count, compensated by mandatory TOTP, a login rate limit and a
-   generated password, documented); moving to Workers Paid needs explicit owner approval. Results go to `docs/notes/spike.md`. **Manual checkpoint:** the owner
+   iteration count, a passkey assertion verification, Web Push payload encryption
+   (`@pushforge/builder`), `postal-mime` parsing of an SdI receipt, a PEC envelope and a large
+   invoice message, and the cron handlers (mailbox polling, data export, subrequest count under
+   the free-plan cap). A **PEC probe** behind `PEC_USERNAME`/`PEC_PASSWORD` (skipped with a clear
+   message when unset): IMAP login over `cloudflare:sockets`, list the latest N message headers,
+   `GETQUOTAROOT`, IMAP fetch + `postal-mime` parse of the newest message with its CPU time, and
+   an SMTP send of a test PEC (with a sample XML attachment) to the owner's own address through
+   `worker-mailer`. Also record, from docs or the real mailbox: Aruba IMAP/SMTP hosts, ports and
+   limits, whether QUOTA is supported, the SdI-by-PEC rules (first send address, assigned
+   address reply, receipt file naming, message size limits), D1 Time Travel retention on the free
+   plan, the FatturaPA schema version in force, and whether a non-EUR invoice needs an EUR
+   equivalent (precondition for step 10, fixture d). For each CPU check that fails, the named
+   fallback (browser-side work, `waitUntil`) is chosen. Password hashing uses the highest PBKDF2
+   iteration count that fits the limit (decided: reduced count, compensated by mandatory TOTP, a
+   login rate limit and a generated password, documented); moving to Workers Paid needs explicit
+   owner approval. Results go to `docs/notes/spike.md`. **Manual checkpoint:** the owner
    deploys (README skeleton) and runs the device checks; the plan is revised if a check
-   fails. Remove the spike page in step 20.
-3. **Data model.** Drizzle schema + first D1 migration: `profile`, `settings`, `clients`,
+   fails. Remove the spike page in step 20. Already built with the spike: the minimal IMAP client
+   (`src/worker/pec/imap.ts`, final location, reused by step 13) and PEC envelope parsing
+   (`src/worker/pec/envelope.ts`).
+3. **Data model.** Drizzle schema + first D1 migration: `profile`, `settings` (including the
+   mailbox cursor: UIDVALIDITY and last seen UID, and the SdI PEC address assigned by the SdI),
+   `clients`,
    `invoices` (TD01/TD04, state including `sending` and `rejected_expired`, state rank,
    payment flag, `number_raw` + parsed `number_int`, year, issue date, source
    `app`/`imported`; partial UNIQUE index on year + `number_int` where not null, covering app
    and imported invoices), `transmissions` (one row per attempt: file progressive, file
-   name, send-outcome `none`/`complete`/`unknown`, Openapi uuid, PDF/XML `files` ids, created
-   before the POST), `number_sequences` (one counter row per year) and `file_sequence`
-   (global file progressive counter), `invoice_lines`, `received_invoices` (unique on
-   Openapi uuid, `parse_status`, original file as a `files` id), `files` (id, kind
-   `xml`/`pdf`/`received`/`import`/`backup`, invoice / transmission or received-invoice
+   name, channel `pec`/`manual`, send-outcome `none`/`complete`/`unknown`, channel message id
+   (the PEC Message-ID), SdI PEC address used, PDF/XML `files` ids, created before the SMTP send),
+   `number_sequences` (one counter row per year) and `file_sequence`
+   (global file progressive counter), `invoice_lines`, `pec_messages` (every stored PEC message:
+   Message-ID, UIDVALIDITY, UID, kind `pec_receipt`/`sdi_message`/`received_invoice`/`ignored`,
+   parsed SdI message type, original file name, size, raw message as a `files` id, `processed_at`;
+   UNIQUE on Message-ID and on UIDVALIDITY + UID), `received_invoices` (unique on the source
+   `pec_messages` id, `parse_status`, original file as a `files` id), `files` (id, kind
+   `xml`/`pdf`/`received`/`import`/`backup`/`pec_raw`, invoice / transmission or received-invoice
    reference, filename, content type, size, sha256, `content` BLOB, created_at; CHECK size
    <= 2 MB, larger files are refused with a clear error; all file access goes through one
-   storage interface so R2 can be reintroduced later), `events` (callbacks, unique on source id, `processed_at`),
+   storage interface so R2 can be reintroduced later), `events` (SdI receipts and error events,
+   unique on source id, `processed_at`),
    `outbox` (email/push/notification side effects, UNIQUE on invoice + attempt + kind),
    `notifications`, `push_subscriptions`, `recurring_templates`, `recurring_occurrences`
    (unique on template + date), `email_log`, `job_runs` (job, started/finished, status,
@@ -104,18 +115,20 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    (TOTP + recovery codes) for the email + password fallback, PBKDF2 (Web Crypto) password
    hashing per the step 2 decision, login rate limit, first-run owner creation only with the
    `SETUP_TOKEN` Worker secret (the deploy is public before onboarding) and sign-up closed in
-   the same transaction, session middleware on `/api/*` except the webhook. Login and setup screens.
+   the same transaction, session middleware on `/api/*`. Login and setup screens.
    Tests: AC 2, 3; first run without `SETUP_TOKEN` refused.
-5. **Send authorization.** Both Openapi tokens are Worker secrets (`OPENAPI_READ_TOKEN`,
-   `OPENAPI_SEND_TOKEN`), set with `wrangler secret put`, never stored in D1, never returned
-   to the browser; Settings shows only whether each is configured. `src/worker/auth/send-
+5. **Send authorization.** The PEC credentials are Worker secrets (`PEC_USERNAME`,
+   `PEC_PASSWORD`), set with `wrangler secret put`, never stored in D1, never returned to the
+   browser; Settings shows only whether each is configured (hosts and ports are plain vars,
+   defaults `imaps.pec.aruba.it:993` and `smtps.pec.aruba.it:465`). The security model states
+   that the single password gives full mailbox access. `src/worker/auth/send-
    authorization`: `POST /api/invoices/:id/send-challenge` issues a single-use challenge
    bound to the invoice id and the SHA-256 of its final XML (short TTL); the browser answers
    with a passkey assertion (fallback: a fresh TOTP code); the Worker verifies it against the
    owner's registered passkeys (`@simplewebauthn/server`, user verification required) before
-   any Openapi call. Tests: valid assertion accepted once; replayed, expired, wrong-invoice
-   and wrong-XML-hash assertions refused; TOTP fallback; tokens never present in any API
-   response or log (AC 4 part).
+   any SMTP connection is opened. Tests: valid assertion accepted once; replayed, expired,
+   wrong-invoice and wrong-XML-hash assertions refused; TOTP fallback; PEC credentials never
+   present in any API response or log (AC 4 part).
 6. **Totals engine.** `src/shared/totals` working in integer cents: lines, VAT per rate,
    natura with legal texts, cassa/rivalsa in `excluded` and `included` modes, ritenuta, bollo
    rule, rounding to the cent, TD04 sign. Money parsing shared with `MoneyInput`: accepts
@@ -124,9 +137,9 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
 7. **Profile, onboarding, settings.** Issuer profile (RF list), payment defaults, next
    invoice number for the current year, AdE guide screen, email settings (sender name/address,
    Reply-To, BCC, mode), language. Setup checklist on Home (passkey, fallback login,
-   profile, Openapi setup, AdE guide, email): each item done/pending, persisted
-   server-side, resumable; "Send" is blocked with a stated reason until profile and Openapi
-   setup are done. First-run empty Home with a call to action.
+   profile, PEC setup, AdE guide, email): each item done/pending, persisted
+   server-side, resumable; "Send" is blocked with a stated reason until profile and PEC
+   setup (including a passing connection test) are done. First-run empty Home with a call to action.
 8. **Clients.** CRUD with type rules (codice destinatario defaults, required fields,
    P.IVA / codice fiscale format), empty state, inline client creation from the invoice
    editor. Tests: type rules. (FiC CSV import is step 14.)
@@ -164,60 +177,76 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
     validation errors to fields, unmapped errors under a "technical details" disclosure. EUR
     equivalent for non-EUR invoices per the step 2 finding. Tests: AC 6 for fixtures (a)–(g).
 11. **PDF.** `@react-pdf/renderer` document in IT/EN from the same i18n files, all reader-
-    relevant FatturaPA data and the legal note; "SANDBOX" watermark in sandbox mode.
+    relevant FatturaPA data and the legal note.
     Generated in the browser after the number is reserved and stored in `files` per
     invoice and transmission attempt (regenerated on resend; the email always uses the
     latest). Tests: AC 13 (language and payment data present, via text extraction).
-12. **Openapi channel and send flow.** `src/shared/channel` interface; Openapi implementation
-    in the Worker (`POST /invoices` with `OPENAPI_SEND_TOKEN`), setup wizard (exact scope
-    list for the two tokens and where to create them in the Openapi console; business
-    registry configuration and callback registration with the webhook secret header, done by
-    the Worker with a one-time admin token pasted in the wizard and used for that single
-    request, never stored), sandbox switch (persistent "SANDBOX" bar on every screen;
-    switching to production needs an explicit confirm screen).
+12. **PEC channel and send flow.** `src/shared/channel` interface; PEC implementation in the
+    Worker: sends the FatturaPA XML as a PEC attachment over SMTP (implicit TLS 465, `worker-
+    mailer` on `cloudflare:sockets`) with the secrets of step 5; file name
+    `IT<idcodice>_<progressive>.xml`; first send to `sdi01@pec.fatturapa.it`, afterwards to the
+    SdI PEC address stored in settings from the SdI's first reply (rule re-checked in the spike).
+    PEC settings screen (replaces the setup wizard): host and port presets for Aruba, editable,
+    where to set the secrets (commands shown), the security trade-off of the single password, and
+    a **connection test** (IMAP login + EXAMINE + quota, SMTP login without sending) with a clear
+    per-stage result. A **manual AdE channel** behind the same interface: export XML and PDF for
+    the portal upload, set the outcome by hand (delivered / not delivered / rejected with
+    error text), always available; receipts and received invoices from the portal ZIP come in
+    through the step 14 import. The mock channel serves `dev`.
     Send flow, in order: review screen → XSD validation with the provisional next number →
     Worker reserves the number and sets `sending` (step 9) → browser builds the final XML +
     PDF and uploads them → the final XML is XSD-validated again (a failure releases or keeps
     the number per step 9 and is a definite refusal) → send challenge bound to the final XML
     hash → passkey check (AC 5: cancelling before this point leaves the invoice unsent; the
     reserved number follows the release rule of step 9) → Worker verifies the assertion and
-    POSTs to Openapi → stores the Openapi uuid → `sent`. The file name is stored in D1 on the
-    transmission row before the POST. An invoice in `sending` with an unknown outcome
-    (Worker timeout, Openapi 5xx) is reconciled with the read token (lookup by file name, or
-    our own idempotency field if Openapi renames files) before any retry; "not found" unlocks a retry only after a quiet period (at least
-    15 minutes after the reserve), and every retry uses a new file progressive. An Openapi
-    error before the SdI (nothing transmitted) is retried with the same number and date and
-    no deadline; an SdI NS follows the rejected rules of step 9. Openapi
-    errors map to plain-language messages with a fix (top up credit, missing scope <name>,
-    configuration suspended → Reactivate); `Authorization` headers and token strings are
-    stripped from anything reported to the Worker or logged. Invoice detail page: state,
-    SdI errors, PDF/XML download, payment flag, credit note, duplicate, with the primary
-    action following the state (Send / Fix & resend / Mark paid). Tests: AC 5, AC 7 against
-    recorded sandbox responses in `tests/fixtures/openapi/` (also served by a mock channel in
-    `dev`); "POST ok, Worker fails before storing the uuid"; "Openapi 4xx after reserve";
-    send refused without a valid assertion; "timeout after reserve";
-    final-XML XSD failure after reserve; "not found" within the quiet period does not unlock
-    a retry; rejected → fix → resend with same number/date and new file name; Openapi error
-    vs SdI NS; one live sandbox test
-    behind `OPENAPI_SANDBOX_LIVE=1`.
-13. **Webhook and reconciliation.** `/api/webhooks/openapi` with secret header check (AC 8);
-    constant-time secret comparison and a body size cap; the event row, its state transition
-    and its side effects (outbox rows) commit in one D1 batch (dedupe only on processed
-    events); transitions are guarded UPDATEs on the state rank, so replays and stale
-    reconciliation results never move an invoice backwards; 2xx only after commit, 5xx on
-    failure so Openapi retries; state transitions RC/MC/NS/error; callbacks for an invoice
-    still in `sending` match by file name and move it forward; outbox processed in
-    `waitUntil` and retried from cron; supplier invoices stored with their original file in
-    `files`, with parsed fields from the callback if present, else `parse_status = pending` and
-    parsed by the browser on next open (viewing in step 14); unmatched events stored and
-    listed, never dropped. Daily reconciliation cron with the
-    read token (AC 9), also resolving `sending` invoices with an unknown outcome; each run
-    writes a `job_runs` row and a failure raises a notification. "Download all data" (JSON
+    sends the PEC over SMTP → stores the PEC Message-ID → the invoice stays `sending` until the
+    SdI mailbox's PEC delivery receipt arrives (step 13), then `sent`. The file name is stored
+    in D1 on the transmission row before the SMTP send. An invoice in `sending` with an unknown
+    outcome (Worker timeout, SMTP error after DATA) is resolved by the mailbox polling of step 13
+    (the sent message and its receipts are matched by file name) before any retry; "not found"
+    unlocks a retry only after a quiet period (at least 15 minutes after the reserve), and
+    every retry uses a new file progressive. A PEC error before the SdI (SMTP refusal, or a PEC
+    non-delivery message) is retried with the same number and date and no deadline; an SdI NS
+    follows the rejected rules of step 9. SMTP and PEC errors map to plain-language messages
+    with a fix (wrong password, mailbox full, SdI address missing); the password and SMTP
+    `AUTH` lines are stripped from anything reported to the Worker or logged. Invoice detail
+    page: state, SdI errors, PDF/XML download, payment flag, credit note, duplicate, with the
+    primary action following the state (Send / Fix & resend / Mark paid). Tests: AC 5, AC 7
+    against recorded SMTP/IMAP fixtures in `src/worker/pec/*fixtures.ts` and a fake socket; "SMTP ok,
+    Worker fails before storing the Message-ID"; "SMTP refusal after reserve"; send refused
+    without a valid assertion (no socket opened); "timeout after reserve"; final-XML XSD failure
+    after reserve; "not found" within the quiet period does not unlock a retry; rejected → fix →
+    resend with same number/date and new file name; PEC non-delivery vs SdI NS; one live test
+    behind `PEC_LIVE=1` that sends to the owner's own address.
+13. **Mailbox polling and SdI receipts.** The `*/10 * * * *` cron polls the mailbox with the
+    minimal IMAP client of step 2 (`src/worker/pec/imap.ts`): EXAMINE INBOX, compare UIDVALIDITY
+    with the stored cursor (a change triggers a safe rescan, deduplicated by Message-ID),
+    `UID SEARCH` for UIDs above the last seen one, `UID FETCH` with PEEK, no deletion and no flag
+    changes. Each new message is stored once (UNIQUE on Message-ID and on UIDVALIDITY + UID) as a
+    `pec_messages` row with its raw bytes in `files` (2 MB cap; an oversize message is recorded
+    as an error event with a notification, not fetched in full); the cursor advances only after
+    the commit. `postal-mime` parses the PEC envelope (`postacert.eml`, `daticert.xml`) and the
+    classifier separates PEC acceptance/delivery receipts and PEC non-delivery (mancata consegna)
+    from SdI messages (RC, MC, NS, and the SdI's first reply carrying the assigned PEC address,
+    which is stored in settings); anything else is stored as `ignored` with no notification.
+    SdI receipts match transmissions by the original file name (`<file>_RC_<nnn>.xml` etc.); the
+    PEC delivery receipt from the SdI mailbox moves `sending` to `sent`. The message row, its
+    state transition and its side effects (outbox rows) commit in one D1 batch; transitions are
+    guarded UPDATEs on the state rank, so replays and stale messages never move an invoice
+    backwards; outbox processed in `waitUntil` and retried from cron; received invoices (XML or
+    `.p7m`, attachments of `postacert.eml`) are stored with their original file in `files`,
+    `parse_status = pending` and parsed by the browser on next open (viewing in step 14);
+    unmatched SdI messages are stored and listed, never dropped. Polling is the reconciliation:
+    after downtime it resumes from the last UID; each run writes a `job_runs` row and a failure
+    (login, network, parse) raises a notification. Per run caps (messages and bytes) keep CPU and
+    subrequests within the free plan, continuing on the next run. "Download all data" (JSON
     export of every table) in Settings, so Milestone A does not rely only on D1 Time Travel.
-    Tests: AC 8, AC 9, "transition fails, retry ends in the correct state", out-of-order and
-    stale transitions, replay creates no second outbox row, callback while `sending`.
+    Tests: AC 7, AC 8, AC 9 with the IMAP transcripts and fake socket, "transition fails, retry
+    ends in the correct state", out-of-order and stale transitions, replay creates no second
+    outbox row, SdI receipt while `sending`, non-SdI mail ignored without notification,
+    UIDVALIDITY change.
     **Milestone A exit:** the owner sets the next number from FiC, sends one real invoice
-    through the production Openapi account, records it (AC 21), and the cutover runbook
+    through the production PEC mailbox, records it (AC 21), and the cutover runbook
     (README, written in this step) is followed.
 
 ### Milestone B — complete v1
@@ -241,14 +270,12 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
 17. **Push and notifications.** Web Push subscriptions and sender (`@pushforge/builder`,
     VAPID secret), service worker handler, deep link from a push to its invoice, per-type
     toggles, in-app notification list. Tests: AC 15 (push parts with mocks).
-18. **Cron jobs, recurring, credit.** Daily cron: planned due, overdue unpaid, recurring
-    drafts exactly once (AC 12), suspension check, each run in `job_runs` with the last run
-    shown in Settings; recurring templates UI with empty state; credit section with an
-    estimated balance (top-ups entered by the owner minus counted operations at a configurable
-    unit price; the Openapi account credentials are never stored), a link to the Openapi
-    console for the exact figure, threshold banner and push, suspension detection with a
-    Reactivate action using the read token (AC 16). Tests: AC 12,
-    15 (cron parts), 16.
+18. **Cron jobs, recurring, mailbox quota.** Daily cron: planned due, overdue unpaid, recurring
+    drafts exactly once (AC 12), mailbox quota check, each run in `job_runs` with the last run
+    shown in Settings; recurring templates UI with empty state; mailbox quota section (IMAP
+    `GETQUOTAROOT` when Aruba supports it, else an estimate from the stored messages' sizes;
+    configurable threshold, banner and push) and a prominent warning with a push when the
+    mailbox login starts failing (AC 16). Tests: AC 12, 15 (cron parts), 16.
 19. **Backup.** Settings "Download backup" (reusing the step 13 export, JSON/ZIP including
     the `files` content) plus a monthly cron reminder notification to download it; restore
     procedure documented in the README next to D1 Time Travel. Test: export contains every
@@ -256,7 +283,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
 20. **Hardening and release.** Remove the spike page and drop its throwaway `spike_kv` D1 table (`DROP TABLE spike_kv`, created at runtime, no migration); responsive and accessibility pass at
     375 px; secrets audit test (AC 4 full, including browser-side error reports); README
     deploy guide (Cloudflare resources, secrets, GitHub auto-deploy, subdomain, Resend DNS
-    SPF/DKIM/DMARC, Openapi and AdE setup, free-plan limits and the Workers Paid switch, owner
+    SPF/DKIM/DMARC, PEC and AdE setup, free-plan limits and the Workers Paid switch, owner
     hardening checklist, troubleshooting per error code) (AC 1, 19) with a timed fresh-account
     run; a check that the vendored XSD version still matches the AdE site; Playwright E2E for
     the two flows in the Testing Plan plus rejected → resend; update `CLAUDE.md`.
@@ -265,22 +292,27 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
 1. Import the FiC history (or at least set the next number for the year from FiC).
 2. Stop issuing in FiC; never issue in both tools in the same period.
 3. First real send through Invoicer (AC 21).
-4. Switch the codice destinatario on the AdE portal to Openapi's only once received
-   invoices are stored (step 13); rollback = switch it back to FiC's code while FiC is active.
+4. Register the PEC address on the AdE portal as the address for receiving invoices only once
+   mailbox polling stores received invoices (step 13); rollback = switch it back to FiC's code
+   while FiC is active.
 5. Keep FiC until 2026-12-31 as the fallback.
 
 ### Risks
 - December deadline → Milestone A first; FiC renewal stays the fallback.
-- Send token on the server: Cloudflare secrets are write-only in the dashboard, but whoever
-  can deploy code (Cloudflare or GitHub account) can use it → second factor on Cloudflare,
-  GitHub and Openapi, minimum token scopes, token rotation, low Openapi credit; every send
-  needs a passkey assertion verified by the Worker. A client-side vault was rejected: it
-  protects only against a D1 leak, not against a compromised deploy, at 1–1.5 days of cost.
+- PEC password on the server: one password for IMAP, SMTP and webmail, so no read/write split
+  exists. If stolen, someone can read the whole mailbox (including official notices sent to
+  this domicilio digitale) and send PEC with legal value as the owner. Cloudflare secrets are
+  write-only in the dashboard, but whoever can deploy code (Cloudflare or GitHub account) can
+  use it → unique long generated PEC password used only by the app, second factor on
+  Cloudflare and GitHub, rotation after any suspicion; every send needs a passkey assertion
+  verified by the Worker. A client-side vault was rejected: it protects only against a D1 leak,
+  not against a compromised deploy, at 1–1.5 days of cost.
 - Free-plan CPU limit (10 ms) → per-operation thresholds and fallbacks from step 2 (browser,
   `waitUntil`); Workers Paid (5 $/month) only with owner approval.
-- Send interrupted after Openapi accepted it → `sending` state, IndexedDB pending report,
-  reconciliation by file name before any retry (no duplicate transmission, no number gap).
-- Webhook processed partially → event, transition and outbox in one batch, 5xx on failure.
+- Send interrupted after the SMTP server accepted it → `sending` state, IndexedDB pending
+  report, mailbox polling matches by file name before any retry (no duplicate transmission, no number gap).
+- Message processed partially → message row, transition and outbox in one batch; the cursor
+  advances only after the commit, so a failed run is retried.
 - Number gaps or date-order breaks → guarded reserve batch, Europe/Rome dates, numbered
   invoices never deleted, release only of the highest number.
 - Public deploy before onboarding → owner creation needs `SETUP_TOKEN`.
@@ -290,23 +322,27 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
 - iOS Web Push reliability → in-app list and email-to-self stay as backups.
 - FatturaPA schema/spec drift → XSD vendored with its version recorded; version check in
   step 20 and before each tax season.
-- Openapi callback retries unknown → daily reconciliation covers missed callbacks.
+- IMAP/MIME work over the 10 ms CPU limit, or Aruba behaving differently from the docs →
+  step 2 probe; per-run caps, `waitUntil`, smaller fetches; manual AdE channel as fallback.
+- Mailbox full or password changed → polling and sending stop → quota warning and login-failure
+  notification (step 18); manual AdE channel stays available.
 - Data loss on D1 → Time Travel plus the downloadable backup and its monthly reminder (step 19).
 
 ## Architecture
 
 **Shape:** one TypeScript repo, one Cloudflare Worker that serves the SPA (static assets) and
 the API. The browser does the CPU-heavy work (XML, XSD validation, PDF, P7M); the Worker
-does auth, data, send authorization, all Openapi calls, webhooks, cron jobs, push and email.
+does auth, data, send authorization, PEC send (SMTP) and mailbox polling (IMAP), cron jobs,
+push and email.
 
 **Folders**
 - `src/client/` — React SPA: `routes/`, `components/` (incl. `ui/` from shadcn/ui), `pdf/`, `i18n/`.
-- `src/worker/` — Hono app: `routes/`, `auth/`, `jobs/` (cron), `webhooks/`, `push/`, `email/`.
+- `src/worker/` — Hono app: `routes/`, `auth/`, `jobs/` (cron), `pec/` (IMAP client, envelope parsing, SMTP send, polling), `push/`, `email/`.
 - `src/shared/` — pure domain code used by both: `totals/`, `fatturapa/`, `channel/`, `fixtures/`, errors, types, zod schemas.
 - `src/db/` — Drizzle schema; `migrations/` — D1 migrations.
 - `locales/{en,it}/` — i18n resources (UI, PDF, email).
 - `assets/xsd/` — official FatturaPA XSD.
-- `tests/` — Playwright E2E and `fixtures/openapi/` recorded responses; unit/integration tests live next to the code as `*.test.ts`.
+- `tests/` — Playwright E2E and `fixtures/pec/` recorded IMAP/SMTP transcripts and PEC messages; unit/integration tests live next to the code as `*.test.ts`.
 - `docs/` — specs, plans, notes.
 
 **Libraries (versions checked 2026-11-02)**
@@ -328,6 +364,9 @@ does auth, data, send authorization, all Openapi calls, webhooks, cron jobs, pus
 | i18n | i18next + react-i18next | 26.7 / 17.1 |
 | Push | @pushforge/builder | 2.0 |
 | Email | resend | 6.37 |
+| PEC send (SMTP over `cloudflare:sockets`) | worker-mailer | 1.3.0 |
+| PEC mail parsing | postal-mime | 4.2.0 |
+| PEC read (IMAP over `cloudflare:sockets`) | minimal in-repo client (`src/worker/pec/imap.ts`), no library | - |
 | Tests | Vitest + `@cloudflare/vitest-pool-workers`, Playwright | 5.0 / 0.23, 1.64 |
 | Lint / format | Biome | exact version pinned at step 1 |
 
@@ -335,7 +374,8 @@ does auth, data, send authorization, all Openapi calls, webhooks, cron jobs, pus
 - R2 for files: needs a payment card on the account; D1 BLOBs (2 MB per row, 5 GB total) cover the volume.
 - Supabase backend: inactivity pause, weak free backups, 25 $/month paid tier.
 - Netlify hosting: shared monthly credits with the portfolio could pause both sites.
-- PEC channel: password with full mailbox rights on the server, polling, 2–3 more days of work.
+- Openapi (paid intermediary): 50 EUR minimum top-up, running cost; kept as a possible future channel behind the channel interface.
+- `imapflow` for IMAP: relies on Node `net`/`tls` and heavy dependencies, risky on Workers; a minimal in-repo client covers the six commands needed.
 - Cloudflare Email Sending: needs Workers Paid (5 $/month); Resend free covers the volume.
 - Svelte / Preact: smaller bundles, but fewer ready libraries for PDF and i18n.
 - Custom auth (SimpleWebAuthn + otpauth): about one more day and more security code to own.
@@ -366,13 +406,13 @@ Approved: yes (2026-11-02)
 - [ ] 9. Invoice editor
 - [ ] 10. FatturaPA XML
 - [ ] 11. PDF
-- [ ] 12. Openapi channel and send flow
-- [ ] 13. Webhook and reconciliation (Milestone A exit: real send, cutover)
+- [ ] 12. PEC channel and send flow
+- [ ] 13. Mailbox polling and SdI receipts (Milestone A exit: real send, cutover)
 - [ ] 14. Received invoices and imports
 - [ ] 15. Lists and dashboard
 - [ ] 16. Courtesy email
 - [ ] 17. Push and notifications
-- [ ] 18. Cron jobs, recurring, credit
+- [ ] 18. Cron jobs, recurring, mailbox quota
 - [ ] 19. Backup
 - [ ] 20. Hardening and release
 
@@ -382,12 +422,12 @@ Approved: yes (2026-11-02)
 
 ### Decisions
 - Single-user, self-hosted deployment; generic public code, no owner data in the repo (2026-11-02).
-- SdI channel: Openapi SDI API behind a channel interface; PEC considered and rejected for v1 (password would sit on the server with full mailbox rights, more code, polling) (2026-11-02).
+- SdI channel: the owner's PEC mailbox behind a channel interface (SMTP send, IMAP polling every 10 minutes, manual AdE portal channel as fallback); Openapi was the first choice and is now a possible future channel (2026-11-02, superseded by the 2026-11-02 channel switch below).
 - Hosting: everything on Cloudflare free plan (Worker static assets + Worker API, D1, Cron Triggers, secrets); Supabase rejected (inactivity pause, weak free backups, higher paid tier) (2026-11-02).
 - Files: all files (invoice XML, PDF, received originals, imports) are stored in D1 BLOBs, not R2, which would need a payment card; D1 free plan 5 GB total, max 2 MB per file (a PDF is ~100 KB, an XML ~10 KB), larger files refused; files covered by Time Travel and the JSON export; R2 can come back behind the same storage interface (2026-11-02).
 - Domain: `invoicer.vittorioallegra.com`; project and repo name `invoicer` (2026-11-02).
 - Auth: passkey login, email + password + TOTP fallback, sign-up closed after the owner account (2026-11-02).
-- Openapi tokens: read and send tokens as Worker secrets with minimum scopes; every send needs a passkey assertion (TOTP fallback) verified by the Worker and bound to the invoice and its XML hash; Openapi account credentials are never stored, credit is estimated (2026-11-02, replaces the client-side vault).
+- Send authorization: every send needs a passkey assertion (TOTP fallback) verified by the Worker and bound to the invoice and its XML hash; it now gates the SMTP send (2026-11-02, replaces the client-side vault).
 - Fallback password hashing: reduced PBKDF2 iteration count fitting the free-plan CPU limit, compensated by mandatory TOTP, login rate limit and a generated password (2026-11-02).
 - No calendar dates in the plan: Milestone A first, owner decides on FiC renewal (2026-11-02).
 - Rejection after the 5-day window becomes `rejected_expired` and is reissued with a new number; the editor warns on late issuance (12 days immediate, 15th of next month deferred) (2026-11-02).
@@ -397,6 +437,8 @@ Approved: yes (2026-11-02)
 - UI and documents in English (base) and Italian via i18n (2026-10-31).
 - Frontend React 19 + TanStack, Better Auth for auth, @react-pdf/renderer for PDF, i18next for i18n; all other library choices as in Architecture (2026-11-02).
 - Courtesy email through Resend, not Cloudflare Email Sending (needs Workers Paid) (2026-11-02).
+- Channel switch Openapi -> PEC (2026-11-02): Openapi needs a 50 EUR minimum top-up; the owner already has a free PEC mailbox (Aruba infrastructure, provided by the Ordine degli Ingegneri, used for nothing else, tied to the partita IVA), so cost goes to 0 EUR. `PEC_USERNAME`/`PEC_PASSWORD` are Worker secrets (one password for IMAP, SMTP and webmail: if stolen, the mailbox can be read and PEC sent as the owner; accepted for a single-user app, mitigated by a generated password, second factors and the per-send passkey). SMTP send via `worker-mailer` 1.3.0, MIME parsing via `postal-mime` 4.2.0, a minimal in-repo IMAP client; `imapflow` rejected (Node net/tls, heavy dependencies); polling cron `*/10 * * * *` (3 of 5 free cron triggers); credit section replaced by a mailbox quota warning; manual AdE portal channel kept as fallback; Openapi kept as a possible future channel (out of v1).
+- No notifications for non-SdI PEC messages: the app ignores them and the owner reads them in the Aruba app (2026-11-02).
 
 ### Open questions
 - See "Open questions for the architecture phase" in the spec; most are assigned to the step 2 spike.
