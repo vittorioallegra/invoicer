@@ -1,33 +1,10 @@
 import { Hono } from "hono";
-import {
-  ApiError,
-  ERROR_CODES,
-  ERROR_TYPE_BASE,
-  type ErrorCode,
-  errorAnchor,
-} from "../shared/errors";
+import { ApiError } from "../shared/errors";
 import { type Bindings, featureStatus } from "./env";
+import { makeError, problemResponse } from "./problem";
 import { health } from "./routes/health";
 import { originCheck, securityHeaders } from "./security";
-
-export function problemResponse(error: ApiError): Response {
-  return new Response(JSON.stringify(error.problem), {
-    status: error.status,
-    headers: { "Content-Type": "application/problem+json" },
-  });
-}
-
-export function makeError(code: ErrorCode, detail?: string): ApiError {
-  const { status, title } = ERROR_CODES[code];
-  return new ApiError({
-    type: `${ERROR_TYPE_BASE}${code}`,
-    title,
-    status,
-    code,
-    anchor: errorAnchor(code),
-    ...(detail ? { detail } : {}),
-  });
-}
+import { spike, spikeCallback } from "./spike/routes";
 
 export function createApp() {
   const app = new Hono<{ Bindings: Bindings }>();
@@ -36,6 +13,9 @@ export function createApp() {
   app.use("/api/*", originCheck);
 
   app.route("/api/health", health);
+  // Temporary risk-spike routes (gated by SPIKE_SECRET); removed in step 20.
+  app.route("/api/spike", spike);
+  app.route("/api/webhooks/spike-callback", spikeCallback);
 
   // Which optional features are configured (never returns values).
   app.get("/api/features", (c) => c.json(featureStatus(c.env)));
@@ -54,5 +34,7 @@ export function createApp() {
 
   return app;
 }
+
+export { makeError, problemResponse };
 
 export const app = createApp();

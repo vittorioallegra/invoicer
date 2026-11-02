@@ -18,6 +18,8 @@ export interface Bindings {
   OPENAPI_READ_TOKEN?: string;
   OPENAPI_SEND_TOKEN?: string;
   WEBHOOK_SECRET?: string;
+  SPIKE_SECRET?: string;
+  OPENAPI_SANDBOX_TOKEN?: string;
   RESEND_API_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
 }
@@ -30,6 +32,8 @@ export const REQUIRED_SECRETS = {
   auth: ["BETTER_AUTH_SECRET", "SETUP_TOKEN"],
   openapi: ["OPENAPI_READ_TOKEN", "OPENAPI_SEND_TOKEN"],
   webhook: ["WEBHOOK_SECRET"],
+  // Temporary risk spike (step 2, removed in step 20).
+  spike: ["SPIKE_SECRET"],
 } as const satisfies Record<string, readonly (keyof Bindings)[]>;
 
 /** Optional features: when their secrets are missing they are "off" (settings banner). */
