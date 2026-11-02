@@ -4,6 +4,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { I18nextProvider } from "react-i18next";
 import { createI18n, detectLocale } from "./i18n";
+import { fixStandaloneViewport } from "./lib/standalone-viewport";
 import { createAppRouter } from "./router";
 import "./styles.css";
 
@@ -35,6 +36,8 @@ async function start() {
       </I18nextProvider>
     </StrictMode>,
   );
+
+  requestAnimationFrame(() => fixStandaloneViewport());
 
   // The service worker is registered in production builds only (never in `pnpm dev`).
   if (import.meta.env.PROD) {
