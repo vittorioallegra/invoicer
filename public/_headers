@@ -9,3 +9,6 @@
 
 /sw.js
   Cache-Control: no-cache
+
+/push-sw.js
+  Cache-Control: no-cache

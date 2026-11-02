@@ -35,6 +35,8 @@ export default defineConfig({
         // Shell only: the API is never served from the service worker cache.
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api\//],
+        // Push and notification-click handlers live in public/push-sw.js.
+        importScripts: ["/push-sw.js"],
         globPatterns: ["**/*.{js,css,html,svg,png,webmanifest}"],
       },
     }),
