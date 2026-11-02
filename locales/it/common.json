@@ -531,5 +531,75 @@
       "reissues": "Questa fattura riemette una fattura scartata.",
       "openOriginal": "Vedi la fattura scartata"
     }
+  },
+  "fatturapa": {
+    "fields": {
+      "issuer": {
+        "name": "Il tuo nome (profilo)",
+        "vatNumber": "La tua partita IVA (profilo)",
+        "taxCode": "Il tuo codice fiscale (profilo)",
+        "address": "Il tuo indirizzo (profilo)",
+        "postalCode": "Il tuo CAP (profilo)",
+        "city": "Il tuo comune (profilo)",
+        "province": "La tua provincia (profilo)",
+        "country": "Il tuo paese (profilo)",
+        "regimeFiscale": "Il tuo regime fiscale (profilo)"
+      },
+      "client": {
+        "name": "Nome del cliente",
+        "vatNumber": "Partita IVA o ID fiscale del cliente",
+        "taxCode": "Codice fiscale del cliente",
+        "address": "Indirizzo del cliente",
+        "postalCode": "CAP del cliente",
+        "city": "Comune del cliente",
+        "province": "Provincia del cliente",
+        "country": "Paese del cliente",
+        "recipientCode": "Codice destinatario del cliente",
+        "pec": "PEC del cliente"
+      },
+      "lines": {
+        "description": "descrizione",
+        "quantity": "quantità",
+        "unit": "unità",
+        "price": "prezzo",
+        "vat": "IVA o esenzione"
+      },
+      "invoice": {
+        "number": "Numero della fattura",
+        "date": "Data della fattura",
+        "currency": "Valuta",
+        "naturaText": "Testo di legge dell'esenzione",
+        "ritenuta": "Ritenuta d'acconto",
+        "bollo": "Bollo",
+        "cassa": "Contributo previdenziale",
+        "linked": "Fattura collegata"
+      },
+      "payment": {
+        "method": "Modalità di pagamento",
+        "dueDate": "Scadenza",
+        "iban": "IBAN",
+        "bic": "BIC",
+        "bankName": "Nome della banca",
+        "accountHolder": "Intestatario del conto"
+      }
+    },
+    "kinds": {
+      "required": "{{field}}: dato mancante.",
+      "invalid": "{{field}}: valore non valido.",
+      "too_long": "{{field}}: testo troppo lungo."
+    },
+    "lineKinds": {
+      "required": "Riga {{n}}: {{field}} mancante.",
+      "invalid": "Riga {{n}}: {{field}} non valida.",
+      "too_long": "Riga {{n}}: {{field}} troppo lunga."
+    },
+    "summary": "Il file della fattura elettronica non supera il controllo ufficiale. Correggi questi punti prima di inviare:",
+    "technical": "Dettagli tecnici",
+    "technicalHint": "Messaggi del controllo dello schema che non è stato possibile collegare a un campo:",
+    "buildErrors": {
+      "totals_incomplete": "Ogni riga ha bisogno di un'aliquota IVA o di un'esenzione prima di costruire la fattura.",
+      "exchange_rate_required": "Inserisci il cambio in euro: le fatture elettroniche sono scritte in euro.",
+      "exchange_rate_invalid": "Il cambio non è valido."
+    }
   }
 }

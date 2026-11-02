@@ -263,8 +263,16 @@ export interface RejectionInfo {
 
 /**
  * Editor field an SdI error code points at, so the error text can sit next to it: `client` for
- * recipient data (codes 00305, 00306, 00311, 00417) and `lines` for VAT/natura on the lines
- * (00400, 00401). Other codes have no single field and are only listed in the banner.
+ * recipient data and `lines` for VAT/natura on the lines. Other codes have no single field and
+ * are only listed in the banner.
+ *
+ * Checked against the official SdI controls (Allegato A, Specifiche tecniche, v1.6, section on the
+ * checks of the Sistema di Interscambio; verified 2026-11-02):
+ * - 00305 `1.4.1.1.2 <IdCodice>` of the cessionario/committente not valid (client);
+ * - 00306 `1.4.1.2 <CodiceFiscale>` of the cessionario/committente not valid (client);
+ * - 00311 `1.1.4 <CodiceDestinatario>` not valid (client recipient code);
+ * - 00417 `1.4.1.1 <IdFiscaleIVA>` and `1.4.1.2 <CodiceFiscale>` both missing (client);
+ * - 00400 Natura missing for a zero VAT rate, 00401 Natura present for a non-zero rate (lines).
  */
 export const SDI_ERROR_FIELDS: Readonly<Record<string, "client" | "lines">> = {
   "00305": "client",

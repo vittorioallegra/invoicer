@@ -531,5 +531,75 @@
       "reissues": "This invoice reissues a rejected one.",
       "openOriginal": "View the rejected invoice"
     }
+  },
+  "fatturapa": {
+    "fields": {
+      "issuer": {
+        "name": "Your name (profile)",
+        "vatNumber": "Your partita IVA (profile)",
+        "taxCode": "Your codice fiscale (profile)",
+        "address": "Your address (profile)",
+        "postalCode": "Your postal code (profile)",
+        "city": "Your city (profile)",
+        "province": "Your province (profile)",
+        "country": "Your country (profile)",
+        "regimeFiscale": "Your tax regime (profile)"
+      },
+      "client": {
+        "name": "Client name",
+        "vatNumber": "Client VAT or tax ID",
+        "taxCode": "Client codice fiscale",
+        "address": "Client address",
+        "postalCode": "Client postal code",
+        "city": "Client city",
+        "province": "Client province",
+        "country": "Client country",
+        "recipientCode": "Client recipient code",
+        "pec": "Client PEC"
+      },
+      "lines": {
+        "description": "description",
+        "quantity": "quantity",
+        "unit": "unit",
+        "price": "price",
+        "vat": "VAT or exemption"
+      },
+      "invoice": {
+        "number": "Invoice number",
+        "date": "Invoice date",
+        "currency": "Currency",
+        "naturaText": "Legal text for the exemption",
+        "ritenuta": "Withholding tax (ritenuta)",
+        "bollo": "Stamp duty (bollo)",
+        "cassa": "Social security contribution",
+        "linked": "Linked invoice"
+      },
+      "payment": {
+        "method": "Payment method",
+        "dueDate": "Due date",
+        "iban": "IBAN",
+        "bic": "BIC",
+        "bankName": "Bank name",
+        "accountHolder": "Account holder"
+      }
+    },
+    "kinds": {
+      "required": "{{field}} is missing.",
+      "invalid": "{{field}} is not valid.",
+      "too_long": "{{field}} is too long."
+    },
+    "lineKinds": {
+      "required": "Line {{n}}: the {{field}} is missing.",
+      "invalid": "Line {{n}}: the {{field}} is not valid.",
+      "too_long": "Line {{n}}: the {{field}} is too long."
+    },
+    "summary": "The e-invoice file does not pass the official check. Fix these before sending:",
+    "technical": "Technical details",
+    "technicalHint": "Messages from the schema check that could not be tied to a field:",
+    "buildErrors": {
+      "totals_incomplete": "Every line needs a VAT rate or an exemption before the invoice can be built.",
+      "exchange_rate_required": "Enter the EUR exchange rate: e-invoices are written in euro.",
+      "exchange_rate_invalid": "The exchange rate is not valid."
+    }
   }
 }

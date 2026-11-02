@@ -5,3 +5,4 @@ export * from "./file-name";
 export * from "./numbers";
 export * from "./parser";
 export * from "./text";
+export * from "./xsd-errors";

@@ -12,6 +12,7 @@ import {
   parseQuantityMilli,
   REJECTION_WINDOW_DAYS,
   rejectionDeadline,
+  SDI_ERROR_FIELDS,
   safeTotals,
 } from "./invoice";
 
@@ -181,5 +182,17 @@ describe("quantity parsing", () => {
     for (const bad of ["", "0", "-1", "1,2345", "abc", "1.2.3"]) {
       expect(parseQuantityMilli(bad)).toBeNull();
     }
+  });
+});
+
+describe("SdI error code fields", () => {
+  it("points the verified SdI codes at the client or the lines", () => {
+    // 00305/00306 cessionario IdCodice/CodiceFiscale, 00311 CodiceDestinatario, 00417 no fiscal id.
+    for (const code of ["00305", "00306", "00311", "00417"]) {
+      expect(SDI_ERROR_FIELDS[code], code).toBe("client");
+    }
+    // 00400/00401 Natura against AliquotaIVA.
+    for (const code of ["00400", "00401"]) expect(SDI_ERROR_FIELDS[code], code).toBe("lines");
+    expect(SDI_ERROR_FIELDS["00423"]).toBeUndefined();
   });
 });
