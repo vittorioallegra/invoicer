@@ -1,4 +1,4 @@
-// Temporary risk-spike page (plan step 2), removed in step 20. Hidden: not linked from the app.
+// Temporary risk-spike page (plan step 2), removed in step 21. Hidden: reached only through the temporary Diagnostics link in Settings.
 // Throwaway UI: English strings are intentionally not routed through i18n.
 import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
 import { useState } from "react";
@@ -220,7 +220,7 @@ export function SpikePage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">Risk spike</h1>
       <p className="text-sm text-muted-foreground">
-        Temporary page (removed in step 20). Device: {deviceLabel()}. Instructions:
+        Temporary page (removed in step 21). Device: {deviceLabel()}. Instructions:
         docs/notes/spike.md.
       </p>
 

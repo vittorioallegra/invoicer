@@ -28,7 +28,7 @@ export async function timed<T>(run: () => Promise<T> | T): Promise<{ value: T; c
 /**
  * Tiny JSON store in D1 for spike state (credentials, subscriptions, callbacks). The throwaway
  * `spike_kv` table is created at runtime, not by a migration, and dropped when the spike is
- * removed (step 20).
+ * removed (step 21).
  */
 async function ensureTable(env: Bindings): Promise<void> {
   await env.DB.exec(

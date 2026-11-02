@@ -85,7 +85,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    login rate limit and a generated password, documented); moving to Workers Paid needs explicit
    owner approval. Results go to `docs/notes/spike.md`. **Manual checkpoint:** the owner
    deploys (README skeleton) and runs the device checks; the plan is revised if a check
-   fails. Remove the spike page in step 20. Already built with the spike: the minimal IMAP client
+   fails. Remove the spike page in step 21. Already built with the spike: the minimal IMAP client
    (`src/worker/pec/imap.ts`, final location, reused by step 13) and PEC envelope parsing
    (`src/worker/pec/envelope.ts`).
 3. **Data model.** Drizzle schema + first D1 migration: `profile`, `settings` (including the
@@ -144,10 +144,10 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    setup (including a passing connection test) are done. First-run empty Home with a call to action.
 8. **Clients.** CRUD with type rules (codice destinatario defaults, required fields,
    P.IVA / codice fiscale format), empty state, inline client creation from the invoice
-   editor. Tests: type rules. (FiC CSV import is step 14.)
+   editor. Tests: type rules. (FiC CSV import is step 15.)
 9. **Invoice editor.** TD01 and TD04 (linked or not) editor using the totals engine:
    drafts, planned date, duplicate, payment flag, minimal "To issue" and "Issued" lists (full
-   dashboard in step 15). Layout: lines as stacked cards at 375 px and a table on desktop;
+   dashboard in step 16). Layout: lines as stacked cards at 375 px and a table on desktop;
    sticky totals footer with amount due and an expandable breakdown; cassa mode chip next to
    the totals; bollo as a dismissible suggestion. Live inline validation with zod rules that
    mirror the XSD and client-type rules (codice destinatario, natura needs a legal text,
@@ -194,7 +194,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
     per-stage result. A **manual AdE channel** behind the same interface: export XML and PDF for
     the portal upload, set the outcome by hand (delivered / not delivered / rejected with
     error text), always available; receipts and received invoices from the portal ZIP come in
-    through the step 14 import. The mock channel serves `dev`.
+    through the step 15 import. The mock channel serves `dev`.
     Send flow, in order: review screen → XSD validation with the provisional next number →
     Worker reserves the number and sets `sending` (step 9) → browser builds the final XML +
     PDF and uploads them → the final XML is XSD-validated again (a failure releases or keeps
@@ -237,7 +237,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
     guarded UPDATEs on the state rank, so replays and stale messages never move an invoice
     backwards; outbox processed in `waitUntil` and retried from cron; received invoices (XML or
     `.p7m`, attachments of `postacert.eml`) are stored with their original file in `files`,
-    `parse_status = pending` and parsed by the browser on next open (viewing in step 14);
+    `parse_status = pending` and parsed by the browser on next open (viewing in step 15);
     unmatched SdI messages are stored and listed, never dropped. Polling is the reconciliation:
     after downtime it resumes from the last UID; each run writes a `job_runs` row and a failure
     (login, network, parse) raises a notification. Per run caps (messages and bytes) keep CPU and
@@ -253,35 +253,43 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
 
 ### Milestone B — complete v1
 
-14. **Received invoices and imports.** Received invoice list and readable view (supplier,
+14. **UI polish: Liquid Glass.** Done once the real screens exist (after Milestone A), not
+    before. iOS 26-style floating translucent tab bar (rounded pill inset from the screen
+    edges, `backdrop-filter` blur + saturation, subtle highlight border, safe-area aware) and
+    the same glass treatment for sheets and the sticky totals footer, built from shared
+    tokens/utilities so every surface looks alike. Fallbacks: `prefers-reduced-transparency`
+    and no `backdrop-filter` support get an opaque surface; `prefers-reduced-motion` removes
+    transitions. Text contrast checked in light and dark over real screen content (WCAG AA).
+    Tests: a DOM test for the fallbacks' classes/media queries, plus a manual iPhone check.
+15. **Received invoices and imports.** Received invoice list and readable view (supplier,
     date, number, lines, totals, payment data, download of the original); P7M extraction
     (pkijs + asn1js); manual import of XML/P7M/ZIP (fflate) for received and historic issued
     invoices (stored `delivered`, read-only, "Imported" badge, numbers blocking reuse); FiC
     clients CSV import with preview and per-row errors (papaparse). Import result screen
     ("N imported, M skipped" with per-row/per-file reasons and duplicate-number conflicts),
     progress state for slow files. Tests: AC 10, AC 17.
-15. **Lists and dashboard.** To issue / Issued / Received, top strip counts, yearly and
+16. **Lists and dashboard.** To issue / Issued / Received, top strip counts, yearly and
     monthly totals (TD04 subtracted), filters, search, mark paid, overdue derivation,
     skeleton loading, empty and no-result states.
-16. **Courtesy email.** Resend from the Worker, driven by the outbox (exactly one email per
+17. **Courtesy email.** Resend from the Worker, driven by the outbox (exactly one email per
     invoice + attempt, Resend `Idempotency-Key`), with i18n subject/body templates, latest PDF +
     XML attached from `files`, From/Reply-To/BCC from settings; modes automatic (on delivered /
     not_delivered), ask (in-app card on the invoice and in the notification list opening an
     editable preview sheet with Send / Skip), manual resend; `email_log` shown as a timeline
     on the invoice detail; failure notification. Tests: AC 14 with Resend mocked.
-17. **Push and notifications.** Web Push subscriptions and sender (`@pushforge/builder`,
+18. **Push and notifications.** Web Push subscriptions and sender (`@pushforge/builder`,
     VAPID secret), service worker handler, deep link from a push to its invoice, per-type
     toggles, in-app notification list. Tests: AC 15 (push parts with mocks).
-18. **Daily jobs, recurring, mailbox quota.** Daily jobs (09:00 Europe/Rome, from the 10-minute cron): planned due, overdue unpaid, recurring
+19. **Daily jobs, recurring, mailbox quota.** Daily jobs (09:00 Europe/Rome, from the 10-minute cron): planned due, overdue unpaid, recurring
     drafts exactly once (AC 12), mailbox quota check, each run in `job_runs` with the last run
     shown in Settings; recurring templates UI with empty state; mailbox quota section (IMAP
     `GETQUOTAROOT` when Aruba supports it, else an estimate from the stored messages' sizes;
     configurable threshold, banner and push) and a prominent warning with a push when the
     mailbox login starts failing (AC 16). Tests: AC 12, 15 (cron parts), 16.
-19. **Restore documentation.** No automatic backup and no reminder. README section on restoring:
+20. **Restore documentation.** No automatic backup and no reminder. README section on restoring:
     D1 Time Travel point-in-time restore (7 days on the free plan) and the Settings "Download
     all data" export from step 13 for manual use.
-20. **Hardening and release.** Remove the spike page and drop its throwaway `spike_kv` D1 table (`DROP TABLE spike_kv`, created at runtime, no migration); responsive and accessibility pass at
+21. **Hardening and release.** Remove the spike page and drop its throwaway `spike_kv` D1 table (`DROP TABLE spike_kv`, created at runtime, no migration) and the temporary "Diagnostics" link at the bottom of the Settings screen (`pages.settings.diagnostics` in both locales) that leads to it; responsive and accessibility pass at
     375 px; secrets audit test (AC 4 full, including browser-side error reports); README
     deploy guide (Cloudflare resources, secrets, GitHub auto-deploy, subdomain, Resend DNS
     SPF/DKIM/DMARC, PEC and AdE setup, free-plan limits and the Workers Paid switch, owner
@@ -322,12 +330,12 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
 - Better Auth passkey plugin changes (fast release cadence) → pin exact versions.
 - iOS Web Push reliability → in-app list and email-to-self stay as backups.
 - FatturaPA schema/spec drift → XSD vendored with its version recorded; version check in
-  step 20 and before each tax season.
+  step 21 and before each tax season.
 - IMAP/MIME work over the 10 ms CPU limit, or Aruba behaving differently from the docs →
   step 2 probe; per-run caps, `waitUntil`, smaller fetches; manual AdE channel as fallback.
 - Mailbox full or password changed → polling and sending stop → quota warning and login-failure
-  notification (step 18); manual AdE channel stays available.
-- Data loss on D1 → Time Travel (7 days) plus the manual "Download all data" export; no automatic backup (step 19 documents the restore).
+  notification (step 19); manual AdE channel stays available.
+- Data loss on D1 → Time Travel (7 days) plus the manual "Download all data" export; no automatic backup (step 20 documents the restore).
 
 ## Architecture
 
@@ -409,13 +417,14 @@ Approved: yes (2026-11-02)
 - [ ] 11. PDF
 - [ ] 12. PEC channel and send flow
 - [ ] 13. Mailbox polling and SdI receipts (Milestone A exit: real send, cutover)
-- [ ] 14. Received invoices and imports
-- [ ] 15. Lists and dashboard
-- [ ] 16. Courtesy email
-- [ ] 17. Push and notifications
-- [ ] 18. Cron jobs, recurring, mailbox quota
-- [ ] 19. Restore documentation
-- [ ] 20. Hardening and release
+- [ ] 14. UI polish: Liquid Glass
+- [ ] 15. Received invoices and imports
+- [ ] 16. Lists and dashboard
+- [ ] 17. Courtesy email
+- [ ] 18. Push and notifications
+- [ ] 19. Cron jobs, recurring, mailbox quota
+- [ ] 20. Restore documentation
+- [ ] 21. Hardening and release
 
 ### Verification
 - qa: pending
@@ -441,6 +450,7 @@ Approved: yes (2026-11-02)
 - Channel switch Openapi -> PEC (2026-11-02): Openapi needs a 50 EUR minimum top-up; the owner already has a free PEC mailbox (Aruba infrastructure, provided by the Ordine degli Ingegneri, used for nothing else, tied to the partita IVA), so cost goes to 0 EUR. `PEC_USERNAME`/`PEC_PASSWORD` are Worker secrets (one password for IMAP, SMTP and webmail: if stolen, the mailbox can be read and PEC sent as the owner; accepted for a single-user app, mitigated by a generated password, second factors and the per-send passkey). SMTP send via `worker-mailer` 1.3.0, MIME parsing via `postal-mime` 4.2.0, a minimal in-repo IMAP client; `imapflow` rejected (Node net/tls, heavy dependencies); polling cron `*/10 * * * *` (3 of 5 free cron triggers); credit section replaced by a mailbox quota warning; manual AdE portal channel kept as fallback; Openapi kept as a possible future channel (out of v1).
 - No notifications for non-SdI PEC messages: the app ignores them and the owner reads them in the Aruba app (2026-11-02).
 
+- Liquid Glass styling after Milestone A, as a dedicated step 14 once the real screens exist (2026-11-02, owner request).
 - Scheduling (2026-11-02): one cron trigger `*/10 * * * *` only; every run polls the mailbox and the daily jobs run once per Rome day from 09:00 Europe/Rome, tracked in `job_runs` with catch-up of missed ticks. No weekly job, no automatic backup and no monthly reminder: restore relies on D1 Time Travel and the manual "Download all data" export.
 
 ### Open questions

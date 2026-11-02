@@ -13,7 +13,7 @@ export function createApp() {
   app.use("/api/*", originCheck);
 
   app.route("/api/health", health);
-  // Temporary risk-spike routes (gated by SPIKE_SECRET); removed in step 20.
+  // Temporary risk-spike routes (gated by SPIKE_SECRET); removed in step 21.
   app.route("/api/spike", spike);
 
   // Which optional features are configured (never returns values).

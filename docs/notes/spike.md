@@ -1,12 +1,12 @@
 # Step 2 — risk spike
 
 Status: code and desk research done (2026-11-02, revised for PEC); device checks pending (owner checklist below).
-The spike page and routes are temporary and are removed in step 20 (`src/worker/spike/`,
+The spike page and routes are temporary and are removed in step 21 (`src/worker/spike/`,
 `src/client/routes/spike.tsx`, the `/spike` route, `SPIKE_SECRET`). The PEC IMAP client
 (`src/worker/pec/imap.ts`), `envelope.ts` and `message-fixtures.ts` are not spike code: step 13 builds on
 them. The SdI channel is the owner's PEC mailbox (decision 2026-11-02, replacing Openapi); the app is
 reachable at `https://invoicer.vittorioallegra.com/spike` (custom domain, no workers.dev).
-`public/push-sw.js` (push and notification-click handlers) stays: step 17 builds on it.
+`public/push-sw.js` (push and notification-click handlers) stays: step 18 builds on it.
 
 ## What was built
 
@@ -161,7 +161,7 @@ tracked files permanently (the temporary config edit is reverted in step 3).
    sender addresses; they replace the hand-written fixtures in `src/worker/pec/message-fixtures.ts`
    and `imap.fixtures.ts` when step 13 starts.
 10. **Clean up:** `pnpm exec wrangler secret delete SPIKE_SECRET` (this switches the spike off) when
-    done, or leave it until step 20.
+    done, or leave it until step 21.
 
 ### Results (owner fills in)
 

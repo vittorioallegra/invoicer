@@ -24,7 +24,7 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
 ## Folders
 
 - `src/client/` — React SPA (`routes/`, `components/`, shadcn/ui in `components/ui/`, `lib/`, `i18n/`)
-- `src/worker/` — Hono API (`app.ts`, `env.ts`, `security.ts`, `routes/`, `jobs/`); `spike/` (temporary step 2 risk spike, removed in step 20); `pec/` (IMAP client, PEC envelope parsing; later send and polling); later auth, push, email
+- `src/worker/` — Hono API (`app.ts`, `env.ts`, `security.ts`, `routes/`, `jobs/`); `spike/` (temporary step 2 risk spike, removed in step 21); `pec/` (IMAP client, PEC envelope parsing; later send and polling); later auth, push, email
 - `src/shared/` — pure code used by both: errors (problem+json), CSP, formatting, invoice states; later totals, FatturaPA XML, channel
 - `src/db/` — Drizzle schema and local seed; `migrations/` — D1 migrations
 - `locales/{en,it}/` — i18n resources (UI, PDF, email)

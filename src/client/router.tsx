@@ -19,7 +19,7 @@ const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: "/received", component: ReceivedPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/clients", component: ClientsPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: SettingsPage }),
-  // Hidden risk-spike page (step 2), removed in step 20.
+  // Hidden risk-spike page (step 2), removed in step 21.
   createRoute({ getParentRoute: () => rootRoute, path: "/spike", component: SpikePage }),
   createRoute({
     getParentRoute: () => rootRoute,

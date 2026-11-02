@@ -33,7 +33,7 @@ Worker secrets (set with `wrangler secret put <NAME>`, never committed):
 | `PEC_USERNAME`, `PEC_PASSWORD` | PEC mailbox (IMAP polling, SMTP send); one password for everything, so it can read the whole mailbox and send PEC: use a unique generated one |
 | `RESEND_API_KEY` | courtesy email (optional) |
 | `VAPID_PRIVATE_KEY` | push notifications (optional); one-line JWK from `pnpm exec pushforge vapid` |
-| `SPIKE_SECRET` | temporary risk-spike page `/spike` (step 2, removed in step 20) |
+| `SPIKE_SECRET` | temporary risk-spike page `/spike` (step 2, removed in step 21) |
 
 Plain variables: `APP_ORIGIN`, `MAIL_FROM_ADDRESS`, `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, and the
 optional PEC server overrides `PEC_IMAP_HOST`/`PEC_IMAP_PORT` (default `imaps.pec.aruba.it`:993) and
@@ -41,7 +41,7 @@ optional PEC server overrides `PEC_IMAP_HOST`/`PEC_IMAP_PORT` (default `imaps.pe
 
 ## Deploy
 
-Skeleton: this section grows with every step; the complete guide is written in step 20.
+Skeleton: this section grows with every step; the complete guide is written in step 21.
 
 - GitHub Actions (`.github/workflows/deploy.yml`) runs install, lint, typecheck, test, build and
   the bundle check on every push; on `main` it then applies D1 migrations and deploys.
@@ -54,7 +54,7 @@ Skeleton: this section grows with every step; the complete guide is written in s
   `https://invoicer.vittorioallegra.com/spike`.
 - Scheduling: a single cron trigger (`*/10 * * * *`) in `wrangler.jsonc`. Every run polls the PEC
   mailbox; the daily jobs run once per day from the first run at or after 09:00 Europe/Rome
-  (missed runs are caught up). There is no automatic backup: restore with D1 Time Travel (step 19
+  (missed runs are caught up). There is no automatic backup: restore with D1 Time Travel (step 20
   documents it).
 
 ## Troubleshooting
