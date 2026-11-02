@@ -48,7 +48,10 @@
       "emptyTitle": "Ancora nessun cliente",
       "emptyBody": "Aggiungi un cliente per fatturargli."
     },
-    "settings": { "title": "Impostazioni" },
+    "settings": {
+      "title": "Impostazioni",
+      "diagnostics": "Diagnostica"
+    },
     "newInvoice": {
       "title": "Nuova fattura",
       "emptyTitle": "L'editor delle fatture arriva presto",

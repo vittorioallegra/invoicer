@@ -48,7 +48,10 @@
       "emptyTitle": "No clients yet",
       "emptyBody": "Add a client to invoice them."
     },
-    "settings": { "title": "Settings" },
+    "settings": {
+      "title": "Settings",
+      "diagnostics": "Diagnostics"
+    },
     "newInvoice": {
       "title": "New invoice",
       "emptyTitle": "The invoice editor is coming soon",
