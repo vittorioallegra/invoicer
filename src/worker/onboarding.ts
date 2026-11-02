@@ -9,7 +9,7 @@ import {
   type SendReadiness,
   sendReadiness,
 } from "../shared/onboarding";
-import { type Bindings, pecCredentialStatus } from "./env";
+import { type Bindings, isMockChannel, pecCredentialStatus } from "./env";
 
 /** The profile is usable for invoices when every field the XML needs is present. */
 export function isProfileComplete(
@@ -83,5 +83,14 @@ export async function loadOnboarding(env: Bindings, userId: string): Promise<Onb
  * the send flow (step 12) refuses to open any connection unless `ready`.
  */
 export async function loadSendReadiness(env: Bindings): Promise<SendReadiness> {
-  return sendReadiness(await loadFacts(env, null));
+  const facts = await loadFacts(env, null);
+  // The mock channel needs no mailbox: only the profile gates it.
+  if (isMockChannel(env)) {
+    return sendReadiness({
+      ...facts,
+      pecCredentials: { username: true, password: true },
+      pecTest: { ok: true, at: Date.now(), error: null },
+    });
+  }
+  return sendReadiness(facts);
 }

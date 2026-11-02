@@ -15,6 +15,8 @@ export interface Bindings {
   PEC_IMAP_PORT?: string;
   PEC_SMTP_HOST?: string;
   PEC_SMTP_PORT?: string;
+  /** `mock` serves local dev (no mail is sent); honoured only when APP_ORIGIN is localhost. */
+  SEND_CHANNEL?: string;
 
   // Secrets (set with `wrangler secret put <NAME>`).
   BETTER_AUTH_SECRET?: string;
@@ -81,4 +83,14 @@ export function featureStatus(env: Bindings): Record<OptionalFeature, boolean> {
 /** Whether each PEC credential is set; Settings shows this, never the values. */
 export function pecCredentialStatus(env: Bindings): { username: boolean; password: boolean } {
   return { username: isSet(env, "PEC_USERNAME"), password: isSet(env, "PEC_PASSWORD") };
+}
+
+/** The mock channel is for local development only: it needs an explicit var and a localhost origin. */
+export function isMockChannel(env: Bindings): boolean {
+  if (env.SEND_CHANNEL !== "mock" || !env.APP_ORIGIN) return false;
+  try {
+    return ["localhost", "127.0.0.1", "[::1]"].includes(new URL(env.APP_ORIGIN).hostname);
+  } catch {
+    return false;
+  }
 }

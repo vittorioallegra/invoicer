@@ -15,6 +15,12 @@ export const ERROR_CODES = {
   payload_too_large: { status: 413, title: "Payload too large" },
   rate_limited: { status: 429, title: "Too many requests" },
   internal_error: { status: 500, title: "Internal error" },
+  pec_auth_failed: { status: 502, title: "PEC login refused" },
+  pec_mailbox_full: { status: 502, title: "PEC mailbox full" },
+  pec_sdi_address_missing: { status: 502, title: "SdI address not accepted" },
+  pec_unavailable: { status: 502, title: "PEC server unavailable" },
+  pec_rejected: { status: 502, title: "PEC server refused the message" },
+  send_outcome_unknown: { status: 504, title: "Send outcome unknown" },
   missing_secret: { status: 503, title: "Server configuration incomplete" },
 } as const;
 

@@ -12,16 +12,16 @@ export type RetryDecision =
   | { allowed: false; reason: "already_sent" | "quiet_period"; retryAt?: number };
 
 /**
- * Whether a numbered invoice in `sending` may be sent again, from its attempts (oldest first).
- * - any attempt completed: it is out, resolved by the receipts, never resent here;
- * - latest attempt `none`: the server refused it, retry the same attempt (same file name);
- * - latest attempt `unknown`: only after the quiet period, and then with a new file progressive.
+ * Whether a numbered invoice in `sending` may be sent again, from its attempts (oldest first);
+ * only the latest attempt counts (earlier ones were rejected by the SdI or are resolved by the
+ * mailbox polling, which moves the invoice out of `sending`).
+ * - latest `complete`: it is out, resolved by the receipts, never resent here;
+ * - latest `none`: the server refused it, retry the same attempt (same file name);
+ * - latest `unknown`: only after the quiet period, and then with a new file progressive.
  */
 export function retryDecision(attempts: readonly AttemptState[], now: number): RetryDecision {
-  if (attempts.some((a) => a.outcome === "complete")) {
-    return { allowed: false, reason: "already_sent" };
-  }
   const latest = attempts.at(-1);
+  if (latest?.outcome === "complete") return { allowed: false, reason: "already_sent" };
   if (!latest || latest.outcome === "none") return { allowed: true, mode: "same_attempt" };
   const retryAt = latest.startedAt + QUIET_PERIOD_MS;
   if (now < retryAt) return { allowed: false, reason: "quiet_period", retryAt };

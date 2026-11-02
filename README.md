@@ -111,6 +111,35 @@ attempts and ten passkey attempts per minute.
 ### error-internal-error
 Unexpected server error. Check the Worker logs (`wrangler tail`); no secret values are logged.
 
+### error-pec-auth-failed
+The PEC server refused the username or password. Aruba needs the dedicated mail-client password
+(generated under "Manage PEC account"), not the webmail one. Set it again with
+`wrangler secret put PEC_PASSWORD`, then run the connection test in Settings > PEC mailbox.
+Nothing was sent.
+
+### error-pec-mailbox-full
+The PEC mailbox is over its quota, so the server refused the message. Free space in the mailbox
+(the Aruba webmail) and send again. Nothing was sent; the invoice keeps its number and date.
+
+### error-pec-sdi-address-missing
+The PEC server did not accept the SdI address. The first send goes to `sdi01@pec.fatturapa.it`;
+later sends go to the address the SdI named in its first reply. Check the address and the PEC
+setup, then send again. Nothing was sent.
+
+### error-pec-unavailable
+The PEC SMTP server could not be reached or refused the connection. Check the hosts and ports in
+Settings > PEC mailbox, then retry. Nothing was sent; the manual AdE channel stays available.
+
+### error-pec-rejected
+The PEC server refused the message with a permanent reply. Nothing was sent; retry, or use the
+manual AdE channel. The invoice keeps its number and date.
+
+### error-send-outcome-unknown
+The connection broke while the message was being handed over, so it may or may not have reached
+the SdI. The invoice stays in `sending`; the mailbox polling matches the sent message and its
+receipts by file name. If nothing is found, a resend (with a new file name) unlocks 15 minutes
+after the attempt.
+
 ### error-missing-secret
 A required Worker secret is not set. The response lists the variable names in `missing` and the
 fix in `fix`, for example `wrangler secret put PEC_PASSWORD`. Optional features (email,

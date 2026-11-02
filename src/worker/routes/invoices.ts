@@ -313,7 +313,7 @@ invoices.get("/:id/pdf", async (c) => {
   return new Response(file.content, {
     headers: {
       "Content-Type": file.contentType,
-      "Content-Disposition": `inline; filename="${file.filename}"`,
+      "Content-Disposition": `attachment; filename="${file.filename}"`,
       "Content-Length": String(file.size),
       "Cache-Control": "private, no-store",
     },
