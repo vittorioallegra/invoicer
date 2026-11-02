@@ -89,11 +89,21 @@ function OfflineBanner() {
   );
 }
 
+/** Inner scroll container: the document never scrolls (see styles.css); the router resets this on navigation. */
+export const SCROLL_CONTAINER_ID = "app-scroll";
+
 export function AppShell() {
   return (
-    <div className="flex min-h-dvh pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
+    <div
+      data-testid="app-shell-root"
+      className="fixed inset-0 flex h-dvh overflow-hidden bg-background pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]"
+    >
       <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div
+        id={SCROLL_CONTAINER_ID}
+        data-testid="app-scroll"
+        className="flex min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+      >
         <div
           aria-hidden
           data-testid="safe-area-top"
