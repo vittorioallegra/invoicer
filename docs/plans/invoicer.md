@@ -412,7 +412,7 @@ Approved: yes (2026-11-02)
 - [x] 6. Totals engine — `feat(totals): add the totals engine, money parsing, natura texts and fixtures a-g`
 - [x] 7. Profile, onboarding, settings — `feat(onboarding): add profile, settings, setup checklist and AdE guide screens`
 - [x] 8. Clients — `feat(clients): add client CRUD with type rules, defaults and a reusable client sheet`
-- [ ] 9. Invoice editor
+- [x] 9. Invoice editor — `feat(invoices): add the rejected and rejected_expired editor flows with deadline, SdI errors and reissue`
 - [ ] 10. FatturaPA XML
 - [ ] 11. PDF
 - [ ] 12. PEC channel and send flow
@@ -463,4 +463,4 @@ Approved: yes (2026-11-02)
 - Step 12: the PEC connection test (step 7) does IMAP only; add the SMTP login (no send) and the quota check. The spec wants editable IMAP/SMTP host/port presets in Settings, while step 5 made them plain env vars; decide in step 12 whether to wire the `settings` host/port columns.
 
 ### Next
-Step 9: Invoice editor.
+Step 10: FatturaPA XML.

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { Copy, FileMinus, Pencil, Send, Trash2 } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,6 +14,7 @@ import {
   invoiceEditability,
   issuanceTermWarning,
   PAYMENT_METHODS,
+  SDI_ERROR_FIELDS,
 } from "../../shared/invoice";
 import type { SendReadiness } from "../../shared/onboarding";
 import {
@@ -51,6 +52,7 @@ import {
   invoiceQuery,
   invoicesQuery,
   patchInvoice,
+  reissueInvoice,
   releaseNumber,
   updateInvoice,
 } from "../lib/invoices-api";
@@ -231,6 +233,14 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
     },
   });
 
+  const reissue = useMutation({
+    mutationFn: (id: string) => reissueInvoice(id),
+    onSuccess: async ({ invoice }) => {
+      await queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      void navigate({ to: "/invoices/$invoiceId", params: { invoiceId: invoice.id } });
+    },
+  });
+
   const creditNote = useMutation({
     mutationFn: (id: string) => createCreditNote(id),
     onSuccess: async ({ invoice }) => {
@@ -313,6 +323,73 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
           {record.releasable ? null : <p>{t("invoice.reserved.mustSend")}</p>}
         </Banner>
       ) : null}
+      {record?.state === "rejected" && record.rejection ? (
+        <Banner tone="danger">
+          <p className="font-medium">
+            {t("invoice.rejected.deadline", {
+              date: new Intl.DateTimeFormat(i18n.language, {
+                dateStyle: "medium",
+                timeStyle: "short",
+              }).format(new Date(record.rejection.deadline)),
+            })}
+          </p>
+          <p>{t("invoice.rejected.locked")}</p>
+          <ul className="mt-1 list-disc pl-5">
+            {record.rejection.errors.map((error) => (
+              <li key={`${error.code}-${error.description}`}>
+                {t("invoice.rejected.error", { code: error.code, text: error.description })}
+              </li>
+            ))}
+          </ul>
+        </Banner>
+      ) : null}
+      {record?.state === "rejected" && !record.rejection ? (
+        <Banner tone="danger">{t("invoice.rejected.noDetails")}</Banner>
+      ) : null}
+      {record?.state === "rejected_expired" ? (
+        <Banner
+          tone="danger"
+          action={
+            record.reissuedById ? (
+              <Link
+                to="/invoices/$invoiceId"
+                params={{ invoiceId: record.reissuedById }}
+                className="text-sm font-medium underline"
+              >
+                {t("invoice.rejected.openReissue")}
+              </Link>
+            ) : (
+              <Button
+                size="sm"
+                disabled={!online || reissue.isPending}
+                onClick={() => reissue.mutate(record.id)}
+              >
+                {t("invoice.rejected.reissue")}
+              </Button>
+            )
+          }
+        >
+          <p className="font-medium">{t("invoice.rejected.expired")}</p>
+          <p>{t("invoice.rejected.expiredBody")}</p>
+          {record.rejection?.errors.map((error) => (
+            <p key={`${error.code}-${error.description}`}>
+              {t("invoice.rejected.error", { code: error.code, text: error.description })}
+            </p>
+          ))}
+        </Banner>
+      ) : null}
+      {record?.reissuesInvoiceId ? (
+        <Banner tone="info">
+          {t("invoice.rejected.reissues")}{" "}
+          <Link
+            to="/invoices/$invoiceId"
+            params={{ invoiceId: record.reissuesInvoiceId }}
+            className="font-medium underline"
+          >
+            {t("invoice.rejected.openOriginal")}
+          </Link>
+        </Banner>
+      ) : null}
       {release.isError ? (
         <Banner tone="danger">{t("invoice.reserved.releaseFailed")}</Banner>
       ) : null}
@@ -374,6 +451,7 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
               </Button>
             ) : null}
           </div>
+          <SdiNotes record={record} field="client" />
           {client && clientProblems.length > 0 ? (
             <Banner tone="warning">
               <p className="font-medium">{t("invoice.client.incomplete")}</p>
@@ -499,6 +577,7 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
           <h2 id="inv-lines" className="text-base font-medium">
             {t("invoice.lines.title")}
           </h2>
+          <SdiNotes record={record} field="lines" />
           <InvoiceLines
             form={form}
             totals={totals}
@@ -849,5 +928,23 @@ function PaymentSection({ record, showNotes }: { record: InvoiceRecord; showNote
         {t("invoice.paid.save")}
       </Button>
     </section>
+  );
+}
+
+/** SdI error texts next to the field they concern (plain text, never markup). */
+function SdiNotes({ record, field }: { record: InvoiceRecord | null; field: "client" | "lines" }) {
+  const { t } = useTranslation();
+  const errors = (record?.state === "rejected" ? (record.rejection?.errors ?? []) : []).filter(
+    (error) => SDI_ERROR_FIELDS[error.code] === field,
+  );
+  if (errors.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1">
+      {errors.map((error) => (
+        <p key={error.code} role="alert" className="text-sm text-danger">
+          {t("invoice.rejected.error", { code: error.code, text: error.description })}
+        </p>
+      ))}
+    </div>
   );
 }

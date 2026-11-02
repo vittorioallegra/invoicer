@@ -507,7 +507,8 @@
       "planned": "Prevista il {{date}}",
       "toIssueTitle": "Da emettere",
       "toIssueEmpty": "Niente da emettere.",
-      "issuedEmpty": "Le fatture che invii compaiono qui."
+      "issuedEmpty": "Le fatture che invii compaiono qui.",
+      "resendBy": "Reinvia entro il {{date}}"
     },
     "reserved": {
       "title": "Numero riservato, non inviata",
@@ -517,6 +518,18 @@
       "releaseFailed": "Non è stato possibile rilasciare il numero.",
       "info": "Per questa fattura è riservato un numero ma non è ancora stata inviata.",
       "releaseConfirm": "Rilascia il numero"
+    },
+    "rejected": {
+      "deadline": "Correggi e reinvia entro il {{date}}. Dopo la fattura va riemessa con un nuovo numero.",
+      "locked": "Numero e data di emissione restano invariati. Si può modificare solo il contenuto.",
+      "error": "Errore SdI {{code}}: {{text}}",
+      "noDetails": "Lo SdI ha scartato questa fattura. I dettagli dell'errore non sono ancora arrivati.",
+      "expired": "Il termine per il reinvio è scaduto.",
+      "expiredBody": "Questa fattura scartata non si può più correggere e reinviare. Riemettila come nuova fattura con un nuovo numero e una nuova data; il vecchio numero resta registrato e non viene riutilizzato.",
+      "reissue": "Riemetti come nuova fattura",
+      "openReissue": "Apri la fattura riemessa",
+      "reissues": "Questa fattura riemette una fattura scartata.",
+      "openOriginal": "Vedi la fattura scartata"
     }
   }
 }

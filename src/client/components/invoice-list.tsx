@@ -46,6 +46,13 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
           {dateLine ? (
             <span className="block text-sm text-muted-foreground">{dateLine}</span>
           ) : null}
+          {invoice.state === "rejected" && invoice.rejectionDeadline !== null ? (
+            <span className="block text-sm text-danger">
+              {t("invoice.list.resendBy", {
+                date: formatDate(new Date(invoice.rejectionDeadline), locale),
+              })}
+            </span>
+          ) : null}
         </span>
         <span className="flex flex-col items-end gap-1">
           <span className="font-medium tabular-nums">

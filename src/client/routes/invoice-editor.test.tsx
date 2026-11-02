@@ -323,3 +323,46 @@ describe("Invoice editor", () => {
     expect(line.className).toContain("rounded-card");
   });
 });
+
+describe("Invoice editor, rejected invoices", () => {
+  const base = { number: "7", year: 2026, issueDate: "2026-03-01" };
+  const errors = [
+    { code: "00311", description: "CodiceDestinatario non valido" },
+    { code: "00999", description: "Altro errore" },
+  ];
+
+  it("keeps a rejected invoice editable with the deadline and the SdI error next to the field", async () => {
+    serve({
+      invoice: record({
+        ...base,
+        state: "rejected",
+        rejection: { at: 0, deadline: Date.now() + 86_400_000, errors },
+      }),
+    });
+    await renderEditor("/invoices/i1");
+    expect(await screen.findByText(/Fix and resend by/)).toBeTruthy();
+    expect(screen.getByText(/number and issue date stay the same/)).toBeTruthy();
+    expect((screen.getByLabelText("Description") as HTMLInputElement).disabled).toBe(false);
+    expect((screen.getByLabelText("Planned issue date") as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
+    // Listed in the banner and repeated next to the client field.
+    expect(screen.getAllByText("SdI error 00311: CodiceDestinatario non valido")).toHaveLength(2);
+    expect(screen.getAllByText("SdI error 00999: Altro errore")).toHaveLength(1);
+  });
+
+  it("offers only the reissue action once the window has closed", async () => {
+    serve({ invoice: record({ ...base, state: "rejected_expired" }) });
+    await renderEditor("/invoices/i1");
+    expect(await screen.findByText("The resend window has closed.")).toBeTruthy();
+    expect((screen.getByLabelText("Description") as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Reissue as new invoice" })).toBeTruthy();
+  });
+
+  it("links to the reissue draft when one already exists", async () => {
+    serve({ invoice: record({ ...base, state: "rejected_expired", reissuedById: "n2" }) });
+    await renderEditor("/invoices/i1");
+    expect(await screen.findByText("Open the reissued invoice")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Reissue as new invoice" })).toBeNull();
+  });
+});

@@ -261,6 +261,20 @@ export interface RejectionInfo {
   errors: { code: string; description: string }[];
 }
 
+/**
+ * Editor field an SdI error code points at, so the error text can sit next to it: `client` for
+ * recipient data (codes 00305, 00306, 00311, 00417) and `lines` for VAT/natura on the lines
+ * (00400, 00401). Other codes have no single field and are only listed in the banner.
+ */
+export const SDI_ERROR_FIELDS: Readonly<Record<string, "client" | "lines">> = {
+  "00305": "client",
+  "00306": "client",
+  "00311": "client",
+  "00417": "client",
+  "00400": "lines",
+  "00401": "lines",
+};
+
 /** An invoice as the API returns it. */
 export interface InvoiceRecord {
   id: string;

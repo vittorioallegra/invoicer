@@ -507,7 +507,8 @@
       "planned": "Planned {{date}}",
       "toIssueTitle": "To issue",
       "toIssueEmpty": "Nothing to issue.",
-      "issuedEmpty": "Invoices you send appear here."
+      "issuedEmpty": "Invoices you send appear here.",
+      "resendBy": "Resend by {{date}}"
     },
     "reserved": {
       "title": "Number reserved, not sent",
@@ -517,6 +518,18 @@
       "releaseFailed": "The number could not be released.",
       "info": "A number is reserved for this invoice but it was not sent yet.",
       "releaseConfirm": "Release number"
+    },
+    "rejected": {
+      "deadline": "Fix and resend by {{date}}. After that the invoice has to be reissued with a new number.",
+      "locked": "The number and issue date stay the same. Only the content can change.",
+      "error": "SdI error {{code}}: {{text}}",
+      "noDetails": "The SdI rejected this invoice. The error details have not been received yet.",
+      "expired": "The resend window has closed.",
+      "expiredBody": "This rejected invoice can no longer be corrected and resent. Reissue it as a new invoice with a new number and date; the old number stays recorded and is never reused.",
+      "reissue": "Reissue as new invoice",
+      "openReissue": "Open the reissued invoice",
+      "reissues": "This invoice reissues a rejected one.",
+      "openOriginal": "View the rejected invoice"
     }
   }
 }
