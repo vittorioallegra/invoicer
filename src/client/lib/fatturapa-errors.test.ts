@@ -23,8 +23,8 @@ describe("XSD problems in plain language", () => {
       "Line 2: the description is too long.",
     ]);
     expect(result.technical).toEqual(["Schemas validity error : something odd"]);
-    expect(describeBuildError(i18n.t, new FatturaBuildError("exchange_rate_required"))).toContain(
-      "exchange rate",
+    expect(describeBuildError(i18n.t, new FatturaBuildError("totals_incomplete"))).toContain(
+      "VAT rate",
     );
   });
 

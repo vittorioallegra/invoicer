@@ -22,7 +22,7 @@ export function describeXsdErrors(
   };
 }
 
-/** Message for a failed XML build (missing exchange rate, incomplete lines). */
+/** Message for a failed XML build (incomplete lines). */
 export function describeBuildError(t: TFunction, error: FatturaBuildError): string {
   return t(`fatturapa.buildErrors.${error.code}`);
 }

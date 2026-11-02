@@ -43,30 +43,3 @@ export function formatUnitPrice(amountCents: number, quantityMilli: number): str
   const fraction = pad(scaled % 100_000_000n, 8);
   return `${negative ? "-" : ""}${trimDecimals(`${whole}.${fraction}`)}`;
 }
-
-/** An exchange rate as an exact integer ratio: `units` of foreign currency per 1 EUR. */
-export interface ExchangeRate {
-  /** Rate multiplied by `10 ** scale`. */
-  scaled: bigint;
-  scale: number;
-  /** The rate as written in the XML (`1.0850`). */
-  text: string;
-}
-
-/** Parses `1.0850` or `1,0850` (positive, at most 8 decimals); null when invalid. */
-export function parseExchangeRate(input: string): ExchangeRate | null {
-  const text = input.trim().replace(",", ".");
-  const match = /^(\d{1,9})(?:\.(\d{1,8}))?$/.exec(text);
-  if (!match) return null;
-  const fraction = match[2] ?? "";
-  const scaled = BigInt(`${match[1]}${fraction}`);
-  if (scaled === 0n) return null;
-  return { scaled, scale: fraction.length, text: trimDecimals(`${match[1]}.${fraction}`) };
-}
-
-/** Converts cents of the foreign currency to euro cents (`foreign = EUR x rate`), half up. */
-export function convertToEurCents(foreignCents: number, rate: ExchangeRate): number {
-  const negative = foreignCents < 0;
-  const eur = divRoundBig(BigInt(Math.abs(foreignCents)) * 10n ** BigInt(rate.scale), rate.scaled);
-  return Number(eur) * (negative ? -1 : 1);
-}

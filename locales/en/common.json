@@ -597,9 +597,7 @@
     "technical": "Technical details",
     "technicalHint": "Messages from the schema check that could not be tied to a field:",
     "buildErrors": {
-      "totals_incomplete": "Every line needs a VAT rate or an exemption before the invoice can be built.",
-      "exchange_rate_required": "Enter the EUR exchange rate: e-invoices are written in euro.",
-      "exchange_rate_invalid": "The exchange rate is not valid."
+      "totals_incomplete": "Every line needs a VAT rate or an exemption before the invoice can be built."
     }
   }
 }

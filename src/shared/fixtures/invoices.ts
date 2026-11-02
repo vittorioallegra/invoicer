@@ -178,7 +178,7 @@ const c: InvoiceFixture = {
 
 /**
  * (d) Non-EU company, N2.1, currency USD. Totals are in USD; the stamp is not applied here
- * because it is a EUR amount (the EUR equivalent is verified with the XML in step 10).
+ * because it is a EUR amount (the XML keeps the original currency).
  */
 const d: InvoiceFixture = {
   id: "d",

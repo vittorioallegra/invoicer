@@ -214,3 +214,5 @@ PEC probe:
   parse full invoices (and P7M) in the browser; one message per cron invocation step with
   `waitUntil` where useful. If production runs still hit error 1102, the fallback is Workers Paid
   (5 $/month, owner approval needed).
+
+Owner decision (2026-11-02): non-EUR invoices are written in their original currency (`Divisa` = invoice currency), so the EUR-equivalent row above no longer applies.

@@ -490,5 +490,5 @@ The owner keeps FiC active until 2026-12-31, so a failed v1 costs no lost invoic
 - Maximum message size accepted by Aruba and by the SdI, against the 2 MB per-blob cap.
 - Web Push on iOS: delivery reliability for a Home screen PWA.
 - D1 Time Travel retention on the free plan (7 days expected); there is no automatic backup, only the manual "Download all data" export.
-- Whether FatturaPA amounts in a non-EUR currency need an EUR equivalent on the XML or PDF;
-  check the current AdE specification.
+- Decided (owner, 2026-11-02): non-EUR invoices keep their original currency in the XML
+  (`Divisa` = invoice currency, all amounts in that currency); no EUR conversion.

@@ -597,9 +597,7 @@
     "technical": "Dettagli tecnici",
     "technicalHint": "Messaggi del controllo dello schema che non è stato possibile collegare a un campo:",
     "buildErrors": {
-      "totals_incomplete": "Ogni riga ha bisogno di un'aliquota IVA o di un'esenzione prima di costruire la fattura.",
-      "exchange_rate_required": "Inserisci il cambio in euro: le fatture elettroniche sono scritte in euro.",
-      "exchange_rate_invalid": "Il cambio non è valido."
+      "totals_incomplete": "Ogni riga ha bisogno di un'aliquota IVA o di un'esenzione prima di costruire la fattura."
     }
   }
 }

@@ -79,7 +79,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    limits, whether QUOTA is supported, the SdI-by-PEC rules (first send address, assigned
    address reply, receipt file naming, message size limits), D1 Time Travel retention on the free
    plan, the FatturaPA schema version in force, and whether a non-EUR invoice needs an EUR
-   equivalent (precondition for step 10, fixture d). For each CPU check that fails, the named
+   equivalent (answered by the owner, see Decisions). For each CPU check that fails, the named
    fallback (browser-side work, `waitUntil`) is chosen. Password hashing uses the highest PBKDF2
    iteration count that fits the limit (decided: reduced count, compensated by mandatory TOTP, a
    login rate limit and a generated password, documented); moving to Workers Paid needs explicit
@@ -176,8 +176,8 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
     rejection keeps number and date but not the file name), parser for received XML; XSD
     validation with `xmllint-wasm` (official XSD vendored in `assets/xsd/`, version recorded
     in `CLAUDE.md`) in the browser before send and in tests; plain-language mapping of
-    validation errors to fields, unmapped errors under a "technical details" disclosure. EUR
-    equivalent for non-EUR invoices per the step 2 finding. Tests: AC 6 for fixtures (a)–(g).
+    validation errors to fields, unmapped errors under a "technical details" disclosure. Non-EUR
+    invoices stay in their own currency. Tests: AC 6 for fixtures (a)–(g).
 11. **PDF.** `@react-pdf/renderer` document in IT/EN from the same i18n files, all reader-
     relevant FatturaPA data and the legal note.
     Generated in the browser after the number is reserved and stored in `files` per
@@ -458,13 +458,12 @@ Approved: yes (2026-11-02)
 - Spike results (docs/notes/spike.md): passkey and Web Push pass on iPhone (iOS 27) and Mac; PBKDF2 at 10,000 iterations; Aruba needs a dedicated mail-client password; the mailbox poll fetches only small MIME parts in the Worker and leaves full invoice/P7M parsing to the browser (2026-11-02).
 - FatturaPA XML (step 10, 2026-11-02): XSD v1.2.3 (FPR12; the same file covers FPA12) vendored from fatturapa.gov.it with its SHA-256 in `assets/xsd/README.md`, plus the W3C xmldsig schema it imports; `validateFatturaXml` rewrites the import location in memory because xmllint-wasm does no network access. File names are `IT<idCodice>_<5 base-36 digits>.xml` (upper case), the counter is `file_sequence`, one new value per transmission attempt (`addTransmissionAttempt` for resends), the same string is the `ProgressivoInvio`. Parties are written with `Denominazione` only (the profile and client have a single name field); foreign clients get CAP 00000, no province, and a non-EU client without a tax id gets `IdCodice` 0000000.
 - Natura legal text placement (step 10): `RiferimentoNormativo` is limited to 100 characters, so a text that fits goes there whole; a longer one is shortened to its citation (from "art." on, cut at a word boundary with "..." if still too long) and the complete text is written in `Causale` (200-character pieces). The PDF always prints the full text. Free `notes` stay internal and never go into the XML.
-- Non-EUR invoices (step 10): the XML is always in euro (`Divisa` EUR). Allegato A (v1.6) allows any ISO 4217 `Divisa`, so the EUR rule rests on the AdE practice reported by secondary sources in the spike (taxable amount, VAT and total in euro); the foreign amounts are kept as `AltriDatiGestionali` per line (`VALUTA` with the original amount, `CAMBIO` with the rate on the first line) and a `Causale` states the rate. Each typed line amount is converted once at the rate (units of foreign currency per 1 EUR, half-up) and the totals engine then runs in euro. Bollo is a EUR amount, so with the XML in euro it is simply 2.00 in `DatiBollo` and in the total; it is only ever emitted as `DatiBollo` (no N1 charge line).
+- Non-EUR invoices (2026-11-02, owner): the XML uses Divisa = invoice currency with amounts in that currency, as Allegato A allows; no EUR conversion.
 - SdI error codes (step 10): the codes of `SDI_ERROR_FIELDS` were checked against Allegato A v1.6 (00305 IdCodice, 00306 CodiceFiscale, 00417 no fiscal id of the cessionario; 00311 CodiceDestinatario; 00400/00401 Natura against AliquotaIVA); the mapping was already right and is now documented and tested.
 
 ### Open questions
 - See "Open questions for the architecture phase" in the spec; most are assigned to the step 2 spike.
-- Bollo on non-EUR invoices (fixture d): the XML is now in euro, so the builder writes the 2.00 EUR stamp whenever `data.bollo` is set; the editor still suggests nothing for a non-EUR invoice and fixture d keeps bollo off. Decide in step 12 whether the editor/PDF show it in euro.
-- Non-EUR invoices need an exchange rate (units of foreign currency per 1 EUR) that the editor does not collect yet: `buildFatturaXml` refuses without one (`exchange_rate_required`). Step 12 (review screen) must ask for it and store it with the invoice. The EUR-in-XML rule is still unconfirmed against the SdI itself; check on the first non-EUR send.
+- Bollo on non-EUR invoices (fixture d): the stamp is a EUR amount; the editor suggests nothing for a non-EUR invoice and fixture d keeps bollo off. The builder writes 2.00 in `DatiBollo` whenever `data.bollo` is set. Decide in step 12 how the editor/PDF handle it.
 - Step 12 wires the browser side of XSD validation: a small client loader that imports the vendored XSD with Vite `?raw` and calls `validateFatturaXml`, and a check that xmllint-wasm's browser worker bundles under Vite (not exercised yet: nothing in the client imports it, and the Worker bundle check passes).
 - Step 12: the PEC connection test (step 7) does IMAP only; add the SMTP login (no send) and the quota check. The spec wants editable IMAP/SMTP host/port presets in Settings, while step 5 made them plain env vars; decide in step 12 whether to wire the `settings` host/port columns.
 

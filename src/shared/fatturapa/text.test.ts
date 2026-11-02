@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  convertToEurCents,
-  formatBasisPoints,
-  formatCents,
-  formatQuantity,
-  formatUnitPrice,
-  parseExchangeRate,
-} from "./numbers";
+import { formatBasisPoints, formatCents, formatQuantity, formatUnitPrice } from "./numbers";
 import { chunkText, naturaReference, toLatin } from "./text";
 
 describe("number formatting", () => {
@@ -25,18 +18,6 @@ describe("number formatting", () => {
     expect(formatUnitPrice(96153, 1000)).toBe("961.53");
     expect(formatUnitPrice(10000, 3000)).toBe("33.33333333");
     expect(formatUnitPrice(1, 1000)).toBe("0.01");
-  });
-
-  it("parses exchange rates and converts half up", () => {
-    expect(parseExchangeRate("1,0850")?.text).toBe("1.085");
-    expect(parseExchangeRate("1")?.text).toBe("1.00");
-    for (const bad of ["", "0", "-1", "1.2.3", "abc", "1.123456789"]) {
-      expect(parseExchangeRate(bad), bad).toBeNull();
-    }
-    const rate = parseExchangeRate("1.0850");
-    if (!rate) throw new Error("rate");
-    expect(convertToEurCents(250000, rate)).toBe(230415);
-    expect(convertToEurCents(0, rate)).toBe(0);
   });
 });
 

@@ -20,8 +20,6 @@ export const FIXTURE_ISSUER: Omit<FatturaIssuer, "regimeFiscale"> = {
 /** Fixture issue date and number; the TD04 fixture links to fixture (a) at its own number/date. */
 export const FIXTURE_NUMBER = "2";
 export const FIXTURE_ISSUE_DATE = "2026-04-20";
-/** Exchange rate of the USD fixture (units of USD per 1 EUR). */
-export const FIXTURE_USD_RATE = "1.0850";
 
 function fixtureClient(fixture: InvoiceFixture): FatturaClient {
   const { client } = fixture;
@@ -80,6 +78,5 @@ export function fixtureToFatturaInput(fixture: InvoiceFixture, fileProgressive =
     linked: fixture.linkedInvoice
       ? { number: fixture.linkedInvoice.number, issueDate: fixture.linkedInvoice.date }
       : null,
-    exchangeRate: fixture.currency === "EUR" ? null : FIXTURE_USD_RATE,
   };
 }

@@ -58,7 +58,7 @@ describe("AC 6: fixtures (a)-(g) produce XML that passes the official XSD", () =
       expect(cents(doc?.payments[0]?.amount)).toBe(totals.amountDueCents);
       expect(parsed.transmission.progressive).toBe("00007");
       expect(doc?.documentType).toBe(item.documentType);
-      expect(doc?.currency).toBe("EUR");
+      expect(doc?.currency).toBe(item.currency);
     });
   }
 });
@@ -105,44 +105,19 @@ describe("fixture specifics", () => {
     expect(xml).toContain("<Natura>N2.1</Natura>");
   });
 
-  it("(d) a USD invoice is written in euro at the stated rate, with the USD amounts for management", () => {
+  it("(d) a USD invoice is written in USD with the fixture's own totals", () => {
     const { xml, totals } = build("d");
-    // 2,500.00 USD / 1.0850 = 2,304.15 EUR and 1,439.97 USD / 1.0850 = 1,327.16 EUR.
     expect(totals).toMatchObject({
-      currency: "EUR",
-      taxableCents: 363131,
-      documentTotalCents: 363131,
+      currency: "USD",
+      taxableCents: fixture("d").expected.taxableCents,
+      documentTotalCents: fixture("d").expected.documentTotalCents,
       stampCents: 0,
     });
-    expect(xml).toContain("<Divisa>EUR</Divisa>");
-    expect(xml).toContain("<PrezzoTotale>2304.15</PrezzoTotale>");
-    expect(xml).toContain("<PrezzoTotale>1327.16</PrezzoTotale>");
-    expect(xml).toContain("<TipoDato>CAMBIO</TipoDato>");
-    expect(xml).toContain("<RiferimentoNumero>1.085</RiferimentoNumero>");
-    expect(xml).toContain("<RiferimentoTesto>USD</RiferimentoTesto>");
-    expect(xml).toContain("<RiferimentoNumero>2500.00</RiferimentoNumero>");
-    expect(xml).toContain("<RiferimentoNumero>1439.97</RiferimentoNumero>");
-    expect(xml).toContain("1 EUR = 1.085 USD");
-  });
-
-  it("(d) at a rate of 1 the euro figures equal the fixture's expected totals", () => {
-    const { totals } = buildFatturaXml({
-      ...fixtureToFatturaInput(fixture("d")),
-      exchangeRate: "1",
-    });
-    expect(totals.taxableCents).toBe(fixture("d").expected.taxableCents);
-    expect(totals.documentTotalCents).toBe(fixture("d").expected.documentTotalCents);
-  });
-
-  it("(d) refuses a foreign currency without a usable rate", () => {
-    const input = fixtureToFatturaInput(fixture("d"));
-    expect(() => buildFatturaXml({ ...input, exchangeRate: null })).toThrow(
-      /exchange_rate_required/,
-    );
-    expect(() => buildFatturaXml({ ...input, exchangeRate: "abc" })).toThrow(
-      /exchange_rate_invalid/,
-    );
-    expect(() => buildFatturaXml({ ...input, exchangeRate: "0" })).toThrow(/exchange_rate_invalid/);
+    expect(xml).toContain("<Divisa>USD</Divisa>");
+    expect(xml).toContain("<PrezzoTotale>2500.00</PrezzoTotale>");
+    expect(xml).toContain("<PrezzoTotale>1439.97</PrezzoTotale>");
+    expect(xml).not.toContain("AltriDatiGestionali");
+    expect(xml).not.toContain("<Causale>");
   });
 
   it("(e) cassa TC04 is subject to VAT but not to the ritenuta", () => {

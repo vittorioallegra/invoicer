@@ -2,26 +2,15 @@ import { XMLBuilder } from "fast-xml-parser";
 import type { ClientData } from "../client";
 import { type InvoiceBody, invoiceTotalsInput } from "../invoice";
 import type { ProfileData } from "../profile";
-import { computeTotals, type Natura, type Totals, type TotalsInput } from "../totals";
+import { computeTotals, type Natura, type Totals } from "../totals";
 import { encodeFileProgressive, fatturaFileName } from "./file-name";
-import {
-  convertToEurCents,
-  type ExchangeRate,
-  formatBasisPoints,
-  formatCents,
-  formatQuantity,
-  formatUnitPrice,
-  parseExchangeRate,
-} from "./numbers";
+import { formatBasisPoints, formatCents, formatQuantity, formatUnitPrice } from "./numbers";
 import { CAUSALE_MAX, chunkText, naturaFullText, naturaReference, toLatin } from "./text";
 
 export const FATTURAPA_NAMESPACE = "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2";
 export const FATTURAPA_FORMAT = "FPR12";
 
-export type FatturaBuildErrorCode =
-  | "totals_incomplete"
-  | "exchange_rate_required"
-  | "exchange_rate_invalid";
+export type FatturaBuildErrorCode = "totals_incomplete";
 
 export class FatturaBuildError extends Error {
   constructor(readonly code: FatturaBuildErrorCode) {
@@ -75,18 +64,13 @@ export interface FatturaInput {
   fileProgressive: number;
   /** TD04 only: the corrected invoice (DatiFattureCollegate). */
   linked?: { number: string; issueDate: string } | null;
-  /**
-   * Units of the invoice currency per 1 EUR (`1.0850`), required when the currency is not EUR:
-   * the XML is always in euro (see `docs/plans/invoicer.md`, Decisions).
-   */
-  exchangeRate?: string | null;
 }
 
 export interface FatturaResult {
   xml: string;
   /** `IT<idCodice>_<progressive>.xml`, equal to the `ProgressivoInvio` in the header. */
   fileName: string;
-  /** Totals in euro, as written in the XML. */
+  /** Totals in the invoice currency, as written in the XML. */
   totals: Totals;
 }
 
@@ -108,38 +92,13 @@ function node(fields: Record<string, unknown>): Node {
 const groupKeyOf = (line: { vatRateBp: number | null; natura: Natura | null }) =>
   line.natura !== null ? `natura:${line.natura}` : `vat:${line.vatRateBp}`;
 
-/** Totals (in euro) and the data of each line, converting a foreign-currency invoice. */
-function planAmounts(invoice: FatturaInvoice, exchangeRate: string | null | undefined) {
-  const base: TotalsInput = invoiceTotalsInput(invoice);
-  let rate: ExchangeRate | null = null;
-  let foreignLineCents: number[] | null = null;
-  let totals: Totals;
+/** Totals of the invoice, in its own currency. */
+function planTotals(invoice: FatturaInvoice): Totals {
   try {
-    if (invoice.currency === "EUR") {
-      totals = computeTotals(base);
-    } else {
-      if (!exchangeRate?.trim()) throw new FatturaBuildError("exchange_rate_required");
-      rate = parseExchangeRate(exchangeRate);
-      if (!rate) throw new FatturaBuildError("exchange_rate_invalid");
-      const foreign = computeTotals(base);
-      foreignLineCents = foreign.lines.map((line) => line.amountCents);
-      const eurRate = rate;
-      totals = computeTotals({
-        ...base,
-        currency: "EUR",
-        // Each typed line amount is converted once; the engine then splits and rounds in euro.
-        lines: base.lines.map((line, index) => ({
-          ...line,
-          quantityMilli: 1000,
-          unitPriceCents: convertToEurCents(foreign.lines[index]?.amountCents ?? 0, eurRate),
-        })),
-      });
-    }
-  } catch (error) {
-    if (error instanceof FatturaBuildError) throw error;
+    return computeTotals(invoiceTotalsInput(invoice));
+  } catch {
     throw new FatturaBuildError("totals_incomplete");
   }
-  return { totals, rate, foreignLineCents };
 }
 
 function buildParty(
@@ -181,7 +140,7 @@ function clientSede(client: FatturaClient) {
 /** Builds the FatturaPA (FPR12) XML for one transmission attempt of an invoice. */
 export function buildFatturaXml(input: FatturaInput): FatturaResult {
   const { issuer, client, invoice, linked } = input;
-  const { totals, rate, foreignLineCents } = planAmounts(invoice, input.exchangeRate);
+  const totals = planTotals(invoice);
   const data = invoice.data;
   const progressive = encodeFileProgressive(input.fileProgressive);
   const fileName = fatturaFileName(issuer.country, issuer.vatNumber, input.fileProgressive);
@@ -197,8 +156,7 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
 
   const lines = invoice.lines.map((line, index) => {
     const planned = totals.lines[index];
-    const exactUnitPrice = invoice.currency === "EUR" && cassa?.mode !== "included";
-    const foreignCents = foreignLineCents?.[index];
+    const exactUnitPrice = cassa?.mode !== "included";
     return node({
       NumeroLinea: String(index + 1),
       Descrizione: toLatin(line.description, 1000),
@@ -211,26 +169,6 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
       AliquotaIVA: formatBasisPoints(line.natura === null ? (line.vatRateBp ?? 0) : 0),
       Ritenuta: ritenutaOn ? "SI" : undefined,
       Natura: line.natura ?? undefined,
-      // The original foreign amount is for management purposes only.
-      AltriDatiGestionali:
-        foreignCents === undefined || !rate
-          ? undefined
-          : [
-              ...(index === 0
-                ? [
-                    {
-                      TipoDato: "CAMBIO",
-                      RiferimentoTesto: `EUR/${invoice.currency}`,
-                      RiferimentoNumero: rate.text,
-                    },
-                  ]
-                : []),
-              {
-                TipoDato: "VALUTA",
-                RiferimentoTesto: invoice.currency,
-                RiferimentoNumero: formatCents(foreignCents),
-              },
-            ],
     });
   });
 
@@ -272,18 +210,10 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
       })
     : [];
 
-  // Causale: the complete natura texts that do not fit RiferimentoNormativo, and the conversion.
+  // Causale: the complete natura texts that do not fit RiferimentoNormativo.
   const causali: string[] = [];
   for (const text of naturaTexts.values()) {
     if (naturaReference(text) !== text) causali.push(...chunkText(text, CAUSALE_MAX));
-  }
-  if (rate) {
-    causali.push(
-      ...chunkText(
-        `Importi convertiti in euro dalla divisa ${invoice.currency} al cambio di 1 EUR = ${rate.text} ${invoice.currency}`,
-        CAUSALE_MAX,
-      ),
-    );
   }
 
   const payment = data.payment;
@@ -307,7 +237,7 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
     DatiGenerali: node({
       DatiGeneraliDocumento: node({
         TipoDocumento: invoice.documentType,
-        Divisa: "EUR",
+        Divisa: invoice.currency,
         Data: input.issueDate,
         Numero: toLatin(input.number, 20),
         DatiRitenuta: data.ritenuta
