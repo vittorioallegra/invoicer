@@ -406,7 +406,7 @@ Approved: yes (2026-11-02)
 ### Steps
 - [x] 1. Scaffolding — `docs: sync CLAUDE.md commands and tick scaffolding step`
 - [x] 2. Risk spike (manual device checkpoint) — `docs: record spike results and decisions`
-- [ ] 3. Data model
+- [x] 3. Data model — `feat(db): add the Drizzle schema, first D1 migration and file storage`
 - [ ] 4. Auth
 - [ ] 5. Send authorization
 - [ ] 6. Totals engine
@@ -459,4 +459,4 @@ Approved: yes (2026-11-02)
 - See "Open questions for the architecture phase" in the spec; most are assigned to the step 2 spike.
 
 ### Next
-Step 3: Data model.
+Step 4: Auth.
