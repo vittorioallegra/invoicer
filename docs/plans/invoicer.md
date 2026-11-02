@@ -350,7 +350,7 @@ Approved: yes (2026-11-02)
 
 ### Steps
 - [x] 1. Scaffolding — `docs: sync CLAUDE.md commands and tick scaffolding step`
-- [ ] 2. Risk spike (manual device checkpoint)
+- [ ] 2. Risk spike (manual device checkpoint) — code ready, owner checklist in docs/notes/spike.md
 - [ ] 3. Data model
 - [ ] 4. Auth
 - [ ] 5. Send authorization
@@ -395,4 +395,4 @@ Approved: yes (2026-11-02)
 - See "Open questions for the architecture phase" in the spec; most are assigned to the step 2 spike.
 
 ### Next
-Step 2: Risk spike (manual device checkpoint).
+Owner runs the spike checklist (docs/notes/spike.md), then the plan is revised if a check fails.
