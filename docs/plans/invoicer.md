@@ -414,7 +414,7 @@ Approved: yes (2026-11-02)
 - [x] 8. Clients — `feat(clients): add client CRUD with type rules, defaults and a reusable client sheet`
 - [x] 9. Invoice editor — `feat(invoices): add the rejected and rejected_expired editor flows with deadline, SdI errors and reissue`
 - [x] 10. FatturaPA XML — `feat(fatturapa): map XSD errors to fields in plain language and verify the SdI error codes`
-- [ ] 11. PDF
+- [x] 11. PDF — `feat(pdf): render the invoice PDF in IT/EN in the browser and store it per transmission attempt`
 - [ ] 12. PEC channel and send flow
 - [ ] 13. Mailbox polling and SdI receipts (Milestone A exit: real send, cutover)
 - [ ] 14. UI polish: Liquid Glass
@@ -468,4 +468,4 @@ Approved: yes (2026-11-02)
 - Step 12: the PEC connection test (step 7) does IMAP only; add the SMTP login (no send) and the quota check. The spec wants editable IMAP/SMTP host/port presets in Settings, while step 5 made them plain env vars; decide in step 12 whether to wire the `settings` host/port columns.
 
 ### Next
-Step 11: PDF.
+Step 12: PEC channel and send flow.

@@ -1,0 +1,79 @@
+import type { ClientRecord } from "../../shared/client";
+import type { FatturaIssuer } from "../../shared/fatturapa";
+import type { InvoiceRecord } from "../../shared/invoice";
+import { api } from "../lib/api";
+import type { ProfileResponse } from "../lib/settings-api";
+import type { InvoicePdfInput } from "./invoice-model";
+
+export type PdfPreparationError = "not_numbered" | "no_client" | "no_profile";
+
+export class PdfError extends Error {
+  constructor(readonly code: PdfPreparationError) {
+    super(code);
+    this.name = "PdfError";
+  }
+}
+
+export interface StoredPdf {
+  id: string;
+  filename: string;
+  size: number;
+  sha256: string;
+  transmissionId: string;
+  attempt: number;
+}
+
+/** Loads what the PDF prints for an invoice that holds its number. */
+export async function loadInvoicePdfInput(invoiceId: string): Promise<InvoicePdfInput> {
+  const [{ invoice }, { clients }, { profile }] = await Promise.all([
+    api<{ invoice: InvoiceRecord }>(`/api/invoices/${invoiceId}`),
+    api<{ clients: ClientRecord[] }>("/api/clients"),
+    api<{ profile: ProfileResponse | null }>("/api/profile"),
+  ]);
+  if (!invoice.number || !invoice.issueDate) throw new PdfError("not_numbered");
+  const client = clients.find((c) => c.id === invoice.clientId);
+  if (!client) throw new PdfError("no_client");
+  if (!profile) throw new PdfError("no_profile");
+  return {
+    issuer: {
+      name: profile.name,
+      vatNumber: profile.vatNumber,
+      taxCode: profile.taxCode,
+      address: profile.address ?? "",
+      postalCode: profile.postalCode ?? "",
+      city: profile.city ?? "",
+      province: profile.province,
+      country: profile.country,
+      regimeFiscale: profile.regimeFiscale as FatturaIssuer["regimeFiscale"],
+    },
+    client,
+    invoice,
+    number: invoice.number,
+    issueDate: invoice.issueDate,
+    linked:
+      invoice.linked?.number && invoice.linked.issueDate
+        ? { number: invoice.linked.number, issueDate: invoice.linked.issueDate }
+        : null,
+    language: client.pdfLanguage,
+  };
+}
+
+/** Renders the PDF of a reserved or issued invoice, for viewing only (nothing is stored). */
+export async function renderInvoicePdfFor(invoiceId: string): Promise<Uint8Array> {
+  const { renderInvoicePdf } = await import("./render");
+  return renderInvoicePdf(await loadInvoicePdfInput(invoiceId));
+}
+
+/**
+ * Renders the invoice PDF and stores it for the invoice's current transmission attempt. The send
+ * flow (step 12) calls this right after the number is reserved, and again for every resend.
+ */
+export async function generateAndStoreInvoicePdf(invoiceId: string): Promise<StoredPdf> {
+  const bytes = await renderInvoicePdfFor(invoiceId);
+  const { file } = await api<{ file: StoredPdf }>(`/api/invoices/${invoiceId}/pdf`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/pdf" },
+    body: bytes as BodyInit,
+  });
+  return file;
+}

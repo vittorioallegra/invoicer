@@ -63,6 +63,7 @@ import {
   type ProfileResponse,
   profileQuery,
 } from "../lib/settings-api";
+import { renderInvoicePdfFor } from "../pdf/generate";
 
 const REQUIRED_LIKE = new Set(["required", "natura_text_required"]);
 
@@ -233,6 +234,24 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
     },
   });
 
+  // The PDF is rendered in the browser and shown in a tab opened right away (popup blockers
+  // only allow a window opened by the click itself).
+  const preview = useMutation({
+    mutationFn: async (id: string) => {
+      const tab = window.open("", "_blank");
+      try {
+        const bytes = await renderInvoicePdfFor(id);
+        const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
+        if (tab) tab.location.href = url;
+        else window.location.assign(url);
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } catch (error) {
+        tab?.close();
+        throw error;
+      }
+    },
+  });
+
   const reissue = useMutation({
     mutationFn: (id: string) => reissueInvoice(id),
     onSuccess: async ({ invoice }) => {
@@ -292,9 +311,21 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
               {t("invoice.issuedOn", { date: formatDate(record.issueDate, locale) })}
             </span>
           ) : null}
+          {record.number ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              type="button"
+              disabled={!online || preview.isPending}
+              onClick={() => preview.mutate(record.id)}
+            >
+              {t("invoice.pdf.preview")}
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
+      {preview.isError ? <Banner tone="danger">{t("invoice.pdf.failed")}</Banner> : null}
       {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
       {serverFailure ? (
         <Banner tone="danger">

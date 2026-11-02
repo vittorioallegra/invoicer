@@ -530,6 +530,10 @@
       "openReissue": "Open the reissued invoice",
       "reissues": "This invoice reissues a rejected one.",
       "openOriginal": "View the rejected invoice"
+    },
+    "pdf": {
+      "preview": "Preview PDF",
+      "failed": "The PDF could not be generated. Try again."
     }
   },
   "fatturapa": {
@@ -599,5 +603,73 @@
     "buildErrors": {
       "totals_incomplete": "Every line needs a VAT rate or an exemption before the invoice can be built."
     }
+  },
+  "pdf": {
+    "invoice": "Invoice",
+    "creditNote": "Credit note",
+    "numberLine": "No. {{number}} of {{date}}",
+    "issuer": "From",
+    "client": "Billed to",
+    "vatNumber": "VAT number: {{value}}",
+    "taxCode": "Tax code: {{value}}",
+    "foreignTaxId": "Tax ID: {{value}}",
+    "recipientCode": "SdI recipient code: {{value}}",
+    "pec": "PEC: {{value}}",
+    "regime": "Tax regime: {{code}}",
+    "operationDate": "Operation date",
+    "dueDate": "Due date",
+    "currency": "Currency",
+    "linked": "Corrects invoice {{number}} of {{date}}",
+    "columns": {
+      "description": "Description",
+      "quantity": "Qty",
+      "unitPrice": "Unit price",
+      "vat": "VAT",
+      "amount": "Amount"
+    },
+    "vatRate": "{{rate}}%",
+    "exempt": "No VAT ({{code}})",
+    "summary": {
+      "title": "VAT summary",
+      "taxable": "Taxable",
+      "rate": "VAT rate",
+      "vat": "VAT"
+    },
+    "naturaTitle": "Legal reference for transactions without VAT",
+    "cassa": {
+      "rivalsa_inps": "INPS contribution (rivalsa)",
+      "other": "Pension fund contribution ({{code}})",
+      "line": "{{label}} {{rate}}%",
+      "included": "included in the amounts above",
+      "excluded": "added to the amounts above"
+    },
+    "ritenuta": "Withholding tax {{type}} {{rate}}% (reason {{causale}})",
+    "vat": "VAT",
+    "stamp": "Stamp duty (bollo)",
+    "documentTotal": "Document total",
+    "withheld": "Withholding tax",
+    "amountDue": "Amount due",
+    "creditDue": "Credit note total",
+    "payment": {
+      "title": "Payment",
+      "method": "Method",
+      "holder": "Account holder",
+      "bank": "Bank",
+      "iban": "IBAN",
+      "bic": "BIC/SWIFT",
+      "dueDate": "Due date",
+      "amount": "Amount"
+    },
+    "methods": {
+      "MP01": "Cash",
+      "MP02": "Cheque",
+      "MP05": "Bank transfer",
+      "MP08": "Payment card",
+      "MP12": "RIBA",
+      "MP19": "SEPA direct debit",
+      "MP23": "PagoPA"
+    },
+    "legalNote": "Courtesy copy. The legally valid invoice is the electronic invoice (XML) transmitted through the Sistema di Interscambio (SdI) and available in the recipient's tax portal.",
+    "page": "Page {{pageNumber}} of {{totalPages}}"
   }
 }
