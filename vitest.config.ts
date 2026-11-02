@@ -19,7 +19,6 @@ export default defineConfig({
               bindings: {
                 BETTER_AUTH_SECRET: "test-secret",
                 SETUP_TOKEN: "test-setup-token",
-                WEBHOOK_SECRET: "test-webhook-secret",
                 SPIKE_SECRET: "test-spike-secret",
               },
             },

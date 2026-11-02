@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 
-type Outcome = "PASS" | "FAIL" | "INFO";
+type Outcome = "PASS" | "FAIL" | "INFO" | "SKIP";
 interface LogRow {
   time: string;
   label: string;
@@ -15,6 +15,13 @@ interface LogRow {
 }
 
 const STORAGE_KEY = "spike-secret";
+const PROBES = [
+  "passkey-verify",
+  "push-encrypt",
+  "pec-parse-receipt",
+  "pec-parse-envelope",
+  "pec-parse-invoice",
+];
 const PBKDF2_COUNTS = [1000, 5000, 10000, 20000, 50000, 100000, 200000];
 const BIND_OK = "invoice-1|sha256-of-final-xml";
 
@@ -44,8 +51,6 @@ export function SpikePage() {
   const [secret, setSecret] = useState(loadSecret);
   const [rows, setRows] = useState<LogRow[]>([]);
   const [busy, setBusy] = useState(false);
-  const [fiscalId, setFiscalId] = useState("");
-  const [recipientCode, setRecipientCode] = useState("0000000");
   const [raw, setRaw] = useState("");
 
   function log(label: string, outcome: Outcome, wallMs: number, detail: unknown) {
@@ -185,29 +190,25 @@ export function SpikePage() {
 
   const runAllCpu = async () => {
     for (const count of PBKDF2_COUNTS) await cpuProbe("pbkdf2", `?iterations=${count}`);
-    for (const name of ["passkey-verify", "push-encrypt", "callback-parse", "openapi-dry-run"]) {
+    for (const name of PROBES) {
       await cpuProbe(name);
     }
   };
 
-  const sandboxFlow = () =>
-    run("Openapi sandbox flow", async () => {
-      const r = await call("/openapi/sandbox-flow", {
-        method: "POST",
-        body: { fiscalId, recipientCode },
-      });
+  const pecProbe = (label: string, path: string, body?: unknown) =>
+    run(label, async () => {
+      const r = await call(`/pec/${path}`, { method: "POST", body: body ?? {} });
       setRaw(JSON.stringify(r.json, null, 2));
+      if (r.status === 503) {
+        return {
+          outcome: "SKIP",
+          detail: "PEC_USERNAME / PEC_PASSWORD are not set; see raw output.",
+        };
+      }
       return {
-        outcome: r.status === 200 ? "INFO" : "FAIL",
+        outcome: r.status === 200 && r.json.ok === true ? "PASS" : "FAIL",
         detail: `HTTP ${r.status}; see raw output below.`,
       };
-    });
-
-  const callbacks = (path: string, method = "GET", body?: unknown) =>
-    run(`Openapi callbacks ${method} ${path}`, async () => {
-      const r = await call(`/openapi${path}`, { method, ...(body ? { body } : {}) });
-      setRaw(JSON.stringify(r.json, null, 2));
-      return { outcome: "INFO", detail: `HTTP ${r.status}; see raw output below.` };
     });
 
   const copy = () =>
@@ -332,7 +333,7 @@ export function SpikePage() {
               PBKDF2 {count}
             </Button>
           ))}
-          {["passkey-verify", "push-encrypt", "callback-parse", "openapi-dry-run"].map((name) => (
+          {PROBES.map((name) => (
             <Button
               key={name}
               size="sm"
@@ -347,58 +348,33 @@ export function SpikePage() {
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-medium">4. Openapi sandbox</h2>
+        <h2 className="text-lg font-medium">4. PEC mailbox</h2>
         <p className="text-sm text-muted-foreground">
-          Needs the OPENAPI_SANDBOX_TOKEN secret; otherwise it reports "skipped".
+          Needs the PEC_USERNAME and PEC_PASSWORD secrets; otherwise each button reports "skipped".
+          The send test mails only your own PEC address.
         </p>
-        <Input
-          inputMode="numeric"
-          placeholder="Sandbox fiscal ID (11 digits)"
-          value={fiscalId}
-          onChange={(event) => setFiscalId(event.target.value)}
-        />
-        <Input
-          placeholder="Codice destinatario"
-          value={recipientCode}
-          onChange={(event) => setRecipientCode(event.target.value)}
-        />
-        <Button disabled={busy || !secret || fiscalId.length !== 11} onClick={sandboxFlow}>
-          Send + simulate receipt + supplier invoice
+        <Button
+          disabled={busy || !secret}
+          onClick={() =>
+            pecProbe("PEC IMAP: login, latest headers, quota", "imap-probe", { count: 10 })
+          }
+        >
+          IMAP login + latest 10 headers + quota
         </Button>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={busy || !secret}
-            onClick={() => callbacks("/callbacks")}
-          >
-            Show recorded callbacks
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={busy || !secret}
-            onClick={() => callbacks("/callback-mode", "POST", { mode: "fail" })}
-          >
-            Callback answers 500
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={busy || !secret}
-            onClick={() => callbacks("/callback-mode", "POST", { mode: "ok" })}
-          >
-            Callback answers 200
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy || !secret}
-            onClick={() => callbacks("/callbacks", "DELETE")}
-          >
-            Clear callbacks
-          </Button>
-        </div>
+        <Button
+          variant="secondary"
+          disabled={busy || !secret}
+          onClick={() => pecProbe("PEC IMAP: fetch + parse newest message", "imap-fetch-parse")}
+        >
+          IMAP fetch + parse newest message
+        </Button>
+        <Button
+          variant="secondary"
+          disabled={busy || !secret}
+          onClick={() => pecProbe("PEC SMTP: test send to own address", "smtp-send")}
+        >
+          SMTP test send to own address
+        </Button>
         {raw ? (
           <pre className="max-h-96 overflow-auto rounded-control border border-border p-2 text-xs">
             {raw}

@@ -1,7 +1,7 @@
 /**
  * Content-Security-Policy for the SPA. Static assets are served by the Workers assets layer,
  * so the same string lives in `public/_headers` (a test keeps them identical).
- * No inline script; `connect-src 'self'` means the browser never calls Openapi or any third
+ * No inline script; `connect-src 'self'` means the browser never calls the PEC servers or any third
  * party: all external calls go through the Worker. Inline style attributes are allowed (Radix
  * positions overlays with them), inline style elements are not.
  */

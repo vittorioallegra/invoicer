@@ -1,11 +1,14 @@
 import { buildPushHTTPRequest } from "@pushforge/builder";
 import { Hono } from "hono";
-import { z } from "zod";
 import type { Bindings } from "../env";
+import { parsePecEnvelope } from "../pec/envelope";
+import {
+  PEC_RECEIPT_SOURCE,
+  pecInvoiceEnvelope,
+  SDI_RECEIPT_SOURCE,
+} from "../pec/message-fixtures";
 import { makeError } from "../problem";
-import { ASSERTION_FIXTURE, PUSH_SUBSCRIPTION_FIXTURE, sampleCallbackPayload } from "./fixtures";
-import { safeEqual } from "./gate";
-import { openapiDryRun } from "./openapi";
+import { ASSERTION_FIXTURE, PUSH_SUBSCRIPTION_FIXTURE } from "./fixtures";
 import { verifyAssertion } from "./passkey";
 import { timed } from "./util";
 
@@ -70,31 +73,19 @@ export async function pushEncryptFixture(
   return request.body.byteLength;
 }
 
-const callbackSchema = z.object({
-  event: z.string(),
-  data: z.object({
-    invoice: z.object({
-      uuid: z.string(),
-      filename: z.string(),
-      payload: z.object({
-        fattura_elettronica_header: z.object({ cedente_prestatore: z.unknown() }).passthrough(),
-        fattura_elettronica_body: z.array(
-          z
-            .object({
-              dati_beni_servizi: z.object({ dettaglio_linee: z.array(z.unknown()) }).passthrough(),
-            })
-            .passthrough(),
-        ),
-      }),
-    }),
-  }),
-});
-
-export async function parseCallbackFixture(): Promise<number> {
-  const raw = sampleCallbackPayload();
-  await safeEqual("a-webhook-secret-value", "a-webhook-secret-value");
-  const parsed = callbackSchema.parse(JSON.parse(raw));
-  return parsed.data.invoice.payload.fattura_elettronica_body.length;
+/** PEC mail parsing probes: an SdI receipt (~1 KB), a PEC envelope (~3 KB), a 100 KB invoice. */
+export async function pecParseFixture(kind: string): Promise<unknown> {
+  const source =
+    kind === "pec-parse-receipt"
+      ? SDI_RECEIPT_SOURCE
+      : kind === "pec-parse-envelope"
+        ? PEC_RECEIPT_SOURCE
+        : pecInvoiceEnvelope(100_000);
+  const parsed = await parsePecEnvelope(source);
+  return {
+    bytes: source.length,
+    inner: parsed.inner?.attachments.map((a) => `${a.filename} (${a.size} B)`) ?? [],
+  };
 }
 
 export const cpu = new Hono<{ Bindings: Bindings }>();
@@ -116,10 +107,10 @@ cpu.post("/:name", async (c) => {
         return { verified: await passkeyVerifyFixture() };
       case "push-encrypt":
         return { bodyBytes: await pushEncryptFixture(c.env) };
-      case "callback-parse":
-        return { bodies: await parseCallbackFixture() };
-      case "openapi-dry-run":
-        return await openapiDryRun(c.env);
+      case "pec-parse-receipt":
+      case "pec-parse-envelope":
+      case "pec-parse-invoice":
+        return await pecParseFixture(name);
       default:
         throw makeError("not_found");
     }

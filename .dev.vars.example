@@ -1,5 +1,5 @@
 # Copy to .dev.vars (git-ignored) for local development. Local dev and `pnpm test` need no
-# external account: Openapi, Resend and push are off or mocked unless you fill them in.
+# external account: the PEC mailbox, Resend and push are off or mocked unless you fill them in.
 # In production set secrets with `wrangler secret put <NAME>`; never commit values.
 
 # --- Secrets -------------------------------------------------------------------------------
@@ -7,12 +7,11 @@
 BETTER_AUTH_SECRET=local-dev-only-change-me
 # Required to create the owner account on first run.
 SETUP_TOKEN=local-dev-setup-token
-# Openapi SDI tokens (minimum scopes: read token for lookups, send token for POST /invoices).
-# Leave empty locally: the dev mock channel is used.
-OPENAPI_READ_TOKEN=
-OPENAPI_SEND_TOKEN=
-# Shared secret that Openapi sends in the webhook header.
-WEBHOOK_SECRET=local-dev-webhook-secret
+# PEC mailbox login (the address and its single password: IMAP, SMTP and webmail share it, so
+# it can read the whole mailbox and send PEC). Leave empty locally: the mock channel is used.
+# In production set them with `wrangler secret put PEC_USERNAME` / `PEC_PASSWORD`.
+PEC_USERNAME=
+PEC_PASSWORD=
 # Optional: courtesy email via Resend. Off when empty.
 RESEND_API_KEY=
 # Optional: Web Push. Off when empty. Private key as one-line JWK JSON; generate the pair with
@@ -21,11 +20,14 @@ VAPID_PRIVATE_KEY=
 # Temporary risk spike (step 2, removed in step 20): gate for /spike, any long random string
 # (`openssl rand -base64 32`). Leave empty to keep the spike routes off.
 SPIKE_SECRET=
-# Openapi SANDBOX token with sandbox scopes (spike only). Leave empty to skip the sandbox checks.
-OPENAPI_SANDBOX_TOKEN=
 
 # --- Plain vars (owner-specific) ------------------------------------------------------------
 APP_ORIGIN=http://localhost:5173
 MAIL_FROM_ADDRESS=
 VAPID_PUBLIC_KEY=
 VAPID_SUBJECT=
+# PEC servers (defaults are Aruba's; leave empty to use them).
+PEC_IMAP_HOST=
+PEC_IMAP_PORT=
+PEC_SMTP_HOST=
+PEC_SMTP_PORT=

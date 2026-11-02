@@ -235,6 +235,8 @@ export interface ImapOptions {
 export class ImapClient {
   private readonly reader: ByteReader;
   private readonly writer: WritableStreamDefaultWriter<Uint8Array>;
+  /** Greeting text of the server (set by `greeting()`). */
+  greetingText = "";
   private tagCounter = 0;
   private readonly maxLiteral: number;
 
@@ -263,12 +265,14 @@ export class ImapClient {
     }
   }
 
-  /** Reads and checks the server greeting. */
-  async greeting(): Promise<void> {
+  /** Reads and checks the server greeting; returns its text (no credentials involved). */
+  async greeting(): Promise<string> {
     const { text } = await this.readResponse();
     if (!/^\* (OK|PREAUTH)\b/i.test(text)) {
       throw new ImapError("protocol", "Unexpected IMAP greeting.");
     }
+    this.greetingText = text.slice(2, 300);
+    return this.greetingText;
   }
 
   private async execute(

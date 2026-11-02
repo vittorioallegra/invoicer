@@ -54,21 +54,21 @@ describe("problem+json contract", () => {
 describe("missing secret", () => {
   it("names the variable and the fix, never a value", async () => {
     const app = createApp();
-    app.get("/api/openapi-check", (c) => {
-      requireSecrets(c.env, "openapi");
+    app.get("/api/pec-check", (c) => {
+      requireSecrets(c.env, "pec");
       return c.json({ ok: true });
     });
     const res = await app.request(
-      "/api/openapi-check",
+      "/api/pec-check",
       {},
-      { ...env, OPENAPI_READ_TOKEN: "set-value", OPENAPI_SEND_TOKEN: "" },
+      { ...env, PEC_USERNAME: "set-value", PEC_PASSWORD: "" },
     );
     expect(res.status).toBe(503);
     const text = await res.text();
     const problem = problemSchema.parse(JSON.parse(text));
     expect(problem.code).toBe("missing_secret");
-    expect(problem.missing).toEqual(["OPENAPI_SEND_TOKEN"]);
-    expect(problem.fix).toBe("wrangler secret put OPENAPI_SEND_TOKEN");
+    expect(problem.missing).toEqual(["PEC_PASSWORD"]);
+    expect(problem.fix).toBe("wrangler secret put PEC_PASSWORD");
     expect(text).not.toContain("set-value");
   });
 

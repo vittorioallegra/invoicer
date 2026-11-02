@@ -163,7 +163,6 @@ describe("cpu probes", () => {
       ["pbkdf2", "?iterations=1000"],
       ["passkey-verify", ""],
       ["push-encrypt", ""],
-      ["callback-parse", ""],
     ] as const) {
       const body = (await (await run(name, query)).json()) as { ok: boolean; error?: string };
       expect(body.error).toBeUndefined();
@@ -171,30 +170,11 @@ describe("cpu probes", () => {
     }
   });
 
-  it("skips the Openapi probe with a clear message when the sandbox token is missing", async () => {
-    const res = await run("openapi-dry-run", "", { ...env, OPENAPI_SANDBOX_TOKEN: "" });
-    expect(res.status).toBe(503);
-    expect(JSON.stringify(await res.json())).toContain("OPENAPI_SANDBOX_TOKEN");
-  });
-});
-
-describe("callback receiver", () => {
-  it("records authenticated callbacks and refuses others", async () => {
-    const refused = await call("/api/webhooks/spike-callback", { method: "POST", body: "{}" });
-    expect(refused.status).toBe(404);
-    const ok = await call("/api/webhooks/spike-callback", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${SECRET}` },
-      body: JSON.stringify({ event: "customer-notification" }),
-    });
-    expect(ok.status).toBe(200);
-    const seen = (await (
-      await call("/api/spike/openapi/callbacks", { headers: authed })
-    ).json()) as {
-      records: Array<{ authOk: boolean; headerNames: string[] }>;
-      rejected: number;
-    };
-    expect(seen.records.at(-1)?.authOk).toBe(true);
-    expect(seen.rejected).toBeGreaterThanOrEqual(1);
+  it("runs the PEC parse probes on fixtures", async () => {
+    for (const name of ["pec-parse-receipt", "pec-parse-envelope", "pec-parse-invoice"]) {
+      const body = (await (await run(name)).json()) as { ok: boolean; error?: string };
+      expect(body.error).toBeUndefined();
+      expect(body.ok).toBe(true);
+    }
   });
 });

@@ -10,15 +10,19 @@ export interface Bindings {
   MAIL_FROM_ADDRESS?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_SUBJECT?: string;
+  /** PEC server settings; defaults are the Aruba PEC hosts (`src/worker/pec/config.ts`). */
+  PEC_IMAP_HOST?: string;
+  PEC_IMAP_PORT?: string;
+  PEC_SMTP_HOST?: string;
+  PEC_SMTP_PORT?: string;
 
   // Secrets (set with `wrangler secret put <NAME>`).
   BETTER_AUTH_SECRET?: string;
   SETUP_TOKEN?: string;
-  OPENAPI_READ_TOKEN?: string;
-  OPENAPI_SEND_TOKEN?: string;
-  WEBHOOK_SECRET?: string;
+  /** PEC mailbox login: one password for IMAP, SMTP and webmail (no read/write split). */
+  PEC_USERNAME?: string;
+  PEC_PASSWORD?: string;
   SPIKE_SECRET?: string;
-  OPENAPI_SANDBOX_TOKEN?: string;
   RESEND_API_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
 }
@@ -29,8 +33,7 @@ export interface Bindings {
  */
 export const REQUIRED_SECRETS = {
   auth: ["BETTER_AUTH_SECRET", "SETUP_TOKEN"],
-  openapi: ["OPENAPI_READ_TOKEN", "OPENAPI_SEND_TOKEN"],
-  webhook: ["WEBHOOK_SECRET"],
+  pec: ["PEC_USERNAME", "PEC_PASSWORD"],
   // Temporary risk spike (step 2, removed in step 20).
   spike: ["SPIKE_SECRET"],
 } as const satisfies Record<string, readonly (keyof Bindings)[]>;

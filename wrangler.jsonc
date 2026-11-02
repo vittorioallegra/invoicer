@@ -3,11 +3,13 @@
 // tests use local D1 emulation, so the placeholders are fine there.
 //
 // Secrets (set with `wrangler secret put <NAME>`, never in this file):
-//   BETTER_AUTH_SECRET, SETUP_TOKEN, OPENAPI_READ_TOKEN, OPENAPI_SEND_TOKEN, WEBHOOK_SECRET,
+//   BETTER_AUTH_SECRET, SETUP_TOKEN, PEC_USERNAME, PEC_PASSWORD,
 //   RESEND_API_KEY (optional: courtesy email), VAPID_PRIVATE_KEY (optional: push),
-//   SPIKE_SECRET and OPENAPI_SANDBOX_TOKEN (temporary risk spike, step 2)
+//   SPIKE_SECRET (temporary risk spike, step 2)
 // Plain vars (owner-specific, set in the Cloudflare dashboard or via CI):
-//   APP_ORIGIN, MAIL_FROM_ADDRESS, VAPID_PUBLIC_KEY, VAPID_SUBJECT
+//   APP_ORIGIN, MAIL_FROM_ADDRESS, VAPID_PUBLIC_KEY, VAPID_SUBJECT,
+//   PEC_IMAP_HOST / PEC_IMAP_PORT (default imaps.pec.aruba.it:993),
+//   PEC_SMTP_HOST / PEC_SMTP_PORT (default smtps.pec.aruba.it:465)
 // See .dev.vars.example for the full list and README for the deploy guide.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
@@ -29,7 +31,8 @@
       "migrations_dir": "migrations"
     }
   ],
-  // At most 2 cron triggers (free plan: 5 per account). One scheduled handler dispatches on
-  // event.cron: see src/worker/jobs/scheduled.ts (keep the expressions in sync).
-  "triggers": { "crons": ["0 4 * * *", "0 3 * * SUN"] }
+  // At most 3 cron triggers (free plan: 5 per account): mailbox polling every 10 minutes, a daily
+  // and a weekly job. One scheduled handler dispatches on event.cron: see
+  // src/worker/jobs/scheduled.ts (keep the expressions in sync; day of week is SUN, not 0).
+  "triggers": { "crons": ["*/10 * * * *", "0 4 * * *", "0 3 * * SUN"] }
 }

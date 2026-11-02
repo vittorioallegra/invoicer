@@ -1,4 +1,7 @@
 import { literal, type ScriptStep } from "./fake-socket";
+import { PEC_RECEIPT_SOURCE } from "./message-fixtures";
+
+export { PEC_RECEIPT_SOURCE };
 
 /**
  * Hand-written IMAP transcripts modelled on RFC 3501 / RFC 9208 examples and the message shapes
@@ -56,54 +59,6 @@ export const FETCH_SUMMARIES_TRANSCRIPT: ScriptStep[] = [
       "A3 OK Fetch completed\r\n",
   },
 ];
-
-/**
- * A PEC transport envelope as a provider delivers an SdI message: daticert.xml plus
- * postacert.eml, which carries the SdI receipt (RC) as an XML attachment. Contains a non-ASCII
- * character so byte and character counts differ.
- */
-export const PEC_RECEIPT_SOURCE = [
-  "Message-ID: <opec2-0001@pec.aruba.it>",
-  "From: Per conto di: sdi01@pec.fatturapa.it <posta-certificata@pec.aruba.it>",
-  "To: owner@pec.example",
-  "Subject: POSTA CERTIFICATA: Ricevuta di consegna IT01234567890_00001.xml",
-  "Date: Mon, 02 Nov 2026 09:16:30 +0100",
-  "X-Ricevuta: pec ricevuta",
-  "X-Trasporto: posta-certificata",
-  'Content-Type: multipart/mixed; boundary="env"',
-  "",
-  "--env",
-  "Content-Type: text/plain; charset=utf-8",
-  "",
-  "Messaggio di posta certificata. Il giorno 02/11/2026 è stato consegnato.",
-  "--env",
-  'Content-Type: application/xml; name="daticert.xml"',
-  'Content-Disposition: inline; filename="daticert.xml"',
-  "",
-  '<?xml version="1.0" encoding="UTF-8"?><postacert tipo="posta-certificata" errore="nessuno"><intestazione><mittente>sdi01@pec.fatturapa.it</mittente></intestazione><dati><identificativo>opec2-0001@pec.aruba.it</identificativo><msgid>&lt;orig@pec.aruba.it&gt;</msgid></dati></postacert>',
-  "--env",
-  'Content-Type: message/rfc822; name="postacert.eml"',
-  'Content-Disposition: inline; filename="postacert.eml"',
-  "",
-  "From: sdi01@pec.fatturapa.it",
-  "To: owner@pec.example",
-  "Subject: CONSEGNA: IT01234567890_00001.xml",
-  "Message-ID: <abc@sdi.fatturapa.it>",
-  'Content-Type: multipart/mixed; boundary="inner"',
-  "",
-  "--inner",
-  "Content-Type: text/plain",
-  "",
-  "Ricevuta di consegna",
-  "--inner",
-  'Content-Type: application/xml; name="IT01234567890_00001_RC_001.xml"',
-  'Content-Disposition: attachment; filename="IT01234567890_00001_RC_001.xml"',
-  "",
-  '<?xml version="1.0" encoding="UTF-8"?><types:RicevutaConsegna xmlns:types="http://www.fatturapa.gov.it/sdi/messaggi/v1.0" versione="1.0"><IdentificativoSdI>12345</IdentificativoSdI><NomeFile>IT01234567890_00001.xml</NomeFile><DataOraRicezione>2026-11-02T09:15:00.000+01:00</DataOraRicezione><DataOraConsegna>2026-11-02T09:16:00.000+01:00</DataOraConsegna></types:RicevutaConsegna>',
-  "--inner--",
-  "--env--",
-  "",
-].join("\r\n");
 
 export const FETCH_SOURCE_TRANSCRIPT: ScriptStep[] = [
   LOGIN_OK,

@@ -35,84 +35,44 @@ export const PUSH_SUBSCRIPTION_FIXTURE = {
   },
 };
 
-/** Sample Openapi `supplier-invoice` callback (shape from the SDI OAS), 40 invoice lines. */
-export function sampleCallbackPayload(lines = 40): string {
-  const dettaglio = Array.from({ length: lines }, (_, i) => ({
-    numero_linea: i + 1,
-    descrizione: `Line item ${i + 1}`,
-    quantita: "1.00",
-    prezzo_unitario: "10.00",
-    prezzo_totale: "10.00",
-    aliquota_iva: "22.00",
-  }));
-  return JSON.stringify({
-    event: "supplier-invoice",
-    data: {
-      invoice: {
-        uuid: "ffe8cdad-1a02-49fe-8cc6-f6b189eb6e5d",
-        created_at: "2026-11-02T10:32:19+00:00",
-        filename: "IT12345678901_00001.xml",
-        file_id: 335228642533,
-        payload: {
-          fattura_elettronica_header: {
-            dati_trasmissione: {
-              id_trasmittente: { id_paese: "IT", id_codice: "12345678901" },
-              progressivo_invio: "00001",
-              formato_trasmissione: "FPR12",
-              codice_destinatario: "1234567",
-            },
-            cedente_prestatore: {
-              dati_anagrafici: {
-                id_fiscale_iva: { id_paese: "IT", id_codice: "12345678901" },
-                anagrafica: { denominazione: "Supplier Srl" },
-                regime_fiscale: "RF01",
-              },
-              sede: {
-                indirizzo: "Via di Qua, 1",
-                cap: "20145",
-                comune: "Milano",
-                provincia: "MI",
-                nazione: "IT",
-              },
-            },
-            cessionario_committente: {
-              dati_anagrafici: {
-                id_fiscale_iva: { id_paese: "IT", id_codice: "09876543211" },
-                anagrafica: { denominazione: "Owner" },
-              },
-              sede: {
-                indirizzo: "Via di La, 2",
-                cap: "20145",
-                comune: "Milano",
-                provincia: "MI",
-                nazione: "IT",
-              },
-            },
-          },
-          fattura_elettronica_body: [
-            {
-              dati_generali: {
-                dati_generali_documento: {
-                  tipo_documento: "TD01",
-                  divisa: "EUR",
-                  data: "2026-11-02",
-                  numero: "1",
-                },
-              },
-              dati_beni_servizi: {
-                dettaglio_linee: dettaglio,
-                dati_riepilogo: [
-                  {
-                    aliquota_iva: "22.00",
-                    imponibile_importo: String(lines * 10),
-                    imposta: (lines * 2.2).toFixed(2),
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      },
-    },
-  });
+/** Minimal FatturaPA 1.2 sample (TD01, one 22 % line), for the PEC test message attachment. */
+export function sampleInvoiceXml(opts: {
+  fiscalId: string;
+  recipientCode: string;
+  progressive: string;
+  number: string;
+}): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<p:FatturaElettronica versione="FPR12" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <FatturaElettronicaHeader>
+    <DatiTrasmissione>
+      <IdTrasmittente><IdPaese>IT</IdPaese><IdCodice>${opts.fiscalId}</IdCodice></IdTrasmittente>
+      <ProgressivoInvio>${opts.progressive}</ProgressivoInvio>
+      <FormatoTrasmissione>FPR12</FormatoTrasmissione>
+      <CodiceDestinatario>${opts.recipientCode}</CodiceDestinatario>
+    </DatiTrasmissione>
+    <CedentePrestatore>
+      <DatiAnagrafici>
+        <IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>${opts.fiscalId}</IdCodice></IdFiscaleIVA>
+        <Anagrafica><Denominazione>Spike Test Srl</Denominazione></Anagrafica>
+        <RegimeFiscale>RF01</RegimeFiscale>
+      </DatiAnagrafici>
+      <Sede><Indirizzo>Via di Qua, 1</Indirizzo><CAP>20145</CAP><Comune>Milano</Comune><Provincia>MI</Provincia><Nazione>IT</Nazione></Sede>
+    </CedentePrestatore>
+    <CessionarioCommittente>
+      <DatiAnagrafici>
+        <IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>09876543211</IdCodice></IdFiscaleIVA>
+        <Anagrafica><Denominazione>Customer Spa</Denominazione></Anagrafica>
+      </DatiAnagrafici>
+      <Sede><Indirizzo>Via di La, 2</Indirizzo><CAP>20145</CAP><Comune>Milano</Comune><Provincia>MI</Provincia><Nazione>IT</Nazione></Sede>
+    </CessionarioCommittente>
+  </FatturaElettronicaHeader>
+  <FatturaElettronicaBody>
+    <DatiGenerali><DatiGeneraliDocumento><TipoDocumento>TD01</TipoDocumento><Divisa>EUR</Divisa><Data>2026-11-02</Data><Numero>${opts.number}</Numero></DatiGeneraliDocumento></DatiGenerali>
+    <DatiBeniServizi>
+      <DettaglioLinee><NumeroLinea>1</NumeroLinea><Descrizione>Spike service</Descrizione><PrezzoUnitario>10.00</PrezzoUnitario><PrezzoTotale>10.00</PrezzoTotale><AliquotaIVA>22.00</AliquotaIVA></DettaglioLinee>
+      <DatiRiepilogo><AliquotaIVA>22.00</AliquotaIVA><ImponibileImporto>10.00</ImponibileImporto><Imposta>2.20</Imposta><EsigibilitaIVA>I</EsigibilitaIVA></DatiRiepilogo>
+    </DatiBeniServizi>
+  </FatturaElettronicaBody>
+</p:FatturaElettronica>`;
 }

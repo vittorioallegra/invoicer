@@ -4,7 +4,7 @@ import { type Bindings, featureStatus } from "./env";
 import { makeError, problemResponse } from "./problem";
 import { health } from "./routes/health";
 import { originCheck, securityHeaders } from "./security";
-import { spike, spikeCallback } from "./spike/routes";
+import { spike } from "./spike/routes";
 
 export function createApp() {
   const app = new Hono<{ Bindings: Bindings }>();
@@ -15,7 +15,6 @@ export function createApp() {
   app.route("/api/health", health);
   // Temporary risk-spike routes (gated by SPIKE_SECRET); removed in step 20.
   app.route("/api/spike", spike);
-  app.route("/api/webhooks/spike-callback", spikeCallback);
 
   // Which optional features are configured (never returns values).
   app.get("/api/features", (c) => c.json(featureStatus(c.env)));

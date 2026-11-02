@@ -21,10 +21,10 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /**
  * Origin check for state-changing `/api/*` calls: the `Origin` header must equal the origin of
- * the request URL. The webhook is exempt (it is called by Openapi and uses a secret header).
+ * the request URL.
  */
 export const originCheck = createMiddleware<{ Bindings: Bindings }>(async (c, next) => {
-  if (SAFE_METHODS.has(c.req.method) || c.req.path.startsWith("/api/webhooks/")) {
+  if (SAFE_METHODS.has(c.req.method)) {
     return next();
   }
   const origin = c.req.header("Origin");
