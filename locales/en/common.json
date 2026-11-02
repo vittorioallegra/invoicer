@@ -1,0 +1,74 @@
+{
+  "app": { "name": "Invoicer" },
+  "nav": {
+    "label": "Main navigation",
+    "home": "Home",
+    "issued": "Issued",
+    "received": "Received",
+    "clients": "Clients",
+    "settings": "Settings",
+    "newInvoice": "New invoice"
+  },
+  "offline": {
+    "banner": "You are offline. Lists show the last loaded data; sending, importing and settings are disabled.",
+    "reason": "Not available offline"
+  },
+  "status": {
+    "draft": "Draft",
+    "planned": "Planned",
+    "sending": "Sending",
+    "sent": "Sent",
+    "delivered": "Delivered",
+    "not_delivered": "Not delivered",
+    "rejected": "Rejected",
+    "rejected_expired": "Rejected, expired",
+    "paid": "Paid",
+    "unpaid": "Unpaid",
+    "overdue": "Overdue"
+  },
+  "pages": {
+    "home": {
+      "title": "Home",
+      "emptyTitle": "No invoices yet",
+      "emptyBody": "Create your first invoice to get started.",
+      "emptyAction": "New invoice"
+    },
+    "issued": {
+      "title": "Issued",
+      "emptyTitle": "No issued invoices",
+      "emptyBody": "Invoices you send appear here."
+    },
+    "received": {
+      "title": "Received",
+      "emptyTitle": "No received invoices",
+      "emptyBody": "Invoices from your suppliers appear here."
+    },
+    "clients": {
+      "title": "Clients",
+      "emptyTitle": "No clients yet",
+      "emptyBody": "Add a client to invoice them."
+    },
+    "settings": { "title": "Settings" },
+    "newInvoice": {
+      "title": "New invoice",
+      "emptyTitle": "The invoice editor is coming soon",
+      "emptyBody": "This screen is a placeholder."
+    },
+    "notFound": {
+      "title": "Page not found",
+      "body": "This page does not exist.",
+      "action": "Go to Home"
+    }
+  },
+  "features": {
+    "emailOff": "Courtesy emails are off: set RESEND_API_KEY and MAIL_FROM_ADDRESS to enable them.",
+    "pushOff": "Push notifications are off: set the VAPID keys to enable them."
+  },
+  "common": {
+    "close": "Close",
+    "loading": "Loading",
+    "retry": "Try again",
+    "error": "Something went wrong."
+  },
+  "money": { "amount": "Amount" }
+}

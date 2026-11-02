@@ -3,29 +3,6 @@ import { secureHeaders } from "hono/secure-headers";
 import { ApiError, ERROR_CODES, ERROR_TYPE_BASE, errorAnchor } from "../shared/errors";
 import type { Bindings } from "./env";
 
-/**
- * CSP for the SPA. Keep in sync with `public/_headers` (static assets are served by the
- * assets layer, not by this Worker). No inline script; `connect-src 'self'` means the browser
- * never calls Openapi or any third party: all external calls go through the Worker.
- * Inline style attributes are allowed (Radix positions popovers with them), inline style
- * elements are not.
- */
-export const SPA_CSP = [
-  "default-src 'self'",
-  "script-src 'self'",
-  "style-src 'self'",
-  "style-src-attr 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "font-src 'self'",
-  "connect-src 'self'",
-  "worker-src 'self'",
-  "manifest-src 'self'",
-  "object-src 'none'",
-  "base-uri 'none'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-].join("; ");
-
 /** Safe headers on every Worker response. API responses are never framed, scripted or sniffed. */
 export const securityHeaders = secureHeaders({
   contentSecurityPolicy: {

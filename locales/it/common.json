@@ -1,0 +1,74 @@
+{
+  "app": { "name": "Invoicer" },
+  "nav": {
+    "label": "Navigazione principale",
+    "home": "Home",
+    "issued": "Emesse",
+    "received": "Ricevute",
+    "clients": "Clienti",
+    "settings": "Impostazioni",
+    "newInvoice": "Nuova fattura"
+  },
+  "offline": {
+    "banner": "Sei offline. Gli elenchi mostrano gli ultimi dati caricati; invio, importazione e impostazioni sono disattivati.",
+    "reason": "Non disponibile offline"
+  },
+  "status": {
+    "draft": "Bozza",
+    "planned": "Pianificata",
+    "sending": "In invio",
+    "sent": "Inviata",
+    "delivered": "Consegnata",
+    "not_delivered": "Non consegnata",
+    "rejected": "Scartata",
+    "rejected_expired": "Scartata, scaduta",
+    "paid": "Pagata",
+    "unpaid": "Da pagare",
+    "overdue": "Scaduta"
+  },
+  "pages": {
+    "home": {
+      "title": "Home",
+      "emptyTitle": "Ancora nessuna fattura",
+      "emptyBody": "Crea la tua prima fattura per iniziare.",
+      "emptyAction": "Nuova fattura"
+    },
+    "issued": {
+      "title": "Emesse",
+      "emptyTitle": "Nessuna fattura emessa",
+      "emptyBody": "Le fatture che invii compaiono qui."
+    },
+    "received": {
+      "title": "Ricevute",
+      "emptyTitle": "Nessuna fattura ricevuta",
+      "emptyBody": "Le fatture dei tuoi fornitori compaiono qui."
+    },
+    "clients": {
+      "title": "Clienti",
+      "emptyTitle": "Ancora nessun cliente",
+      "emptyBody": "Aggiungi un cliente per fatturargli."
+    },
+    "settings": { "title": "Impostazioni" },
+    "newInvoice": {
+      "title": "Nuova fattura",
+      "emptyTitle": "L'editor delle fatture arriva presto",
+      "emptyBody": "Questa schermata è un segnaposto."
+    },
+    "notFound": {
+      "title": "Pagina non trovata",
+      "body": "Questa pagina non esiste.",
+      "action": "Vai alla Home"
+    }
+  },
+  "features": {
+    "emailOff": "Le email di cortesia sono disattivate: imposta RESEND_API_KEY e MAIL_FROM_ADDRESS per attivarle.",
+    "pushOff": "Le notifiche push sono disattivate: imposta le chiavi VAPID per attivarle."
+  },
+  "common": {
+    "close": "Chiudi",
+    "loading": "Caricamento",
+    "retry": "Riprova",
+    "error": "Qualcosa è andato storto."
+  },
+  "money": { "amount": "Importo" }
+}

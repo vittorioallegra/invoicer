@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": { "lib": ["ES2023"], "types": ["node"] },
-  "include": ["*.config.ts", "scripts", "tests"]
+  "include": ["*.config.ts", "scripts", "tests", "src/shared/csp.ts"]
 }
