@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Invoicer" },
+  "app": {
+    "name": "Invoicer"
+  },
   "nav": {
     "label": "Navigazione principale",
     "home": "Home",
@@ -50,7 +52,13 @@
     },
     "settings": {
       "title": "Impostazioni",
-      "diagnostics": "Diagnostica"
+      "diagnostics": "Diagnostica",
+      "pecTitle": "Casella PEC",
+      "pecIntro": "Le credenziali PEC sono segreti del Worker e non vengono mai mostrate qui. Danno accesso completo alla casella, quindi ogni invio richiede la tua passkey. Impostale con wrangler secret put PEC_USERNAME e PEC_PASSWORD.",
+      "pecUsername": "Nome utente PEC",
+      "pecPassword": "Password PEC",
+      "configured": "configurato",
+      "notConfigured": "non configurato"
     },
     "newInvoice": {
       "title": "Nuova fattura",
@@ -124,5 +132,7 @@
     "retry": "Riprova",
     "error": "Qualcosa è andato storto."
   },
-  "money": { "amount": "Importo" }
+  "money": {
+    "amount": "Importo"
+  }
 }

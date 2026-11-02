@@ -77,3 +77,8 @@ export function featureStatus(env: Bindings): Record<OptionalFeature, boolean> {
   const on = (names: readonly (keyof Bindings)[]) => names.every((name) => isSet(env, name));
   return { email: on(OPTIONAL_FEATURES.email), push: on(OPTIONAL_FEATURES.push) };
 }
+
+/** Whether each PEC credential is set; Settings shows this, never the values. */
+export function pecCredentialStatus(env: Bindings): { username: boolean; password: boolean } {
+  return { username: isSet(env, "PEC_USERNAME"), password: isSet(env, "PEC_PASSWORD") };
+}

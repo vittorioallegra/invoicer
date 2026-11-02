@@ -39,6 +39,11 @@ Plain variables: `APP_ORIGIN`, `MAIL_FROM_ADDRESS`, `VAPID_PUBLIC_KEY`, `VAPID_S
 optional PEC server overrides `PEC_IMAP_HOST`/`PEC_IMAP_PORT` (default `imaps.pec.aruba.it`:993) and
 `PEC_SMTP_HOST`/`PEC_SMTP_PORT` (default `smtps.pec.aruba.it`:465).
 
+The PEC credentials are never stored in D1 and never returned by the API (Settings only shows
+whether each is set). Because the one password gives full mailbox access, every send needs proof
+of presence: a passkey assertion with user verification (fallback: a fresh TOTP code), bound to
+the invoice and the SHA-256 of its XML and checked by the Worker before any SMTP connection.
+
 ## Deploy
 
 Skeleton: this section grows with every step; the complete guide is written in step 21.
@@ -84,6 +89,10 @@ not the value of the `SETUP_TOKEN` Worker secret.
 
 ### error-origin-not-allowed
 A state-changing call came from a different origin. Use the app from its own address.
+
+### error-send-not-authorized
+A send was refused because the passkey assertion or TOTP code was missing, wrong, expired, already
+used, or bound to a different invoice or XML. Request a new challenge and answer it again.
 
 ### error-not-found
 The resource or route does not exist.

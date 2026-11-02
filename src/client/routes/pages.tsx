@@ -85,6 +85,7 @@ export function NewInvoicePage() {
 interface Features {
   email: boolean;
   push: boolean;
+  pec: { username: boolean; password: boolean };
 }
 
 export function SettingsPage() {
@@ -108,6 +109,28 @@ export function SettingsPage() {
       ) : null}
       {features.data && !features.data.push ? (
         <Banner tone="info">{t("features.pushOff")}</Banner>
+      ) : null}
+      {features.data ? (
+        <section className="space-y-2 pt-4" aria-labelledby="pec-credentials">
+          <h2 id="pec-credentials" className="text-base font-medium">
+            {t("pages.settings.pecTitle")}
+          </h2>
+          <p className="text-sm text-muted-foreground">{t("pages.settings.pecIntro")}</p>
+          <ul className="space-y-1 text-sm">
+            <li>
+              {t("pages.settings.pecUsername")}:{" "}
+              {features.data.pec.username
+                ? t("pages.settings.configured")
+                : t("pages.settings.notConfigured")}
+            </li>
+            <li>
+              {t("pages.settings.pecPassword")}:{" "}
+              {features.data.pec.password
+                ? t("pages.settings.configured")
+                : t("pages.settings.notConfigured")}
+            </li>
+          </ul>
+        </section>
       ) : null}
       {/* Temporary: removed together with the spike page (plan step 21). A plain anchor, not
           a router link: /spike is a separate hidden page outside the app shell. */}

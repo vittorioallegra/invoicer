@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Invoicer" },
+  "app": {
+    "name": "Invoicer"
+  },
   "nav": {
     "label": "Main navigation",
     "home": "Home",
@@ -50,7 +52,13 @@
     },
     "settings": {
       "title": "Settings",
-      "diagnostics": "Diagnostics"
+      "diagnostics": "Diagnostics",
+      "pecTitle": "PEC mailbox",
+      "pecIntro": "The PEC login is stored as Worker secrets and is never shown here. It gives full access to the mailbox, so each send needs your passkey. Set it with wrangler secret put PEC_USERNAME and PEC_PASSWORD.",
+      "pecUsername": "PEC username",
+      "pecPassword": "PEC password",
+      "configured": "configured",
+      "notConfigured": "not configured"
     },
     "newInvoice": {
       "title": "New invoice",
@@ -124,5 +132,7 @@
     "retry": "Try again",
     "error": "Something went wrong."
   },
-  "money": { "amount": "Amount" }
+  "money": {
+    "amount": "Amount"
+  }
 }

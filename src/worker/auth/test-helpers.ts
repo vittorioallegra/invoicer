@@ -34,6 +34,11 @@ export class TestClient {
     private readonly bindings: Bindings = env as unknown as Bindings,
   ) {}
 
+  /** The `Cookie` header the client would send now (for calls that bypass the HTTP layer). */
+  cookieHeader(): string {
+    return [...this.cookies].map(([name, value]) => `${name}=${value}`).join("; ");
+  }
+
   async request(path: string, init: { method?: string; body?: unknown } = {}): Promise<Response> {
     const method = init.method ?? (init.body === undefined ? "GET" : "POST");
     const headers: Record<string, string> = {

@@ -9,6 +9,7 @@ export const ERROR_CODES = {
   unauthorized: { status: 401, title: "Authentication required" },
   forbidden: { status: 403, title: "Forbidden" },
   origin_not_allowed: { status: 403, title: "Origin not allowed" },
+  send_not_authorized: { status: 403, title: "Send not authorized" },
   not_found: { status: 404, title: "Not found" },
   conflict: { status: 409, title: "Conflict" },
   payload_too_large: { status: 413, title: "Payload too large" },

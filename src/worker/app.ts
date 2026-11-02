@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { ApiError } from "../shared/errors";
 import { createAuth } from "./auth/auth";
+import { sendAuthorization } from "./auth/send-authorization";
 import { requireSession } from "./auth/session";
 import { setup } from "./auth/setup";
-import { type Bindings, featureStatus } from "./env";
+import { type Bindings, featureStatus, pecCredentialStatus } from "./env";
 import { makeError, problemResponse } from "./problem";
 import { health } from "./routes/health";
 import { originCheck, securityHeaders } from "./security";
@@ -18,6 +19,7 @@ export function createApp() {
 
   app.route("/api/health", health);
   app.route("/api/setup", setup);
+  app.route("/api/invoices", sendAuthorization);
   // Better Auth: sign-in, passkeys, TOTP, sessions. Sign-up is disabled (owner only via /api/setup).
   app.on(["GET", "POST"], "/api/auth/*", async (c) => {
     const response = await createAuth(c.env, c.req.url).handler(c.req.raw);
@@ -30,8 +32,10 @@ export function createApp() {
   // Temporary risk-spike routes (gated by SPIKE_SECRET); removed in step 21.
   app.route("/api/spike", spike);
 
-  // Which optional features are configured (never returns values).
-  app.get("/api/features", (c) => c.json(featureStatus(c.env)));
+  // Which optional features and PEC credentials are configured (never returns values).
+  app.get("/api/features", (c) =>
+    c.json({ ...featureStatus(c.env), pec: pecCredentialStatus(c.env) }),
+  );
 
   app.notFound((c) => {
     if (c.req.path.startsWith("/api/")) return problemResponse(makeError("not_found"));
