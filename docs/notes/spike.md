@@ -163,44 +163,54 @@ tracked files permanently (the temporary config edit is reverted in step 3).
 10. **Clean up:** `pnpm exec wrangler secret delete SPIKE_SECRET` (this switches the spike off) when
     done, or leave it until step 21.
 
-### Results (owner fills in)
+### Results (2026-11-02)
 
-| Check | iPhone Home screen PWA | Mac Safari | Notes |
-|-------|------------------------|------------|-------|
-| Gate (step 5/6) | | | |
-| Passkey register | | | |
-| Passkey assertion verifies | | | |
-| Wrong binding refused | | | |
-| iCloud passkey from the other device (no QR) | | | |
-| Push subscribe | | | |
-| Push shown with app open | | | |
-| Push shown with app closed (20 s test) | | | |
-| Push service status (last send) | | | |
+Device checks, run by the owner on the deployed Worker (`https://invoicer.vittorioallegra.com/spike`):
 
-| CPU probe | CPU ms run 1 | run 2 | run 3 | Pass (< 8 ms)? |
-|-----------|--------------|-------|-------|----------------|
-| PBKDF2 1,000 | | | | |
-| PBKDF2 5,000 | | | | |
-| PBKDF2 10,000 | | | | |
-| PBKDF2 20,000 | | | | |
-| PBKDF2 50,000 | | | | |
-| PBKDF2 100,000 | | | | |
-| PBKDF2 200,000 (limit check) | | | | |
-| passkey-verify | | | | |
-| push-encrypt | | | | |
-| pec-parse-receipt | | | | |
-| pec-parse-envelope | | | | |
-| pec-parse-invoice (100 KB) | | | | |
+| Check | iPhone Home screen PWA (iOS 27) | Mac Safari | Notes |
+|-------|---------------------------------|------------|-------|
+| Gate | pass | pass | |
+| Passkey register | pass | — | registered on iPhone, iCloud Keychain |
+| Passkey assertion verifies | pass | pass | |
+| Wrong binding refused | pass | pass | |
+| iCloud passkey from the other device (no QR) | — | pass | |
+| Push subscribe / shown with app open | pass | pass | |
+| Push shown with app closed (20 s test) | pass | pass | `@pushforge/builder` encoding accepted by Apple |
 
-Chosen PBKDF2 iteration count: ______ (highest passing). Fallbacks chosen for failing probes: ______
+CPU time per request from `wrangler tail` (`cpuTime`, ms, three runs; outcome `ok` for all, no 1102
+error observed even above 10 ms):
+
+| CPU probe | run 1 | run 2 | run 3 | Under 8 ms? |
+|-----------|-------|-------|-------|-------------|
+| PBKDF2 10,000 | 3 | 6 | 6 | yes |
+| PBKDF2 50,000 | 10 | 10 | 9 | no |
+| PBKDF2 100,000 | 15 | 39 | 36 | no |
+| PBKDF2 200,000 | — | — | — | refused by Workers (100,000 iteration cap) |
+| passkey-verify | 9 | 10 | 5 | borderline |
+| push-encrypt | 6 | 4 | 6 | yes |
+| pec-parse-receipt | 16 | 10 | 6 | no |
+| pec-parse-envelope | 7 | 7 | 3 | yes |
+| pec-parse-invoice (100 KB) | 21 | 47 | 17 | no |
+| IMAP fetch + parse newest message (62 KB) | 24 | 73 | — | no |
+
+PEC probe:
 
 | PEC probe | Result |
 |-----------|--------|
-| IMAP greeting, UIDVALIDITY, mailbox size | |
-| Username is the full PEC address? | |
-| `GETQUOTAROOT` supported (used / limit KiB) | |
-| IMAP login + headers: CPU ms (3 runs) | |
-| IMAP fetch + parse newest message: CPU ms (3 runs), message bytes | |
-| SMTP test send: accepted? CPU ms (3 runs) | |
-| PEC acceptance / delivery receipts received (senders, subjects) | |
-| Aruba message size limit (docs or support) | |
+| IMAP greeting, UIDVALIDITY, mailbox size | OK, `IMAP4rev1 ... AUTH=PLAIN AUTH=LOGIN`, 67 messages |
+| Username is the full PEC address? | yes (`…@ingpec.eu`), hosts `imaps.pec.aruba.it:993` / `smtps.pec.aruba.it:465` |
+| Password | Aruba requires a **dedicated password for mail clients** (generated in "Manage PEC account"); the webmail password is refused. It is revocable on its own. |
+| `GETQUOTAROOT` supported | yes (16,936 / 1,024,000 KiB, 1.7%) |
+| IMAP fetch + parse newest message | OK: `daticert.xml`, `postacert.eml`, `smime.p7s` recognised |
+| SMTP test send | not run yet (owner to confirm) |
+
+**Decisions from the spike**
+- PBKDF2 for the fallback password: **10,000 iterations** (highest count under 8 ms), compensated
+  by mandatory TOTP, login rate limit and a generated password.
+- Push: `@pushforge/builder` stays (works on iPhone and Mac).
+- CPU: the free plan tolerated requests up to ~73 ms in these runs, but this is not guaranteed.
+  The mailbox poll must stay lean: fetch `BODYSTRUCTURE` and only the small parts it needs
+  (`daticert.xml`, SdI receipt XML) with `BODY.PEEK[<part>]`, store the raw message in D1, and
+  parse full invoices (and P7M) in the browser; one message per cron invocation step with
+  `waitUntil` where useful. If production runs still hit error 1102, the fallback is Workers Paid
+  (5 $/month, owner approval needed).

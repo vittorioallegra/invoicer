@@ -405,7 +405,7 @@ Approved: yes (2026-11-02)
 
 ### Steps
 - [x] 1. Scaffolding — `docs: sync CLAUDE.md commands and tick scaffolding step`
-- [ ] 2. Risk spike (manual device checkpoint) — code ready, owner checklist in docs/notes/spike.md
+- [x] 2. Risk spike (manual device checkpoint) — `docs: record spike results and decisions`
 - [ ] 3. Data model
 - [ ] 4. Auth
 - [ ] 5. Send authorization
@@ -453,8 +453,10 @@ Approved: yes (2026-11-02)
 - Liquid Glass styling after Milestone A, as a dedicated step 14 once the real screens exist (2026-11-02, owner request).
 - Scheduling (2026-11-02): one cron trigger `*/10 * * * *` only; every run polls the mailbox and the daily jobs run once per Rome day from 09:00 Europe/Rome, tracked in `job_runs` with catch-up of missed ticks. No weekly job, no automatic backup and no monthly reminder: restore relies on D1 Time Travel and the manual "Download all data" export.
 
+- Spike results (docs/notes/spike.md): passkey and Web Push pass on iPhone (iOS 27) and Mac; PBKDF2 at 10,000 iterations; Aruba needs a dedicated mail-client password; the mailbox poll fetches only small MIME parts in the Worker and leaves full invoice/P7M parsing to the browser (2026-11-02).
+
 ### Open questions
 - See "Open questions for the architecture phase" in the spec; most are assigned to the step 2 spike.
 
 ### Next
-Owner runs the spike checklist (docs/notes/spike.md), then the plan is revised if a check fails.
+Step 3: Data model.
