@@ -411,7 +411,7 @@ Approved: yes (2026-11-02)
 - [x] 5. Send authorization — `feat(auth): add send authorization with passkey and TOTP challenges`
 - [x] 6. Totals engine — `feat(totals): add the totals engine, money parsing, natura texts and fixtures a-g`
 - [x] 7. Profile, onboarding, settings — `feat(onboarding): add profile, settings, setup checklist and AdE guide screens`
-- [ ] 8. Clients
+- [x] 8. Clients — `feat(clients): add client CRUD with type rules, defaults and a reusable client sheet`
 - [ ] 9. Invoice editor
 - [ ] 10. FatturaPA XML
 - [ ] 11. PDF
@@ -460,6 +460,7 @@ Approved: yes (2026-11-02)
 ### Open questions
 - See "Open questions for the architecture phase" in the spec; most are assigned to the step 2 spike.
 - Bollo on non-EUR invoices (fixture d): the stamp is a EUR amount; decide in step 9/10 how it is shown and totalled (fixture d currently has bollo off).
+- Step 12: the PEC connection test (step 7) does IMAP only; add the SMTP login (no send) and the quota check. The spec wants editable IMAP/SMTP host/port presets in Settings, while step 5 made them plain env vars; decide in step 12 whether to wire the `settings` host/port columns.
 
 ### Next
-Step 8: Clients.
+Step 9: Invoice editor.

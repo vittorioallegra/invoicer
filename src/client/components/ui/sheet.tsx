@@ -11,7 +11,7 @@ const sheetVariants = cva("fixed z-50 flex flex-col gap-4 bg-surface p-4 shadow-
       // Bottom sheet on iPhone: respects the home-indicator safe area.
       bottom:
         "inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-card border-t border-border pb-[calc(1rem+env(safe-area-inset-bottom))]",
-      right: "inset-y-0 right-0 w-full max-w-md border-l border-border",
+      right: "inset-y-0 right-0 w-full max-w-md overflow-y-auto border-l border-border",
     },
   },
   defaultVariants: { side: "bottom" },

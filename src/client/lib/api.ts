@@ -8,5 +8,6 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers: { Accept: "application/json", ...init.headers },
   });
   if (!response.ok) throw await readApiError(response);
+  if (response.status === 204) return null as T;
   return (await response.json()) as T;
 }

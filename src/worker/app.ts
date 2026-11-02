@@ -6,6 +6,7 @@ import { requireSession } from "./auth/session";
 import { setup } from "./auth/setup";
 import { type Bindings, featureStatus, pecCredentialStatus } from "./env";
 import { makeError, problemResponse } from "./problem";
+import { clients } from "./routes/clients";
 import { health } from "./routes/health";
 import { onboarding } from "./routes/onboarding";
 import { profile } from "./routes/profile";
@@ -24,6 +25,7 @@ export function createApp() {
   app.route("/api/setup", setup);
   app.route("/api/invoices", sendAuthorization);
   app.route("/api/profile", profile);
+  app.route("/api/clients", clients);
   app.route("/api/settings", settings);
   app.route("/api/onboarding", onboarding);
   // Better Auth: sign-in, passkeys, TOTP, sessions. Sign-up is disabled (owner only via /api/setup).

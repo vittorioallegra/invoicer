@@ -126,7 +126,8 @@
     "close": "Close",
     "loading": "Loading",
     "retry": "Try again",
-    "error": "Something went wrong."
+    "error": "Something went wrong.",
+    "cancel": "Cancel"
   },
   "money": {
     "amount": "Amount"
@@ -187,7 +188,12 @@
     "invalid_country": "Enter the 2-letter country code.",
     "invalid_iban": "This IBAN is not valid.",
     "invalid_bic": "This BIC/SWIFT code is not valid.",
-    "invalid_email": "Enter a valid email address."
+    "invalid_email": "Enter a valid email address.",
+    "invalid_recipient_code": "Enter 7 letters or digits.",
+    "invalid_eu_country": "Enter an EU country code other than IT.",
+    "invalid_non_eu_country": "Enter a country code outside the EU.",
+    "invalid_currency": "Enter a 3-letter currency code.",
+    "invalid_vat_default": "Choose either a VAT rate or an exemption."
   },
   "profile": {
     "title": "Issuer profile",
@@ -314,6 +320,69 @@
       "pec_credentials_missing": "The PEC username and password are not set on the server.",
       "pec_test_missing": "The PEC connection has not been tested yet.",
       "pec_test_failed": "The last PEC connection test failed."
+    }
+  },
+  "clients": {
+    "add": "Add client",
+    "newTitle": "New client",
+    "editTitle": "Edit client",
+    "delete": "Delete client",
+    "deleteConfirm": "Confirm delete",
+    "inUse": "This client has invoices or recurring templates and cannot be deleted.",
+    "types": {
+      "it_company": "Italian company",
+      "it_private": "Italian private person",
+      "eu_company": "EU company",
+      "non_eu_company": "Non-EU company"
+    },
+    "languages": {
+      "it": "Italian",
+      "en": "English"
+    },
+    "form": {
+      "identity": "Client",
+      "type": "Client type",
+      "name": "Name or company name",
+      "vatNumber": "Partita IVA",
+      "vatOptional": "Optional.",
+      "taxCode": "Codice fiscale",
+      "taxCodeOptional": "Optional.",
+      "countryCode": "Country (2 letters)",
+      "foreignTaxId": "VAT / tax ID",
+      "foreignTaxIdOptional": "Optional.",
+      "addressTitle": "Address",
+      "address": "Street and number",
+      "postalCode": "Postal code",
+      "city": "City",
+      "province": "Province",
+      "deliveryTitle": "Delivery and documents",
+      "recipientCode": "Codice destinatario",
+      "recipientCodeHint": "7 characters. Leave empty to use 0000000 (PEC or portal delivery).",
+      "recipientFixedIt": "Codice destinatario 0000000 is used for private persons.",
+      "recipientFixedForeign": "Codice destinatario XXXXXXX is used for foreign clients.",
+      "pec": "PEC",
+      "email": "Email for courtesy copies",
+      "emailHint": "Optional.",
+      "pdfLanguage": "PDF language",
+      "currency": "Currency",
+      "defaultsTitle": "Invoice defaults",
+      "defaultsIntro": "These values prefill a new invoice for this client.",
+      "vat": "VAT or exemption",
+      "none": "None",
+      "vatRate": "VAT {{rate}}%",
+      "exempt": "No VAT ({{code}})",
+      "cassa": "Cassa / rivalsa",
+      "rivalsaInps": "Rivalsa INPS",
+      "cassaRate": "Rate (%)",
+      "cassaMode": "Amounts",
+      "modeExcluded": "Contribution added",
+      "modeIncluded": "Contribution included",
+      "ritenuta": "Ritenuta",
+      "ritenutaRate": "Rate (%)",
+      "ritenutaCausale": "Payment reason",
+      "bollo": "Apply bollo (virtual stamp)",
+      "termsDays": "Payment terms (days)",
+      "save": "Save client"
     }
   }
 }

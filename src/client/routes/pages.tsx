@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { FileText, Inbox, Users } from "lucide-react";
+import { FileText, Inbox } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Page } from "../components/page";
 import { buttonVariants } from "../components/ui/button";
@@ -28,19 +28,6 @@ export function ReceivedPage() {
         icon={Inbox}
         title={t("pages.received.emptyTitle")}
         description={t("pages.received.emptyBody")}
-      />
-    </Page>
-  );
-}
-
-export function ClientsPage() {
-  const { t } = useTranslation();
-  return (
-    <Page title={t("pages.clients.title")}>
-      <EmptyState
-        icon={Users}
-        title={t("pages.clients.emptyTitle")}
-        description={t("pages.clients.emptyBody")}
       />
     </Page>
   );

@@ -8,16 +8,11 @@ import {
 import { AppShell } from "./components/app-shell";
 import { SessionGate } from "./components/session-gate";
 import { AdeGuidePage } from "./routes/ade-guide";
+import { ClientsPage } from "./routes/clients";
 import { EmailSettingsPage } from "./routes/email-settings";
 import { HomePage } from "./routes/home";
 import { LoginPage } from "./routes/login";
-import {
-  ClientsPage,
-  IssuedPage,
-  NewInvoicePage,
-  NotFoundPage,
-  ReceivedPage,
-} from "./routes/pages";
+import { IssuedPage, NewInvoicePage, NotFoundPage, ReceivedPage } from "./routes/pages";
 import { ProfilePage } from "./routes/profile";
 import { SettingsPage } from "./routes/settings";
 import { SetupPage } from "./routes/setup";
