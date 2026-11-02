@@ -1,43 +1,80 @@
-import type { PecTestResult } from "../../shared/onboarding";
+import type { PecTestResult, PecTestStages, StageResult } from "../../shared/onboarding";
 import type { Bindings } from "../env";
 import { requireSecrets } from "../env";
-import { pecServers } from "./config";
+import { loadPecServers } from "./config";
 import { ImapError, type ImapSocket, openMailbox } from "./imap";
+import { smtpLogin } from "./smtp";
 import { connectImap } from "./socket";
 
 export type OpenSocket = (host: string, port: number) => ImapSocket;
 
+export type PecTestOutcome = Omit<PecTestResult, "at">;
+
 /**
- * PEC connection test (setup checklist): connect, LOGIN, EXAMINE INBOX, LOGOUT. Read-only, no
- * message is fetched and no SMTP connection is opened (the SMTP side is tested with the send
- * flow in step 12). Failures become a stable code; nothing from the server or the credentials is
- * kept. Throws `missing_secret` when the PEC variables are not set (nothing to test).
+ * PEC connection test: IMAP connect + LOGIN, EXAMINE INBOX, quota (GETQUOTAROOT, optional), then
+ * SMTP connect + AUTH without sending anything. Read-only on the mailbox; no message is fetched.
+ * Each stage has its own result so the screen says exactly what failed; the first blocking
+ * failure becomes the stable error code. Nothing from the servers or the credentials is kept.
+ * Throws `missing_secret` when the PEC variables are not set (nothing to test).
  */
 export async function pecConnectionTest(
   env: Bindings,
   open: OpenSocket = connectImap,
-): Promise<Omit<PecTestResult, "at">> {
+): Promise<PecTestOutcome> {
   requireSecrets(env, "pec");
-  const { imapHost, imapPort } = pecServers(env);
-  let stage: "connect" | "mailbox" = "connect";
+  const servers = await loadPecServers(env);
+  const credentials = {
+    username: env.PEC_USERNAME as string,
+    password: env.PEC_PASSWORD as string,
+  };
+  const stages: PecTestStages = {
+    imapLogin: "skipped",
+    mailbox: "skipped",
+    quota: "skipped",
+    smtpLogin: "skipped",
+  };
+  let error: string | null = null;
+  let quota: PecTestOutcome["quota"] = null;
+
   try {
-    const client = await openMailbox(open(imapHost, imapPort), {
-      username: env.PEC_USERNAME as string,
-      password: env.PEC_PASSWORD as string,
-    });
-    stage = "mailbox";
+    const client = await openMailbox(open(servers.imapHost, servers.imapPort), credentials);
+    stages.imapLogin = "ok";
     try {
       await client.select("INBOX");
-    } catch (error) {
+      stages.mailbox = "ok";
+      try {
+        const found = await client.getQuota();
+        quota = found;
+        stages.quota = found ? "ok" : "unsupported";
+      } catch {
+        stages.quota = "unsupported";
+      }
+      await client.logout();
+    } catch {
+      stages.mailbox = stages.mailbox === "ok" ? "ok" : "failed";
+      error = stages.mailbox === "failed" ? "mailbox_failed" : error;
       await client.close();
-      throw error;
     }
-    await client.logout();
-    return { ok: true, error: null };
-  } catch (error) {
-    if (error instanceof ImapError && error.code === "login_failed") {
-      return { ok: false, error: "login_failed" };
+  } catch (caught) {
+    if (caught instanceof ImapError && caught.code === "login_failed") {
+      stages.imapLogin = "failed";
+      error = "login_failed";
+    } else {
+      stages.imapLogin = "failed";
+      error = "connection_failed";
     }
-    return { ok: false, error: stage === "mailbox" ? "mailbox_failed" : "connection_failed" };
   }
+
+  try {
+    await smtpLogin(servers, credentials);
+    stages.smtpLogin = "ok";
+  } catch (caught) {
+    stages.smtpLogin = "failed";
+    const code = caught instanceof Error && "code" in caught ? (caught.code as string) : "";
+    error ??= code === "auth_failed" ? "smtp_login_failed" : "smtp_connection_failed";
+  }
+
+  return { ok: error === null, error, stages, quota };
 }
+
+export type { StageResult };

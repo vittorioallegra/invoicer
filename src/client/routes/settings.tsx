@@ -5,7 +5,6 @@ import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../shared/errors";
 import type { UiLocale } from "../../shared/format";
-import type { PecTestResult } from "../../shared/onboarding";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
@@ -20,11 +19,11 @@ import { putJson, settingsQuery } from "../lib/settings-api";
 interface Features {
   email: boolean;
   push: boolean;
-  pec: { username: boolean; password: boolean };
 }
 
 const SECTIONS = [
   { to: "/settings/profile", key: "profile" },
+  { to: "/settings/pec", key: "pec" },
   { to: "/settings/email", key: "email" },
   { to: "/settings/ade-guide", key: "ade" },
 ] as const;
@@ -135,73 +134,6 @@ function NumberingSection({ online }: { online: boolean }) {
   );
 }
 
-function PecTestSummary({ result }: { result: PecTestResult | null }) {
-  const { t, i18n } = useTranslation();
-  if (!result) return <Banner tone="info">{t("settings.pecNeverTested")}</Banner>;
-  const when = new Intl.DateTimeFormat(i18n.language, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(result.at));
-  return result.ok ? (
-    <Banner tone="success">{t("settings.pecTestPassed", { when })}</Banner>
-  ) : (
-    <Banner tone="danger">
-      {t("settings.pecTestFailed", { when })}{" "}
-      {t(`settings.pecErrors.${result.error ?? "connection_failed"}`)}
-    </Banner>
-  );
-}
-
-function PecSection({ features, online }: { features: Features; online: boolean }) {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const query = useQuery(settingsQuery);
-  const configured = features.pec.username && features.pec.password;
-  const test = useMutation({
-    mutationFn: () => api<PecTestResult>("/api/settings/pec-test", { method: "POST" }),
-    onSettled: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["settings"] }),
-        queryClient.invalidateQueries({ queryKey: ["onboarding"] }),
-      ]);
-    },
-  });
-  const status = (set: boolean) => (set ? t("settings.configured") : t("settings.notConfigured"));
-  return (
-    <section className="space-y-3" aria-labelledby="pec-credentials">
-      <h2 id="pec-credentials" className="text-base font-medium">
-        {t("settings.pecTitle")}
-      </h2>
-      <p className="text-sm text-muted-foreground">{t("settings.pecIntro")}</p>
-      <ul className="space-y-1 text-sm">
-        <li>
-          {t("settings.pecUsername")}: {status(features.pec.username)}
-        </li>
-        <li>
-          {t("settings.pecPassword")}: {status(features.pec.password)}
-        </li>
-        {query.data ? (
-          <li>
-            {t("settings.pecServer")}: {query.data.pec.imap}
-          </li>
-        ) : null}
-      </ul>
-      {!configured ? <Banner tone="warning">{t("settings.pecMissing")}</Banner> : null}
-      <p className="text-sm text-muted-foreground">{t("settings.pecTestScope")}</p>
-      {query.data && !test.isPending ? <PecTestSummary result={query.data.pec.test} /> : null}
-      {test.isError ? <Banner tone="danger">{t("settings.pecTestUnavailable")}</Banner> : null}
-      <Button
-        variant="secondary"
-        className="w-fit"
-        disabled={!online || !configured || test.isPending}
-        onClick={() => test.mutate()}
-      >
-        {test.isPending ? t("settings.pecTesting") : t("settings.pecTest")}
-      </Button>
-    </section>
-  );
-}
-
 export function SettingsPage() {
   const { t } = useTranslation();
   const online = useOnline();
@@ -248,7 +180,6 @@ export function SettingsPage() {
       </nav>
       <LanguageSection />
       <NumberingSection online={online} />
-      {features.data ? <PecSection features={features.data} online={online} /> : null}
       {/* Temporary: removed together with the spike page (plan step 21). A plain anchor, not
           a router link: /spike is a separate hidden page outside the app shell. */}
       <p className="pt-4 text-sm">

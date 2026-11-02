@@ -8,7 +8,7 @@ import { emailSettingsInputSchema, minimumNextNumber } from "../../shared/profil
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
 import { pecTestFromRow } from "../onboarding";
-import { pecServers } from "../pec/config";
+import { loadPecServers, PEC_DEFAULTS } from "../pec/config";
 import { pecConnectionTest } from "../pec/connection-test";
 import { makeError } from "../problem";
 import { validationDetail } from "../validation";
@@ -56,7 +56,7 @@ settings.get("/", async (c) => {
       .where(eq(schema.profile.id, 1))
       .get(),
   ]);
-  const servers = pecServers(c.env);
+  const servers = await loadPecServers(c.env);
   return c.json({
     email: {
       senderName: row?.emailSenderName ?? null,
@@ -70,8 +70,9 @@ settings.get("/", async (c) => {
     },
     invoiceNumber: await numbering(c.env),
     pec: {
-      imap: `${servers.imapHost}:${servers.imapPort}`,
-      smtp: `${servers.smtpHost}:${servers.smtpPort}`,
+      servers,
+      /** Aruba defaults, for the "use preset" button. */
+      preset: PEC_DEFAULTS,
       test: pecTestFromRow(row ?? null),
     },
     adeGuideDone: Boolean(row?.adeGuideDoneAt),
@@ -119,7 +120,38 @@ settings.put("/ade-guide", async (c) => {
   return c.json({ done: parsed.data.done });
 });
 
-/** Runs the PEC connection test (IMAP login + mailbox open) and stores the result. */
+const hostSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(253)
+  .regex(/^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$/, "invalid_host");
+const portSchema = z.number().int().min(1).max(65535);
+const serversBody = z.object({
+  imapHost: hostSchema,
+  imapPort: portSchema,
+  smtpHost: hostSchema,
+  smtpPort: portSchema,
+});
+
+/** Saves the IMAP/SMTP host and port presets; a changed server invalidates the last test. */
+settings.put("/pec-servers", async (c) => {
+  const parsed = serversBody.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) throw makeError("bad_request", validationDetail(parsed.error));
+  const { imapHost, imapPort, smtpHost, smtpPort } = parsed.data;
+  await patchSettings(c.env, {
+    pecImapHost: imapHost,
+    pecImapPort: imapPort,
+    pecSmtpHost: smtpHost,
+    pecSmtpPort: smtpPort,
+    pecTestAt: null,
+    pecTestOk: null,
+    pecTestError: null,
+  });
+  return c.json({ servers: await loadPecServers(c.env) });
+});
+
+/** Runs the PEC connection test (IMAP login, EXAMINE, quota, SMTP login) and stores the result. */
 settings.post("/pec-test", async (c) => {
   const result = await pecConnectionTest(c.env);
   const at = new Date();

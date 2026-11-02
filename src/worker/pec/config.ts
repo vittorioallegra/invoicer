@@ -1,3 +1,6 @@
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
+import * as schema from "../../db/schema";
 import type { Bindings } from "../env";
 
 /** Aruba PEC defaults; overridable with the PEC_*_HOST / PEC_*_PORT vars. */
@@ -29,4 +32,38 @@ export function pecServers(
     smtpHost: env.PEC_SMTP_HOST || PEC_DEFAULTS.smtpHost,
     smtpPort: port(env.PEC_SMTP_PORT, PEC_DEFAULTS.smtpPort),
   };
+}
+
+type ServerSettings = Pick<
+  typeof schema.settings.$inferSelect,
+  "pecImapHost" | "pecImapPort" | "pecSmtpHost" | "pecSmtpPort"
+>;
+
+/** Servers as stored in Settings (the editable presets); a column left empty falls back to env. */
+export function pecServersWithSettings(
+  env: Parameters<typeof pecServers>[0],
+  row: ServerSettings | null | undefined,
+): PecServers {
+  const fallback = pecServers(env);
+  return {
+    imapHost: row?.pecImapHost || fallback.imapHost,
+    imapPort: row?.pecImapPort || fallback.imapPort,
+    smtpHost: row?.pecSmtpHost || fallback.smtpHost,
+    smtpPort: row?.pecSmtpPort || fallback.smtpPort,
+  };
+}
+
+/** Settings columns first, then the PEC_* vars, then the Aruba defaults. */
+export async function loadPecServers(env: Bindings): Promise<PecServers> {
+  const row = await drizzle(env.DB, { schema })
+    .select({
+      pecImapHost: schema.settings.pecImapHost,
+      pecImapPort: schema.settings.pecImapPort,
+      pecSmtpHost: schema.settings.pecSmtpHost,
+      pecSmtpPort: schema.settings.pecSmtpPort,
+    })
+    .from(schema.settings)
+    .where(eq(schema.settings.id, 1))
+    .get();
+  return pecServersWithSettings(env, row);
 }

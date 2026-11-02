@@ -153,7 +153,9 @@
     "pecErrors": {
       "connection_failed": "The mailbox server could not be reached.",
       "login_failed": "The mailbox rejected the username or password. Aruba needs the dedicated mail-client password.",
-      "mailbox_failed": "Logged in, but the inbox could not be opened."
+      "mailbox_failed": "Logged in, but the inbox could not be opened.",
+      "smtp_connection_failed": "The mail (SMTP) server could not be reached or refused the connection.",
+      "smtp_login_failed": "The mail (SMTP) server rejected the username or password."
     },
     "pecTestUnavailable": "The test could not run. Check the secrets and try again.",
     "pecTest": "Test connection",
@@ -170,6 +172,10 @@
       "ade": {
         "title": "Agenzia delle Entrate guide",
         "body": "Register your PEC address on the AdE portal"
+      },
+      "pec": {
+        "title": "PEC mailbox",
+        "body": "Servers, secrets and the connection test"
       }
     }
   },
@@ -671,5 +677,36 @@
     },
     "legalNote": "Courtesy copy. The legally valid invoice is the electronic invoice (XML) transmitted through the Sistema di Interscambio (SdI) and available in the recipient's tax portal.",
     "page": "Page {{pageNumber}} of {{totalPages}}"
+  },
+  "pec": {
+    "title": "PEC mailbox",
+    "secretsTitle": "Mailbox login",
+    "tradeoff": "One password opens the whole mailbox: it can read every PEC (including official notices) and send PEC as you. Use a unique generated mail-client password only for this app, keep a second factor on your Cloudflare and GitHub accounts, and rotate it after any suspicion. Each send also needs your passkey.",
+    "serversTitle": "Servers",
+    "serversHint": "Aruba defaults are filled in. Change them only if your provider differs. Saving clears the last connection test.",
+    "imapHost": "IMAP server",
+    "imapPort": "IMAP port",
+    "smtpHost": "SMTP server",
+    "smtpPort": "SMTP port",
+    "saveServers": "Save servers",
+    "usePreset": "Use Aruba preset",
+    "serversSaved": "Servers saved. Run the connection test again.",
+    "serversInvalid": "These servers are not valid. Check the host names and ports.",
+    "testTitle": "Connection test",
+    "testScope": "Logs in to IMAP, opens the inbox read-only, reads the quota if the server has it, and logs in to SMTP. Nothing is read from messages and nothing is sent.",
+    "stagesLabel": "Test stages",
+    "stages": {
+      "imapLogin": "IMAP login",
+      "mailbox": "Open inbox",
+      "quota": "Mailbox quota",
+      "smtpLogin": "SMTP login"
+    },
+    "stageResult": {
+      "ok": "ok",
+      "failed": "failed",
+      "unsupported": "not supported by the server",
+      "skipped": "not reached"
+    },
+    "quota": "Mailbox use: {{used}} MB of {{limit}} MB."
   }
 }

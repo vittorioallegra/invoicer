@@ -16,7 +16,7 @@ const TARGETS: Record<ChecklistItemId, string> = {
   passkey: "/setup",
   fallback_login: "/setup",
   profile: "/settings/profile",
-  pec: "/settings",
+  pec: "/settings/pec",
   ade_guide: "/settings/ade-guide",
   email: "/settings/email",
 };

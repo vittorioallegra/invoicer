@@ -153,7 +153,9 @@
     "pecErrors": {
       "connection_failed": "Il server della casella non è raggiungibile.",
       "login_failed": "La casella ha rifiutato utente o password. Aruba richiede la password dedicata per i client di posta.",
-      "mailbox_failed": "Accesso riuscito, ma non è stato possibile aprire la posta in arrivo."
+      "mailbox_failed": "Accesso riuscito, ma non è stato possibile aprire la posta in arrivo.",
+      "smtp_connection_failed": "Il server di posta (SMTP) non è raggiungibile o ha rifiutato la connessione.",
+      "smtp_login_failed": "Il server di posta (SMTP) ha rifiutato nome utente o password."
     },
     "pecTestUnavailable": "Il test non è stato eseguito. Controlla i segreti e riprova.",
     "pecTest": "Testa la connessione",
@@ -170,6 +172,10 @@
       "ade": {
         "title": "Guida Agenzia delle Entrate",
         "body": "Registra l'indirizzo PEC sul portale dell'AdE"
+      },
+      "pec": {
+        "title": "Casella PEC",
+        "body": "Server, segreti e test di connessione"
       }
     }
   },
@@ -671,5 +677,36 @@
     },
     "legalNote": "Copia di cortesia. La fattura giuridicamente valida è la fattura elettronica (XML) trasmessa tramite il Sistema di Interscambio (SdI) e disponibile nell'area riservata del destinatario.",
     "page": "Pagina {{pageNumber}} di {{totalPages}}"
+  },
+  "pec": {
+    "title": "Casella PEC",
+    "secretsTitle": "Accesso alla casella",
+    "tradeoff": "Una sola password apre tutta la casella: può leggere ogni PEC (comprese le comunicazioni ufficiali) e inviare PEC a tuo nome. Usa una password per client di posta unica e generata, solo per questa app, tieni un secondo fattore su Cloudflare e GitHub e cambiala al minimo sospetto. Ogni invio richiede comunque la tua passkey.",
+    "serversTitle": "Server",
+    "serversHint": "Sono precompilati i valori Aruba. Cambiali solo se il tuo gestore è diverso. Salvando si azzera l'ultimo test di connessione.",
+    "imapHost": "Server IMAP",
+    "imapPort": "Porta IMAP",
+    "smtpHost": "Server SMTP",
+    "smtpPort": "Porta SMTP",
+    "saveServers": "Salva server",
+    "usePreset": "Usa preset Aruba",
+    "serversSaved": "Server salvati. Esegui di nuovo il test di connessione.",
+    "serversInvalid": "Questi server non sono validi. Controlla nomi host e porte.",
+    "testTitle": "Test di connessione",
+    "testScope": "Accede a IMAP, apre la posta in arrivo in sola lettura, legge la quota se il server la fornisce e accede a SMTP. Non legge messaggi e non invia nulla.",
+    "stagesLabel": "Fasi del test",
+    "stages": {
+      "imapLogin": "Accesso IMAP",
+      "mailbox": "Apertura posta in arrivo",
+      "quota": "Quota casella",
+      "smtpLogin": "Accesso SMTP"
+    },
+    "stageResult": {
+      "ok": "ok",
+      "failed": "non riuscito",
+      "unsupported": "non supportato dal server",
+      "skipped": "non raggiunto"
+    },
+    "quota": "Spazio usato: {{used}} MB su {{limit}} MB."
   }
 }

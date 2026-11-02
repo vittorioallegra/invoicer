@@ -14,6 +14,7 @@ import { HomePage } from "./routes/home";
 import { InvoiceEditorPage } from "./routes/invoice-editor";
 import { LoginPage } from "./routes/login";
 import { IssuedPage, NotFoundPage, ReceivedPage } from "./routes/pages";
+import { PecSettingsPage } from "./routes/pec-settings";
 import { ProfilePage } from "./routes/profile";
 import { SettingsPage } from "./routes/settings";
 import { SetupPage } from "./routes/setup";
@@ -46,6 +47,11 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/settings/profile",
     component: ProfilePage,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/settings/pec",
+    component: PecSettingsPage,
   }),
   createRoute({
     getParentRoute: () => rootRoute,

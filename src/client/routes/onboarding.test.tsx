@@ -50,7 +50,21 @@ const settings = {
     configured: false,
   },
   invoiceNumber: { year: 2026, next: 1, minimum: 5 },
-  pec: { imap: "imaps.pec.aruba.it:993", smtp: "smtps.pec.aruba.it:465", test: null },
+  pec: {
+    servers: {
+      imapHost: "imaps.pec.aruba.it",
+      imapPort: 993,
+      smtpHost: "smtps.pec.aruba.it",
+      smtpPort: 465,
+    },
+    preset: {
+      imapHost: "imaps.pec.aruba.it",
+      imapPort: 993,
+      smtpHost: "smtps.pec.aruba.it",
+      smtpPort: 465,
+    },
+    test: null,
+  },
   adeGuideDone: false,
 };
 
@@ -156,8 +170,10 @@ describe("Settings", () => {
       if (path === "/api/settings/pec-test") return { ok: false, error: "login_failed", at: 1 };
       throw new Error(`unexpected ${path}`);
     });
-    await renderAt("/settings");
-    fireEvent.click(await screen.findByRole("button", { name: "Test connection" }));
+    await renderAt("/settings/pec");
+    const run = await screen.findByRole("button", { name: "Test connection" });
+    await waitFor(() => expect((run as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(run);
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith("/api/settings/pec-test", { method: "POST" }),
     );
@@ -171,8 +187,12 @@ describe("Settings", () => {
         pec: { ...settings.pec, test: { ok: false, at: 1, error: "login_failed" } },
       },
     });
-    await renderAt("/settings");
+    await renderAt("/settings/pec");
     expect(await screen.findByText(/rejected the username or password/)).toBeTruthy();
+    // The stored code is enough to show which stage failed.
+    expect(screen.getByText("IMAP login", { exact: false }).parentElement?.textContent).toContain(
+      "failed",
+    );
   });
 
   it("refuses a next number below the ones already used, before calling the server", async () => {
@@ -190,9 +210,11 @@ describe("Settings", () => {
       "/api/features": { ...features, pec: { username: true, password: false } },
       "/api/settings": settings,
     });
-    await renderAt("/settings");
+    await renderAt("/settings/pec");
     const button = await screen.findByRole("button", { name: "Test connection" });
     expect((button as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText(/Set PEC_USERNAME and PEC_PASSWORD/)).toBeTruthy();
+    expect(
+      await screen.findByText(/Set PEC_USERNAME and PEC_PASSWORD as Worker secrets/),
+    ).toBeTruthy();
   });
 });

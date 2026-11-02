@@ -13,12 +13,52 @@ export const CHECKLIST_ITEMS = [
 ] as const;
 export type ChecklistItemId = (typeof CHECKLIST_ITEMS)[number];
 
+/** `unsupported`: the server has no QUOTA (not a failure); `skipped`: not reached or not stored. */
+export type StageResult = "ok" | "failed" | "unsupported" | "skipped";
+
+export interface PecTestStages {
+  imapLogin: StageResult;
+  mailbox: StageResult;
+  quota: StageResult;
+  smtpLogin: StageResult;
+}
+
 export interface PecTestResult {
   ok: boolean;
   /** Epoch milliseconds of the last connection test. */
   at: number;
-  /** Failure code (`connection_failed`, `login_failed`, `mailbox_failed`); null when ok. */
+  /**
+   * Failure code of the first blocking stage (`connection_failed`, `login_failed`,
+   * `mailbox_failed`, `smtp_connection_failed`, `smtp_login_failed`); null when ok.
+   */
   error: string | null;
+  /** Per-stage results; present on a fresh run, rebuilt from the error code when stored. */
+  stages?: PecTestStages;
+  /** Mailbox quota in KiB when the server reports it (fresh run only). */
+  quota?: { usedKb: number; limitKb: number } | null;
+}
+
+/** Stage results for a stored test, which keeps only the first failing stage's code. */
+export function stagesFromTest(result: Pick<PecTestResult, "ok" | "error">): PecTestStages {
+  const skipped: PecTestStages = {
+    imapLogin: "skipped",
+    mailbox: "skipped",
+    quota: "skipped",
+    smtpLogin: "skipped",
+  };
+  if (result.ok) return { ...skipped, imapLogin: "ok", mailbox: "ok", smtpLogin: "ok" };
+  switch (result.error) {
+    case "login_failed":
+    case "connection_failed":
+      return { ...skipped, imapLogin: "failed" };
+    case "mailbox_failed":
+      return { ...skipped, imapLogin: "ok", mailbox: "failed" };
+    case "smtp_login_failed":
+    case "smtp_connection_failed":
+      return { ...skipped, imapLogin: "ok", mailbox: "ok", smtpLogin: "failed" };
+    default:
+      return skipped;
+  }
 }
 
 export interface OnboardingFacts {

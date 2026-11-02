@@ -14,6 +14,9 @@ export type ConnectMailer = (
 
 export const connectWorkerMailer: ConnectMailer = (options) => WorkerMailer.connect(options);
 
+/** Test seam: tests swap the connector for a fake; production never touches it. */
+export const smtpDeps: { connect: ConnectMailer } = { connect: connectWorkerMailer };
+
 export interface PecCredentials {
   username: string;
   password: string;
@@ -44,7 +47,7 @@ function toBase64(bytes: Uint8Array): string {
 export async function smtpLogin(
   servers: PecServers,
   credentials: PecCredentials,
-  connect: ConnectMailer = connectWorkerMailer,
+  connect: ConnectMailer = (o) => smtpDeps.connect(o),
 ): Promise<void> {
   const secrets = [credentials.password, credentials.username];
   let mailer: Mailer;
@@ -60,7 +63,7 @@ export async function smtpLogin(
 export function createPecChannel(
   servers: PecServers,
   credentials: PecCredentials,
-  connect: ConnectMailer = connectWorkerMailer,
+  connect: ConnectMailer = (o) => smtpDeps.connect(o),
 ): Channel {
   const secrets = [credentials.password, credentials.username];
   return {

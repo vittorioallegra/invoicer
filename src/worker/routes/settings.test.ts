@@ -12,6 +12,8 @@ import type { Bindings } from "../env";
 import { loadSendReadiness } from "../onboarding";
 import { type FakeSocket, fakeSocket } from "../pec/fake-socket";
 import { EXAMINE_REPLY, GREETING } from "../pec/imap.fixtures";
+import { type ConnectMailer, smtpDeps } from "../pec/smtp";
+import { SMTP_ERRORS } from "../pec/smtp.fixtures";
 
 const sockets = vi.hoisted(() => ({ next: null as unknown, opened: 0 }));
 vi.mock("../pec/socket", () => ({
@@ -49,7 +51,11 @@ const goodSession = () =>
   fakeSocket(GREETING, [
     { expect: `A1 LOGIN "${PEC_USERNAME}" "${PEC_PASSWORD}"`, reply: "A1 OK Logged in\r\n" },
     { expect: 'A2 EXAMINE "INBOX"', reply: EXAMINE_REPLY },
-    { expect: "A3 LOGOUT", reply: "* BYE\r\nA3 OK done\r\n" },
+    {
+      expect: 'A3 GETQUOTAROOT "INBOX"',
+      reply: '* QUOTAROOT "INBOX" ""\r\n* QUOTA "" (STORAGE 12288 1048576)\r\nA3 OK done\r\n',
+    },
+    { expect: "A4 LOGOUT", reply: "* BYE\r\nA4 OK done\r\n" },
   ]);
 
 let owner: TestClient;
@@ -72,9 +78,19 @@ beforeAll(async () => {
   await signIn(owner);
 });
 
+const smtp = { connects: 0, error: null as string | null };
+const fakeMailer: ConnectMailer = async () => {
+  smtp.connects++;
+  if (smtp.error) throw new Error(smtp.error);
+  return { send: async () => undefined, close: async () => undefined };
+};
+
 beforeEach(() => {
   sockets.opened = 0;
   sockets.next = null;
+  smtp.connects = 0;
+  smtp.error = null;
+  smtpDeps.connect = fakeMailer;
 });
 
 describe("access", () => {
@@ -239,17 +255,29 @@ describe("PEC connection test and the send gate", () => {
     expect(sockets.opened).toBe(0);
   });
 
-  it("stores a passing result (login, EXAMINE, logout; read-only) and opens the gate", async () => {
+  it("stores a passing result (IMAP login, EXAMINE, quota, SMTP login; nothing sent) and opens the gate", async () => {
     const socket: FakeSocket = goodSession();
     sockets.next = socket;
-    const res = await owner.json<{ ok: boolean; at: number }>("/api/settings/pec-test", {
-      body: {},
-    });
+    const res = await owner.json<{
+      ok: boolean;
+      at: number;
+      stages: Record<string, string>;
+      quota: { usedKb: number; limitKb: number };
+    }>("/api/settings/pec-test", { body: {} });
     expect(res.body.ok).toBe(true);
+    expect(res.body.stages).toEqual({
+      imapLogin: "ok",
+      mailbox: "ok",
+      quota: "ok",
+      smtpLogin: "ok",
+    });
+    expect(res.body.quota).toEqual({ usedKb: 12288, limitKb: 1048576 });
+    expect(smtp.connects).toBe(1);
     expect(socket.received).toEqual([
       `A1 LOGIN "${PEC_USERNAME}" "${PEC_PASSWORD}"`,
       'A2 EXAMINE "INBOX"',
-      "A3 LOGOUT",
+      'A3 GETQUOTAROOT "INBOX"',
+      "A4 LOGOUT",
     ]);
     const onboarding = (await owner.json<Onboarding>("/api/onboarding")).body;
     expect(onboarding.send).toEqual({ ready: true, reasons: [] });
@@ -276,6 +304,78 @@ describe("PEC connection test and the send gate", () => {
     ]);
     expect(everything).not.toContain(PEC_PASSWORD);
     expect(everything).not.toContain(PEC_USERNAME);
+  });
+
+  it("reports the SMTP login stage on its own and keeps the secrets out", async () => {
+    sockets.next = goodSession();
+    smtp.error = `${SMTP_ERRORS.authFailed} ${PEC_PASSWORD}`;
+    const res = await owner.json("/api/settings/pec-test", { body: {} });
+    expect(res.body).toMatchObject({
+      ok: false,
+      error: "smtp_login_failed",
+      stages: { imapLogin: "ok", mailbox: "ok", smtpLogin: "failed" },
+    });
+    expect(JSON.stringify(res.body)).not.toContain(PEC_PASSWORD);
+    sockets.next = goodSession();
+    smtp.error = SMTP_ERRORS.greeting;
+    expect((await owner.json("/api/settings/pec-test", { body: {} })).body).toMatchObject({
+      error: "smtp_connection_failed",
+    });
+  });
+
+  it("works without QUOTA support", async () => {
+    sockets.next = fakeSocket(GREETING, [
+      { expect: /^A1 LOGIN/, reply: "A1 OK Logged in\r\n" },
+      { expect: 'A2 EXAMINE "INBOX"', reply: EXAMINE_REPLY },
+      { expect: /^A3 GETQUOTAROOT/, reply: "A3 BAD unknown command\r\n" },
+      { expect: "A4 LOGOUT", reply: "* BYE\r\nA4 OK done\r\n" },
+    ]);
+    const res = await owner.json("/api/settings/pec-test", { body: {} });
+    expect(res.body).toMatchObject({ ok: true, stages: { quota: "unsupported" } });
+  });
+
+  it("stores editable host and port presets, used by the test, with env as fallback", async () => {
+    const before = (await owner.json<{ pec: { servers: { smtpHost: string } } }>("/api/settings"))
+      .body.pec.servers;
+    expect(before.smtpHost).toBe("smtps.pec.aruba.it");
+    const bad = await owner.json("/api/settings/pec-servers", {
+      method: "PUT",
+      body: { imapHost: "bad host!", imapPort: 993, smtpHost: "smtp.example.it", smtpPort: 465 },
+    });
+    expect(bad.status).toBe(400);
+    const saved = await owner.json<{ servers: { imapHost: string; smtpPort: number } }>(
+      "/api/settings/pec-servers",
+      {
+        method: "PUT",
+        body: {
+          imapHost: "imap.example.it",
+          imapPort: 1993,
+          smtpHost: "smtp.example.it",
+          smtpPort: 2465,
+        },
+      },
+    );
+    expect(saved.status).toBe(200);
+    expect(saved.body.servers).toMatchObject({ imapHost: "imap.example.it", smtpPort: 2465 });
+    const opened: string[] = [];
+    smtpDeps.connect = async (options) => {
+      opened.push(`${options.host}:${options.port}`);
+      return fakeMailer(options);
+    };
+    sockets.next = new Error("down");
+    await owner.json("/api/settings/pec-test", { body: {} });
+    expect(opened).toEqual(["smtp.example.it:2465"]);
+    // A changed server clears the stored test, so the send gate asks for a new one.
+    await owner.json("/api/settings/pec-servers", {
+      method: "PUT",
+      body: {
+        imapHost: "imaps.pec.aruba.it",
+        imapPort: 993,
+        smtpHost: "smtps.pec.aruba.it",
+        smtpPort: 465,
+      },
+    });
+    expect((await loadSendReadiness(bindings)).reasons).toEqual(["pec_test_missing"]);
   });
 
   it("stores a connection failure when the server cannot be reached", async () => {

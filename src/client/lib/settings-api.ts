@@ -28,7 +28,11 @@ export interface SettingsResponse {
     configured: boolean;
   };
   invoiceNumber: { year: number; next: number; minimum: number };
-  pec: { imap: string; smtp: string; test: PecTestResult | null };
+  pec: {
+    servers: { imapHost: string; imapPort: number; smtpHost: string; smtpPort: number };
+    preset: { imapHost: string; imapPort: number; smtpHost: string; smtpPort: number };
+    test: PecTestResult | null;
+  };
   adeGuideDone: boolean;
 }
 
