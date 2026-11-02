@@ -57,7 +57,7 @@ function BottomTabs() {
       <NewInvoiceLink className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 rounded-full px-5 shadow-lg md:hidden" />
       <nav
         aria-label={t("nav.label")}
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 transform-gpu border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         {NAV.map(({ to, key, icon: Icon }) => (
           <Link
@@ -91,9 +91,14 @@ function OfflineBanner() {
 
 export function AppShell() {
   return (
-    <div className="flex min-h-dvh pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+    <div className="flex min-h-dvh pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
+        <div
+          aria-hidden
+          data-testid="safe-area-top"
+          className="h-[env(safe-area-inset-top)] shrink-0"
+        />
         <OfflineBanner />
         <main className="flex-1 px-4 py-6 pb-[calc(8rem+env(safe-area-inset-bottom))] md:px-8 md:pb-8">
           <div className="mx-auto w-full max-w-4xl">

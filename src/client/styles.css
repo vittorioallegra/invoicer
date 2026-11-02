@@ -78,8 +78,15 @@
 }
 
 @layer base {
+  /*
+   * iOS standalone PWA: paint the page colour on the root so no unpainted strip shows under
+   * the translucent status bar or the home indicator while the viewport settles, and size the
+   * body with dvh (never vh). Safe-area insets are applied once, on the shell (app-shell.tsx).
+   */
   html {
     -webkit-text-size-adjust: 100%;
+    background: var(--background);
+    min-height: 100%;
   }
 
   body {
@@ -88,6 +95,7 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
+    min-height: 100dvh;
   }
 
   :focus-visible {
