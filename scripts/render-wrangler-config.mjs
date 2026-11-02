@@ -19,6 +19,8 @@ text = text.replace("__D1_DATABASE_ID__", databaseId);
 const extra = {};
 if (process.env.APP_DOMAIN) {
   extra.routes = [{ pattern: process.env.APP_DOMAIN, custom_domain: true }];
+  // Served only on the custom domain: no workers.dev subdomain needed.
+  extra.workers_dev = false;
 }
 const vars = {};
 for (const name of ["APP_ORIGIN", "MAIL_FROM_ADDRESS", "VAPID_PUBLIC_KEY", "VAPID_SUBJECT"]) {
