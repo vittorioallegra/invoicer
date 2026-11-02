@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { CRON, jobForCron } from "../src/worker/jobs/scheduled";
+import { CRON, jobForCron } from "../src/shared/cron";
 
 describe("cron triggers", () => {
   it("wrangler.jsonc lists exactly the expressions the scheduled handler dispatches on", () => {
