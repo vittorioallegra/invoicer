@@ -31,8 +31,8 @@
       "migrations_dir": "migrations"
     }
   ],
-  // At most 3 cron triggers (free plan: 5 per account): mailbox polling every 10 minutes, a daily
-  // and a weekly job. One scheduled handler dispatches on event.cron: see
-  // src/worker/jobs/scheduled.ts (keep the expressions in sync; day of week is SUN, not 0).
-  "triggers": { "crons": ["*/10 * * * *", "0 4 * * *", "0 3 * * SUN"] }
+  // A single cron trigger: mailbox polling every 10 minutes. The daily jobs run from the same
+  // trigger at 09:00 Europe/Rome (shouldRunDaily in src/shared/cron.ts); keep the expression in
+  // sync with src/shared/cron.ts.
+  "triggers": { "crons": ["*/10 * * * *"] }
 }
