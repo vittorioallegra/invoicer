@@ -53,7 +53,8 @@ nothing and marks the invoice sent; it is ignored unless `APP_ORIGIN` is a local
    has it) and SMTP login, each with its own result. Nothing is sent and no message is read.
    A passing test is required before the first send.
 4. The first transmission goes to `sdi01@pec.fatturapa.it`; once the SdI's first reply names an
-   address it is stored in settings and used from then on (read by the polling step).
+   address (the sender of its first message about one of our files) it is stored in settings and
+   used from then on.
 5. The manual AdE channel is always available on a numbered invoice: download the XML and PDF
    from the invoice page, upload them on the Agenzia delle Entrate portal, then record the outcome.
 
@@ -65,6 +66,49 @@ The PEC credentials are never stored in D1 and never returned by the API (Settin
 whether each is set). Because the one password gives full mailbox access, every send needs proof
 of presence: a passkey assertion with user verification (fallback: a fresh TOTP code), bound to
 the invoice and the SHA-256 of its XML and checked by the Worker before any SMTP connection.
+
+### Mailbox polling
+
+Every cron run (every 10 minutes) reads the PEC mailbox over IMAP, read-only: it opens the INBOX
+with EXAMINE, fetches only messages above the last UID it processed (with PEEK), and never marks,
+moves or deletes anything. The first run starts at the current end of the mailbox (older mail is
+ignored), unless an invoice was already sent, in which case the whole mailbox is scanned once. If
+the server renumbers the mailbox (UIDVALIDITY changes) it rescans, without storing anything twice.
+Each message is stored once; mail that is not about e-invoicing is kept as a bare row (no
+content) and never notifies you. Per run at most 20 messages and 3 MB are read; a backlog is
+worked off over the next runs. A message over 2 MB is recorded as an error with a notification
+and not fetched in full.
+
+- A PEC acceptance receipt only confirms the send. The PEC **delivery receipt from the SdI
+  mailbox** moves the invoice from `sending` to `sent`; the SdI's RC, MC and NS messages (matched
+  by the invoice file name) move it to `delivered`, `not_delivered` or `rejected`. A rejection
+  keeps the SdI error list and its time (the 5-day window starts there). An invoice never moves
+  backwards, and only messages about its latest attempt move it.
+- A PEC non-delivery message ("mancata consegna" from the provider) means nothing reached the SdI:
+  the attempt is open again, to be sent with the same number and date and no deadline.
+- Received invoices (XML or `.p7m`) are stored with their original file and are parsed by the
+  browser when opened. SdI messages that match no invoice are kept and listed in Settings.
+- Settings has **Download all data**, a JSON export of every business table (files as hex; the
+  login and push keys are left out).
+- Errors: a failed poll (wrong password, mailbox unreachable) leaves a failed `job_runs` row and one
+  notification until you read it. With the PEC secrets unset the poll does nothing.
+
+### Cutover runbook
+
+Moving from the previous invoicing tool (FiC) to Invoicer. Milestone A ends with step 3.
+
+1. Import the FiC history (the import arrives with the received-invoices step), or at least set
+   the next invoice number for the year to the one FiC would issue next (Settings > Invoice
+   numbering).
+2. Stop issuing in FiC. Never issue in both tools in the same period.
+3. Send the first real invoice through Invoicer, with the production PEC mailbox, and check that
+   it goes `sending` > `sent` > `delivered` (or note the SdI's answer). This is the first
+   real test of the SdI rules the code assumes: the address the SdI names in its first reply
+   and the receipt file names (`<file>_RC_001.xml`, `_NS_`, `_MC_`).
+4. Register the PEC address on the Agenzia delle Entrate portal as the address for receiving
+   invoices only once mailbox polling stores received invoices (it does, from this step). To roll
+   back, switch the registered address back to FiC's code while FiC is still active.
+5. Keep FiC until 2026-12-31 as the fallback.
 
 ## Deploy
 
