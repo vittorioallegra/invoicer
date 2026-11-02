@@ -56,11 +56,6 @@
       "title": "Impostazioni",
       "diagnostics": "Diagnostica"
     },
-    "newInvoice": {
-      "title": "Nuova fattura",
-      "emptyTitle": "L'editor delle fatture arriva presto",
-      "emptyBody": "Questa schermata è un segnaposto."
-    },
     "notFound": {
       "title": "Pagina non trovata",
       "body": "Questa pagina non esiste.",
@@ -193,7 +188,12 @@
     "invalid_eu_country": "Inserisci un codice paese UE diverso da IT.",
     "invalid_non_eu_country": "Inserisci un codice paese extra UE.",
     "invalid_currency": "Inserisci un codice valuta di 3 lettere.",
-    "invalid_vat_default": "Scegli un'aliquota IVA oppure un'esenzione."
+    "invalid_vat_default": "Scegli un'aliquota IVA oppure un'esenzione.",
+    "invalid_date": "Inserisci una data valida.",
+    "natura_text_required": "Aggiungi il riferimento normativo per questa esenzione.",
+    "invalid_amount": "Inserisci un importo come 1.040,00.",
+    "invalid_quantity": "Inserisci una quantità maggiore di zero (fino a 3 decimali).",
+    "invalid_rate": "Inserisci una percentuale come 4 o 22,5."
   },
   "profile": {
     "title": "Profilo emittente",
@@ -383,6 +383,119 @@
       "bollo": "Applica il bollo virtuale",
       "termsDays": "Termini di pagamento (giorni)",
       "save": "Salva cliente"
+    }
+  },
+  "invoice": {
+    "newTitle": "Nuova fattura",
+    "editTitle": "Fattura",
+    "notFound": "Questa fattura non esiste.",
+    "numberYear": "N. {{number}}/{{year}}",
+    "issuedOn": "Emessa il {{date}}",
+    "saved": "Salvata.",
+    "readOnly": "Questa fattura è stata emessa e non si può più modificare. Puoi ancora impostare lo stato di pagamento e le note.",
+    "fixErrors": "Correggi i campi evidenziati per salvare.",
+    "notes": "Note (interne)",
+    "errors": {
+      "locked": "Questa fattura non si può più modificare."
+    },
+    "warnings": {
+      "immediate_late": "Una fattura immediata va emessa entro 12 giorni dalla data dell'operazione (art. 21 DPR 633/72). Questa sarà in ritardo.",
+      "deferred_late": "Una fattura differita va emessa entro il 15 del mese successivo all'operazione (art. 21 DPR 633/72). Questa sarà in ritardo."
+    },
+    "bollo": {
+      "suggestion": "Gli importi esenti superano 77,47 EUR: di solito è dovuto il bollo virtuale da 2,00 EUR.",
+      "add": "Aggiungi bollo",
+      "dismiss": "Ignora"
+    },
+    "client": {
+      "title": "Cliente",
+      "label": "Cliente",
+      "choose": "Scegli un cliente",
+      "new": "Nuovo cliente",
+      "edit": "Modifica cliente",
+      "incomplete": "I dati di questo cliente non bastano per una fattura elettronica:"
+    },
+    "document": {
+      "title": "Documento",
+      "type": "Tipo di documento",
+      "td01": "Fattura (TD01)",
+      "td04": "Nota di credito (TD04)",
+      "currency": "Valuta",
+      "linked": "Fattura collegata",
+      "noLinked": "Nessuna (nota di credito autonoma)",
+      "operationDate": "Data operazione",
+      "operationHint": "Quando è avvenuta la vendita o la prestazione.",
+      "plannedDate": "Data di emissione prevista",
+      "plannedHint": "Mette la fattura tra quelle da emettere.",
+      "dueDate": "Scadenza",
+      "deferred": "Fattura differita (emessa entro il 15 del mese successivo)"
+    },
+    "lines": {
+      "title": "Righe",
+      "description": "Descrizione",
+      "quantity": "Quantità",
+      "unit": "Unità",
+      "price": "Prezzo unitario",
+      "vat": "IVA",
+      "amount": "Importo",
+      "chooseVat": "Scegli l'IVA",
+      "add": "Aggiungi riga",
+      "remove": "Rimuovi riga {{n}}"
+    },
+    "natura": {
+      "title": "Riferimenti normativi",
+      "intro": "Le righe esenti richiedono il riferimento normativo che compare in fattura. È precompilato: modificalo se si applica un'altra norma.",
+      "label": "Riferimento normativo per {{code}}"
+    },
+    "extras": {
+      "title": "Contributi e ritenuta",
+      "cassaSubject": "Il contributo fa parte della base della ritenuta"
+    },
+    "payment": {
+      "title": "Pagamento",
+      "method": "Modalità di pagamento"
+    },
+    "paymentMethods": {
+      "MP01": "Contanti",
+      "MP02": "Assegno",
+      "MP05": "Bonifico",
+      "MP08": "Carta di pagamento",
+      "MP12": "RIBA",
+      "MP19": "Addebito diretto SEPA",
+      "MP23": "PagoPA"
+    },
+    "totals": {
+      "title": "Totali",
+      "due": "Importo dovuto",
+      "creditDue": "Totale nota di credito",
+      "breakdown": "Mostra il dettaglio",
+      "taxableRate": "Imponibile al {{rate}}%",
+      "taxableNatura": "Imponibile, senza IVA ({{code}})",
+      "contribution": "Contributo (incluso sopra)",
+      "vat": "IVA",
+      "stamp": "Bollo",
+      "documentTotal": "Totale documento",
+      "ritenuta": "Ritenuta",
+      "cassaIncluded": "Contributo incluso",
+      "cassaExcluded": "Contributo aggiunto"
+    },
+    "paid": {
+      "title": "Stato di pagamento",
+      "markPaid": "Pagata",
+      "date": "Pagata il",
+      "save": "Salva stato di pagamento"
+    },
+    "actions": {
+      "saveDraft": "Salva bozza",
+      "save": "Salva",
+      "send": "Invia",
+      "duplicate": "Duplica",
+      "creditNote": "Crea nota di credito",
+      "delete": "Elimina bozza",
+      "deleteConfirm": "Conferma eliminazione"
+    },
+    "send": {
+      "pending": "L'invio sarà disponibile quando sarà pronto il flusso di invio."
     }
   }
 }

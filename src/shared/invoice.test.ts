@@ -9,6 +9,7 @@ import {
   invoiceIssuableSchema,
   issuanceTermWarning,
   issueMap,
+  parseQuantityMilli,
   REJECTION_WINDOW_DAYS,
   rejectionDeadline,
   safeTotals,
@@ -167,5 +168,18 @@ describe("state rules", () => {
   });
   it("closes the resend window five days after the rejection", () => {
     expect(rejectionDeadline(0)).toBe(REJECTION_WINDOW_DAYS * 86_400_000);
+  });
+});
+
+describe("quantity parsing", () => {
+  it("reads whole and decimal quantities into thousandths", () => {
+    expect(parseQuantityMilli("2")).toBe(2000);
+    expect(parseQuantityMilli("7,5")).toBe(7500);
+    expect(parseQuantityMilli("0.125")).toBe(125);
+  });
+  it("refuses zero, negatives, extra decimals and text", () => {
+    for (const bad of ["", "0", "-1", "1,2345", "abc", "1.2.3"]) {
+      expect(parseQuantityMilli(bad)).toBeNull();
+    }
   });
 });

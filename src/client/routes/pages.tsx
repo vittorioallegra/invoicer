@@ -33,19 +33,6 @@ export function ReceivedPage() {
   );
 }
 
-export function NewInvoicePage() {
-  const { t } = useTranslation();
-  return (
-    <Page title={t("pages.newInvoice.title")}>
-      <EmptyState
-        icon={FileText}
-        title={t("pages.newInvoice.emptyTitle")}
-        description={t("pages.newInvoice.emptyBody")}
-      />
-    </Page>
-  );
-}
-
 export function NotFoundPage() {
   const { t } = useTranslation();
   return (

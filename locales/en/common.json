@@ -56,11 +56,6 @@
       "title": "Settings",
       "diagnostics": "Diagnostics"
     },
-    "newInvoice": {
-      "title": "New invoice",
-      "emptyTitle": "The invoice editor is coming soon",
-      "emptyBody": "This screen is a placeholder."
-    },
     "notFound": {
       "title": "Page not found",
       "body": "This page does not exist.",
@@ -193,7 +188,12 @@
     "invalid_eu_country": "Enter an EU country code other than IT.",
     "invalid_non_eu_country": "Enter a country code outside the EU.",
     "invalid_currency": "Enter a 3-letter currency code.",
-    "invalid_vat_default": "Choose either a VAT rate or an exemption."
+    "invalid_vat_default": "Choose either a VAT rate or an exemption.",
+    "invalid_date": "Enter a valid date.",
+    "natura_text_required": "Add the legal reference for this exemption.",
+    "invalid_amount": "Enter an amount such as 1.040,00.",
+    "invalid_quantity": "Enter a quantity above zero (up to 3 decimals).",
+    "invalid_rate": "Enter a percentage such as 4 or 22,5."
   },
   "profile": {
     "title": "Issuer profile",
@@ -383,6 +383,119 @@
       "bollo": "Apply bollo (virtual stamp)",
       "termsDays": "Payment terms (days)",
       "save": "Save client"
+    }
+  },
+  "invoice": {
+    "newTitle": "New invoice",
+    "editTitle": "Invoice",
+    "notFound": "This invoice does not exist.",
+    "numberYear": "No. {{number}}/{{year}}",
+    "issuedOn": "Issued {{date}}",
+    "saved": "Saved.",
+    "readOnly": "This invoice has been issued and can no longer be edited. You can still set its payment status and notes.",
+    "fixErrors": "Fix the highlighted fields to save.",
+    "notes": "Notes (internal)",
+    "errors": {
+      "locked": "This invoice can no longer be edited."
+    },
+    "warnings": {
+      "immediate_late": "An immediate invoice should be issued within 12 days of the operation date (art. 21 DPR 633/72). This one will be late.",
+      "deferred_late": "A deferred invoice should be issued by the 15th of the month after the operation (art. 21 DPR 633/72). This one will be late."
+    },
+    "bollo": {
+      "suggestion": "Exempt amounts exceed 77.47 EUR: the 2.00 EUR virtual stamp (bollo) is usually due.",
+      "add": "Add bollo",
+      "dismiss": "Dismiss"
+    },
+    "client": {
+      "title": "Client",
+      "label": "Client",
+      "choose": "Choose a client",
+      "new": "New client",
+      "edit": "Edit client",
+      "incomplete": "This client's data is not complete enough for an e-invoice:"
+    },
+    "document": {
+      "title": "Document",
+      "type": "Document type",
+      "td01": "Invoice (TD01)",
+      "td04": "Credit note (TD04)",
+      "currency": "Currency",
+      "linked": "Linked invoice",
+      "noLinked": "None (stand-alone credit note)",
+      "operationDate": "Operation date",
+      "operationHint": "When the sale or service took place.",
+      "plannedDate": "Planned issue date",
+      "plannedHint": "Lists the invoice under To issue.",
+      "dueDate": "Due date",
+      "deferred": "Deferred invoice (issued by the 15th of the next month)"
+    },
+    "lines": {
+      "title": "Lines",
+      "description": "Description",
+      "quantity": "Quantity",
+      "unit": "Unit",
+      "price": "Unit price",
+      "vat": "VAT",
+      "amount": "Amount",
+      "chooseVat": "Choose VAT",
+      "add": "Add line",
+      "remove": "Remove line {{n}}"
+    },
+    "natura": {
+      "title": "Legal references",
+      "intro": "Exempt lines need the legal reference that goes on the invoice. It is prefilled; edit it if another provision applies.",
+      "label": "Legal reference for {{code}}"
+    },
+    "extras": {
+      "title": "Contributions and withholding",
+      "cassaSubject": "The contribution is part of the ritenuta base"
+    },
+    "payment": {
+      "title": "Payment",
+      "method": "Payment method"
+    },
+    "paymentMethods": {
+      "MP01": "Cash",
+      "MP02": "Cheque",
+      "MP05": "Bank transfer",
+      "MP08": "Payment card",
+      "MP12": "RIBA",
+      "MP19": "SEPA direct debit",
+      "MP23": "PagoPA"
+    },
+    "totals": {
+      "title": "Totals",
+      "due": "Amount due",
+      "creditDue": "Credit note total",
+      "breakdown": "Show breakdown",
+      "taxableRate": "Taxable at {{rate}}%",
+      "taxableNatura": "Taxable, no VAT ({{code}})",
+      "contribution": "Contribution (included above)",
+      "vat": "VAT",
+      "stamp": "Bollo",
+      "documentTotal": "Document total",
+      "ritenuta": "Ritenuta",
+      "cassaIncluded": "Contribution included",
+      "cassaExcluded": "Contribution added"
+    },
+    "paid": {
+      "title": "Payment status",
+      "markPaid": "Paid",
+      "date": "Paid on",
+      "save": "Save payment status"
+    },
+    "actions": {
+      "saveDraft": "Save draft",
+      "save": "Save",
+      "send": "Send",
+      "duplicate": "Duplicate",
+      "creditNote": "Create credit note",
+      "delete": "Delete draft",
+      "deleteConfirm": "Confirm delete"
+    },
+    "send": {
+      "pending": "Sending is available once the send flow is in place."
     }
   }
 }

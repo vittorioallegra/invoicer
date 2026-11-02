@@ -1,0 +1,102 @@
+import { ChevronUp } from "lucide-react";
+import { type ReactNode, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { formatMoney, type UiLocale } from "../../shared/format";
+import type { Totals } from "../../shared/totals";
+import { bpToText, type InvoiceForm } from "../lib/invoice-form";
+
+export interface InvoiceTotalsProps {
+  totals: Totals | null;
+  form: InvoiceForm;
+  locale: UiLocale;
+  /** Primary action(s) shown beside the amount. */
+  actions?: ReactNode;
+}
+
+/** Sticky footer: amount due, cassa mode chip and an expandable breakdown. */
+export function InvoiceTotals({ totals, form, locale, actions }: InvoiceTotalsProps) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const currency = form.currency.toUpperCase();
+  const money = (cents: number) => formatMoney(cents, locale, currency);
+  const credit = form.documentType === "TD04";
+
+  return (
+    <section
+      aria-label={t("invoice.totals.title")}
+      className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 border-t border-border bg-surface px-4 py-3 shadow-[0_-4px_12px_rgb(0_0_0/0.06)] md:bottom-0 md:mx-0 md:rounded-card md:border"
+    >
+      {open && totals ? (
+        <dl
+          id="invoice-breakdown"
+          className="mb-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-b border-border pb-3 text-sm"
+        >
+          {totals.groups.map((group) => (
+            <Row
+              key={group.key}
+              label={
+                group.vatRateBp === null
+                  ? t("invoice.totals.taxableNatura", { code: group.natura })
+                  : t("invoice.totals.taxableRate", { rate: bpToText(group.vatRateBp) })
+              }
+              value={money(group.taxableCents)}
+            />
+          ))}
+          {totals.contributionCents > 0 ? (
+            <Row label={t("invoice.totals.contribution")} value={money(totals.contributionCents)} />
+          ) : null}
+          <Row label={t("invoice.totals.vat")} value={money(totals.vatCents)} />
+          {totals.stampCents > 0 ? (
+            <Row label={t("invoice.totals.stamp")} value={money(totals.stampCents)} />
+          ) : null}
+          <Row label={t("invoice.totals.documentTotal")} value={money(totals.documentTotalCents)} />
+          {totals.ritenutaCents > 0 ? (
+            <Row label={t("invoice.totals.ritenuta")} value={`−${money(totals.ritenutaCents)}`} />
+          ) : null}
+        </dl>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls="invoice-breakdown"
+          onClick={() => setOpen((value) => !value)}
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
+        >
+          <span className="min-w-0">
+            <span className="block text-sm text-muted-foreground">
+              {t(credit ? "invoice.totals.creditDue" : "invoice.totals.due")}
+            </span>
+            <span className="block text-xl font-semibold tabular-nums">
+              {totals ? money(totals.amountDueCents) : "–"}
+            </span>
+            {form.cassaType ? (
+              <span className="mt-0.5 inline-block rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium">
+                {t(
+                  form.cassaMode === "included"
+                    ? "invoice.totals.cassaIncluded"
+                    : "invoice.totals.cassaExcluded",
+                )}
+              </span>
+            ) : null}
+          </span>
+          <ChevronUp
+            aria-hidden
+            className={`ml-auto size-5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+          />
+          <span className="sr-only">{t("invoice.totals.breakdown")}</span>
+        </button>
+        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      </div>
+    </section>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right tabular-nums">{value}</dd>
+    </>
+  );
+}

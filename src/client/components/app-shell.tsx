@@ -1,4 +1,4 @@
-import { Link, Outlet } from "@tanstack/react-router";
+import { Link, Outlet, useLocation } from "@tanstack/react-router";
 import { FileText, House, Inbox, Plus, Settings, Users, WifiOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useOnline } from "../lib/online";
@@ -52,9 +52,15 @@ function Sidebar() {
 /** iPhone: bottom tab bar with safe-area padding and a floating "New invoice" action. */
 function BottomTabs() {
   const { t } = useTranslation();
+  // The editor has its own sticky totals bar above the tabs; the floating action would cover it.
+  const inEditor = useLocation({
+    select: (location) => location.pathname.startsWith("/invoices/"),
+  });
   return (
     <>
-      <NewInvoiceLink className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 rounded-full px-5 shadow-lg md:hidden" />
+      {inEditor ? null : (
+        <NewInvoiceLink className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 rounded-full px-5 shadow-lg md:hidden" />
+      )}
       <nav
         aria-label={t("nav.label")}
         data-diagnostics="tab-bar"

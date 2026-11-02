@@ -199,6 +199,18 @@ export function bolloSuggestion(
   );
 }
 
+/**
+ * Parses a typed quantity (`2`, `7,5`, `0.125`) into thousandths, or null when it is not a
+ * positive number with at most three decimals.
+ */
+export function parseQuantityMilli(input: string): number | null {
+  const text = input.trim().replace(",", ".");
+  if (!/^\d+(\.\d{1,3})?$/.test(text)) return null;
+  const [whole = "0", fraction = ""] = text.split(".");
+  const milli = Number(whole) * 1000 + Number(fraction.padEnd(3, "0"));
+  return Number.isSafeInteger(milli) && milli > 0 ? milli : null;
+}
+
 /** Natura legal text to prefill when a natura is first used. */
 export function defaultNaturaText(natura: Natura): string {
   return NATURA_TEXTS[natura].text;
@@ -305,38 +317,64 @@ export type InvoiceSummary = Pick<
 export const INVOICE_LIST_SCOPES = ["to_issue", "issued", "reserved"] as const;
 export type InvoiceListScope = (typeof INVOICE_LIST_SCOPES)[number];
 
+export interface IssuingProblem {
+  path: (string | number)[];
+  code: string;
+}
+
 /**
  * Rules that must hold before a number is reserved: what the XSD and the client type require.
  * `client` is the stored client of the invoice; its own type rules are checked with the client
- * schema and reported under `client.<field>`.
+ * schema and reported under `client.<field>`. Pure, so the editor can run it while other fields
+ * are still unreadable.
  */
+export function issuingProblems(
+  invoice: {
+    clientId: string | null;
+    lines: { description: string; vatRateBp: number | null; natura: Natura | null }[];
+    data: { naturaTexts: Partial<Record<Natura, string | undefined>> };
+  },
+  client: ClientRecord | null,
+): IssuingProblem[] {
+  const out: IssuingProblem[] = [];
+  const fail = (path: (string | number)[], code: string) => out.push({ path, code });
+
+  if (invoice.clientId === null || client === null) {
+    fail(["clientId"], "required");
+  } else {
+    const parsed = clientInputSchema.safeParse(clientRecordToInput(client));
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        fail(["client", ...issue.path.map(String)], issueCode(issue));
+      }
+    }
+  }
+  if (invoice.lines.length === 0) fail(["lines"], "required");
+  invoice.lines.forEach((line, index) => {
+    if (line.description.trim() === "") fail(["lines", index, "description"], "required");
+    if (line.vatRateBp === null && line.natura === null) fail(["lines", index, "vat"], "required");
+  });
+  const used = new Set(invoice.lines.flatMap((line) => (line.natura ? [line.natura] : [])));
+  for (const natura of used) {
+    if (!invoice.data.naturaTexts[natura]?.trim()) {
+      fail(["data", "naturaTexts", natura], "natura_text_required");
+    }
+  }
+  return out;
+}
+
+/** The invoice schema plus the issuing rules, for the Worker before it reserves a number. */
 export function invoiceIssuableSchema(client: ClientRecord | null) {
   return invoiceInputSchema.superRefine((invoice, ctx) => {
-    const fail = (path: (string | number)[], message: string) =>
-      ctx.addIssue({ code: "custom", path, message });
-
-    if (invoice.clientId === null || client === null) {
-      fail(["clientId"], "required");
-    } else {
-      const parsed = clientInputSchema.safeParse(clientRecordToInput(client));
-      if (!parsed.success) {
-        for (const issue of parsed.error.issues)
-          fail(["client", ...issue.path.map(String)], issue.message);
-      }
-    }
-    if (invoice.lines.length === 0) fail(["lines"], "required");
-    invoice.lines.forEach((line, index) => {
-      if (line.description === "") fail(["lines", index, "description"], "required");
-      if (line.vatRateBp === null && line.natura === null)
-        fail(["lines", index, "vat"], "required");
-    });
-    const used = new Set(invoice.lines.flatMap((line) => (line.natura ? [line.natura] : [])));
-    for (const natura of used) {
-      if (!invoice.data.naturaTexts[natura]) {
-        fail(["data", "naturaTexts", natura], "natura_text_required");
-      }
+    for (const problem of issuingProblems(invoice, client)) {
+      ctx.addIssue({ code: "custom", path: problem.path, message: problem.code });
     }
   });
+}
+
+function issueCode(issue: z.core.$ZodIssue): string {
+  if (/^[a-z_]+$/.test(issue.message)) return issue.message;
+  return issue.code === "too_small" ? "required" : "invalid";
 }
 
 /** `path: code` pairs from a failed parse, first issue per path, like the server `detail`. */
@@ -345,11 +383,7 @@ export function issueMap(error: z.ZodError): Record<string, string> {
   for (const issue of error.issues) {
     const key = issue.path.join(".") || "body";
     if (key in out) continue;
-    out[key] = /^[a-z_]+$/.test(issue.message)
-      ? issue.message
-      : issue.code === "too_small"
-        ? "required"
-        : "invalid";
+    out[key] = issueCode(issue);
   }
   return out;
 }

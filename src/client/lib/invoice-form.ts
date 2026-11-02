@@ -1,0 +1,358 @@
+import type { ClientRecord, RITENUTA_TYPES } from "../../shared/client";
+import {
+  defaultNaturaText,
+  EMPTY_INVOICE_DATA,
+  type InvoiceData,
+  type InvoiceInput,
+  type InvoiceLine,
+  type InvoiceRecord,
+  invoiceInputSchema,
+  issueMap,
+  issuingProblems,
+  parseQuantityMilli,
+  safeTotals,
+} from "../../shared/invoice";
+import {
+  type CassaType,
+  defaultCassaSubjectToRitenuta,
+  type Natura,
+  parseMoney,
+  type Totals,
+} from "../../shared/totals";
+import type { ProfileResponse } from "./settings-api";
+
+export const VAT_RATES = [2200, 1000, 500, 400] as const;
+/** Default VAT rate of a new line when the client has no default. */
+export const FALLBACK_VAT_BP = 2200;
+
+export interface LineForm {
+  /** Stable React key; not persisted. */
+  key: string;
+  description: string;
+  quantity: string;
+  unit: string;
+  price: string;
+  /** `rate:<bp>` or `natura:<code>`. */
+  vat: string;
+}
+
+export interface InvoiceForm {
+  documentType: "TD01" | "TD04";
+  clientId: string;
+  currency: string;
+  plannedDate: string;
+  operationDate: string;
+  dueDate: string;
+  linkedInvoiceId: string;
+  notes: string;
+  lines: LineForm[];
+  cassaType: string;
+  cassaRate: string;
+  cassaMode: "excluded" | "included";
+  cassaSubjectToRitenuta: boolean;
+  ritenutaType: string;
+  ritenutaRate: string;
+  ritenutaCausale: string;
+  bollo: boolean;
+  bolloDismissed: boolean;
+  deferred: boolean;
+  naturaTexts: Record<string, string>;
+  paymentMethod: string;
+  iban: string;
+  bic: string;
+  accountHolder: string;
+  bankName: string;
+}
+
+let lineCounter = 0;
+export const newLineKey = () => `line-${++lineCounter}`;
+
+export function emptyLine(vat: string): LineForm {
+  return { key: newLineKey(), description: "", quantity: "1", unit: "", price: "", vat };
+}
+
+export function emptyForm(): InvoiceForm {
+  return {
+    documentType: "TD01",
+    clientId: "",
+    currency: "EUR",
+    plannedDate: "",
+    operationDate: "",
+    dueDate: "",
+    linkedInvoiceId: "",
+    notes: "",
+    lines: [emptyLine(`rate:${FALLBACK_VAT_BP}`)],
+    cassaType: "",
+    cassaRate: "",
+    cassaMode: "excluded",
+    cassaSubjectToRitenuta: false,
+    ritenutaType: "",
+    ritenutaRate: "",
+    ritenutaCausale: "A",
+    bollo: false,
+    bolloDismissed: false,
+    deferred: false,
+    naturaTexts: {},
+    paymentMethod: "",
+    iban: "",
+    bic: "",
+    accountHolder: "",
+    bankName: "",
+  };
+}
+
+export const bpToText = (bp: number) => String(bp / 100).replace(".", ",");
+
+/** "22" or "22,5" to basis points; NaN when it is not a number. */
+export function percentToBp(text: string): number {
+  const value = Number(text.trim().replace(",", "."));
+  return text.trim() === "" || Number.isNaN(value) ? Number.NaN : Math.round(value * 100);
+}
+
+export const centsToText = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
+const milliToText = (milli: number) => String(milli / 1000).replace(".", ",");
+
+const lineVat = (line: Pick<InvoiceLine, "natura" | "vatRateBp">) =>
+  line.natura ? `natura:${line.natura}` : line.vatRateBp ? `rate:${line.vatRateBp}` : "";
+
+/** The editor state of a stored invoice. */
+export function fromRecord(record: InvoiceRecord): InvoiceForm {
+  const { data } = record;
+  return {
+    documentType: record.documentType,
+    clientId: record.clientId ?? "",
+    currency: record.currency,
+    plannedDate: record.plannedDate ?? "",
+    operationDate: record.operationDate ?? "",
+    dueDate: record.dueDate ?? "",
+    linkedInvoiceId: record.linkedInvoiceId ?? "",
+    notes: record.notes ?? "",
+    lines: record.lines.map((line) => ({
+      key: newLineKey(),
+      description: line.description,
+      quantity: milliToText(line.quantityMilli),
+      unit: line.unit ?? "",
+      price: centsToText(line.unitPriceCents),
+      vat: lineVat(line),
+    })),
+    cassaType: data.cassa?.type ?? "",
+    cassaRate: data.cassa ? bpToText(data.cassa.rateBp) : "",
+    cassaMode: data.cassa?.mode ?? "excluded",
+    cassaSubjectToRitenuta: data.cassa?.subjectToRitenuta ?? false,
+    ritenutaType: data.ritenuta?.type ?? "",
+    ritenutaRate: data.ritenuta ? bpToText(data.ritenuta.rateBp) : "",
+    ritenutaCausale: data.ritenuta?.causale ?? "A",
+    bollo: data.bollo,
+    bolloDismissed: data.bolloSuggestionDismissed,
+    deferred: data.deferred,
+    naturaTexts: Object.fromEntries(Object.entries(data.naturaTexts)) as Record<string, string>,
+    paymentMethod: data.payment.method ?? "",
+    iban: data.payment.iban ?? "",
+    bic: data.payment.bic ?? "",
+    accountHolder: data.payment.accountHolder ?? "",
+    bankName: data.payment.bankName ?? "",
+  };
+}
+
+const addDays = (date: string, days: number) =>
+  new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+
+/**
+ * Prefills a new invoice from the client's defaults and the profile's payment defaults: VAT or
+ * exemption on the lines, cassa/rivalsa, ritenuta, bollo, currency, payment terms and bank data.
+ */
+export function applyDefaults(
+  form: InvoiceForm,
+  client: ClientRecord | null,
+  profile: ProfileResponse | null,
+  today: string,
+): InvoiceForm {
+  const next: InvoiceForm = { ...form };
+  const defaults = client?.defaults;
+  if (client) next.currency = client.currency;
+  if (defaults) {
+    const vat = defaults.natura
+      ? `natura:${defaults.natura}`
+      : defaults.vatRateBp
+        ? `rate:${defaults.vatRateBp}`
+        : null;
+    if (vat) next.lines = form.lines.map((line) => ({ ...line, vat }));
+    next.cassaType = defaults.cassa?.type ?? "";
+    next.cassaRate = defaults.cassa ? bpToText(defaults.cassa.rateBp) : "";
+    next.cassaMode = defaults.cassa?.mode ?? "excluded";
+    next.cassaSubjectToRitenuta = defaults.cassa?.subjectToRitenuta ?? false;
+    next.ritenutaType = defaults.ritenuta?.type ?? "";
+    next.ritenutaRate = defaults.ritenuta ? bpToText(defaults.ritenuta.rateBp) : "";
+    next.ritenutaCausale = defaults.ritenuta?.causale ?? "A";
+    next.bollo = defaults.bollo;
+  }
+  const days = defaults?.paymentTermsDays ?? profile?.defaultPaymentTermsDays ?? null;
+  if (days !== null) next.dueDate = addDays(today, days);
+  const payment = profile?.paymentDefaults;
+  if (payment) {
+    next.iban = payment.iban ?? "";
+    next.bic = payment.bic ?? "";
+    next.accountHolder = payment.accountHolder ?? "";
+    next.bankName = payment.bankName ?? "";
+    next.paymentMethod = payment.iban ? "MP05" : "";
+  }
+  // Natura legal texts follow the lines.
+  next.naturaTexts = naturaTextsFor(next.lines, next.naturaTexts);
+  return next;
+}
+
+/** Keeps the legal text of each natura in use (prefilled when new), drops the unused ones. */
+export function naturaTextsFor(
+  lines: readonly LineForm[],
+  current: Record<string, string>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const line of lines) {
+    if (!line.vat.startsWith("natura:")) continue;
+    const code = line.vat.slice(7) as Natura;
+    out[code] = current[code] ?? defaultNaturaText(code);
+  }
+  return out;
+}
+
+export interface BuiltInvoice {
+  input: InvoiceInput;
+  /** Field problems found while reading the typed text (amounts, quantities, rates). */
+  problems: Record<string, string>;
+}
+
+const blank = (value: string) => (value.trim() === "" ? null : value.trim());
+
+/** Reads the form into the API shape; unreadable numbers become NaN and are reported. */
+export function buildInvoice(form: InvoiceForm): BuiltInvoice {
+  const problems: Record<string, string> = {};
+  const lines = form.lines.map((line, index) => {
+    const price = parseMoney(line.price);
+    const quantity = parseQuantityMilli(line.quantity);
+    if (line.price.trim() === "") problems[`lines.${index}.unitPriceCents`] = "required";
+    else if (price === null || price < 0)
+      problems[`lines.${index}.unitPriceCents`] = "invalid_amount";
+    if (quantity === null) problems[`lines.${index}.quantityMilli`] = "invalid_quantity";
+    return {
+      description: line.description,
+      quantityMilli: quantity ?? Number.NaN,
+      unit: blank(line.unit),
+      unitPriceCents: price === null || price < 0 ? Number.NaN : price,
+      vatRateBp: line.vat.startsWith("rate:") ? Number(line.vat.slice(5)) : null,
+      natura: line.vat.startsWith("natura:") ? (line.vat.slice(7) as Natura) : null,
+    };
+  });
+  const cassaRate = percentToBp(form.cassaRate);
+  const ritenutaRate = percentToBp(form.ritenutaRate);
+  if (form.cassaType && Number.isNaN(cassaRate)) problems["data.cassa.rateBp"] = "invalid_rate";
+  if (form.ritenutaType && Number.isNaN(ritenutaRate)) {
+    problems["data.ritenuta.rateBp"] = "invalid_rate";
+  }
+  const data: InvoiceInput["data"] = {
+    cassa: form.cassaType
+      ? {
+          type: form.cassaType as CassaType,
+          rateBp: cassaRate,
+          mode: form.cassaMode,
+          subjectToRitenuta: form.cassaSubjectToRitenuta,
+        }
+      : null,
+    ritenuta: form.ritenutaType
+      ? {
+          type: form.ritenutaType as (typeof RITENUTA_TYPES)[number],
+          rateBp: ritenutaRate,
+          causale: form.ritenutaCausale,
+        }
+      : null,
+    bollo: form.bollo,
+    bolloSuggestionDismissed: form.bolloDismissed,
+    deferred: form.deferred,
+    naturaTexts: naturaTextsFor(form.lines, form.naturaTexts),
+    payment: {
+      method: (form.paymentMethod || null) as InvoiceData["payment"]["method"],
+      iban: form.iban,
+      bic: form.bic,
+      accountHolder: form.accountHolder,
+      bankName: form.bankName,
+    },
+  };
+  return {
+    problems,
+    input: {
+      documentType: form.documentType,
+      clientId: form.clientId || null,
+      currency: form.currency,
+      plannedDate: blank(form.plannedDate),
+      operationDate: blank(form.operationDate),
+      dueDate: blank(form.dueDate),
+      linkedInvoiceId: form.linkedInvoiceId || null,
+      notes: blank(form.notes),
+      lines,
+      data,
+    },
+  };
+}
+
+/**
+ * Every problem of the form: field problems from the typed text, then the structural rules and,
+ * when `issuing`, the rules a number needs (what the XSD and the client type require).
+ */
+export function validateForm(
+  form: InvoiceForm,
+  client: ClientRecord | null,
+  issuing: boolean,
+): { errors: Record<string, string>; ok: boolean; body: InvoiceInput } {
+  const { input, problems } = buildInvoice(form);
+  const parsed = invoiceInputSchema.safeParse(input);
+  const rules = issuing
+    ? Object.fromEntries(
+        issuingProblems(
+          {
+            clientId: input.clientId,
+            lines: input.lines,
+            data: { naturaTexts: input.data.naturaTexts },
+          },
+          client,
+        ).map((problem) => [problem.path.join("."), problem.code]),
+      )
+    : {};
+  const errors = { ...(parsed.success ? {} : issueMap(parsed.error)), ...rules, ...problems };
+  // Unreadable numbers were NaN: the typed-text problem is the useful message.
+  return { errors, ok: Object.keys(errors).length === 0, body: input };
+}
+
+/** Totals of what is typed so far; unreadable amounts count as zero while the owner is typing. */
+export function formTotals(form: InvoiceForm): Totals | null {
+  const { input } = buildInvoice(form);
+  const clean = (n: number) => (Number.isFinite(n) ? n : 0);
+  const data = invoiceDataFor(input);
+  return safeTotals({
+    documentType: form.documentType,
+    currency: form.currency.toUpperCase(),
+    data,
+    lines: input.lines.map((line) => ({
+      ...line,
+      unit: line.unit,
+      quantityMilli: clean(line.quantityMilli),
+      unitPriceCents: clean(line.unitPriceCents),
+    })),
+  });
+}
+
+function invoiceDataFor(input: InvoiceInput): InvoiceData {
+  const clean = (n: number) => (Number.isFinite(n) ? n : 0);
+  return {
+    ...EMPTY_INVOICE_DATA,
+    cassa: input.data.cassa
+      ? { ...input.data.cassa, rateBp: clean(input.data.cassa.rateBp) }
+      : null,
+    ritenuta: input.data.ritenuta
+      ? { ...input.data.ritenuta, rateBp: clean(input.data.ritenuta.rateBp) }
+      : null,
+    bollo: input.data.bollo,
+    bolloSuggestionDismissed: input.data.bolloSuggestionDismissed,
+    deferred: input.data.deferred,
+  };
+}
+
+export { defaultCassaSubjectToRitenuta };

@@ -11,8 +11,9 @@ import { AdeGuidePage } from "./routes/ade-guide";
 import { ClientsPage } from "./routes/clients";
 import { EmailSettingsPage } from "./routes/email-settings";
 import { HomePage } from "./routes/home";
+import { InvoiceEditorPage } from "./routes/invoice-editor";
 import { LoginPage } from "./routes/login";
-import { IssuedPage, NewInvoicePage, NotFoundPage, ReceivedPage } from "./routes/pages";
+import { IssuedPage, NotFoundPage, ReceivedPage } from "./routes/pages";
 import { ProfilePage } from "./routes/profile";
 import { SettingsPage } from "./routes/settings";
 import { SetupPage } from "./routes/setup";
@@ -63,7 +64,12 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/invoices/new",
-    component: NewInvoicePage,
+    component: InvoiceEditorPage,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/invoices/$invoiceId",
+    component: InvoiceEditorPage,
   }),
 ]);
 
