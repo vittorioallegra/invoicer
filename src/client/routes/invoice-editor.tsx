@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { type ClientRecord, RITENUTA_TYPES } from "../../shared/client";
 import { romeDateTime } from "../../shared/cron";
 import { ApiError } from "../../shared/errors";
-import { formatDate, type UiLocale } from "../../shared/format";
+import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
 import {
   bolloSuggestion,
   EMPTY_INVOICE_DATA,
@@ -26,6 +26,7 @@ import { ClientSheet } from "../components/client-form";
 import { InvoiceLines } from "../components/invoice-lines";
 import { InvoiceTotals } from "../components/invoice-totals";
 import { Page } from "../components/page";
+import { SendSheet } from "../components/send-sheet";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
 import { Field } from "../components/ui/field";
@@ -251,6 +252,18 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
       }
     },
   });
+
+  const [sendOpen, setSendOpen] = useState(false);
+  // Saves what is on screen first, so the number is reserved for exactly what the owner reviewed.
+  async function startSend() {
+    if (!record || !structural.ok) return;
+    try {
+      await save.mutateAsync(structural.body);
+      setSendOpen(true);
+    } catch {
+      // The save banner already shows why.
+    }
+  }
 
   const reissue = useMutation({
     mutationFn: (id: string) => reissueInvoice(id),
@@ -864,8 +877,13 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
               <Button type="submit" disabled={!online || save.isPending}>
                 {t(record ? "invoice.actions.save" : "invoice.actions.saveDraft")}
               </Button>
-              {/* The send flow (step 12) wires this up; until then it only explains why. */}
-              <Button type="button" variant="secondary" disabled title={t("invoice.send.pending")}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!online || !record || !send.ready || !issuing.ok || save.isPending}
+                title={record ? undefined : t("send.saveFirst")}
+                onClick={() => void startSend()}
+              >
                 <Send aria-hidden />
                 {t("invoice.actions.send")}
               </Button>
@@ -873,6 +891,27 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
           )
         }
       />
+
+      {record ? (
+        <SendSheet
+          invoiceId={record.id}
+          open={sendOpen}
+          onOpenChange={setSendOpen}
+          summary={{
+            client: client?.name ?? "",
+            number: record.number ?? "",
+            total: formatMoney(
+              totals?.amountDueCents ?? 0,
+              locale,
+              form.currency.toUpperCase() || "EUR",
+            ),
+          }}
+          onSent={() => {
+            setSendOpen(false);
+            void navigate({ to: "/invoices/$invoiceId", params: { invoiceId: record.id } });
+          }}
+        />
+      ) : null}
 
       <ClientSheet
         open={clientSheet !== null}

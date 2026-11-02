@@ -500,9 +500,6 @@
       "delete": "Elimina bozza",
       "deleteConfirm": "Conferma eliminazione"
     },
-    "send": {
-      "pending": "L'invio sarà disponibile quando sarà pronto il flusso di invio."
-    },
     "list": {
       "draft": "Bozza",
       "creditNoteDraft": "Bozza di nota di credito",
@@ -708,5 +705,45 @@
       "skipped": "non raggiunto"
     },
     "quota": "Spazio usato: {{used}} MB su {{limit}} MB."
+  },
+  "send": {
+    "title": "Invia fattura",
+    "review": "Fattura {{number}} a {{client}}, {{total}} da pagare. Dopo la conferma viene riservato un numero e la fattura è consegnata al SdI.",
+    "client": "Cliente",
+    "amountDue": "Importo dovuto",
+    "progress": "Avanzamento invio",
+    "steps": {
+      "validate": "Controllo della fattura",
+      "reserve": "Riserva del numero",
+      "build": "Creazione del file fattura",
+      "upload": "Salvataggio di XML e PDF",
+      "authorize": "In attesa della passkey",
+      "send": "Invio via PEC"
+    },
+    "confirm": "Invia con passkey",
+    "confirmTotp": "Invia con codice",
+    "useTotp": "Usa un codice di autenticazione",
+    "usePasskey": "Usa la mia passkey",
+    "totp": "Codice di autenticazione",
+    "totpHint": "Il codice a 6 cifre della tua app di autenticazione.",
+    "confirmNote": "Il server verifica la tua passkey (o il codice) per questo preciso file prima di inviare qualsiasi cosa.",
+    "saveFirst": "Salva prima la fattura.",
+    "errors": {
+      "invalid_xml": "Il file della fattura non è ancora valido. Correggi questi punti e invia di nuovo:",
+      "numberReleased": "Il numero riservato è stato restituito; non è stato inviato nulla.",
+      "numberKept": "Il numero resta riservato a questa fattura (non può essere restituito); correggi i punti e invia di nuovo.",
+      "cancelled": "Annullato. Non è stato inviato nulla. La fattura mantiene il numero riservato finché non la invii.",
+      "build_failed": "Non è stato possibile preparare il file della fattura. Riprova.",
+      "missing_data": "Mancano il cliente o il profilo dell'emittente.",
+      "send_not_authorized": "La passkey o il codice non sono stati accettati per questo file. Non è stato inviato nulla; riprova.",
+      "pec_auth_failed": "Il server PEC ha rifiutato l'accesso. Aruba richiede la password dedicata per client di posta: impostala di nuovo con wrangler secret put PEC_PASSWORD ed esegui il test di connessione. Non è stato inviato nulla.",
+      "pec_mailbox_full": "La casella PEC è piena. Libera spazio nella webmail Aruba e invia di nuovo. Non è stato inviato nulla.",
+      "pec_sdi_address_missing": "L'indirizzo del SdI non è stato accettato. Controlla la configurazione PEC. Non è stato inviato nulla.",
+      "pec_unavailable": "Il server PEC non è raggiungibile. Riprova tra qualche minuto o usa il canale manuale AdE. Non è stato inviato nulla.",
+      "pec_rejected": "Il server PEC ha rifiutato il messaggio. Non è stato inviato nulla; riprova o usa il canale manuale AdE.",
+      "send_outcome_unknown": "La connessione si è interrotta durante l'invio, quindi il messaggio potrebbe essere arrivato al SdI.",
+      "unknownNote": "Non reinviarla ancora: la casella viene controllata automaticamente. Se non compare nulla, puoi reinviare 15 minuti dopo il tentativo.",
+      "conflict": "Questa fattura non può essere inviata nel suo stato attuale. Ricarica la pagina."
+    }
   }
 }

@@ -500,9 +500,6 @@
       "delete": "Delete draft",
       "deleteConfirm": "Confirm delete"
     },
-    "send": {
-      "pending": "Sending is available once the send flow is in place."
-    },
     "list": {
       "draft": "Draft",
       "creditNoteDraft": "Credit note draft",
@@ -708,5 +705,45 @@
       "skipped": "not reached"
     },
     "quota": "Mailbox use: {{used}} MB of {{limit}} MB."
+  },
+  "send": {
+    "title": "Send invoice",
+    "review": "Invoice {{number}} to {{client}}, {{total}} due. After you confirm, a number is reserved and the invoice is handed to the SdI.",
+    "client": "Client",
+    "amountDue": "Amount due",
+    "progress": "Send progress",
+    "steps": {
+      "validate": "Checking the invoice",
+      "reserve": "Reserving the number",
+      "build": "Building the invoice file",
+      "upload": "Storing the XML and PDF",
+      "authorize": "Waiting for your passkey",
+      "send": "Sending by PEC"
+    },
+    "confirm": "Send with passkey",
+    "confirmTotp": "Send with code",
+    "useTotp": "Use an authenticator code",
+    "usePasskey": "Use my passkey",
+    "totp": "Authenticator code",
+    "totpHint": "The 6-digit code from your authenticator app.",
+    "confirmNote": "Your passkey (or code) is checked by the server for this exact invoice file before anything is sent.",
+    "saveFirst": "Save the invoice first.",
+    "errors": {
+      "invalid_xml": "The invoice file is not valid yet. Fix these points and send again:",
+      "numberReleased": "The reserved number was given back; nothing was sent.",
+      "numberKept": "The number stays reserved for this invoice (it cannot be given back); fix the points and send again.",
+      "cancelled": "Cancelled. Nothing was sent. The invoice keeps its reserved number until you send it.",
+      "build_failed": "The invoice file could not be prepared. Try again.",
+      "missing_data": "The client or the issuer profile is missing.",
+      "send_not_authorized": "Your passkey or code was not accepted for this invoice file. Nothing was sent; try again.",
+      "pec_auth_failed": "The PEC server refused the login. Aruba needs the dedicated mail-client password: set it again with wrangler secret put PEC_PASSWORD and run the connection test. Nothing was sent.",
+      "pec_mailbox_full": "The PEC mailbox is full. Free some space in the Aruba webmail and send again. Nothing was sent.",
+      "pec_sdi_address_missing": "The SdI address was not accepted. Check the PEC setup. Nothing was sent.",
+      "pec_unavailable": "The PEC server could not be reached. Try again in a few minutes, or use the manual AdE channel. Nothing was sent.",
+      "pec_rejected": "The PEC server refused the message. Nothing was sent; try again or use the manual AdE channel.",
+      "send_outcome_unknown": "The connection broke while sending, so the message may have reached the SdI.",
+      "unknownNote": "Do not send it again yet: the mailbox is checked automatically. If nothing shows up, you can resend 15 minutes after the attempt.",
+      "conflict": "This invoice cannot be sent in its current state. Reload the page."
+    }
   }
 }
