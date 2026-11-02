@@ -30,7 +30,7 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
 - `locales/{en,it}/` — i18n resources (UI, PDF, email)
 - `public/` — static assets, icons, `_headers` (CSP for the SPA)
 - `scripts/` — CI helpers (bundle check, wrangler config rendering)
-- `assets/xsd/` — vendored official FatturaPA XSD (not yet added)
+- `assets/xsd/` — vendored official FatturaPA XSD v1.2.3 (`Schema_VFPR12_v1.2.3.xsd`, SHA-256 and source in its README) and the W3C xmldsig schema it imports
 - `tests/` — Playwright E2E (`e2e/`), cross-cutting tests, PEC/IMAP fixtures live next to the code (`src/worker/pec/*fixtures.ts`)
 - `docs/` — specs, plans, notes; `.github/workflows/` — CI and deploy
 
@@ -58,5 +58,6 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
 - The PEC password gives full mailbox access (one password for IMAP, SMTP, webmail); the IMAP client
   is read-only by design (EXAMINE, PEEK, no delete). One cron trigger only (`*/10 * * * *`): every run polls the mailbox; the daily jobs run
   from it at 09:00 Europe/Rome, once per Rome day (`shouldRunDaily` in `src/shared/cron.ts`).
+- FatturaPA: XSD validation (`xmllint-wasm`, `src/shared/fatturapa/validate.ts`) runs only in the browser and in tests, never in the Worker; do not import it from Worker code or from the `fatturapa` barrel. The XML is always in euro (a non-EUR invoice needs an exchange rate). File names are `IT<vat>_<5 base-36 digits>.xml`, one new progressive per transmission attempt.
 - Free-plan limits matter: 10 ms CPU per request; heavy work (XML/XSD, PDF, P7M) runs in the browser.
 - No automated test talks to the real SdI; use recorded IMAP/SMTP fixtures and the fake socket (`src/worker/pec/fake-socket.ts`).
