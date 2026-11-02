@@ -17,8 +17,10 @@ export default defineConfig({
             wrangler: { configPath: "./wrangler.jsonc" },
             miniflare: {
               bindings: {
-                BETTER_AUTH_SECRET: "test-secret",
+                BETTER_AUTH_SECRET: "Zk3pQ9vL2mXr7TnB4wYc8HdF1sJg6UeA0oIqPz5Kx",
                 SETUP_TOKEN: "test-setup-token",
+                // Hermetic: a local .dev.vars must not change the origin the tests run on.
+                APP_ORIGIN: "http://localhost",
                 SPIKE_SECRET: "test-spike-secret",
               },
             },

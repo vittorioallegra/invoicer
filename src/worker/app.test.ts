@@ -16,7 +16,7 @@ describe("health route", () => {
 
 describe("problem+json contract", () => {
   it("returns a stable shape for unknown API routes", async () => {
-    const res = await createApp().request("/api/nope", {}, env);
+    const res = await createApp().request("/api/health/nope", {}, env);
     expect(res.status).toBe(404);
     expect(res.headers.get("Content-Type")).toContain("application/problem+json");
     const problem = problemSchema.parse(await res.json());
@@ -26,10 +26,10 @@ describe("problem+json contract", () => {
 
   it("hides the message of unexpected errors", async () => {
     const app = createApp();
-    app.get("/api/boom", () => {
+    app.get("/api/health/boom", () => {
       throw new Error("sk-secret-token-value");
     });
-    const res = await app.request("/api/boom", {}, env);
+    const res = await app.request("/api/health/boom", {}, env);
     const text = await res.text();
     expect(res.status).toBe(500);
     expect(text).not.toContain("sk-secret-token-value");
@@ -38,12 +38,12 @@ describe("problem+json contract", () => {
 
   it("rejects state-changing calls without a matching Origin", async () => {
     const app = createApp();
-    app.post("/api/things", (c) => c.json({ ok: true }));
-    const bad = await app.request("/api/things", { method: "POST" }, env);
+    app.post("/api/health/things", (c) => c.json({ ok: true }));
+    const bad = await app.request("/api/health/things", { method: "POST" }, env);
     expect(bad.status).toBe(403);
     expect(problemSchema.parse(await bad.json()).code).toBe("origin_not_allowed");
     const good = await app.request(
-      "http://localhost/api/things",
+      "http://localhost/api/health/things",
       { method: "POST", headers: { Origin: "http://localhost" } },
       env,
     );
@@ -54,12 +54,12 @@ describe("problem+json contract", () => {
 describe("missing secret", () => {
   it("names the variable and the fix, never a value", async () => {
     const app = createApp();
-    app.get("/api/pec-check", (c) => {
+    app.get("/api/health/pec-check", (c) => {
       requireSecrets(c.env, "pec");
       return c.json({ ok: true });
     });
     const res = await app.request(
-      "/api/pec-check",
+      "/api/health/pec-check",
       {},
       { ...env, PEC_USERNAME: "set-value", PEC_PASSWORD: "" },
     );

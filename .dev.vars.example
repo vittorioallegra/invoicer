@@ -5,7 +5,7 @@
 # --- Secrets -------------------------------------------------------------------------------
 # Better Auth signing secret (any long random string).
 BETTER_AUTH_SECRET=local-dev-only-change-me
-# Required to create the owner account on first run.
+# Required to create the owner account on first run (the setup screen asks for it).
 SETUP_TOKEN=local-dev-setup-token
 # PEC mailbox login (the address and its single password: IMAP, SMTP and webmail share it, so
 # it can read the whole mailbox and send PEC). Leave empty locally: the mock channel is used.

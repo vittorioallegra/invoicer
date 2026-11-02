@@ -1,19 +1,11 @@
 import { createMiddleware } from "hono/factory";
+import { safeEqual } from "../auth/crypto";
 import { type Bindings, requireSecrets } from "../env";
 import { makeError } from "../problem";
 
 export const SPIKE_HEADER = "X-Spike-Secret";
 
-const encoder = new TextEncoder();
-
-/** Constant-time string comparison (hashes first so the lengths do not leak). */
-export async function safeEqual(a: string, b: string): Promise<boolean> {
-  const [ha, hb] = await Promise.all([
-    crypto.subtle.digest("SHA-256", encoder.encode(a)),
-    crypto.subtle.digest("SHA-256", encoder.encode(b)),
-  ]);
-  return crypto.subtle.timingSafeEqual(ha, hb);
-}
+export { safeEqual };
 
 /**
  * Gate for the temporary spike routes (no auth exists yet): `X-Spike-Secret` must equal the
