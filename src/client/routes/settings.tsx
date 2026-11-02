@@ -5,6 +5,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../shared/errors";
 import type { UiLocale } from "../../shared/format";
+import { DataExport } from "../components/data-export";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
@@ -182,6 +183,7 @@ export function SettingsPage() {
       <LanguageSection />
       <NumberingSection online={online} />
       <UnmatchedMessages />
+      <DataExport online={online} />
       {/* Temporary: removed together with the spike page (plan step 21). A plain anchor, not
           a router link: /spike is a separate hidden page outside the app shell. */}
       <p className="pt-4 text-sm">

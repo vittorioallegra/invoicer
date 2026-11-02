@@ -183,6 +183,12 @@
       "intro": "Messages from the SdI that match none of the files sent from here. They are kept in full and never dropped.",
       "empty": "No unmatched messages.",
       "noFile": "(no file name)"
+    },
+    "export": {
+      "title": "Download all data",
+      "intro": "A JSON file with every invoice, client, setting, stored file and mailbox message, as a manual backup next to D1 Time Travel. Stored files are written as hexadecimal text.",
+      "button": "Download all data",
+      "excluded": "The login (passkeys, password, authenticator secret, sessions) and push subscriptions are not included: they are secrets and are set up again after a restore."
     }
   },
   "validation": {

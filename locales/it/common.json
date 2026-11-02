@@ -183,6 +183,12 @@
       "intro": "Messaggi del SdI che non corrispondono a nessun file inviato da qui. Vengono conservati per intero e mai scartati.",
       "empty": "Nessun messaggio non abbinato.",
       "noFile": "(nessun nome file)"
+    },
+    "export": {
+      "title": "Scarica tutti i dati",
+      "intro": "Un file JSON con ogni fattura, cliente, impostazione, file conservato e messaggio della casella, come backup manuale accanto a D1 Time Travel. I file conservati sono scritti come testo esadecimale.",
+      "button": "Scarica tutti i dati",
+      "excluded": "L'accesso (passkey, password, segreto dell'autenticatore, sessioni) e le iscrizioni push non sono inclusi: sono segreti e si configurano di nuovo dopo un ripristino."
     }
   },
   "validation": {
