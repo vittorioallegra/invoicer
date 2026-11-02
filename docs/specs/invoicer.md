@@ -2,7 +2,7 @@
 title: Invoicer — simple, free, self-hosted Italian e-invoicing (FatturaPA) web app
 status: draft
 created: 2026-10-31
-updated: 2026-11-02 (plan approved)
+updated: 2026-11-02 (plan approved; SdI channel changed from Openapi to PEC)
 ---
 
 # Invoicer
@@ -21,6 +21,7 @@ where the owner issues FatturaPA invoices to Italian and foreign clients with an
 exemption setup, sends them to the SdI, follows their delivery, reads received (purchase)
 invoices, tracks drafts, planned, issued and paid invoices, gets push notifications, and
 has a courtesy copy (PDF in the client's language) emailed to the client automatically.
+The SdI is reached through the owner's existing PEC mailbox, at no cost.
 
 **Why now:** the owner's FiC subscription ends on 2026-12-31. The tool must be usable for
 real invoices in December 2026, so the owner can decide whether to cancel FiC.
@@ -31,72 +32,80 @@ real invoices in December 2026, so the owner can decide whether to cancel FiC.
 
 - **Single-user, self-hosted.** One deployment serves one issuer (one partita IVA). The
   owner runs it at `invoicer.vittorioallegra.com` on their own Cloudflare account, with
-  their own Openapi account. Nobody else's data or credentials ever reach it.
+  their own PEC mailbox. Nobody else's data or credentials ever reach it.
 - **Generic code.** The repository is public and contains no owner data: issuer profile,
   domain, sender address and secrets are configuration. Anyone can deploy their own copy
-  on their own Cloudflare account, Openapi account and domain by following the README.
-- **Running cost:** 0 EUR for hosting (Cloudflare free plan, Resend free plan). The only
-  cost is Openapi usage, pay-as-you-go, about 6 EUR/year at the owner's volume (send
-  0.07 EUR, received invoice 0.07 EUR; to re-check at signup).
+  on their own Cloudflare account, PEC mailbox and domain by following the README.
+- **Running cost:** 0 EUR (Cloudflare free plan, Resend free plan, and the owner's existing
+  PEC mailbox, which the Ordine degli Ingegneri provides on Aruba infrastructure, tied to the
+  partita IVA and used for nothing else). No intermediary, no top-up, no per-invoice fee.
 
 ## Architecture (agreed in discussion, details in the plan)
 
 | Part | Technology | Role |
 |------|------------|------|
-| Frontend | PWA, served as static assets by a Cloudflare Worker | All UI; builds the FatturaPA XML and the PDF; never calls Openapi |
-| Backend | Cloudflare Worker (API) | Auth, data API, send authorization, all Openapi calls, webhook receiver, push sender, courtesy email sender |
+| Frontend | PWA, served as static assets by a Cloudflare Worker | All UI; builds the FatturaPA XML and the PDF; never talks to the PEC servers |
+| Backend | Cloudflare Worker (API) | Auth, data API, send authorization, PEC send (SMTP) and mailbox polling (IMAP), push sender, courtesy email sender |
 | Database | Cloudflare D1 | Profile, clients, invoices, events, settings |
 | Files | Cloudflare D1 (BLOBs, max 2 MB each) | Invoice XML, PDF, received invoice files, imports |
-| Scheduled jobs | Cloudflare Cron Triggers | Reminders, recurring drafts, reconciliation with Openapi |
-| SdI channel | Openapi SDI API (`sdi.openapi.it`, sandbox `test.sdi.openapi.it`) | Send, receipts, received invoices |
+| Scheduled jobs | Cloudflare Cron Triggers | Mailbox polling every 10 minutes, reminders, recurring drafts, weekly jobs |
+| SdI channel | The owner's PEC mailbox: SMTP send and IMAP polling over `cloudflare:sockets` (`worker-mailer`, `postal-mime`, a minimal in-repo IMAP client); defaults are Aruba's `smtps.pec.aruba.it:465` and `imaps.pec.aruba.it:993` | Send, SdI receipts, received invoices |
 | Email | Resend | Courtesy email from `no-reply@invoicer.vittorioallegra.com` (configurable) |
 | Push | Web Push (VAPID) | Notifications on iPhone (Home screen PWA, iOS 16.4+) and Mac browsers |
 
-Openapi is reached through a **channel interface**, so other channels (PEC, manual upload
-on the AdE portal) can be added later without touching invoices, lists or notifications.
+The PEC mailbox is reached through a **channel interface**, so other channels can sit
+behind it without touching invoices, lists or notifications. The manual AdE portal channel
+("Fatture e Corrispettivi" upload) is part of v1 as an always-available fallback; Openapi
+(a paid intermediary with a 50 EUR minimum top-up) and similar services are a possible future
+channel, out of scope for v1.
 
-Verified facts this design relies on (2026-11-02):
-- Openapi `sdi.openapi.it/invoices` and `oauth.openapi.it/credit` allow browser calls
-  (CORS `access-control-allow-origin: *`).
-- Openapi tokens carry per-method, per-endpoint scopes and a TTL of up to one year
-  (`POST oauth.openapi.it/token`). The credit balance (`GET /credit`) needs the account
-  credentials (Basic auth: account email + API key), which can also create tokens.
-- Openapi callbacks (`POST /api_configurations`, one configuration per fiscal ID, each
-  call overwrites the previous one) cover the events `supplier-invoice`,
-  `customer-invoice`, `customer-notification`, `invoice-status-quarantena`,
-  `invoice-status-invoice-error`; the callback carries the full invoice object and can
-  include an authorization header chosen by us.
-- If a callback arrives with no credit left, Openapi suspends the business configuration
-  and emails the owner; it must be reactivated with
-  `PATCH /business_registry_configurations/{fiscal_id}/activate` after a top-up.
-- Openapi does not send courtesy emails to clients.
+Facts this design relies on, with their status (the step 2 spike and `docs/notes/spike.md`
+settle the open ones):
+- **Cloudflare Workers can open outbound TCP sockets** with implicit TLS (`cloudflare:sockets`),
+  so SMTP on 465 and IMAP on 993 work from a Worker. Found (Cloudflare docs); to verify against
+  Aruba in the spike.
+- **First send goes to `sdi01@pec.fatturapa.it`**; the SdI answers (receipt or rejection) to the
+  sending PEC address, and its first reply tells the sender the SdI PEC address to use for later
+  sends. Found in secondary guides and older technical specifications; to re-check against the
+  current AdE specifications (Allegato A) in the spike.
+- **Receipt files** are named after the transmitted file (`<file>_RC_<nnn>.xml`, `_MC_`, `_NS_`,
+  and `_NE_`/`_DT_`/`_AT_` for public administration only). Found (secondary); inferred from the
+  specifications for the exact pattern; confirm on a real receipt.
+- **Size limits:** a PEC message up to 30 MB and an invoice file up to 5 MB are the figures
+  quoted by secondary sources; Aruba's own limit and the 2 MB per-blob cap of this app are
+  separate (see Open questions).
+- **PEC adds its own receipts** (acceptance by the sender's provider, delivery by the SdI mailbox)
+  before any SdI message; the app tells them apart from SdI messages.
+- **Same mailbox for sending and receiving:** the PEC registered on the AdE portal as the address
+  for receiving invoices also receives the SdI's receipts for what the owner sends from it.
+- **No read/write split:** the PEC mailbox has one password for IMAP, SMTP and webmail.
 
 ## Security model
 
 - **Login:** passkey (WebAuthn, Face ID / Touch ID) as the normal way in; email + password +
   TOTP second factor as the fallback. Sign-up is possible only to create the first (owner)
   account; afterwards it is closed.
-- **Openapi credentials:**
-  1. **Read token** (scopes: list and download invoices, notifications, reactivation of the
-     business configuration) and
-  2. **Send token** (scope: `POST /invoices`): both stored as Worker secrets (write-only in
-     the Cloudflare dashboard), never in the database, never sent to the browser. All
-     Openapi calls run in the Worker.
-  3. **Account credentials** (email + API key, which can create tokens): never stored by
-     the app. A one-time admin token pasted in the setup wizard is used for a single
-     configuration request and discarded.
+- **PEC credentials:** `PEC_USERNAME` and `PEC_PASSWORD` are Worker secrets (write-only in the
+  Cloudflare dashboard), never in the database, never sent to the browser. All IMAP and SMTP
+  traffic runs in the Worker. The mailbox has a single password for IMAP, SMTP and webmail, so
+  no read-only credential exists. **If it is stolen, the thief can read the whole mailbox
+  (including official notices sent to this domicilio digitale) and send PEC with legal value as
+  the owner.** Accepted for a single-user app on the owner's own server, with these
+  mitigations: a unique, long, generated PEC password used only by the app; a second factor on
+  the Cloudflare and GitHub accounts; every send still needs a passkey assertion verified by the
+  Worker (below); the app only ever reads (EXAMINE, PEEK) and never deletes mail.
 - **Explicit confirmation on send:** every send to the SdI needs a fresh passkey check
   (Face ID; TOTP code as fallback), verified by the Worker against a single-use challenge
-  bound to that invoice and its final XML. It doubles as a deliberate "yes, send it", so a
-  stray click (or a script running as the owner) never sends an invoice.
-- A client-side vault for the send token was considered and rejected: whoever can deploy
+  bound to that invoice and its final XML, and gating the SMTP send. It doubles as a deliberate
+  "yes, send it", so a stray click (or a script running as the owner) never sends an invoice.
+- A client-side vault for the PEC password was considered and rejected: whoever can deploy
   code could capture it anyway, so it protected only against a database leak.
-- Webhook endpoint: rejects any call without the configured secret header; replays of the
-  same event are idempotent.
-- Other Worker secrets: Resend API key (send-only), VAPID private key, webhook secret.
+- There is no inbound webhook: the Worker only polls the mailbox, so no public endpoint receives
+  SdI data. Polling is idempotent (the same message is never stored twice).
+- Other Worker secrets: Resend API key (send-only), VAPID private key.
 - The database holds business data in plaintext (owner's own server, same trust model as
-  FiC). Owner-side hardening is documented in the README: second factor on the Cloudflare,
-  GitHub and Openapi accounts, minimum token scopes, token rotation, low Openapi credit.
+  FiC). Owner-side hardening is documented in the README: second factor on the Cloudflare and
+  GitHub accounts, a dedicated generated PEC password, rotating it after any suspicion.
 
 ## Proposed Change (behaviour)
 
@@ -111,15 +120,15 @@ Verified facts this design relies on (2026-11-02):
    fiscale (RF01 ordinario, RF19 forfettario, and the other RF codes in a list), default
    payment data (IBAN, BIC/SWIFT, account holder, bank name), default payment terms, next
    invoice number for the current year (to continue from FiC).
-4. **Openapi setup, guided:** sign up on Openapi and top up (link and steps); create the
-   read and send tokens with the exact scope list the app shows, and set them as Worker
-   secrets (commands shown); with a one-time admin token, the app creates the business
-   registry configuration for the partita IVA (no signature, no legal storage) and
-   registers the callbacks pointing at its webhook URL. Sandbox mode for trying everything
-   first.
-5. **AdE guide:** register Openapi's codice destinatario (`JKKZDGR`, re-check at setup) on
-   the "Fatture e Corrispettivi" portal so received invoices reach Openapi; join the free
-   AdE conservazione service. The app does not do conservazione.
+4. **PEC setup, guided:** set `PEC_USERNAME` and `PEC_PASSWORD` as Worker secrets (commands
+   shown; use a generated password used only by the app); the settings screen offers presets
+   for IMAP/SMTP hosts and ports (Aruba: `imaps.pec.aruba.it:993`, `smtps.pec.aruba.it:465`),
+   editable, and a **connection test** (IMAP login + mailbox open + quota if supported, SMTP
+   login without sending) that reports exactly what failed. The security trade-off of the
+   single PEC password is shown here.
+5. **AdE guide:** register the PEC address on the "Fatture e Corrispettivi" portal as the
+   address for receiving invoices, so received invoices and SdI receipts reach the mailbox;
+   join the free AdE conservazione service. The app does not do conservazione.
 6. **Email settings:** sender name (default the issuer name), sender address, Reply-To
    address (owner's personal email), optional BCC to the owner, courtesy email mode
    (automatic / ask / off).
@@ -163,7 +172,8 @@ Verified facts this design relies on (2026-11-02):
 - States:
   - `draft` — saved, editable, no number assigned.
   - `planned` — draft with a planned issue date; listed under "To issue".
-  - `sent` — accepted by Openapi, waiting for the SdI outcome.
+  - `sent` — handed to the SdI by PEC (the PEC delivery receipt from the SdI mailbox arrived),
+    waiting for the SdI outcome.
   - `delivered` — SdI receipt RC.
   - `not_delivered` — SdI receipt MC: the invoice is issued and valid, the client finds it
     in their AdE area; the courtesy email matters most here.
@@ -173,8 +183,9 @@ Verified facts this design relies on (2026-11-02):
   - `rejected_expired` — the 5-day window passed: the invoice is reissued as a new
     invoice with a new number and date, referencing the rejected one; the old number
     stays recorded and is never reused.
-  - An Openapi error before the SdI (nothing transmitted) is not a rejection: the invoice
-    can be resent with the same number and date, with no deadline.
+  - A PEC error before the SdI (SMTP refusal, or a PEC non-delivery message "mancata
+    consegna" from the provider) is not a rejection: nothing reached the SdI, so the invoice can
+    be resent with the same number and date, with no deadline. It is distinct from an SdI NS.
 - Issuance-term warning: the editor has an operation date and warns (without blocking)
   when an immediate invoice is issued more than 12 days after the operation, or a
   deferred invoice after the 15th of the following month (art. 21 DPR 633/72).
@@ -213,21 +224,33 @@ Verified facts this design relies on (2026-11-02):
   re-checked), validated against the official XSD before sending; validation errors block
   sending and are shown in plain language next to the field.
 - Send flow: review screen with totals → "Send" → number reserved, final XML and PDF built
-  and stored → passkey check (Face ID) → the Worker verifies it, posts the XML to Openapi,
-  stores the result (Openapi uuid, file name) and moves the invoice to `sent`.
+  and stored → passkey check (Face ID) → the Worker verifies it and sends the XML as a PEC
+  attachment over SMTP (implicit TLS, port 465), stores the result (message id, file name) and
+  moves the invoice to `sent` once the PEC delivery receipt from the SdI mailbox arrives.
+- File name `IT<idcodice>_<progressive>.xml`, which we control; a new progressive for every
+  attempt. The first transmission goes to `sdi01@pec.fatturapa.it`; afterwards to the SdI PEC
+  address given in the SdI's first reply, stored in settings (rule to re-check in the spike).
 - The PDF is generated at send time and stored with the invoice, so the courtesy email can
   be sent later by the server without the browser.
-- SdI outcomes arrive through the `customer-notification` and error callbacks and update the
-  state. A daily reconciliation job lists recent invoices and notifications from Openapi
-  with the read token and fixes any state a missed callback left behind. Unmatched events
-  are listed, never dropped.
+- SdI outcomes arrive as PEC messages in the mailbox. A cron job every 10 minutes polls it
+  over IMAP (new UIDs since the last one seen, resuming after any downtime), stores each
+  message once, separates PEC receipts (acceptance, delivery, non-delivery) from SdI messages
+  (RC, MC, NS and the first reply with the assigned address), matches SdI receipts to
+  transmissions by the original file name and updates the state. Unmatched messages are
+  listed, never dropped. Polling is the reconciliation: there is no separate job.
+- **Manual AdE fallback channel**, always available: export the XML (and PDF) to upload on
+  the portal, set the outcome by hand, and import receipts and received invoices from the
+  portal's ZIP download (the import of section 5).
 
 ### 5. Received invoices
 
-- Arrive through the `supplier-invoice` callback (and the daily reconciliation). Stored
-  with the original file, shown as a readable invoice (supplier, date, number, lines,
-  totals, payment data) with download of the original XML/P7M. Each invoice is stored
-  once (idempotent on the Openapi uuid).
+- Arrive as PEC messages found by the mailbox poll (XML or `.p7m` attachment, inside the PEC
+  envelope `postacert.eml`). Stored with the original file, shown as a readable invoice
+  (supplier, date, number, lines, totals, payment data) with download of the original XML/P7M.
+  Each invoice is stored once (idempotent on Message-ID and UIDVALIDITY + UID); P7M parsing
+  stays in the browser. Non-SdI PEC messages are ignored by the app (the owner reads them
+  in the Aruba app); a message over the 2 MB blob cap is recorded as an error event with a
+  notification.
 - Manual import of received invoice files (XML, P7M, or the ZIP bulk download from the
   AdE portal) for invoices received before the app was set up.
 - Payment flag on received invoices as well (paid / unpaid by hand).
@@ -263,28 +286,28 @@ Verified facts this design relies on (2026-11-02):
 - Each send is recorded on the invoice (date, recipient, Resend message id, failure if
   any). A failure raises a notification.
 
-### 9. Openapi credit
+### 9. Mailbox quota
 
-- Credit section: estimated balance (top-ups entered by the owner minus counted
-  operations at a configurable unit price), recent consumption and an estimate of the
-  remaining months, with a link to the Openapi console for the exact figure. The account
-  credentials needed for Openapi's balance API are never stored.
-- Below a configurable threshold (default 2 EUR) the app shows a banner and sends a push.
-- If Openapi suspended the business configuration (detected from Openapi errors or the
-  reconciliation job), the app shows it prominently with a "Reactivate" button (calls the
-  activate endpoint) and a push notification.
+- A quota section shows mailbox usage: IMAP `GETQUOTAROOT` when Aruba supports it, otherwise
+  an estimate from the size of the stored messages. Below a configurable free-space threshold
+  the app shows a banner and sends a push, because a full mailbox stops incoming invoices and
+  receipts.
+- A failing mailbox login (password changed or expired) is shown prominently with a push,
+  since polling and sending both stop.
 
 ### 10. Notifications
 
 - Web Push to every subscribed device (iPhone Home screen PWA, Mac browsers), plus an
   in-app list:
   - received invoice;
-  - SdI outcome: delivered, not delivered, rejected, Openapi error;
+  - SdI outcome: delivered, not delivered, rejected, PEC send error (non-delivery before the
+    SdI), arriving within about 10–15 minutes of the PEC;
   - planned invoice whose date has arrived and is not sent (daily job);
   - issued invoice past due date and still unpaid (daily job);
   - recurring draft created;
   - courtesy email failed;
-  - Openapi credit low or configuration suspended.
+  - mailbox quota low, mailbox login failing, or an oversize message skipped.
+- No notification for PEC messages that are not SdI related.
 - Push can be turned on/off per type.
 
 ### 11. Internationalisation
@@ -295,15 +318,17 @@ Verified facts this design relies on (2026-11-02):
 
 ## Acceptance Criteria
 
-1. Following the README from a fresh clone, a new Cloudflare account and an Openapi sandbox
-   account, a deployment is up and onboarding is complete in under 45 minutes.
+1. Following the README from a fresh clone, a new Cloudflare account and a PEC mailbox, a
+   deployment is up and onboarding (including the PEC connection test) is complete in under
+   45 minutes.
 2. After the owner account exists, a sign-up attempt is refused.
 3. Login works with a passkey, and with email + password + TOTP; a wrong TOTP is refused.
-4. Secrets stay where the security model puts them: a test with known token strings
-   asserts that the read and send tokens and the one-time admin token appear in no D1 row,
-   API response or log line.
+4. Secrets stay where the security model puts them: a test with a known PEC username and
+   password asserts they appear in no D1 row, API response, stored message or log line, also
+   when the IMAP or SMTP server echoes an error.
 5. Sending requires a fresh passkey (or TOTP) check verified by the Worker; a replayed,
-   expired or other-invoice assertion is refused, and cancelling leaves the invoice unsent.
+   expired or other-invoice assertion is refused, no SMTP connection is opened without it, and
+   cancelling leaves the invoice unsent.
 6. For each of these fixtures the generated XML passes the official FatturaPA XSD and the
    totals equal the expected values to the cent: (a) RF01 Italian company, 22% VAT,
    ritenuta 20%, rivalsa INPS 4%; (b) RF19 forfettario Italian private person, N2.2 with
@@ -313,12 +338,17 @@ Verified facts this design relies on (2026-11-02):
    `included` mode, typed amount 1,040.00 → base 1,000.00 + contribution 40.00, and typed
    amount 999.99 → base + contribution = 999.99 exactly; (g) TD04 partial credit note
    linked to fixture (a) with DatiFattureCollegate.
-7. Against the Openapi sandbox, a sent invoice reaches `delivered`, `not_delivered` or
-   `rejected` from the matching callback fixture; a rejection shows the SdI error text.
-8. The webhook refuses a call without the secret header (401, no state change), and
-   replaying the same callback twice creates no duplicate invoice, event or notification.
-9. With callbacks disabled, the daily reconciliation job brings a sent invoice to its
-   final state and stores a received invoice.
+7. Using recorded IMAP/SMTP fixtures and a fake socket (no network), a sent invoice goes to
+   `sent` on the PEC delivery receipt and then to `delivered`, `not_delivered` or `rejected`
+   from the matching SdI message; a rejection shows the SdI error text; a PEC non-delivery
+   message leaves the invoice resendable with the same number and date and no deadline.
+8. Polling the same mailbox twice creates no duplicate message, invoice, event or notification
+   (idempotent on Message-ID and UIDVALIDITY + UID); non-SdI PEC messages are stored as ignored
+   and raise no notification; an oversize message becomes an error event with a notification.
+9. After simulated downtime (several SdI messages arrive while the cron does not run), the
+   next poll resumes from the last seen UID, brings the sent invoice to its final state and
+   stores the received invoice; a changed UIDVALIDITY triggers a safe rescan without
+   duplicates.
 10. A received invoice delivered as `.p7m` is listed with supplier, number, date and total
     matching the source XML.
 11. Two invoices in the same year can never get the same number, including two concurrent
@@ -331,10 +361,11 @@ Verified facts this design relies on (2026-11-02):
     each trigger exactly one courtesy email (Resend test mode) with the PDF attached and
     the configured From, Reply-To and BCC.
 15. With the app closed, push notifications arrive for: a received invoice and an SdI
-    outcome (within minutes of the callback), a planned invoice whose date has arrived and
+    outcome (within 15 minutes of the PEC reaching the mailbox), a planned invoice whose date has arrived and
     an unpaid invoice past due date (within 24 h).
-16. A credit below the threshold shows the banner; a suspended configuration shows the
-    "Reactivate" action, which calls the activate endpoint.
+16. A mailbox quota below the threshold shows the banner and sends a push (quota from a
+    GETQUOTAROOT fixture, and from the size estimate when the server has no QUOTA); a failing
+    login shows the prominent warning.
 17. The FiC clients CSV fixture imports all valid rows and lists each invalid row with its
     reason; a ZIP of issued invoice XMLs imports all invoices as `delivered` read-only.
 18. The app works in Safari and Chrome on macOS without installing, installs as a PWA on
@@ -343,9 +374,9 @@ Verified facts this design relies on (2026-11-02):
     in the README).
 20. Each test in the Testing Plan states its card:
     `protects=<observable>; fails_when=<wrong result>; no_claim=<what green does not prove>`.
-21. No real SdI transmission happens in automated tests (Openapi sandbox and recorded
-    fixtures only); one manual end-to-end send of a real invoice through the production
-    Openapi account is done and recorded before calling v1 done.
+21. No real SdI transmission happens in automated tests (recorded IMAP/SMTP fixtures and a
+    fake socket only); one manual end-to-end send of a real invoice through the production PEC
+    mailbox, with its receipts, is done and recorded before calling v1 done.
 
 ## Testing Plan
 
@@ -353,18 +384,19 @@ Verified facts this design relies on (2026-11-02):
 |-------|------|-------|
 | Unit | totals engine (VAT per rate, natura, cassa both modes, ritenuta, bollo, rounding) | +20 |
 | Unit | XML builder per fixture + XSD validation | +7 |
-| Unit | received invoice parsing (XML, P7M), Openapi callback payload mapping | +6 |
+| Unit | received invoice parsing (XML, P7M), PEC envelope and SdI message classification | +8 |
 | Unit | numbering rules, client type rules, recurring schedule | +10 |
 | Integration | send authorization: challenge binding, replay, expiry, TOTP fallback | +4 |
 | Unit | FiC CSV mapping, ZIP import | +4 |
 | Integration | Worker + local D1: auth (passkey, password + TOTP, closed sign-up) | +4 |
-| Integration | webhook auth, idempotency, state transitions, reconciliation job | +5 |
+| Unit | minimal IMAP client against a fake socket and recorded transcripts | +10 |
+| Integration | mailbox polling: idempotency, matching by file name, state transitions, catch-up after downtime, UIDVALIDITY change | +6 |
 | Integration | cron jobs: planned due, overdue, recurring, exactly-once | +3 |
 | Integration | courtesy email trigger and payload (Resend mocked) | +2 |
 | Integration | secrets never stored or returned in plaintext | +2 |
-| Sandbox | send to Openapi sandbox, simulate receipts and a supplier invoice | +2 |
+| Integration | PEC send over a fake SMTP socket (attachment, file name, authorization gate) | +2 |
 | E2E | login → client → invoice → send (passkey confirm) → receipt → PDF → email | +1 |
-| E2E | received invoice via callback → listed → mark paid | +1 |
+| E2E | received invoice via a polled PEC fixture → listed → mark paid | +1 |
 
 ## Rules for the implementing agent
 
@@ -395,19 +427,19 @@ The owner keeps FiC active until 2026-12-31, so a failed v1 costs no lost invoic
 |-----------|----------|
 | Project setup, Worker + D1, deploy pipeline, i18n, PWA shell | 1 day |
 | Auth: passkey, password + TOTP fallback, closed sign-up | 1 day |
-| Send authorization (passkey assertion verified by the Worker), Openapi setup wizard | 0.5 day |
+| Send authorization (passkey assertion verified by the Worker), PEC settings and connection test | 0.5 day |
 | Profile, onboarding, AdE guide | 0.5 day |
 | Clients + FiC CSV import | 0.5 day |
 | Invoice editor + totals engine | 1.5 days |
 | XML builder + XSD validation | 1 day |
-| Openapi channel: send, callbacks, reconciliation, received invoices, P7M | 1.5 days |
+| PEC channel: SMTP send, minimal IMAP client, mailbox polling, SdI receipts, received invoices, P7M, manual AdE channel | 3.5 days |
 | Historic import (XML/P7M/ZIP) | 0.5 day |
 | Lists, dashboard, payment flag | 1 day |
 | PDF IT/EN + courtesy email (Resend) | 1 day |
-| Web Push + cron jobs + credit section | 1 day |
+| Web Push + cron jobs + mailbox quota section | 1 day |
 | Credit notes (TD04) | 0.5 day |
 | Recurring templates | 1 day |
-| Total | ~12.5 days |
+| Total | ~14.5 days |
 
 ## Out of Scope
 
@@ -415,8 +447,9 @@ The owner keeps FiC active until 2026-12-31, so a failed v1 costs no lost invoic
 - Public administration invoices (FPA12, NE/DT/AT receipts, digital signature).
 - Document types other than TD01 and TD04: advances (TD02), parcels (TD06), foreign
   supplier integration (TD17/18/19), self-invoices.
-- Other SdI channels in v1 (PEC, AdE manual upload, SDICoop/SFTP); the channel interface
-  leaves room for them.
+- Openapi and other paid intermediaries, and SDICoop/SFTP, in v1; the channel interface leaves
+  room for them (Openapi needs a 50 EUR minimum top-up, so it is a possible future channel).
+- Reading or managing PEC mail unrelated to the SdI (the owner uses the Aruba app).
 - Courtesy email through the owner's own SMTP account.
 - Conservazione a norma (handled by the owner on the AdE portal).
 - Accounting, VAT settlement, F24, tax estimates, bank sync, payment reminders to clients.
@@ -430,8 +463,14 @@ The owner keeps FiC active until 2026-12-31, so a failed v1 costs no lost invoic
   Web Push payload encryption and P7M parsing fit, or move them to the browser.
 - Passkey library on Workers + D1 (Better Auth with passkey and TOTP plugins): maturity,
   and verifying a send assertion against the passkeys it stores.
-- Openapi: callback retries and signing, the exact scope strings for the read and send
-  tokens, minimum top-up, sandbox behaviour of `/simulate`.
+- CPU time of the IMAP and MIME work within the 10 ms free-plan limit (fetch + `postal-mime`
+  parse of a typical SdI receipt, a PEC envelope and a large invoice); fallback: smaller fetches,
+  `waitUntil`, or Workers Paid with owner approval.
+- Aruba: whether IMAP `GETQUOTAROOT` is supported and what the mailbox quota is; whether the
+  username is the full PEC address; any SMTP/IMAP rate limit or connection policy.
+- SdI address rule: whether every send after the first must go to the address in the SdI's
+  first reply, and what that reply looks like (re-check against Allegato A and a real reply).
+- Maximum message size accepted by Aruba and by the SdI, against the 2 MB per-blob cap.
 - Web Push on iOS: delivery reliability for a Home screen PWA.
 - D1 Time Travel retention on the free plan, and an extra periodic export (a downloadable backup with a monthly reminder).
 - Whether FatturaPA amounts in a non-EUR currency need an EUR equivalent on the XML or PDF;
