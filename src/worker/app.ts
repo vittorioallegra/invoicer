@@ -9,6 +9,7 @@ import { makeError, problemResponse } from "./problem";
 import { clients } from "./routes/clients";
 import { health } from "./routes/health";
 import { invoices } from "./routes/invoices";
+import { mailbox } from "./routes/mailbox";
 import { onboarding } from "./routes/onboarding";
 import { profile } from "./routes/profile";
 import { send } from "./routes/send";
@@ -31,6 +32,7 @@ export function createApp() {
   app.route("/api/profile", profile);
   app.route("/api/clients", clients);
   app.route("/api/settings", settings);
+  app.route("/api/mailbox", mailbox);
   app.route("/api/onboarding", onboarding);
   // Better Auth: sign-in, passkeys, TOTP, sessions. Sign-up is disabled (owner only via /api/setup).
   app.on(["GET", "POST"], "/api/auth/*", async (c) => {

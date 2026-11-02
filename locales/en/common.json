@@ -177,6 +177,12 @@
         "title": "PEC mailbox",
         "body": "Servers, secrets and the connection test"
       }
+    },
+    "unmatched": {
+      "title": "SdI messages without an invoice",
+      "intro": "Messages from the SdI that match none of the files sent from here. They are kept in full and never dropped.",
+      "empty": "No unmatched messages.",
+      "noFile": "(no file name)"
     }
   },
   "validation": {

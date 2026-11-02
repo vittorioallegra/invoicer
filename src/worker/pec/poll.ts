@@ -2,7 +2,7 @@ import { MAX_FILE_BYTES } from "../../db/schema";
 import { romeDateTime } from "../../shared/cron";
 import { type Bindings, missingSecrets } from "../env";
 import { finishJobRun, POLL_JOB, startJobRun } from "../jobs/job-runs";
-import { processOutbox } from "../outbox";
+import { notificationStatement, processOutbox } from "../outbox";
 import { createD1FileStorage } from "../storage";
 import {
   type Classification,
@@ -169,6 +169,7 @@ async function processMailbox(
     const base = { id, messageId, uidValidity: info.uidValidity, uid, size };
     if (size > MAX_FILE_BYTES) {
       counts.oversize += 1;
+      counts.stored += 1;
       await commitMessage(env, {
         ...base,
         classification: IGNORED,
@@ -182,6 +183,7 @@ async function processMailbox(
     const raw = await client.fetchSource(uid);
     if (!raw || raw.byteLength > MAX_FILE_BYTES) {
       counts.oversize += raw ? 1 : 0;
+      counts.stored += 1;
       await commitMessage(env, {
         ...base,
         classification: IGNORED,
@@ -256,6 +258,31 @@ async function processMailbox(
 
 const IGNORED: Classification = { kind: "ignored", messageId: null, sentAt: null };
 
+/** An error event and a notification for a message that could not be stored whole or read. */
+function problemStatements(db: D1Database, m: StoredMessage, now: number): D1PreparedStatement[] {
+  if (!m.problem || m.problem === "vanished") return [];
+  const type = m.problem === "oversize" ? "pec_oversize" : "pec_parse_error";
+  return [
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO events (id, source_id, type, payload, occurred_at, processed_at, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        crypto.randomUUID(),
+        `${type}:${m.uidValidity}:${m.uid}`,
+        type,
+        JSON.stringify({ uid: m.uid, size: m.size, messageId: m.messageId }),
+        now,
+        now,
+        now,
+      ),
+    m.problem === "oversize"
+      ? notificationStatement(db, "message_oversize", { size: m.size }, now)
+      : notificationStatement(db, "message_unreadable", {}, now),
+  ];
+}
+
 /**
  * One D1 batch per message: the `pec_messages` row, its state transition and outbox rows, and the
  * cursor commit together, so the cursor never passes a message that was not committed.
@@ -294,6 +321,7 @@ async function commitMessage(env: Bindings, message: StoredMessage): Promise<voi
       now,
     ),
     ...plan.statements,
+    ...problemStatements(env.DB, message, now),
     advanceCursor(env.DB, message.uidValidity, message.uid),
   ]);
 }
@@ -304,6 +332,18 @@ async function deliverOutbox(env: Bindings): Promise<void> {
     await processOutbox(env);
   } catch {
     console.error("outbox_failed");
+  }
+}
+
+/** Connects and logs in; anything that is not an IMAP answer (DNS, TLS, a dropped socket) is a connection failure. */
+async function connect(env: Bindings, servers: { imapHost: string; imapPort: number }) {
+  try {
+    return await openMailbox(pollDeps.open(servers.imapHost, servers.imapPort), {
+      username: env.PEC_USERNAME as string,
+      password: env.PEC_PASSWORD as string,
+    });
+  } catch (error) {
+    throw error instanceof ImapError ? error : new ImapError("closed", "Connection failed.");
   }
 }
 
@@ -335,10 +375,7 @@ export async function pollMailbox(
   const runId = await startJobRun(env.DB, POLL_JOB, romeDateTime(new Date(now)).date, now);
   try {
     const servers = await loadPecServers(env);
-    const client = await openMailbox(pollDeps.open(servers.imapHost, servers.imapPort), {
-      username: env.PEC_USERNAME as string,
-      password: env.PEC_PASSWORD as string,
-    });
+    const client = await connect(env, servers);
     try {
       await processMailbox(env, client, counts);
       await client.logout();
@@ -353,6 +390,11 @@ export async function pollMailbox(
     const errorCode = pollErrorCode(error);
     console.error("poll_failed", errorCode);
     await finishJobRun(env.DB, runId, { status: "failed", counts, errorCode });
+    await notificationStatement(env.DB, "poll_failed", { code: errorCode }, Date.now(), {
+      unlessUnread: true,
+    })
+      .run()
+      .catch(() => undefined);
     await deliverOutbox(env);
     return { ok: false, counts, errorCode };
   }

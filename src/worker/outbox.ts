@@ -24,18 +24,34 @@ export interface NotificationPayload {
 
 export const notificationTitleKey = (type: NotificationType) => `notifications.${type}.title`;
 
-/** A notification row without an invoice (mailbox problems, received invoices). */
+/**
+ * A notification row without an invoice (mailbox problems, received invoices). With
+ * `unlessUnread` it is skipped while an unread notification of the same type and values exists,
+ * so a problem that repeats on every cron tick raises one notification, not one per tick.
+ */
 export function notificationStatement(
   db: D1Database,
   type: NotificationType,
   params: NotificationParams,
   now = Date.now(),
+  options: { unlessUnread?: boolean } = {},
 ): D1PreparedStatement {
+  const body = JSON.stringify(params);
   return db
     .prepare(
-      "INSERT INTO notifications (id, type, title, body, invoice_id, created_at) VALUES (?, ?, ?, ?, NULL, ?)",
+      `INSERT INTO notifications (id, type, title, body, invoice_id, created_at)
+       SELECT ?1, ?2, ?3, ?4, NULL, ?5
+       WHERE ?6 = 0 OR NOT EXISTS (
+         SELECT 1 FROM notifications WHERE type = ?2 AND body = ?4 AND read_at IS NULL)`,
     )
-    .bind(crypto.randomUUID(), type, notificationTitleKey(type), JSON.stringify(params), now);
+    .bind(
+      crypto.randomUUID(),
+      type,
+      notificationTitleKey(type),
+      body,
+      now,
+      options.unlessUnread ? 1 : 0,
+    );
 }
 
 /**

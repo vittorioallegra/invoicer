@@ -177,6 +177,12 @@
         "title": "Casella PEC",
         "body": "Server, segreti e test di connessione"
       }
+    },
+    "unmatched": {
+      "title": "Messaggi del SdI senza fattura",
+      "intro": "Messaggi del SdI che non corrispondono a nessun file inviato da qui. Vengono conservati per intero e mai scartati.",
+      "empty": "Nessun messaggio non abbinato.",
+      "noFile": "(nessun nome file)"
     }
   },
   "validation": {

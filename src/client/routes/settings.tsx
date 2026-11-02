@@ -11,6 +11,7 @@ import { Button } from "../components/ui/button";
 import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
+import { UnmatchedMessages } from "../components/unmatched-messages";
 import { persistLocale } from "../i18n";
 import { api } from "../lib/api";
 import { useOnline } from "../lib/online";
@@ -180,6 +181,7 @@ export function SettingsPage() {
       </nav>
       <LanguageSection />
       <NumberingSection online={online} />
+      <UnmatchedMessages />
       {/* Temporary: removed together with the spike page (plan step 21). A plain anchor, not
           a router link: /spike is a separate hidden page outside the app shell. */}
       <p className="pt-4 text-sm">
