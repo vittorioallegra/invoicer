@@ -52,6 +52,16 @@ Skeleton: this section grows with every step; the complete guide is written in s
   checklist in `docs/notes/spike.md` (create D1, set secrets, generate VAPID keys, deploy, open
   `/spike`). The Worker is served on the custom domain (workers.dev is disabled), e.g.
   `https://invoicer.vittorioallegra.com/spike`.
+- First run (the deploy is public before onboarding): set `BETTER_AUTH_SECRET` (a long random
+  string, `openssl rand -base64 32`) and `SETUP_TOKEN` (another one) with `wrangler secret put`,
+  open the app, and the setup screen creates the owner account (it asks for the token), enrols
+  the authenticator app (TOTP, with recovery codes) and registers a passkey. Without
+  `SETUP_TOKEN` the setup is refused, and once the owner exists sign-up is closed for good.
+  Set `APP_ORIGIN` to the public origin: the passkeys are bound to its host name.
+- Login: passkey (Face ID / Touch ID) normally; email + password + authenticator code as the
+  fallback. Password hashing uses 10,000 PBKDF2 iterations to fit the free-plan CPU limit
+  (`docs/notes/spike.md`); the mandatory TOTP, the login rate limit and a generated password
+  compensate.
 - Scheduling: a single cron trigger (`*/10 * * * *`) in `wrangler.jsonc`. Every run polls the PEC
   mailbox; the daily jobs run once per day from the first run at or after 09:00 Europe/Rome
   (missed runs are caught up). There is no automatic backup: restore with D1 Time Travel (step 20
@@ -69,7 +79,8 @@ The request body or parameters were invalid. The `detail` field says which.
 You are not signed in, or the session expired. Sign in again.
 
 ### error-forbidden
-The action is not allowed for this account.
+The action is not allowed for this account. On the setup screen it means the setup token is
+not the value of the `SETUP_TOKEN` Worker secret.
 
 ### error-origin-not-allowed
 A state-changing call came from a different origin. Use the app from its own address.
@@ -78,13 +89,15 @@ A state-changing call came from a different origin. Use the app from its own add
 The resource or route does not exist.
 
 ### error-conflict
-The change conflicts with the current state (for example a number already used).
+The change conflicts with the current state (for example a number already used). On the setup
+screen it means the owner account already exists: setup and sign-up are closed, sign in instead.
 
 ### error-payload-too-large
 The request body exceeds the size limit.
 
 ### error-rate-limited
-Too many attempts. Wait and try again.
+Too many attempts. Wait and try again. Logins are limited per IP address: five password or TOTP
+attempts and ten passkey attempts per minute.
 
 ### error-internal-error
 Unexpected server error. Check the Worker logs (`wrangler tail`); no secret values are logged.

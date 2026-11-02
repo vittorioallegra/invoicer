@@ -402,12 +402,13 @@ Base: 98f6037
 Spec: docs/specs/invoicer.md
 Architecture: agreed
 Approved: yes (2026-11-02)
+Next: Step 5: Send authorization.
 
 ### Steps
 - [x] 1. Scaffolding — `docs: sync CLAUDE.md commands and tick scaffolding step`
 - [x] 2. Risk spike (manual device checkpoint) — `docs: record spike results and decisions`
 - [x] 3. Data model — `feat(db): add the Drizzle schema, first D1 migration and file storage`
-- [ ] 4. Auth
+- [x] 4. Auth — `feat(auth): add login and setup screens`
 - [ ] 5. Send authorization
 - [ ] 6. Totals engine
 - [ ] 7. Profile, onboarding, settings

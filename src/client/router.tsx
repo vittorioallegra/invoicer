@@ -1,5 +1,13 @@
-import { createRootRoute, createRoute, createRouter } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Outlet,
+  useLocation,
+} from "@tanstack/react-router";
 import { AppShell } from "./components/app-shell";
+import { SessionGate } from "./components/session-gate";
+import { LoginPage } from "./routes/login";
 import {
   ClientsPage,
   HomePage,
@@ -9,9 +17,25 @@ import {
   ReceivedPage,
   SettingsPage,
 } from "./routes/pages";
+import { SetupPage } from "./routes/setup";
 import { SpikePage } from "./routes/spike";
 
-const rootRoute = createRootRoute({ component: AppShell, notFoundComponent: NotFoundPage });
+/** Screens without the app shell and without a session: login and first-run setup. */
+const BARE_PATHS = new Set(["/login", "/setup"]);
+
+/** Every other screen needs a session; the temporary spike page has its own secret header. */
+function Root() {
+  const pathname = useLocation({ select: (location) => location.pathname });
+  if (BARE_PATHS.has(pathname)) return <Outlet />;
+  if (pathname === "/spike") return <AppShell />;
+  return (
+    <SessionGate>
+      <AppShell />
+    </SessionGate>
+  );
+}
+
+const rootRoute = createRootRoute({ component: Root, notFoundComponent: NotFoundPage });
 
 const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: "/", component: HomePage }),
@@ -19,6 +43,8 @@ const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: "/received", component: ReceivedPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/clients", component: ClientsPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: SettingsPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/login", component: LoginPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/setup", component: SetupPage }),
   // Hidden risk-spike page (step 2), removed in step 21.
   createRoute({ getParentRoute: () => rootRoute, path: "/spike", component: SpikePage }),
   createRoute({
