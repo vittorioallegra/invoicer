@@ -7,6 +7,9 @@ import { setup } from "./auth/setup";
 import { type Bindings, featureStatus, pecCredentialStatus } from "./env";
 import { makeError, problemResponse } from "./problem";
 import { health } from "./routes/health";
+import { onboarding } from "./routes/onboarding";
+import { profile } from "./routes/profile";
+import { settings } from "./routes/settings";
 import { originCheck, securityHeaders } from "./security";
 import { spike } from "./spike/routes";
 
@@ -20,6 +23,9 @@ export function createApp() {
   app.route("/api/health", health);
   app.route("/api/setup", setup);
   app.route("/api/invoices", sendAuthorization);
+  app.route("/api/profile", profile);
+  app.route("/api/settings", settings);
+  app.route("/api/onboarding", onboarding);
   // Better Auth: sign-in, passkeys, TOTP, sessions. Sign-up is disabled (owner only via /api/setup).
   app.on(["GET", "POST"], "/api/auth/*", async (c) => {
     const response = await createAuth(c.env, c.req.url).handler(c.req.raw);

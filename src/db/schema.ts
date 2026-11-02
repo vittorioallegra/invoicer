@@ -83,6 +83,13 @@ export const settings = sqliteTable(
     emailBcc: text("email_bcc"),
     courtesyEmailMode: text("courtesy_email_mode").notNull().default("ask"),
     recurringLeadDays: integer("recurring_lead_days").notNull().default(3),
+    /** Last PEC connection test (IMAP login + mailbox open): when, whether it passed, why not. */
+    pecTestAt: integer("pec_test_at", { mode: "timestamp_ms" }),
+    pecTestOk: integer("pec_test_ok", { mode: "boolean" }),
+    pecTestError: text("pec_test_error"),
+    /** Setup checklist items the owner confirms by hand (set when done, null when pending). */
+    adeGuideDoneAt: integer("ade_guide_done_at", { mode: "timestamp_ms" }),
+    emailConfiguredAt: integer("email_configured_at", { mode: "timestamp_ms" }),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
   },
   (t) => [
