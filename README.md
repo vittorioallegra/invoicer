@@ -1,13 +1,13 @@
 # Invoicer
 
 Single-user, self-hosted Italian e-invoicing (FatturaPA) PWA on Cloudflare (Worker + D1 +
-Cron), sending through the Openapi SDI API. Spec: `docs/specs/invoicer.md`. Plan and progress:
+Cron), sending to the SdI through the owner's PEC mailbox (SMTP) and polling it (IMAP). Spec: `docs/specs/invoicer.md`. Plan and progress:
 `docs/plans/invoicer.md`.
 
 ## Local development
 
 Requirements: Node 22+ and pnpm. No external account is needed: D1 runs locally, and
-Openapi, Resend and push are off or mocked.
+the PEC mailbox, Resend and push are off or mocked.
 
 ```sh
 pnpm install
@@ -30,14 +30,14 @@ Worker secrets (set with `wrangler secret put <NAME>`, never committed):
 |------|------------|
 | `BETTER_AUTH_SECRET` | sessions |
 | `SETUP_TOKEN` | creating the owner account on first run |
-| `OPENAPI_READ_TOKEN`, `OPENAPI_SEND_TOKEN` | Openapi SDI calls (minimum scopes) |
-| `WEBHOOK_SECRET` | authenticating Openapi callbacks |
+| `PEC_USERNAME`, `PEC_PASSWORD` | PEC mailbox (IMAP polling, SMTP send); one password for everything, so it can read the whole mailbox and send PEC: use a unique generated one |
 | `RESEND_API_KEY` | courtesy email (optional) |
 | `VAPID_PRIVATE_KEY` | push notifications (optional); one-line JWK from `pnpm exec pushforge vapid` |
 | `SPIKE_SECRET` | temporary risk-spike page `/spike` (step 2, removed in step 20) |
-| `OPENAPI_SANDBOX_TOKEN` | spike only: Openapi sandbox checks (optional) |
 
-Plain variables: `APP_ORIGIN`, `MAIL_FROM_ADDRESS`, `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`.
+Plain variables: `APP_ORIGIN`, `MAIL_FROM_ADDRESS`, `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, and the
+optional PEC server overrides `PEC_IMAP_HOST`/`PEC_IMAP_PORT` (default `imaps.pec.aruba.it`:993) and
+`PEC_SMTP_HOST`/`PEC_SMTP_PORT` (default `smtps.pec.aruba.it`:465).
 
 ## Deploy
 
@@ -50,7 +50,8 @@ Skeleton: this section grows with every step; the complete guide is written in s
   `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`.
 - First manual deploy (before CI is set up) and the step 2 device checks: follow the owner
   checklist in `docs/notes/spike.md` (create D1, set secrets, generate VAPID keys, deploy, open
-  `/spike`). Without a custom domain the Worker is served on its `workers.dev` address.
+  `/spike`). The Worker is served on the custom domain (workers.dev is disabled), e.g.
+  `https://invoicer.vittorioallegra.com/spike`.
 
 ## Troubleshooting
 
@@ -86,5 +87,5 @@ Unexpected server error. Check the Worker logs (`wrangler tail`); no secret valu
 
 ### error-missing-secret
 A required Worker secret is not set. The response lists the variable names in `missing` and the
-fix in `fix`, for example `wrangler secret put OPENAPI_SEND_TOKEN`. Optional features (email,
+fix in `fix`, for example `wrangler secret put PEC_PASSWORD`. Optional features (email,
 push) do not raise this error: they stay off and Settings shows a banner.
