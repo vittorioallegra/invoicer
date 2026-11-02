@@ -1,6 +1,6 @@
 // Tracked config contains no owner-specific values. Resource IDs below are placeholders that
 // CI replaces (scripts/render-wrangler-config.mjs) from repository variables; local dev and
-// tests use local D1/R2 emulation, so the placeholders are fine there.
+// tests use local D1 emulation, so the placeholders are fine there.
 //
 // Secrets (set with `wrangler secret put <NAME>`, never in this file):
 //   BETTER_AUTH_SECRET, SETUP_TOKEN, OPENAPI_READ_TOKEN, OPENAPI_SEND_TOKEN, WEBHOOK_SECRET,
@@ -29,7 +29,6 @@
       "migrations_dir": "migrations"
     }
   ],
-  "r2_buckets": [{ "binding": "FILES", "bucket_name": "invoicer-files" }],
   // At most 2 cron triggers (free plan: 5 per account). One scheduled handler dispatches on
   // event.cron: see src/worker/jobs/scheduled.ts (keep the expressions in sync).
   "triggers": { "crons": ["0 4 * * *", "0 3 * * 0"] }

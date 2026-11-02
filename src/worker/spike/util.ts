@@ -25,18 +25,35 @@ export async function timed<T>(run: () => Promise<T> | T): Promise<{ value: T; c
   return { value, clockMs: Math.round((performance.now() - start) * 100) / 100 };
 }
 
-/** Tiny JSON store in R2 for spike state (credentials, subscriptions, callbacks). */
+/**
+ * Tiny JSON store in D1 for spike state (credentials, subscriptions, callbacks). The throwaway
+ * `spike_kv` table is created at runtime, not by a migration, and dropped when the spike is
+ * removed (step 20).
+ */
+async function ensureTable(env: Bindings): Promise<void> {
+  await env.DB.exec(
+    "CREATE TABLE IF NOT EXISTS spike_kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+  );
+}
+
 export async function readJson<T>(env: Bindings, key: string, fallback: T): Promise<T> {
-  const object = await env.FILES.get(`spike/${key}.json`);
-  return object ? ((await object.json()) as T) : fallback;
+  await ensureTable(env);
+  const row = await env.DB.prepare("SELECT value FROM spike_kv WHERE key = ?")
+    .bind(key)
+    .first<{ value: string }>();
+  return row ? (JSON.parse(row.value) as T) : fallback;
 }
 
 export async function writeJson(env: Bindings, key: string, value: unknown): Promise<void> {
-  await env.FILES.put(`spike/${key}.json`, JSON.stringify(value), {
-    httpMetadata: { contentType: "application/json" },
-  });
+  await ensureTable(env);
+  await env.DB.prepare(
+    "INSERT INTO spike_kv (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+  )
+    .bind(key, JSON.stringify(value))
+    .run();
 }
 
 export async function deleteJson(env: Bindings, key: string): Promise<void> {
-  await env.FILES.delete(`spike/${key}.json`);
+  await ensureTable(env);
+  await env.DB.prepare("DELETE FROM spike_kv WHERE key = ?").bind(key).run();
 }

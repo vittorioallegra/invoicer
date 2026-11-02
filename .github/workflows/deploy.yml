@@ -38,7 +38,6 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       # Resource IDs and owner-specific values are repository variables, never tracked files.
       D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
-      R2_BUCKET_NAME: ${{ vars.R2_BUCKET_NAME }}
       APP_DOMAIN: ${{ vars.APP_DOMAIN }}
       APP_ORIGIN: ${{ vars.APP_ORIGIN }}
       MAIL_FROM_ADDRESS: ${{ vars.MAIL_FROM_ADDRESS }}

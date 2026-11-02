@@ -3,7 +3,6 @@ import { ApiError, ERROR_CODES, ERROR_TYPE_BASE, errorAnchor } from "../shared/e
 /** Worker bindings, plain-text vars and secrets. See `.dev.vars.example` and wrangler.jsonc. */
 export interface Bindings {
   DB: D1Database;
-  FILES: R2Bucket;
   ASSETS: Fetcher;
 
   // Plain vars (owner-specific, set in the deploy config or `.dev.vars`).

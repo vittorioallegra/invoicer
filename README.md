@@ -1,12 +1,12 @@
 # Invoicer
 
-Single-user, self-hosted Italian e-invoicing (FatturaPA) PWA on Cloudflare (Worker + D1 + R2 +
+Single-user, self-hosted Italian e-invoicing (FatturaPA) PWA on Cloudflare (Worker + D1 +
 Cron), sending through the Openapi SDI API. Spec: `docs/specs/invoicer.md`. Plan and progress:
 `docs/plans/invoicer.md`.
 
 ## Local development
 
-Requirements: Node 22+ and pnpm. No external account is needed: D1 and R2 run locally, and
+Requirements: Node 22+ and pnpm. No external account is needed: D1 runs locally, and
 Openapi, Resend and push are off or mocked.
 
 ```sh
@@ -46,10 +46,10 @@ Skeleton: this section grows with every step; the complete guide is written in s
 - GitHub Actions (`.github/workflows/deploy.yml`) runs install, lint, typecheck, test, build and
   the bundle check on every push; on `main` it then applies D1 migrations and deploys.
 - Repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. Repository variables:
-  `D1_DATABASE_ID`, `R2_BUCKET_NAME`, `APP_DOMAIN`, `APP_ORIGIN`, `MAIL_FROM_ADDRESS`,
+  `D1_DATABASE_ID`, `APP_DOMAIN`, `APP_ORIGIN`, `MAIL_FROM_ADDRESS`,
   `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`.
 - First manual deploy (before CI is set up) and the step 2 device checks: follow the owner
-  checklist in `docs/notes/spike.md` (create D1/R2, set secrets, generate VAPID keys, deploy, open
+  checklist in `docs/notes/spike.md` (create D1, set secrets, generate VAPID keys, deploy, open
   `/spike`). Without a custom domain the Worker is served on its `workers.dev` address.
 
 ## Troubleshooting
