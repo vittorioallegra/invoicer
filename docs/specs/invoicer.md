@@ -46,7 +46,7 @@ real invoices in December 2026, so the owner can decide whether to cancel FiC.
 | Frontend | PWA, served as static assets by a Cloudflare Worker | All UI; builds the FatturaPA XML and the PDF; never calls Openapi |
 | Backend | Cloudflare Worker (API) | Auth, data API, send authorization, all Openapi calls, webhook receiver, push sender, courtesy email sender |
 | Database | Cloudflare D1 | Profile, clients, invoices, events, settings |
-| Files | Cloudflare R2 | Invoice XML, PDF, received invoice files, imports |
+| Files | Cloudflare D1 (BLOBs, max 2 MB each) | Invoice XML, PDF, received invoice files, imports |
 | Scheduled jobs | Cloudflare Cron Triggers | Reminders, recurring drafts, reconciliation with Openapi |
 | SdI channel | Openapi SDI API (`sdi.openapi.it`, sandbox `test.sdi.openapi.it`) | Send, receipts, received invoices |
 | Email | Resend | Courtesy email from `no-reply@invoicer.vittorioallegra.com` (configurable) |
@@ -102,7 +102,7 @@ Verified facts this design relies on (2026-11-02):
 
 ### 1. Setup and onboarding
 
-1. **Deploy (README):** create the Cloudflare resources (Worker, D1, R2, cron), set the
+1. **Deploy (README):** create the Cloudflare resources (Worker, D1, cron), set the
    secrets, connect the GitHub repo for automatic deploys on push to `main`, add the
    subdomain, set the Resend DNS records (SPF, DKIM, DMARC) for the sender subdomain.
 2. **First run:** create the owner account (requires the deploy's setup token) and register
@@ -301,7 +301,7 @@ Verified facts this design relies on (2026-11-02):
 3. Login works with a passkey, and with email + password + TOTP; a wrong TOTP is refused.
 4. Secrets stay where the security model puts them: a test with known token strings
    asserts that the read and send tokens and the one-time admin token appear in no D1 row,
-   R2 object, API response or log line.
+   API response or log line.
 5. Sending requires a fresh passkey (or TOTP) check verified by the Worker; a replayed,
    expired or other-invoice assertion is refused, and cancelling leaves the invoice unsent.
 6. For each of these fixtures the generated XML passes the official FatturaPA XSD and the
@@ -393,7 +393,7 @@ The owner keeps FiC active until 2026-12-31, so a failed v1 costs no lost invoic
 
 | Component | Estimate |
 |-----------|----------|
-| Project setup, Worker + D1 + R2, deploy pipeline, i18n, PWA shell | 1 day |
+| Project setup, Worker + D1, deploy pipeline, i18n, PWA shell | 1 day |
 | Auth: passkey, password + TOTP fallback, closed sign-up | 1 day |
 | Send authorization (passkey assertion verified by the Worker), Openapi setup wizard | 0.5 day |
 | Profile, onboarding, AdE guide | 0.5 day |
@@ -433,7 +433,6 @@ The owner keeps FiC active until 2026-12-31, so a failed v1 costs no lost invoic
 - Openapi: callback retries and signing, the exact scope strings for the read and send
   tokens, minimum top-up, sandbox behaviour of `/simulate`.
 - Web Push on iOS: delivery reliability for a Home screen PWA.
-- D1 Time Travel retention on the free plan, and an extra periodic export (backup to R2 or
-  download).
+- D1 Time Travel retention on the free plan, and an extra periodic export (a downloadable backup with a monthly reminder).
 - Whether FatturaPA amounts in a non-EUR currency need an EUR equivalent on the XML or PDF;
   check the current AdE specification.

@@ -1,6 +1,6 @@
 # Invoicer
 
-Single-user, self-hosted Italian e-invoicing (FatturaPA) PWA on Cloudflare (Worker + D1 + R2 +
+Single-user, self-hosted Italian e-invoicing (FatturaPA) PWA on Cloudflare (Worker + D1 +
 Cron), sending through the Openapi SDI API. Spec: docs/specs/invoicer.md. Plan and progress:
 docs/plans/invoicer.md.
 
@@ -9,7 +9,7 @@ docs/plans/invoicer.md.
 Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `packageManager`).
 
 - Install: `pnpm install` (CI: `pnpm install --frozen-lockfile`); local secrets: `cp .dev.vars.example .dev.vars`
-- Dev server: `pnpm dev` (Vite + local Worker, D1 and R2; Openapi, Resend and push off or mocked)
+- Dev server: `pnpm dev` (Vite + local Worker, D1; Openapi, Resend and push off or mocked)
 - Build: `pnpm build`; preview the build (service worker on): `pnpm preview`
 - All unit/integration tests (dot reporter): `pnpm test`
 - One Vitest project: `pnpm vitest run --project shared|worker|client --reporter=dot`

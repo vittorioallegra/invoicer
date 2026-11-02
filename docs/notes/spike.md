@@ -10,8 +10,8 @@ The spike page and routes are temporary and are removed in step 20 (`src/worker/
 | Piece | Where |
 |-------|-------|
 | Gate: `X-Spike-Secret` header must equal the `SPIKE_SECRET` secret (503 naming the variable if unset, 404 if wrong, so the routes stay hidden) | `src/worker/spike/gate.ts` |
-| Passkey: register + assertion verified with `@simplewebauthn/server` 14.0.3, `userVerification: required`, discoverable credential, challenge bound to a caller string (stand-in for invoice id + XML hash) by an HMAC; credential stored in R2 (`spike/credentials.json`) so a passkey created on iPhone can be used from Mac | `passkey.ts`, `challenge.ts` |
-| Web Push: subscribe, send now / after 20 s with `@pushforge/builder` 2.0.5, VAPID from secrets, subscriptions in R2 | `push.ts`, `public/push-sw.js` |
+| Passkey: register + assertion verified with `@simplewebauthn/server` 14.0.3, `userVerification: required`, discoverable credential, challenge bound to a caller string (stand-in for invoice id + XML hash) by an HMAC; credential stored in the throwaway D1 table `spike_kv` so a passkey created on iPhone can be used from Mac | `passkey.ts`, `challenge.ts` |
+| Web Push: subscribe, send now / after 20 s with `@pushforge/builder` 2.0.5, VAPID from secrets, subscriptions in `spike_kv` | `push.ts`, `public/push-sw.js` |
 | CPU probes (one per request): PBKDF2 at 1k–200k iterations, passkey assertion verification (synthetic ES256 fixture), push payload encryption, sample callback parse, Openapi POST dry run | `cpu.ts`, `fixtures.ts` |
 | Openapi sandbox: send + `/simulate` receipt + simulated supplier invoice + GET back; callback recorder (headers, retries; can answer 500 on demand) | `openapi.ts` |
 | Page | `src/client/routes/spike.tsx` (hidden route `/spike`) |
@@ -70,7 +70,6 @@ tracked files permanently (the temporary config edit is reverted in step 3).
    ```sh
    pnpm exec wrangler login
    pnpm exec wrangler d1 create invoicer          # copy the printed database_id
-   pnpm exec wrangler r2 bucket create invoicer-files
    ```
 2. **Generate the values:**
    ```sh

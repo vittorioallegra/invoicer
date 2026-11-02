@@ -22,7 +22,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
 1. **Scaffolding.** `package.json` (pnpm, lockfile committed, CI uses
    `pnpm install --frozen-lockfile`), TypeScript strict, Vite 8 + `@cloudflare/vite-plugin`,
    React 19, TanStack Router + Query, Tailwind 4, Hono Worker serving the SPA as static assets
-   and `/api/*`, `wrangler.jsonc` with D1, R2, a cron trigger and documented secret names
+   and `/api/*`, `wrangler.jsonc` with D1, a cron trigger and documented secret names
    (no values; owner-specific values such as domain, sender address and resource IDs come
    from env / an untracked local config, never from tracked files), Vitest projects (`shared`
    in node, `worker` in `@cloudflare/vitest-pool-workers`, `client` in jsdom), Playwright
@@ -50,7 +50,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    - GitHub Actions deploy workflow: install, lint, typecheck, test, bundle check (Worker
      under 3 MB compressed; `@react-pdf/renderer`, `xmllint-wasm` and pkijs only in the client
      bundle), then `wrangler d1 migrations apply --remote`, then `wrangler deploy`
-     (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and the D1/R2 IDs as repository
+     (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and the D1 ID as repository
      secrets/vars that generate the deploy config).
    - Security baseline: strict CSP (no inline script; `connect-src` self only: the browser
      never calls Openapi), Origin check on state-changing `/api/*` calls, parsed external data rendered as
@@ -87,10 +87,14 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    payment flag, `number_raw` + parsed `number_int`, year, issue date, source
    `app`/`imported`; partial UNIQUE index on year + `number_int` where not null, covering app
    and imported invoices), `transmissions` (one row per attempt: file progressive, file
-   name, send-outcome `none`/`complete`/`unknown`, Openapi uuid, PDF/XML R2 keys, created
+   name, send-outcome `none`/`complete`/`unknown`, Openapi uuid, PDF/XML `files` ids, created
    before the POST), `number_sequences` (one counter row per year) and `file_sequence`
    (global file progressive counter), `invoice_lines`, `received_invoices` (unique on
-   Openapi uuid, `parse_status`), `events` (callbacks, unique on source id, `processed_at`),
+   Openapi uuid, `parse_status`, original file as a `files` id), `files` (id, kind
+   `xml`/`pdf`/`received`/`import`/`backup`, invoice / transmission or received-invoice
+   reference, filename, content type, size, sha256, `content` BLOB, created_at; CHECK size
+   <= 2 MB, larger files are refused with a clear error; all file access goes through one
+   storage interface so R2 can be reintroduced later), `events` (callbacks, unique on source id, `processed_at`),
    `outbox` (email/push/notification side effects, UNIQUE on invoice + attempt + kind),
    `notifications`, `push_subscriptions`, `recurring_templates`, `recurring_occurrences`
    (unique on template + date), `email_log`, `job_runs` (job, started/finished, status,
@@ -161,7 +165,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
     equivalent for non-EUR invoices per the step 2 finding. Tests: AC 6 for fixtures (a)–(g).
 11. **PDF.** `@react-pdf/renderer` document in IT/EN from the same i18n files, all reader-
     relevant FatturaPA data and the legal note; "SANDBOX" watermark in sandbox mode.
-    Generated in the browser after the number is reserved and uploaded to R2 under a key per
+    Generated in the browser after the number is reserved and stored in `files` per
     invoice and transmission attempt (regenerated on resend; the email always uses the
     latest). Tests: AC 13 (language and payment data present, via text extraction).
 12. **Openapi channel and send flow.** `src/shared/channel` interface; Openapi implementation
@@ -204,7 +208,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
     failure so Openapi retries; state transitions RC/MC/NS/error; callbacks for an invoice
     still in `sending` match by file name and move it forward; outbox processed in
     `waitUntil` and retried from cron; supplier invoices stored with their original file in
-    R2, with parsed fields from the callback if present, else `parse_status = pending` and
+    `files`, with parsed fields from the callback if present, else `parse_status = pending` and
     parsed by the browser on next open (viewing in step 14); unmatched events stored and
     listed, never dropped. Daily reconciliation cron with the
     read token (AC 9), also resolving `sending` invoices with an unknown outcome; each run
@@ -230,7 +234,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
     skeleton loading, empty and no-result states.
 16. **Courtesy email.** Resend from the Worker, driven by the outbox (exactly one email per
     invoice + attempt, Resend `Idempotency-Key`), with i18n subject/body templates, latest PDF +
-    XML attached from R2, From/Reply-To/BCC from settings; modes automatic (on delivered /
+    XML attached from `files`, From/Reply-To/BCC from settings; modes automatic (on delivered /
     not_delivered), ask (in-app card on the invoice and in the notification list opening an
     editable preview sheet with Send / Skip), manual resend; `email_log` shown as a timeline
     on the invoice detail; failure notification. Tests: AC 14 with Resend mocked.
@@ -245,10 +249,11 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
     console for the exact figure, threshold banner and push, suspension detection with a
     Reactivate action using the read token (AC 16). Tests: AC 12,
     15 (cron parts), 16.
-19. **Backup.** Weekly cron exporting D1 as JSON to R2 (reusing the step 13 export, within the
-    subrequest and CPU limits measured in step 2); restore procedure documented in the README next to D1 Time Travel. Test: export
-    contains every table.
-20. **Hardening and release.** Remove the spike page; responsive and accessibility pass at
+19. **Backup.** Settings "Download backup" (reusing the step 13 export, JSON/ZIP including
+    the `files` content) plus a monthly cron reminder notification to download it; restore
+    procedure documented in the README next to D1 Time Travel. Test: export contains every
+    table.
+20. **Hardening and release.** Remove the spike page and drop its throwaway `spike_kv` D1 table (`DROP TABLE spike_kv`, created at runtime, no migration); responsive and accessibility pass at
     375 px; secrets audit test (AC 4 full, including browser-side error reports); README
     deploy guide (Cloudflare resources, secrets, GitHub auto-deploy, subdomain, Resend DNS
     SPF/DKIM/DMARC, Openapi and AdE setup, free-plan limits and the Workers Paid switch, owner
@@ -286,7 +291,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
 - FatturaPA schema/spec drift → XSD vendored with its version recorded; version check in
   step 20 and before each tax season.
 - Openapi callback retries unknown → daily reconciliation covers missed callbacks.
-- Data loss on D1 → Time Travel plus the weekly R2 export (step 19).
+- Data loss on D1 → Time Travel plus the downloadable backup and its monthly reminder (step 19).
 
 ## Architecture
 
@@ -327,6 +332,7 @@ does auth, data, send authorization, all Openapi calls, webhooks, cron jobs, pus
 | Lint / format | Biome | exact version pinned at step 1 |
 
 **Rejected alternatives**
+- R2 for files: needs a payment card on the account; D1 BLOBs (2 MB per row, 5 GB total) cover the volume.
 - Supabase backend: inactivity pause, weak free backups, 25 $/month paid tier.
 - Netlify hosting: shared monthly credits with the portfolio could pause both sites.
 - PEC channel: password with full mailbox rights on the server, polling, 2–3 more days of work.
@@ -377,7 +383,8 @@ Approved: yes (2026-11-02)
 ### Decisions
 - Single-user, self-hosted deployment; generic public code, no owner data in the repo (2026-11-02).
 - SdI channel: Openapi SDI API behind a channel interface; PEC considered and rejected for v1 (password would sit on the server with full mailbox rights, more code, polling) (2026-11-02).
-- Hosting: everything on Cloudflare free plan (Worker static assets + Worker API, D1, R2, Cron Triggers, secrets); Supabase rejected (inactivity pause, weak free backups, higher paid tier) (2026-11-02).
+- Hosting: everything on Cloudflare free plan (Worker static assets + Worker API, D1, Cron Triggers, secrets); Supabase rejected (inactivity pause, weak free backups, higher paid tier) (2026-11-02).
+- Files: all files (invoice XML, PDF, received originals, imports) are stored in D1 BLOBs, not R2, which would need a payment card; D1 free plan 5 GB total, max 2 MB per file (a PDF is ~100 KB, an XML ~10 KB), larger files refused; files covered by Time Travel and the JSON export; R2 can come back behind the same storage interface (2026-11-02).
 - Domain: `invoicer.vittorioallegra.com`; project and repo name `invoicer` (2026-11-02).
 - Auth: passkey login, email + password + TOTP fallback, sign-up closed after the owner account (2026-11-02).
 - Openapi tokens: read and send tokens as Worker secrets with minimum scopes; every send needs a passkey assertion (TOTP fallback) verified by the Worker and bound to the invoice and its XML hash; Openapi account credentials are never stored, credit is estimated (2026-11-02, replaces the client-side vault).
