@@ -54,3 +54,12 @@ export async function finishJobRun(
     )
     .run();
 }
+
+/** When the last mailbox poll that completed successfully started (epoch ms), or null. */
+export async function lastSuccessfulPollAt(db: D1Database): Promise<number | null> {
+  const row = await db
+    .prepare("SELECT MAX(started_at) AS at FROM job_runs WHERE job = ? AND status = 'success'")
+    .bind(POLL_JOB)
+    .first<{ at: number | null }>();
+  return row?.at ?? null;
+}

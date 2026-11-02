@@ -26,6 +26,7 @@ import {
   sha256Hex,
   type TransmissionRow,
 } from "../invoices/transmissions";
+import { lastSuccessfulPollAt } from "../jobs/job-runs";
 import { loadSendReadiness } from "../onboarding";
 import { loadPecServers } from "../pec/config";
 import { makeError } from "../problem";
@@ -73,7 +74,7 @@ send.get("/:id/transmissions", async (c) => {
   const now = Date.now();
   const decision =
     invoice.state === "sending"
-      ? retryDecision(attempts.map(asAttemptState), now)
+      ? retryDecision(attempts.map(asAttemptState), now, await lastSuccessfulPollAt(c.env.DB))
       : invoice.state === "rejected"
         ? ({ allowed: true, mode: "new_attempt" } as const)
         : ({ allowed: false, reason: "not_sendable" } as const);
@@ -184,7 +185,11 @@ send.post("/:id/new-attempt", async (c) => {
     }
     allocate = true;
   } else if (invoice.state === "sending") {
-    const decision = retryDecision(attempts.map(asAttemptState), now);
+    const decision = retryDecision(
+      attempts.map(asAttemptState),
+      now,
+      await lastSuccessfulPollAt(c.env.DB),
+    );
     if (!decision.allowed) {
       throw makeError(
         "conflict",

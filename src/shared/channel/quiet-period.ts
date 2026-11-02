@@ -9,7 +9,11 @@ export interface AttemptState {
 
 export type RetryDecision =
   | { allowed: true; mode: "same_attempt" | "new_attempt" }
-  | { allowed: false; reason: "already_sent" | "quiet_period"; retryAt?: number };
+  | {
+      allowed: false;
+      reason: "already_sent" | "quiet_period" | "awaiting_poll";
+      retryAt?: number;
+    };
 
 /**
  * Whether a numbered invoice in `sending` may be sent again, from its attempts (oldest first);
@@ -17,13 +21,22 @@ export type RetryDecision =
  * mailbox polling, which moves the invoice out of `sending`).
  * - latest `complete`: it is out, resolved by the receipts, never resent here;
  * - latest `none`: the server refused it, retry the same attempt (same file name);
- * - latest `unknown`: only after the quiet period, and then with a new file progressive.
+ * - latest `unknown`: only after the quiet period, and only once a mailbox poll that started
+ *   after the quiet period completed (`lastPollAt`) and still found nothing for this attempt;
+ *   then with a new file progressive.
  */
-export function retryDecision(attempts: readonly AttemptState[], now: number): RetryDecision {
+export function retryDecision(
+  attempts: readonly AttemptState[],
+  now: number,
+  lastPollAt: number | null,
+): RetryDecision {
   const latest = attempts.at(-1);
   if (latest?.outcome === "complete") return { allowed: false, reason: "already_sent" };
   if (!latest || latest.outcome === "none") return { allowed: true, mode: "same_attempt" };
   const retryAt = latest.startedAt + QUIET_PERIOD_MS;
   if (now < retryAt) return { allowed: false, reason: "quiet_period", retryAt };
+  if (lastPollAt === null || lastPollAt < retryAt) {
+    return { allowed: false, reason: "awaiting_poll", retryAt };
+  }
   return { allowed: true, mode: "new_attempt" };
 }

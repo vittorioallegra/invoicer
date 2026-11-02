@@ -754,6 +754,7 @@
     "waitingReceipt": "Handed to the PEC server. Waiting for the delivery receipt from the SdI mailbox.",
     "unknown": "The send was interrupted and its outcome is unknown. The mailbox is checked automatically for the sent message and its receipts; do not send it again yet.",
     "retryAt": "If nothing shows up, you can resend after {{when}}.",
+    "awaitingPoll": "The waiting time is over. The mailbox is checked once more within about 10 minutes; if the message is still not there, you can then resend.",
     "resendNew": "Resend with a new file name",
     "manualHandedOver": "I uploaded it on the AdE portal",
     "manualHint": "Manual channel: download the XML (and PDF), upload it on the Agenzia delle Entrate portal, then tell the app. No PEC is sent.",
@@ -777,6 +778,40 @@
     "channel": {
       "pec": "PEC",
       "manual": "manual"
+    }
+  },
+  "notifications": {
+    "invoice_delivered": {
+      "title": "Invoice delivered",
+      "body": "Invoice {{number}} was delivered to the client."
+    },
+    "invoice_not_delivered": {
+      "title": "Invoice not delivered",
+      "body": "Invoice {{number}} is issued, but the SdI could not deliver it. The client finds it in their AdE area."
+    },
+    "invoice_rejected": {
+      "title": "Invoice rejected",
+      "body": "The SdI rejected invoice {{number}}. Fix it and resend it within 5 days."
+    },
+    "pec_send_error": {
+      "title": "PEC send failed",
+      "body": "The PEC provider could not deliver invoice {{number}} to the SdI. Nothing reached the SdI, so you can send it again."
+    },
+    "received_invoice": {
+      "title": "Invoice received",
+      "body": "A new invoice arrived in the PEC mailbox: {{file}}."
+    },
+    "poll_failed": {
+      "title": "Mailbox check failed",
+      "body": "The PEC mailbox could not be read ({{code}}). Receipts and received invoices wait until it works again."
+    },
+    "message_oversize": {
+      "title": "Message too large",
+      "body": "A PEC message of {{size}} bytes was skipped: it is over the 2 MB limit."
+    },
+    "message_unreadable": {
+      "title": "Message unreadable",
+      "body": "A PEC message could not be read and was skipped."
     }
   }
 }

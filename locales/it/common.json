@@ -754,6 +754,7 @@
     "waitingReceipt": "Consegnata al server PEC. In attesa della ricevuta di consegna dalla casella del SdI.",
     "unknown": "L'invio è stato interrotto e l'esito è sconosciuto. La casella viene controllata automaticamente per trovare il messaggio inviato e le ricevute; non reinviarla ancora.",
     "retryAt": "Se non compare nulla, potrai reinviare dopo {{when}}.",
+    "awaitingPoll": "Il tempo di attesa è passato. La casella viene controllata ancora entro circa 10 minuti; se il messaggio non c'è, potrai poi reinviare.",
     "resendNew": "Reinvia con un nuovo nome file",
     "manualHandedOver": "L'ho caricata sul portale AdE",
     "manualHint": "Canale manuale: scarica l'XML (e il PDF), caricalo sul portale dell'Agenzia delle Entrate e poi dillo all'app. Non viene inviata nessuna PEC.",
@@ -777,6 +778,40 @@
     "channel": {
       "pec": "PEC",
       "manual": "manuale"
+    }
+  },
+  "notifications": {
+    "invoice_delivered": {
+      "title": "Fattura consegnata",
+      "body": "La fattura {{number}} è stata consegnata al cliente."
+    },
+    "invoice_not_delivered": {
+      "title": "Fattura non consegnata",
+      "body": "La fattura {{number}} è emessa, ma il SdI non ha potuto consegnarla. Il cliente la trova nella sua area AdE."
+    },
+    "invoice_rejected": {
+      "title": "Fattura scartata",
+      "body": "Il SdI ha scartato la fattura {{number}}. Correggila e reinviala entro 5 giorni."
+    },
+    "pec_send_error": {
+      "title": "Invio PEC non riuscito",
+      "body": "Il gestore PEC non ha potuto consegnare la fattura {{number}} al SdI. Nulla è arrivato al SdI, quindi puoi inviarla di nuovo."
+    },
+    "received_invoice": {
+      "title": "Fattura ricevuta",
+      "body": "È arrivata una nuova fattura nella casella PEC: {{file}}."
+    },
+    "poll_failed": {
+      "title": "Controllo della casella non riuscito",
+      "body": "Non è stato possibile leggere la casella PEC ({{code}}). Ricevute e fatture ricevute restano in attesa finché non torna a funzionare."
+    },
+    "message_oversize": {
+      "title": "Messaggio troppo grande",
+      "body": "Un messaggio PEC di {{size}} byte è stato saltato: supera il limite di 2 MB."
+    },
+    "message_unreadable": {
+      "title": "Messaggio illeggibile",
+      "body": "Un messaggio PEC non ha potuto essere letto ed è stato saltato."
     }
   }
 }

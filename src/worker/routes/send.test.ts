@@ -377,6 +377,17 @@ describe("sending and the stored outcome", () => {
     await env.DB.prepare("UPDATE transmissions SET updated_at = ? WHERE invoice_id = ?")
       .bind(Date.now() - QUIET_PERIOD_MS - 1000, a.id)
       .run();
+    // The quiet period is over, but until a poll completes after it the retry stays locked.
+    const waiting = await owner.json<{ detail: string }>(`/api/invoices/${a.id}/new-attempt`, {
+      body: {},
+    });
+    expect(waiting.status).toBe(409);
+    expect(waiting.body.detail).toContain("awaiting_poll");
+    await env.DB.prepare(
+      "INSERT INTO job_runs (id, job, run_date, started_at, finished_at, status) VALUES (?, 'poll', '2026-11-02', ?, ?, 'success')",
+    )
+      .bind(crypto.randomUUID(), Date.now() - 1000, Date.now() - 500)
+      .run();
     const next = await owner.json<{ transmission: { fileName: string; attempt: number } }>(
       `/api/invoices/${a.id}/new-attempt`,
       { body: {} },

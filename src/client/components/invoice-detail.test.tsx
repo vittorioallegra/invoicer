@@ -95,6 +95,15 @@ describe("Invoice detail panel", () => {
     expect(screen.queryByRole("button", { name: "Resend with a new file name" })).toBeNull();
   });
 
+  it("says the mailbox is checked once more after the quiet period, before a resend", async () => {
+    await show(base, {
+      attempts: [attempt({ outcome: "unknown" })],
+      retry: { allowed: false, reason: "awaiting_poll", retryAt: Date.now() - 1000 },
+    });
+    expect(await screen.findByText(/checked once more/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Resend with a new file name" })).toBeNull();
+  });
+
   it("offers a resend with a new file name once the quiet period has passed", async () => {
     await show(base, {
       attempts: [attempt({ outcome: "unknown" })],

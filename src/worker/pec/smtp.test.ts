@@ -122,20 +122,31 @@ describe("SdI address rule and quiet period", () => {
 
   it("decides retries from the attempts", () => {
     const t0 = 1_000_000;
-    expect(retryDecision([{ outcome: "none", startedAt: t0 }], t0)).toEqual({
+    expect(retryDecision([{ outcome: "none", startedAt: t0 }], t0, null)).toEqual({
       allowed: true,
       mode: "same_attempt",
     });
-    expect(retryDecision([{ outcome: "complete", startedAt: t0 }], t0 + 1e9)).toMatchObject({
+    expect(retryDecision([{ outcome: "complete", startedAt: t0 }], t0 + 1e9, null)).toMatchObject({
       allowed: false,
       reason: "already_sent",
     });
     const unknown = [{ outcome: "unknown" as const, startedAt: t0 }];
-    expect(retryDecision(unknown, t0 + 14 * 60_000)).toMatchObject({
+    const quiet = t0 + 15 * 60_000;
+    expect(retryDecision(unknown, t0 + 14 * 60_000, quiet)).toMatchObject({
       allowed: false,
       reason: "quiet_period",
     });
-    expect(retryDecision(unknown, t0 + 15 * 60_000)).toEqual({
+    // The quiet period is over, but no poll has completed since: still locked.
+    expect(retryDecision(unknown, quiet, null)).toMatchObject({
+      allowed: false,
+      reason: "awaiting_poll",
+    });
+    expect(retryDecision(unknown, quiet + 60_000, quiet - 1)).toMatchObject({
+      allowed: false,
+      reason: "awaiting_poll",
+    });
+    // A poll that started after the quiet period found nothing for the attempt: unlocked.
+    expect(retryDecision(unknown, quiet + 60_000, quiet)).toEqual({
       allowed: true,
       mode: "new_attempt",
     });

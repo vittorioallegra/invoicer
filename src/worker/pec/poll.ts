@@ -2,6 +2,7 @@ import { MAX_FILE_BYTES } from "../../db/schema";
 import { romeDateTime } from "../../shared/cron";
 import { type Bindings, missingSecrets } from "../env";
 import { finishJobRun, POLL_JOB, startJobRun } from "../jobs/job-runs";
+import { processOutbox } from "../outbox";
 import { createD1FileStorage } from "../storage";
 import {
   type Classification,
@@ -10,6 +11,7 @@ import {
   PARSE_LIMIT_BYTES,
 } from "./classify";
 import { loadPecServers } from "./config";
+import { planEffects } from "./effects";
 import { parsePecEnvelope } from "./envelope";
 import { type FetchedMessage, ImapError, type ImapSocket, openMailbox } from "./imap";
 import { connectImap } from "./socket";
@@ -231,12 +233,13 @@ async function processMailbox(
 const IGNORED: Classification = { kind: "ignored", messageId: null, sentAt: null };
 
 /**
- * One D1 batch per message: the `pec_messages` row and the cursor move together, so the cursor
- * never passes a message that was not committed.
+ * One D1 batch per message: the `pec_messages` row, its state transition and outbox rows, and the
+ * cursor commit together, so the cursor never passes a message that was not committed.
  */
 async function commitMessage(env: Bindings, message: StoredMessage): Promise<void> {
   const { classification: c } = message;
   const now = Date.now();
+  const plan = await planEffects(env.DB, c, message.messageId, now);
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO pec_messages (id, message_id, uid_validity, uid, kind, sdi_message_type,
@@ -253,11 +256,21 @@ async function commitMessage(env: Bindings, message: StoredMessage): Promise<voi
       message.size,
       message.rawFileId,
       message.receivedAt,
-      c.kind === "ignored" ? now : null,
+      plan.processed ? now : null,
       now,
     ),
+    ...plan.statements,
     advanceCursor(env.DB, message.uidValidity, message.uid),
   ]);
+}
+
+/** Side effects queued by the polling run; whatever failed earlier is retried on every tick. */
+async function deliverOutbox(env: Bindings): Promise<void> {
+  try {
+    await processOutbox(env);
+  } catch {
+    console.error("outbox_failed");
+  }
 }
 
 export function pollErrorCode(error: unknown): string {
@@ -300,11 +313,13 @@ export async function pollMailbox(
       throw error;
     }
     await finishJobRun(env.DB, runId, { status: "success", counts });
+    await deliverOutbox(env);
     return { ok: true, counts };
   } catch (error) {
     const errorCode = pollErrorCode(error);
     console.error("poll_failed", errorCode);
     await finishJobRun(env.DB, runId, { status: "failed", counts, errorCode });
+    await deliverOutbox(env);
     return { ok: false, counts, errorCode };
   }
 }

@@ -50,3 +50,51 @@ const TABLES = [
 export async function resetPolling(db: D1Database): Promise<void> {
   for (const table of TABLES) await db.prepare(`DELETE FROM ${table}`).run();
 }
+
+export interface SeedAttempt {
+  fileName: string;
+  messageId?: string;
+  outcome?: "none" | "complete" | "unknown";
+}
+
+let sequence = 0;
+
+/** An issued invoice with its transmission attempts, straight into D1 (bypasses the send flow). */
+export async function seedInvoice(
+  db: D1Database,
+  o: { state?: string; rank?: number; attempts: SeedAttempt[] },
+): Promise<{ id: string; transmissionIds: string[] }> {
+  const id = crypto.randomUUID();
+  const n = ++sequence;
+  await db
+    .prepare(
+      `INSERT INTO invoices (id, document_type, state, state_rank, year, number_int, number_raw, created_at)
+       VALUES (?, 'TD01', ?, ?, 2026, ?, ?, 1)`,
+    )
+    .bind(id, o.state ?? "sending", o.rank ?? 2, n, String(n))
+    .run();
+  const transmissionIds: string[] = [];
+  let attempt = 0;
+  for (const a of o.attempts) {
+    attempt += 1;
+    const tid = crypto.randomUUID();
+    transmissionIds.push(tid);
+    await db
+      .prepare(
+        `INSERT INTO transmissions (id, invoice_id, attempt, file_progressive, file_name, channel,
+           send_outcome, channel_message_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, 'pec', ?, ?, 1, 1)`,
+      )
+      .bind(
+        tid,
+        id,
+        attempt,
+        ++sequence * 1000 + attempt,
+        a.fileName,
+        a.outcome ?? "complete",
+        a.messageId ?? null,
+      )
+      .run();
+  }
+  return { id, transmissionIds };
+}

@@ -96,6 +96,9 @@ export function InvoiceDetail({ record, clientName, totalLabel }: InvoiceDetailP
               {retry && !retry.allowed && retry.reason === "quiet_period" && retry.retryAt ? (
                 <p>{t("detail.retryAt", { when: when(retry.retryAt) })}</p>
               ) : null}
+              {retry && !retry.allowed && retry.reason === "awaiting_poll" ? (
+                <p>{t("detail.awaitingPoll")}</p>
+              ) : null}
             </Banner>
           ) : null}
           {latest?.outcome === "none" || (latest?.outcome === "unknown" && retry?.allowed) ? (
