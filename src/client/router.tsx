@@ -7,16 +7,19 @@ import {
 } from "@tanstack/react-router";
 import { AppShell } from "./components/app-shell";
 import { SessionGate } from "./components/session-gate";
+import { AdeGuidePage } from "./routes/ade-guide";
+import { EmailSettingsPage } from "./routes/email-settings";
+import { HomePage } from "./routes/home";
 import { LoginPage } from "./routes/login";
 import {
   ClientsPage,
-  HomePage,
   IssuedPage,
   NewInvoicePage,
   NotFoundPage,
   ReceivedPage,
-  SettingsPage,
 } from "./routes/pages";
+import { ProfilePage } from "./routes/profile";
+import { SettingsPage } from "./routes/settings";
 import { SetupPage } from "./routes/setup";
 import { SpikePage } from "./routes/spike";
 
@@ -43,6 +46,21 @@ const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: "/received", component: ReceivedPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/clients", component: ClientsPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: SettingsPage }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/settings/profile",
+    component: ProfilePage,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/settings/email",
+    component: EmailSettingsPage,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/settings/ade-guide",
+    component: AdeGuidePage,
+  }),
   createRoute({ getParentRoute: () => rootRoute, path: "/login", component: LoginPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/setup", component: SetupPage }),
   // Hidden risk-spike page (step 2), removed in step 21.

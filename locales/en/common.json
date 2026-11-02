@@ -33,7 +33,9 @@
       "title": "Home",
       "emptyTitle": "No invoices yet",
       "emptyBody": "Create your first invoice to get started.",
-      "emptyAction": "New invoice"
+      "emptyAction": "New invoice",
+      "emptyBodyProfile": "Fill in your issuer profile first, then create your first invoice.",
+      "profileAction": "Complete your profile"
     },
     "issued": {
       "title": "Issued",
@@ -52,13 +54,7 @@
     },
     "settings": {
       "title": "Settings",
-      "diagnostics": "Diagnostics",
-      "pecTitle": "PEC mailbox",
-      "pecIntro": "The PEC login is stored as Worker secrets and is never shown here. It gives full access to the mailbox, so each send needs your passkey. Set it with wrangler secret put PEC_USERNAME and PEC_PASSWORD.",
-      "pecUsername": "PEC username",
-      "pecPassword": "PEC password",
-      "configured": "configured",
-      "notConfigured": "not configured"
+      "diagnostics": "Diagnostics"
     },
     "newInvoice": {
       "title": "New invoice",
@@ -134,5 +130,190 @@
   },
   "money": {
     "amount": "Amount"
+  },
+  "settings": {
+    "language": "Language",
+    "languageLabel": "Interface language",
+    "languageHint": "Applies to this device. PDFs and emails follow the client's language.",
+    "numberingTitle": "Invoice numbering {{year}}",
+    "numberingIntro": "The number the next invoice of this year gets. Set it to continue from your previous invoicing tool. It cannot be lower than a number already used.",
+    "nextNumber": "Next invoice number",
+    "saveNumber": "Save number",
+    "numberSaved": "Number saved.",
+    "numberInvalid": "Enter a whole number, 1 or more.",
+    "numberBelowUsed": "The lowest allowed number is {{minimum}}: one above the highest number already used.",
+    "pecTitle": "PEC mailbox",
+    "pecIntro": "The PEC login is stored as Worker secrets and is never shown here. It gives full access to the mailbox, so each send needs your passkey. Set it with wrangler secret put PEC_USERNAME and PEC_PASSWORD.",
+    "pecUsername": "PEC username",
+    "pecPassword": "PEC password",
+    "pecServer": "IMAP server",
+    "configured": "configured",
+    "notConfigured": "not configured",
+    "pecMissing": "Set PEC_USERNAME and PEC_PASSWORD as Worker secrets, then run the connection test.",
+    "pecTestScope": "The connection test logs in to the mailbox and opens the inbox read-only. It does not read messages or send anything.",
+    "pecNeverTested": "The connection has not been tested yet.",
+    "pecTestPassed": "Connection test passed on {{when}}.",
+    "pecTestFailed": "Connection test failed on {{when}}.",
+    "pecErrors": {
+      "connection_failed": "The mailbox server could not be reached.",
+      "login_failed": "The mailbox rejected the username or password. Aruba needs the dedicated mail-client password.",
+      "mailbox_failed": "Logged in, but the inbox could not be opened."
+    },
+    "pecTestUnavailable": "The test could not run. Check the secrets and try again.",
+    "pecTest": "Test connection",
+    "pecTesting": "Testing...",
+    "sections": {
+      "profile": {
+        "title": "Issuer profile",
+        "body": "Your details, tax regime and payment defaults"
+      },
+      "email": {
+        "title": "Email",
+        "body": "Sender, Reply-To, BCC and courtesy email mode"
+      },
+      "ade": {
+        "title": "Agenzia delle Entrate guide",
+        "body": "Register your PEC address on the AdE portal"
+      }
+    }
+  },
+  "validation": {
+    "required": "This field is required.",
+    "invalid": "This value is not valid.",
+    "invalid_vat_number": "Enter the 11-digit partita IVA (the check digit does not match).",
+    "invalid_tax_code": "Enter a valid codice fiscale.",
+    "invalid_postal_code": "Enter a 5-digit postal code.",
+    "invalid_province": "Enter the 2-letter province code.",
+    "invalid_country": "Enter the 2-letter country code.",
+    "invalid_iban": "This IBAN is not valid.",
+    "invalid_bic": "This BIC/SWIFT code is not valid.",
+    "invalid_email": "Enter a valid email address."
+  },
+  "profile": {
+    "title": "Issuer profile",
+    "intro": "These details appear on every invoice you issue.",
+    "saved": "Profile saved.",
+    "save": "Save profile",
+    "issuer": "Issuer",
+    "name": "Name or company name",
+    "nameHint": "As registered with the tax office.",
+    "vatNumber": "Partita IVA",
+    "taxCode": "Codice fiscale",
+    "taxCodeHint": "Optional.",
+    "regime": "Tax regime (regime fiscale)",
+    "addressTitle": "Registered address",
+    "address": "Street and number",
+    "postalCode": "Postal code",
+    "city": "City",
+    "province": "Province",
+    "country": "Country",
+    "paymentTitle": "Payment defaults",
+    "iban": "IBAN",
+    "bic": "BIC/SWIFT",
+    "bankName": "Bank name",
+    "accountHolder": "Account holder",
+    "termsDays": "Default payment terms (days)",
+    "termsDaysHint": "Used to suggest the due date. Leave empty for none.",
+    "regimes": {
+      "RF01": "Ordinary",
+      "RF02": "Minimum taxpayers (obsolete)",
+      "RF04": "Agriculture, related activities and fishing",
+      "RF05": "Sale of salt and tobacco",
+      "RF06": "Sale of matches",
+      "RF07": "Publishing",
+      "RF08": "Public telephone services",
+      "RF09": "Resale of transport and parking tickets",
+      "RF10": "Entertainment, games and other activities",
+      "RF11": "Travel and tourism agencies",
+      "RF12": "Farm holidays",
+      "RF13": "Door-to-door sales",
+      "RF14": "Resale of used goods, art and antiques",
+      "RF15": "Art and antiques auction agencies",
+      "RF16": "VAT cash accounting (public administration)",
+      "RF17": "VAT cash accounting",
+      "RF18": "Other",
+      "RF19": "Flat-rate (forfettario)"
+    }
+  },
+  "email": {
+    "title": "Email settings",
+    "intro": "Courtesy emails tell your client about the invoice. The legal copy always goes through the SdI.",
+    "saved": "Email settings saved.",
+    "save": "Save email settings",
+    "senderName": "Sender name",
+    "senderNameHint": "Empty uses the issuer name from your profile.",
+    "senderAddress": "Sender address",
+    "senderAddressHint": "Empty uses the address configured on the server.",
+    "replyTo": "Reply-To address",
+    "replyToHint": "Where client replies go, usually your personal email.",
+    "bcc": "BCC address",
+    "bccHint": "Optional: a copy of every courtesy email.",
+    "mode": "Courtesy email mode",
+    "modeHint": "Automatic sends on delivery or non-delivery; Ask prompts you each time.",
+    "modes": {
+      "automatic": "Automatic",
+      "ask": "Ask me",
+      "off": "Off"
+    }
+  },
+  "ade": {
+    "title": "Agenzia delle Entrate guide",
+    "intro": "Invoices and SdI receipts reach you through your PEC mailbox only if the AdE portal knows its address. Do this once.",
+    "steps": {
+      "portal": {
+        "title": "Open Fatture e Corrispettivi",
+        "body": "Sign in to the AdE portal with SPID, CIE or CNS and open the Fatture e Corrispettivi service."
+      },
+      "register": {
+        "title": "Register your PEC address",
+        "body": "Under the address registration (Registrazione dell'indirizzo telematico), register your PEC address as the address where you receive invoices."
+      },
+      "conservazione": {
+        "title": "Join the free conservazione service",
+        "body": "Accept the AdE storage service so your invoices are kept as the law requires."
+      }
+    },
+    "note": "Invoicer does not do conservazione: the AdE service does.",
+    "markDone": "Mark as done",
+    "undo": "Mark as not done"
+  },
+  "onboarding": {
+    "title": "Finish setting up",
+    "progress": "{{done}} of {{total}} done",
+    "done": "Done",
+    "pending": "To do",
+    "items": {
+      "passkey": {
+        "title": "Add a passkey",
+        "body": "Sign in and authorize sends with Face ID or Touch ID."
+      },
+      "fallback_login": {
+        "title": "Set up the fallback login",
+        "body": "An authenticator app for email and password sign-in."
+      },
+      "profile": {
+        "title": "Fill in your profile",
+        "body": "Your details, tax regime and payment defaults."
+      },
+      "pec": {
+        "title": "Connect the PEC mailbox",
+        "body": "Set the secrets and pass the connection test."
+      },
+      "ade_guide": {
+        "title": "Register your PEC on the AdE portal",
+        "body": "So invoices and SdI receipts reach the mailbox."
+      },
+      "email": {
+        "title": "Set up the courtesy email",
+        "body": "Sender, Reply-To and when to send."
+      }
+    },
+    "sendBlocked": "You cannot send invoices yet:",
+    "reasons": {
+      "profile_incomplete": "The issuer profile is not complete.",
+      "pec_credentials_missing": "The PEC username and password are not set on the server.",
+      "pec_test_missing": "The PEC connection has not been tested yet.",
+      "pec_test_failed": "The last PEC connection test failed."
+    }
   }
 }

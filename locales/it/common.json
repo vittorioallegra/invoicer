@@ -33,7 +33,9 @@
       "title": "Home",
       "emptyTitle": "Ancora nessuna fattura",
       "emptyBody": "Crea la tua prima fattura per iniziare.",
-      "emptyAction": "Nuova fattura"
+      "emptyAction": "Nuova fattura",
+      "emptyBodyProfile": "Compila prima il profilo dell'emittente, poi crea la tua prima fattura.",
+      "profileAction": "Completa il profilo"
     },
     "issued": {
       "title": "Emesse",
@@ -52,13 +54,7 @@
     },
     "settings": {
       "title": "Impostazioni",
-      "diagnostics": "Diagnostica",
-      "pecTitle": "Casella PEC",
-      "pecIntro": "Le credenziali PEC sono segreti del Worker e non vengono mai mostrate qui. Danno accesso completo alla casella, quindi ogni invio richiede la tua passkey. Impostale con wrangler secret put PEC_USERNAME e PEC_PASSWORD.",
-      "pecUsername": "Nome utente PEC",
-      "pecPassword": "Password PEC",
-      "configured": "configurato",
-      "notConfigured": "non configurato"
+      "diagnostics": "Diagnostica"
     },
     "newInvoice": {
       "title": "Nuova fattura",
@@ -134,5 +130,190 @@
   },
   "money": {
     "amount": "Importo"
+  },
+  "settings": {
+    "language": "Lingua",
+    "languageLabel": "Lingua dell'interfaccia",
+    "languageHint": "Vale per questo dispositivo. PDF ed email seguono la lingua del cliente.",
+    "numberingTitle": "Numerazione fatture {{year}}",
+    "numberingIntro": "Il numero che avrà la prossima fattura di quest'anno. Impostalo per continuare dal tuo programma precedente. Non può essere inferiore a un numero già usato.",
+    "nextNumber": "Prossimo numero fattura",
+    "saveNumber": "Salva numero",
+    "numberSaved": "Numero salvato.",
+    "numberInvalid": "Inserisci un numero intero, 1 o più.",
+    "numberBelowUsed": "Il numero minimo consentito è {{minimum}}: uno in più del più alto già usato.",
+    "pecTitle": "Casella PEC",
+    "pecIntro": "Le credenziali PEC sono segreti del Worker e non vengono mai mostrate qui. Danno accesso completo alla casella, quindi ogni invio richiede la tua passkey. Impostale con wrangler secret put PEC_USERNAME e PEC_PASSWORD.",
+    "pecUsername": "Utente PEC",
+    "pecPassword": "Password PEC",
+    "pecServer": "Server IMAP",
+    "configured": "configurata",
+    "notConfigured": "non configurata",
+    "pecMissing": "Imposta PEC_USERNAME e PEC_PASSWORD come segreti del Worker, poi esegui il test di connessione.",
+    "pecTestScope": "Il test di connessione accede alla casella e apre la posta in arrivo in sola lettura. Non legge messaggi e non invia nulla.",
+    "pecNeverTested": "La connessione non è ancora stata testata.",
+    "pecTestPassed": "Test di connessione superato il {{when}}.",
+    "pecTestFailed": "Test di connessione fallito il {{when}}.",
+    "pecErrors": {
+      "connection_failed": "Il server della casella non è raggiungibile.",
+      "login_failed": "La casella ha rifiutato utente o password. Aruba richiede la password dedicata per i client di posta.",
+      "mailbox_failed": "Accesso riuscito, ma non è stato possibile aprire la posta in arrivo."
+    },
+    "pecTestUnavailable": "Il test non è stato eseguito. Controlla i segreti e riprova.",
+    "pecTest": "Testa la connessione",
+    "pecTesting": "Test in corso...",
+    "sections": {
+      "profile": {
+        "title": "Profilo emittente",
+        "body": "I tuoi dati, il regime fiscale e i pagamenti predefiniti"
+      },
+      "email": {
+        "title": "Email",
+        "body": "Mittente, Reply-To, CCN e modalità email di cortesia"
+      },
+      "ade": {
+        "title": "Guida Agenzia delle Entrate",
+        "body": "Registra l'indirizzo PEC sul portale dell'AdE"
+      }
+    }
+  },
+  "validation": {
+    "required": "Campo obbligatorio.",
+    "invalid": "Valore non valido.",
+    "invalid_vat_number": "Inserisci la partita IVA di 11 cifre (la cifra di controllo non torna).",
+    "invalid_tax_code": "Inserisci un codice fiscale valido.",
+    "invalid_postal_code": "Inserisci un CAP di 5 cifre.",
+    "invalid_province": "Inserisci la sigla della provincia di 2 lettere.",
+    "invalid_country": "Inserisci il codice paese di 2 lettere.",
+    "invalid_iban": "Questo IBAN non è valido.",
+    "invalid_bic": "Questo codice BIC/SWIFT non è valido.",
+    "invalid_email": "Inserisci un indirizzo email valido."
+  },
+  "profile": {
+    "title": "Profilo emittente",
+    "intro": "Questi dati compaiono su ogni fattura che emetti.",
+    "saved": "Profilo salvato.",
+    "save": "Salva profilo",
+    "issuer": "Emittente",
+    "name": "Nome o ragione sociale",
+    "nameHint": "Come risulta all'Agenzia delle Entrate.",
+    "vatNumber": "Partita IVA",
+    "taxCode": "Codice fiscale",
+    "taxCodeHint": "Facoltativo.",
+    "regime": "Regime fiscale",
+    "addressTitle": "Sede",
+    "address": "Via e numero civico",
+    "postalCode": "CAP",
+    "city": "Città",
+    "province": "Provincia",
+    "country": "Paese",
+    "paymentTitle": "Pagamento predefinito",
+    "iban": "IBAN",
+    "bic": "BIC/SWIFT",
+    "bankName": "Nome della banca",
+    "accountHolder": "Intestatario del conto",
+    "termsDays": "Termini di pagamento predefiniti (giorni)",
+    "termsDaysHint": "Usati per proporre la scadenza. Lascia vuoto per nessuno.",
+    "regimes": {
+      "RF01": "Ordinario",
+      "RF02": "Contribuenti minimi (obsoleto)",
+      "RF04": "Agricoltura e attività connesse e pesca",
+      "RF05": "Vendita sali e tabacchi",
+      "RF06": "Commercio di fiammiferi",
+      "RF07": "Editoria",
+      "RF08": "Gestione servizi di telefonia pubblica",
+      "RF09": "Rivendita di documenti di trasporto pubblico e di sosta",
+      "RF10": "Intrattenimenti, giochi e altre attività",
+      "RF11": "Agenzie di viaggi e turismo",
+      "RF12": "Agriturismo",
+      "RF13": "Vendite a domicilio",
+      "RF14": "Rivendita di beni usati, oggetti d'arte, d'antiquariato o da collezione",
+      "RF15": "Agenzie di vendite all'asta di oggetti d'arte, antiquariato o da collezione",
+      "RF16": "IVA per cassa P.A.",
+      "RF17": "IVA per cassa",
+      "RF18": "Altro",
+      "RF19": "Forfettario"
+    }
+  },
+  "email": {
+    "title": "Impostazioni email",
+    "intro": "Le email di cortesia avvisano il cliente della fattura. La copia a valore legale passa sempre dal SdI.",
+    "saved": "Impostazioni email salvate.",
+    "save": "Salva impostazioni email",
+    "senderName": "Nome del mittente",
+    "senderNameHint": "Se vuoto usa il nome dell'emittente del profilo.",
+    "senderAddress": "Indirizzo del mittente",
+    "senderAddressHint": "Se vuoto usa l'indirizzo configurato sul server.",
+    "replyTo": "Indirizzo Reply-To",
+    "replyToHint": "Dove arrivano le risposte dei clienti, di solito la tua email personale.",
+    "bcc": "Indirizzo CCN",
+    "bccHint": "Facoltativo: una copia di ogni email di cortesia.",
+    "mode": "Modalità email di cortesia",
+    "modeHint": "Automatica invia alla consegna o mancata consegna; Chiedi ti domanda ogni volta.",
+    "modes": {
+      "automatic": "Automatica",
+      "ask": "Chiedi",
+      "off": "Disattivata"
+    }
+  },
+  "ade": {
+    "title": "Guida Agenzia delle Entrate",
+    "intro": "Fatture e ricevute del SdI ti arrivano nella casella PEC solo se il portale dell'AdE ne conosce l'indirizzo. Si fa una volta sola.",
+    "steps": {
+      "portal": {
+        "title": "Apri Fatture e Corrispettivi",
+        "body": "Accedi al portale dell'AdE con SPID, CIE o CNS e apri il servizio Fatture e Corrispettivi."
+      },
+      "register": {
+        "title": "Registra l'indirizzo PEC",
+        "body": "Nella registrazione dell'indirizzo telematico, registra la tua PEC come indirizzo su cui ricevere le fatture."
+      },
+      "conservazione": {
+        "title": "Aderisci alla conservazione gratuita",
+        "body": "Accetta il servizio di conservazione dell'AdE, così le fatture vengono conservate come richiede la legge."
+      }
+    },
+    "note": "Invoicer non fa la conservazione: la fa il servizio dell'AdE.",
+    "markDone": "Segna come fatto",
+    "undo": "Segna come da fare"
+  },
+  "onboarding": {
+    "title": "Completa la configurazione",
+    "progress": "{{done}} su {{total}} completati",
+    "done": "Fatto",
+    "pending": "Da fare",
+    "items": {
+      "passkey": {
+        "title": "Aggiungi una passkey",
+        "body": "Accedi e autorizza gli invii con Face ID o Touch ID."
+      },
+      "fallback_login": {
+        "title": "Imposta l'accesso alternativo",
+        "body": "Un'app di autenticazione per l'accesso con email e password."
+      },
+      "profile": {
+        "title": "Compila il profilo",
+        "body": "I tuoi dati, il regime fiscale e i pagamenti predefiniti."
+      },
+      "pec": {
+        "title": "Collega la casella PEC",
+        "body": "Imposta i segreti e supera il test di connessione."
+      },
+      "ade_guide": {
+        "title": "Registra la PEC sul portale dell'AdE",
+        "body": "Così fatture e ricevute del SdI arrivano nella casella."
+      },
+      "email": {
+        "title": "Imposta l'email di cortesia",
+        "body": "Mittente, Reply-To e quando inviare."
+      }
+    },
+    "sendBlocked": "Non puoi ancora inviare fatture:",
+    "reasons": {
+      "profile_incomplete": "Il profilo dell'emittente non è completo.",
+      "pec_credentials_missing": "Utente e password PEC non sono impostati sul server.",
+      "pec_test_missing": "La connessione PEC non è ancora stata testata.",
+      "pec_test_failed": "L'ultimo test di connessione PEC è fallito."
+    }
   }
 }

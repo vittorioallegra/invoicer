@@ -410,7 +410,7 @@ Approved: yes (2026-11-02)
 - [x] 4. Auth — `feat(auth): add login and setup screens`
 - [x] 5. Send authorization — `feat(auth): add send authorization with passkey and TOTP challenges`
 - [x] 6. Totals engine — `feat(totals): add the totals engine, money parsing, natura texts and fixtures a-g`
-- [ ] 7. Profile, onboarding, settings
+- [x] 7. Profile, onboarding, settings — `feat(onboarding): add profile, settings, setup checklist and AdE guide screens`
 - [ ] 8. Clients
 - [ ] 9. Invoice editor
 - [ ] 10. FatturaPA XML
@@ -462,4 +462,4 @@ Approved: yes (2026-11-02)
 - Bollo on non-EUR invoices (fixture d): the stamp is a EUR amount; decide in step 9/10 how it is shown and totalled (fixture d currently has bollo off).
 
 ### Next
-Step 7: Profile, onboarding, settings.
+Step 8: Clients.
