@@ -80,14 +80,13 @@
 @layer base {
   /*
    * iOS standalone PWA: paint the page colour on the root so no unpainted strip shows under
-   * the translucent status bar or the home indicator while the viewport settles, and pin the
-   * shell to the layout viewport (fixed, inset 0, dvh fallback) and keep the document unscrollable. Safe-area insets are applied once, on the shell (app-shell.tsx).
+   * the translucent status bar or the home indicator while the viewport settles, and size the
+   * body with dvh (never vh). Safe-area insets are applied once, on the shell (app-shell.tsx).
    */
   html {
     -webkit-text-size-adjust: 100%;
     background: var(--background);
-    height: 100%;
-    overflow: hidden;
+    min-height: 100%;
   }
 
   body {
@@ -96,13 +95,7 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
-    height: 100%;
-    overflow: hidden;
-  }
-
-  /* The app shell is position: fixed; inset: 0 and scrolls in #app-scroll, never the document. */
-  #root {
-    height: 100dvh;
+    min-height: 100dvh;
   }
 
   :focus-visible {

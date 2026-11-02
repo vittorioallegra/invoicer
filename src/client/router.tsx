@@ -29,12 +29,7 @@ const routeTree = rootRoute.addChildren([
 ]);
 
 export function createAppRouter(history?: Parameters<typeof createRouter>[0]["history"]) {
-  return createRouter({
-    routeTree,
-    scrollRestoration: true,
-    scrollToTopSelectors: ["#app-scroll"],
-    ...(history ? { history } : {}),
-  });
+  return createRouter({ routeTree, ...(history ? { history } : {}) });
 }
 
 declare module "@tanstack/react-router" {
