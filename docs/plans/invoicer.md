@@ -349,7 +349,7 @@ Architecture: agreed
 Approved: yes (2026-11-02)
 
 ### Steps
-- [ ] 1. Scaffolding
+- [x] 1. Scaffolding — `docs: sync CLAUDE.md commands and tick scaffolding step`
 - [ ] 2. Risk spike (manual device checkpoint)
 - [ ] 3. Data model
 - [ ] 4. Auth
@@ -395,4 +395,4 @@ Approved: yes (2026-11-02)
 - See "Open questions for the architecture phase" in the spec; most are assigned to the step 2 spike.
 
 ### Next
-Step 1: Scaffolding.
+Step 2: Risk spike (manual device checkpoint).
