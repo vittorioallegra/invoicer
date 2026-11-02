@@ -39,20 +39,25 @@ export class TestClient {
     return [...this.cookies].map(([name, value]) => `${name}=${value}`).join("; ");
   }
 
-  async request(path: string, init: { method?: string; body?: unknown } = {}): Promise<Response> {
+  async request(
+    path: string,
+    init: { method?: string; body?: unknown; contentType?: string } = {},
+  ): Promise<Response> {
     const method = init.method ?? (init.body === undefined ? "GET" : "POST");
     const headers: Record<string, string> = {
       "CF-Connecting-IP": this.ip,
       Cookie: [...this.cookies].map(([name, value]) => `${name}=${value}`).join("; "),
     };
     if (method !== "GET") headers.Origin = ORIGIN;
-    if (init.body !== undefined) headers["Content-Type"] = "application/json";
+    if (init.body !== undefined) headers["Content-Type"] = init.contentType ?? "application/json";
     const response = await createApp().request(
       `${ORIGIN}${path}`,
       {
         method,
         headers,
-        ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
+        ...(init.body === undefined
+          ? {}
+          : { body: init.body instanceof Uint8Array ? init.body : JSON.stringify(init.body) }),
       },
       this.bindings,
     );
@@ -68,7 +73,7 @@ export class TestClient {
 
   async json<T = Record<string, unknown>>(
     path: string,
-    init: { method?: string; body?: unknown } = {},
+    init: { method?: string; body?: unknown; contentType?: string } = {},
   ): Promise<{ status: number; body: T }> {
     const response = await this.request(path, init);
     return { status: response.status, body: (await response.json().catch(() => null)) as T };

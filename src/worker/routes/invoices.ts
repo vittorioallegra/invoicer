@@ -28,7 +28,11 @@ import {
 } from "../invoices/store";
 import { loadSendReadiness } from "../onboarding";
 import { makeError } from "../problem";
+import { createD1FileStorage } from "../storage";
 import { toRecord } from "./clients";
+
+/** `%PDF-`: every PDF file starts with these bytes. */
+const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d];
 
 export const invoices = new Hono<{ Bindings: Bindings; Variables: SessionVariables }>();
 
@@ -231,4 +235,87 @@ invoices.post("/:id/release-number", async (c) => {
   const id = c.req.param("id");
   await releaseNumber(c.env.DB, id);
   return c.json({ invoice: await requireInvoice(c.env.DB, id) });
+});
+
+interface TransmissionRow {
+  id: string;
+  attempt: number;
+  file_name: string;
+  send_outcome: string;
+  pdf_file_id: string | null;
+}
+
+/**
+ * Stores the PDF the browser generated for the invoice's current transmission attempt (the
+ * highest attempt number). The PDF is named like the XML (`IT<idCodice>_<progressive>.pdf`), is
+ * linked to the invoice and the attempt, and replaces an earlier PDF of the same attempt. Once an
+ * attempt has been handed to the PEC its PDF is final; a resend opens a new attempt.
+ */
+invoices.put("/:id/pdf", async (c) => {
+  const id = c.req.param("id");
+  const length = Number(c.req.header("Content-Length") ?? 0);
+  if (length > schema.MAX_FILE_BYTES) throw makeError("payload_too_large");
+  const content = new Uint8Array(await c.req.arrayBuffer());
+  if (content.byteLength === 0 || !PDF_MAGIC.every((byte, i) => content[i] === byte)) {
+    throw makeError("bad_request", "body: not_a_pdf");
+  }
+  const current = await c.env.DB.prepare(
+    `SELECT id, attempt, file_name, send_outcome, pdf_file_id FROM transmissions
+     WHERE invoice_id = ? ORDER BY attempt DESC LIMIT 1`,
+  )
+    .bind(id)
+    .first<TransmissionRow>();
+  if (!current) {
+    await requireInvoice(c.env.DB, id);
+    throw makeError("conflict", "not_numbered");
+  }
+  if (current.send_outcome !== "none") throw makeError("conflict", "transmission_sent");
+
+  const storage = createD1FileStorage(c.env.DB);
+  const filename = current.file_name.replace(/\.xml$/i, ".pdf");
+  const stored = await storage.put({
+    kind: "pdf",
+    filename,
+    contentType: "application/pdf",
+    content,
+    invoiceId: id,
+    transmissionId: current.id,
+  });
+  await c.env.DB.prepare("UPDATE transmissions SET pdf_file_id = ?, updated_at = ? WHERE id = ?")
+    .bind(stored.id, Date.now(), current.id)
+    .run();
+  if (current.pdf_file_id) await storage.delete(current.pdf_file_id);
+  return c.json(
+    {
+      file: {
+        id: stored.id,
+        filename,
+        size: stored.size,
+        sha256: stored.sha256,
+        transmissionId: current.id,
+        attempt: current.attempt,
+      },
+    },
+    201,
+  );
+});
+
+/** The latest stored PDF of the invoice (the highest attempt that has one). */
+invoices.get("/:id/pdf", async (c) => {
+  const row = await c.env.DB.prepare(
+    `SELECT pdf_file_id FROM transmissions
+     WHERE invoice_id = ? AND pdf_file_id IS NOT NULL ORDER BY attempt DESC LIMIT 1`,
+  )
+    .bind(c.req.param("id"))
+    .first<{ pdf_file_id: string }>();
+  const file = row ? await createD1FileStorage(c.env.DB).get(row.pdf_file_id) : null;
+  if (!file) throw makeError("not_found");
+  return new Response(file.content, {
+    headers: {
+      "Content-Type": file.contentType,
+      "Content-Disposition": `inline; filename="${file.filename}"`,
+      "Content-Length": String(file.size),
+      "Cache-Control": "private, no-store",
+    },
+  });
 });
