@@ -23,6 +23,7 @@ import {
   defaultCassaSubjectToRitenuta,
 } from "../../shared/totals";
 import { ClientSheet } from "../components/client-form";
+import { InvoiceDetail } from "../components/invoice-detail";
 import { InvoiceLines } from "../components/invoice-lines";
 import { InvoiceTotals } from "../components/invoice-totals";
 import { Page } from "../components/page";
@@ -336,6 +337,14 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
             </Button>
           ) : null}
         </div>
+      ) : null}
+
+      {record?.number && record.state !== "draft" && record.state !== "planned" ? (
+        <InvoiceDetail
+          record={record}
+          clientName={client?.name ?? record.clientName ?? ""}
+          totalLabel={formatMoney(record.totalCents ?? 0, locale, record.currency)}
+        />
       ) : null}
 
       {preview.isError ? <Banner tone="danger">{t("invoice.pdf.failed")}</Banner> : null}
@@ -885,7 +894,11 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
                 onClick={() => void startSend()}
               >
                 <Send aria-hidden />
-                {t("invoice.actions.send")}
+                {t(
+                  record?.state === "rejected"
+                    ? "invoice.actions.fixResend"
+                    : "invoice.actions.send",
+                )}
               </Button>
             </>
           )

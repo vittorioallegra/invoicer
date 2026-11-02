@@ -498,7 +498,8 @@
       "duplicate": "Duplicate",
       "creditNote": "Create credit note",
       "delete": "Delete draft",
-      "deleteConfirm": "Confirm delete"
+      "deleteConfirm": "Confirm delete",
+      "fixResend": "Fix & resend"
     },
     "list": {
       "draft": "Draft",
@@ -744,6 +745,38 @@
       "send_outcome_unknown": "The connection broke while sending, so the message may have reached the SdI.",
       "unknownNote": "Do not send it again yet: the mailbox is checked automatically. If nothing shows up, you can resend 15 minutes after the attempt.",
       "conflict": "This invoice cannot be sent in its current state. Reload the page."
+    }
+  },
+  "detail": {
+    "title": "Transmission",
+    "downloadPdf": "Download PDF",
+    "downloadXml": "Download XML",
+    "waitingReceipt": "Handed to the PEC server. Waiting for the delivery receipt from the SdI mailbox.",
+    "unknown": "The send was interrupted and its outcome is unknown. The mailbox is checked automatically for the sent message and its receipts; do not send it again yet.",
+    "retryAt": "If nothing shows up, you can resend after {{when}}.",
+    "resendNew": "Resend with a new file name",
+    "manualHandedOver": "I uploaded it on the AdE portal",
+    "manualHint": "Manual channel: download the XML (and PDF), upload it on the Agenzia delle Entrate portal, then tell the app. No PEC is sent.",
+    "waitingSdi": "Delivered to the SdI mailbox. Waiting for the SdI outcome (delivered, not delivered or rejected).",
+    "manualWaiting": "Uploaded to the AdE portal by hand. Set the outcome shown there.",
+    "markDelivered": "Delivered",
+    "markNotDelivered": "Not delivered",
+    "markRejected": "Rejected",
+    "errorCode": "Error code (optional)",
+    "errorText": "Error text from the portal",
+    "saveRejected": "Save rejection",
+    "fixAndResend": "The SdI rejected this invoice. Fix the points shown next to the fields, then use Fix & resend: same number and date, new file name.",
+    "markPaid": "Mark paid",
+    "attempts": "Attempts",
+    "attempt": "#{{n}} {{file}}: {{outcome}} ({{channel}})",
+    "outcome": {
+      "none": "not sent",
+      "complete": "handed over",
+      "unknown": "outcome unknown"
+    },
+    "channel": {
+      "pec": "PEC",
+      "manual": "manual"
     }
   }
 }

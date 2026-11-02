@@ -498,7 +498,8 @@
       "duplicate": "Duplica",
       "creditNote": "Crea nota di credito",
       "delete": "Elimina bozza",
-      "deleteConfirm": "Conferma eliminazione"
+      "deleteConfirm": "Conferma eliminazione",
+      "fixResend": "Correggi e reinvia"
     },
     "list": {
       "draft": "Bozza",
@@ -744,6 +745,38 @@
       "send_outcome_unknown": "La connessione si è interrotta durante l'invio, quindi il messaggio potrebbe essere arrivato al SdI.",
       "unknownNote": "Non reinviarla ancora: la casella viene controllata automaticamente. Se non compare nulla, puoi reinviare 15 minuti dopo il tentativo.",
       "conflict": "Questa fattura non può essere inviata nel suo stato attuale. Ricarica la pagina."
+    }
+  },
+  "detail": {
+    "title": "Trasmissione",
+    "downloadPdf": "Scarica PDF",
+    "downloadXml": "Scarica XML",
+    "waitingReceipt": "Consegnata al server PEC. In attesa della ricevuta di consegna dalla casella del SdI.",
+    "unknown": "L'invio è stato interrotto e l'esito è sconosciuto. La casella viene controllata automaticamente per trovare il messaggio inviato e le ricevute; non reinviarla ancora.",
+    "retryAt": "Se non compare nulla, potrai reinviare dopo {{when}}.",
+    "resendNew": "Reinvia con un nuovo nome file",
+    "manualHandedOver": "L'ho caricata sul portale AdE",
+    "manualHint": "Canale manuale: scarica l'XML (e il PDF), caricalo sul portale dell'Agenzia delle Entrate e poi dillo all'app. Non viene inviata nessuna PEC.",
+    "waitingSdi": "Consegnata alla casella del SdI. In attesa dell'esito (consegnata, non consegnata o scartata).",
+    "manualWaiting": "Caricata a mano sul portale AdE. Imposta l'esito mostrato lì.",
+    "markDelivered": "Consegnata",
+    "markNotDelivered": "Non consegnata",
+    "markRejected": "Scartata",
+    "errorCode": "Codice errore (facoltativo)",
+    "errorText": "Testo dell'errore dal portale",
+    "saveRejected": "Salva lo scarto",
+    "fixAndResend": "Il SdI ha scartato questa fattura. Correggi i punti indicati accanto ai campi, poi usa Correggi e reinvia: stesso numero e data, nuovo nome file.",
+    "markPaid": "Segna come pagata",
+    "attempts": "Tentativi",
+    "attempt": "#{{n}} {{file}}: {{outcome}} ({{channel}})",
+    "outcome": {
+      "none": "non inviato",
+      "complete": "consegnato",
+      "unknown": "esito sconosciuto"
+    },
+    "channel": {
+      "pec": "PEC",
+      "manual": "manuale"
     }
   }
 }

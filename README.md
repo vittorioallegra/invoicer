@@ -39,6 +39,28 @@ Plain variables: `APP_ORIGIN`, `MAIL_FROM_ADDRESS`, `VAPID_PUBLIC_KEY`, `VAPID_S
 optional PEC server overrides `PEC_IMAP_HOST`/`PEC_IMAP_PORT` (default `imaps.pec.aruba.it`:993) and
 `PEC_SMTP_HOST`/`PEC_SMTP_PORT` (default `smtps.pec.aruba.it`:465).
 
+`SEND_CHANNEL=mock` (a plain var, `.dev.vars` only) swaps the PEC channel for a mock that sends
+nothing and marks the invoice sent; it is ignored unless `APP_ORIGIN` is a localhost address.
+
+### PEC setup
+
+1. In the Aruba PEC panel ("Manage PEC account") generate the dedicated mail-client password;
+   the webmail password is refused by IMAP/SMTP.
+2. `wrangler secret put PEC_USERNAME` (the full PEC address) and `wrangler secret put PEC_PASSWORD`.
+3. Open Settings > PEC mailbox: the Aruba hosts and ports are the presets (editable, stored in
+   the `settings` table; a field left empty falls back to the `PEC_*_HOST/PORT` vars, then to the
+   defaults). Run the **connection test**: IMAP login, EXAMINE INBOX, mailbox quota (if the server
+   has it) and SMTP login, each with its own result. Nothing is sent and no message is read.
+   A passing test is required before the first send.
+4. The first transmission goes to `sdi01@pec.fatturapa.it`; once the SdI's first reply names an
+   address it is stored in settings and used from then on (read by the polling step).
+5. The manual AdE channel is always available on a numbered invoice: download the XML and PDF
+   from the invoice page, upload them on the Agenzia delle Entrate portal, then record the outcome.
+
+A live check against the real SMTP server exists but is off: set `PEC_LIVE=1` in `.dev.vars` and run
+`pnpm vitest run src/worker/pec/live.test.ts --reporter=dot` to send one sample message to your
+own PEC address (never to the SdI).
+
 The PEC credentials are never stored in D1 and never returned by the API (Settings only shows
 whether each is set). Because the one password gives full mailbox access, every send needs proof
 of presence: a passkey assertion with user verification (fallback: a fresh TOTP code), bound to

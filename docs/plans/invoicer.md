@@ -415,7 +415,7 @@ Approved: yes (2026-11-02)
 - [x] 9. Invoice editor — `feat(invoices): add the rejected and rejected_expired editor flows with deadline, SdI errors and reissue`
 - [x] 10. FatturaPA XML — `feat(fatturapa): map XSD errors to fields in plain language and verify the SdI error codes`
 - [x] 11. PDF — `feat(pdf): render the invoice PDF in IT/EN in the browser and store it per transmission attempt`
-- [ ] 12. PEC channel and send flow
+- [x] 12. PEC channel and send flow — `feat(invoices): add the invoice detail page with downloads, manual AdE channel actions and a state-driven primary action`
 - [ ] 13. Mailbox polling and SdI receipts (Milestone A exit: real send, cutover)
 - [ ] 14. UI polish: Liquid Glass
 - [ ] 15. Received invoices and imports
@@ -461,11 +461,13 @@ Approved: yes (2026-11-02)
 - Non-EUR invoices (2026-11-02, owner): the XML uses Divisa = invoice currency with amounts in that currency, as Allegato A allows; no EUR conversion.
 - SdI error codes (step 10): the codes of `SDI_ERROR_FIELDS` were checked against Allegato A v1.6 (00305 IdCodice, 00306 CodiceFiscale, 00417 no fiscal id of the cessionario; 00311 CodiceDestinatario; 00400/00401 Natura against AliquotaIVA); the mapping was already right and is now documented and tested.
 
+- PEC channel and send flow (step 12, 2026-11-02): the send handler hashes the stored XML itself, verifies the assertion, and only then creates the channel (no socket before). The attempt is claimed as `send_outcome = unknown` with a pre-generated Message-ID and the SdI address before the SMTP session; success sets `complete`, a definite server refusal (auth, MAIL/RCPT/DATA/body reply) sets it back to `none`, anything else (timeout, closed connection) stays `unknown`, so a crash at any point leaves a state the polling resolves. Retries: latest attempt `none` -> same attempt and file name; `unknown` -> new attempt (new progressive) 15 minutes after the attempt start; `rejected` -> new attempt within the 5-day window, then `sending`. The invoice stays `sending` until step 13 sees the PEC delivery receipt; only the mock channel (`SEND_CHANNEL=mock`, localhost origin only) and the manual channel move it to `sent` directly. Manual AdE: `handed-over` (channel `manual`, outcome `complete`, state `sent`), then `outcome` (delivered / not delivered / rejected with text, written as RC/MC/NS events). PEC settings: the `settings` host/port columns win over the env vars, then the Aruba defaults; saving them clears the last connection test. The connection test has four stages (IMAP login, EXAMINE, quota, SMTP login) and stores the first failing stage's code. Error codes `pec_auth_failed`, `pec_mailbox_full`, `pec_sdi_address_missing`, `pec_unavailable`, `pec_rejected`, `send_outcome_unknown` have README anchors. PDF/XML downloads are `Content-Disposition: attachment`. Browser XSD validation loads the vendored schema with Vite `?raw`; xmllint-wasm bundles for the client only (checked with `pnpm build` and `pnpm check:bundle`).
+
 ### Open questions
 - See "Open questions for the architecture phase" in the spec; most are assigned to the step 2 spike.
 - Bollo on non-EUR invoices (fixture d): the stamp is a EUR amount; the editor suggests nothing for a non-EUR invoice and fixture d keeps bollo off. The builder writes 2.00 in `DatiBollo` whenever `data.bollo` is set. Decide in step 12 how the editor/PDF handle it.
-- Step 12 wires the browser side of XSD validation: a small client loader that imports the vendored XSD with Vite `?raw` and calls `validateFatturaXml`, and a check that xmllint-wasm's browser worker bundles under Vite (not exercised yet: nothing in the client imports it, and the Worker bundle check passes).
-- Step 12: the PEC connection test (step 7) does IMAP only; add the SMTP login (no send) and the quota check. The spec wants editable IMAP/SMTP host/port presets in Settings, while step 5 made them plain env vars; decide in step 12 whether to wire the `settings` host/port columns.
+- Step 13 (from step 12): when a PEC non-delivery message (mancata consegna) matches a transmission, set that attempt's `send_outcome` back to `none` (nothing reached the SdI), so the same-attempt retry and the number release rule apply; the SdI first reply must store the address in `settings.sdi_pec_address` (read by the send handler through `sdiAddressFor`). Matching an `unknown` attempt by file name or by the stored `channel_message_id` (the Message-ID is written before the SMTP session) moves it to `complete`. Rejections must be written as `events` of type `NS` with payload `{ errors: [{ code, description }] }` and `occurred_at` set (step 9 and the manual channel already use this shape). The retry gate currently uses the quiet period only; step 13 may add "a poll completed after the attempt and found nothing" using `job_runs`.
+- Step 14+ (from step 12): `xmllint-wasm` adds a 779 KB WASM file to the client precache; consider excluding it from the service worker precache and caching it at first use.
 
 ### Next
-Step 12: PEC channel and send flow.
+Step 13: Mailbox polling and SdI receipts.
