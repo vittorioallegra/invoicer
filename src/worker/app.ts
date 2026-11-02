@@ -8,6 +8,7 @@ import { type Bindings, featureStatus, pecCredentialStatus } from "./env";
 import { makeError, problemResponse } from "./problem";
 import { clients } from "./routes/clients";
 import { health } from "./routes/health";
+import { invoices } from "./routes/invoices";
 import { onboarding } from "./routes/onboarding";
 import { profile } from "./routes/profile";
 import { settings } from "./routes/settings";
@@ -24,6 +25,7 @@ export function createApp() {
   app.route("/api/health", health);
   app.route("/api/setup", setup);
   app.route("/api/invoices", sendAuthorization);
+  app.route("/api/invoices", invoices);
   app.route("/api/profile", profile);
   app.route("/api/clients", clients);
   app.route("/api/settings", settings);

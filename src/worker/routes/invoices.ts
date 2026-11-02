@@ -1,0 +1,234 @@
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
+import { Hono } from "hono";
+import type { ZodError } from "zod";
+import * as schema from "../../db/schema";
+import type { ClientRecord } from "../../shared/client";
+import { romeDateTime } from "../../shared/cron";
+import {
+  INVOICE_LIST_SCOPES,
+  type InvoiceBody,
+  type InvoiceListScope,
+  type InvoiceRecord,
+  invoiceInputSchema,
+  invoiceIssuableSchema,
+  invoiceMetaSchema,
+  issueMap,
+} from "../../shared/invoice";
+import type { SessionVariables } from "../auth/session";
+import type { Bindings } from "../env";
+import { releaseNumber, reserveNumber } from "../invoices/numbering";
+import {
+  createInvoice,
+  deleteInvoice,
+  listInvoices,
+  loadInvoice,
+  recordToBody,
+  updateInvoice,
+} from "../invoices/store";
+import { loadSendReadiness } from "../onboarding";
+import { makeError } from "../problem";
+import { toRecord } from "./clients";
+
+export const invoices = new Hono<{ Bindings: Bindings; Variables: SessionVariables }>();
+
+/** `path: code` pairs, the same shape the browser produces for its inline errors. */
+function issueDetail(error: ZodError): string {
+  return Object.entries(issueMap(error))
+    .map(([path, code]) => `${path}: ${code}`)
+    .join("; ");
+}
+
+async function readBody(c: { req: { json: () => Promise<unknown> } }): Promise<InvoiceBody> {
+  const parsed = invoiceInputSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) throw makeError("bad_request", issueDetail(parsed.error));
+  return parsed.data;
+}
+
+/** The client and the linked invoice must exist; a credit note links an invoice that has a number. */
+async function checkReferences(db: D1Database, body: InvoiceBody): Promise<void> {
+  if (body.clientId) {
+    const client = await db
+      .prepare("SELECT 1 AS hit FROM clients WHERE id = ?")
+      .bind(body.clientId)
+      .first();
+    if (!client) throw makeError("bad_request", "clientId: not_found");
+  }
+  if (body.linkedInvoiceId) {
+    if (body.documentType !== "TD04") throw makeError("bad_request", "linkedInvoiceId: invalid");
+    const linked = await db
+      .prepare("SELECT document_type FROM invoices WHERE id = ?")
+      .bind(body.linkedInvoiceId)
+      .first<{ document_type: string }>();
+    if (!linked) throw makeError("bad_request", "linkedInvoiceId: not_found");
+    if (linked.document_type !== "TD01") throw makeError("bad_request", "linkedInvoiceId: invalid");
+  }
+}
+
+async function requireInvoice(db: D1Database, id: string): Promise<InvoiceRecord> {
+  const record = await loadInvoice(db, id);
+  if (!record) throw makeError("not_found");
+  return record;
+}
+
+invoices.get("/", async (c) => {
+  const scope = c.req.query("scope") ?? "to_issue";
+  if (!(INVOICE_LIST_SCOPES as readonly string[]).includes(scope)) {
+    throw makeError("bad_request", "scope: invalid");
+  }
+  return c.json({ invoices: await listInvoices(c.env.DB, scope as InvoiceListScope) });
+});
+
+invoices.post("/", async (c) => {
+  const body = await readBody(c);
+  await checkReferences(c.env.DB, body);
+  const id = await createInvoice(c.env.DB, body);
+  return c.json({ invoice: await requireInvoice(c.env.DB, id) }, 201);
+});
+
+invoices.get("/:id", async (c) =>
+  c.json({ invoice: await requireInvoice(c.env.DB, c.req.param("id")) }),
+);
+
+invoices.put("/:id", async (c) => {
+  const id = c.req.param("id");
+  const body = await readBody(c);
+  await checkReferences(c.env.DB, body);
+  await updateInvoice(c.env.DB, id, body);
+  return c.json({ invoice: await requireInvoice(c.env.DB, id) });
+});
+
+/** A numbered invoice is never deleted: it is sent, or its number is released first. */
+invoices.delete("/:id", async (c) => {
+  await deleteInvoice(c.env.DB, c.req.param("id"));
+  return c.body(null, 204);
+});
+
+/** Payment flag and notes change in any state (spec 3: the only edits once an invoice is out). */
+invoices.patch("/:id", async (c) => {
+  const id = c.req.param("id");
+  const parsed = invoiceMetaSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) throw makeError("bad_request", issueDetail(parsed.error));
+  const meta = parsed.data;
+  const sets: string[] = [];
+  const values: (string | number | null)[] = [];
+  if (meta.paymentFlag !== undefined) {
+    sets.push("payment_flag = ?", "paid_date = ?");
+    values.push(
+      meta.paymentFlag,
+      meta.paymentFlag === "paid" ? (meta.paidDate ?? romeDateTime(new Date()).date) : null,
+    );
+  }
+  if (meta.notes !== undefined) {
+    sets.push("notes = ?");
+    values.push(meta.notes);
+  }
+  const result = await c.env.DB.prepare(
+    `UPDATE invoices SET ${sets.join(", ")}, updated_at = ? WHERE id = ?`,
+  )
+    .bind(...values, Date.now(), id)
+    .run();
+  if (result.meta.changes === 0) throw makeError("not_found");
+  return c.json({ invoice: await requireInvoice(c.env.DB, id) });
+});
+
+/** A new draft with the content of this invoice (no number, no dates, unpaid). */
+invoices.post("/:id/duplicate", async (c) => {
+  const source = await requireInvoice(c.env.DB, c.req.param("id"));
+  const id = await createInvoice(c.env.DB, recordToBody(source));
+  return c.json({ invoice: await requireInvoice(c.env.DB, id) }, 201);
+});
+
+/** A credit note (TD04) draft for an issued invoice, with its lines for a partial credit. */
+invoices.post("/:id/credit-note", async (c) => {
+  const source = await requireInvoice(c.env.DB, c.req.param("id"));
+  if (source.documentType !== "TD01") throw makeError("conflict", "credit_note_of_credit_note");
+  if (source.state !== "delivered" && source.state !== "not_delivered") {
+    throw makeError("conflict", "invoice_not_issued");
+  }
+  const id = await createInvoice(c.env.DB, {
+    ...recordToBody(source),
+    documentType: "TD04",
+    linkedInvoiceId: source.id,
+    operationDate: null,
+  });
+  return c.json({ invoice: await requireInvoice(c.env.DB, id) }, 201);
+});
+
+/**
+ * After the 5-day window a rejected invoice is reissued as a new draft that references it; the
+ * new number and date come at send time and the old number is never reused.
+ */
+invoices.post("/:id/reissue", async (c) => {
+  const source = await requireInvoice(c.env.DB, c.req.param("id"));
+  if (source.state !== "rejected_expired") throw makeError("conflict", "reissue_not_allowed");
+  if (source.reissuedById) {
+    return c.json({ invoice: await requireInvoice(c.env.DB, source.reissuedById) });
+  }
+  const id = await createInvoice(c.env.DB, recordToBody(source), {
+    reissuesInvoiceId: source.id,
+  });
+  return c.json({ invoice: await requireInvoice(c.env.DB, id) }, 201);
+});
+
+async function loadClient(db: D1Database, id: string | null): Promise<ClientRecord | null> {
+  if (!id) return null;
+  const row = await drizzle(db, { schema })
+    .select()
+    .from(schema.clients)
+    .where(eq(schema.clients.id, id))
+    .get();
+  return row ? toRecord(row) : null;
+}
+
+/**
+ * Reserves the number for an invoice about to be sent (called by the send flow, step 12). Needs
+ * the send gate open and an invoice that passes the issuing rules; an invoice that already holds
+ * its number gets it back.
+ */
+invoices.post("/:id/reserve-number", async (c) => {
+  const id = c.req.param("id");
+  const readiness = await loadSendReadiness(c.env);
+  if (!readiness.ready) {
+    throw makeError("conflict", `send: not_ready (${readiness.reasons.join(", ")})`);
+  }
+  const record = await requireInvoice(c.env.DB, id);
+  if (record.state === "draft" || record.state === "planned") {
+    const client = await loadClient(c.env.DB, record.clientId);
+    const parsed = invoiceIssuableSchema(client).safeParse({
+      ...recordToBody(record),
+      plannedDate: record.plannedDate,
+      dueDate: record.dueDate,
+    });
+    const problems = parsed.success ? {} : issueMap(parsed.error);
+    if (record.linkedInvoiceId && !record.linked?.number) problems.linkedInvoiceId = "not_issued";
+    if (Object.keys(problems).length > 0) {
+      throw makeError(
+        "bad_request",
+        Object.entries(problems)
+          .map(([path, code]) => `${path}: ${code}`)
+          .join("; "),
+      );
+    }
+  }
+  const profile = await drizzle(c.env.DB, { schema })
+    .select({ country: schema.profile.country, vatNumber: schema.profile.vatNumber })
+    .from(schema.profile)
+    .where(eq(schema.profile.id, 1))
+    .get();
+  if (!profile) throw makeError("conflict", "send: not_ready (profile_incomplete)");
+  const reservation = await reserveNumber(c.env.DB, {
+    invoiceId: id,
+    now: new Date(),
+    idPaese: profile.country,
+    idCodice: profile.vatNumber,
+  });
+  return c.json({ reservation, invoice: await requireInvoice(c.env.DB, id) });
+});
+
+/** Gives a reserved number back, only while it is the highest of its year and nothing was sent. */
+invoices.post("/:id/release-number", async (c) => {
+  const id = c.req.param("id");
+  await releaseNumber(c.env.DB, id);
+  return c.json({ invoice: await requireInvoice(c.env.DB, id) });
+});

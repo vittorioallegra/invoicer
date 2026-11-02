@@ -18,7 +18,7 @@ export const clients = new Hono<{ Bindings: Bindings; Variables: SessionVariable
 
 type Row = typeof schema.clients.$inferSelect;
 
-function toRecord(row: Row): ClientRecord {
+export function toRecord(row: Row): ClientRecord {
   const defaults = clientDefaultsSchema.safeParse(row.defaults);
   return {
     id: row.id,

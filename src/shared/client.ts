@@ -98,26 +98,26 @@ export const RITENUTA_TYPES = ["RT01", "RT02", "RT03", "RT04", "RT05", "RT06"] a
 
 const rateBp = z.number().int().min(0).max(10000);
 
+export const cassaDefaultsSchema = z.object({
+  type: z.enum(["rivalsa_inps", ...CASSA_TYPE_CODES]),
+  rateBp: rateBp.min(1),
+  mode: z.enum(["excluded", "included"]),
+  subjectToRitenuta: z.boolean(),
+});
+
+export const ritenutaDefaultsSchema = z.object({
+  type: z.enum(RITENUTA_TYPES),
+  rateBp: rateBp.min(1),
+  causale: z.string().trim().min(1).max(2),
+});
+
 /** Defaults that prefill a new invoice for this client (step 9). Reuses the totals engine types. */
 export const clientDefaultsSchema = z
   .object({
     vatRateBp: rateBp.nullable(),
     natura: z.enum(NATURA_CODES).nullable(),
-    cassa: z
-      .object({
-        type: z.enum(["rivalsa_inps", ...CASSA_TYPE_CODES]),
-        rateBp: rateBp.min(1),
-        mode: z.enum(["excluded", "included"]),
-        subjectToRitenuta: z.boolean(),
-      })
-      .nullable(),
-    ritenuta: z
-      .object({
-        type: z.enum(RITENUTA_TYPES),
-        rateBp: rateBp.min(1),
-        causale: z.string().trim().min(1).max(2),
-      })
-      .nullable(),
+    cassa: cassaDefaultsSchema.nullable(),
+    ritenuta: ritenutaDefaultsSchema.nullable(),
     bollo: z.boolean(),
     paymentTermsDays: z.number().int().min(0).max(365).nullable(),
   })
@@ -227,3 +227,16 @@ export type ClientData = z.output<typeof clientInputSchema>;
 
 /** A stored client as the API returns it. */
 export type ClientRecord = ClientData & { id: string };
+
+/** A stored client as form-style input (nulls become empty strings), to run the type rules on it. */
+export function clientRecordToInput(client: ClientRecord): ClientInput {
+  return {
+    ...client,
+    vatNumber: client.vatNumber ?? "",
+    taxCode: client.taxCode ?? "",
+    foreignTaxId: client.foreignTaxId ?? "",
+    province: client.province ?? "",
+    pec: client.pec ?? "",
+    email: client.email ?? "",
+  };
+}
