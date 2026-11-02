@@ -6,7 +6,7 @@ import type { Bindings } from "../env";
  */
 export const CRON = {
   daily: "0 4 * * *",
-  weekly: "0 3 * * 0",
+  weekly: "0 3 * * SUN",
 } as const;
 
 export type CronJob = "daily" | "weekly";

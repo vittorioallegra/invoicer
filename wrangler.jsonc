@@ -31,5 +31,5 @@
   ],
   // At most 2 cron triggers (free plan: 5 per account). One scheduled handler dispatches on
   // event.cron: see src/worker/jobs/scheduled.ts (keep the expressions in sync).
-  "triggers": { "crons": ["0 4 * * *", "0 3 * * 0"] }
+  "triggers": { "crons": ["0 4 * * *", "0 3 * * SUN"] }
 }
