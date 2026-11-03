@@ -89,7 +89,7 @@ describe("Clients screen", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
     type("Name or company name", "Acme S.r.l.");
     type("Partita IVA", "12345678904");
-    fireEvent.click(screen.getByRole("button", { name: "Save client" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText(/check digit does not match/)).toBeTruthy();
     expect(mocks.api).toHaveBeenCalledTimes(1);
 
@@ -99,7 +99,7 @@ describe("Clients screen", () => {
     type("City", "Roma");
     type("Province", "rm");
     mocks.api.mockResolvedValue({ client: saved, clients: [saved] });
-    fireEvent.click(screen.getByRole("button", { name: "Save client" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith(
         "/api/clients",

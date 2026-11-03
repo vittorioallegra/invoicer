@@ -106,7 +106,7 @@ describe("Payment methods page", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add bank account" }));
     fireEvent.change(await screen.findByLabelText("Short name"), { target: { value: "Fineco" } });
     fireEvent.change(screen.getByLabelText("IBAN"), { target: { value: "IT00" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save account" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText("This IBAN is not valid.")).toBeTruthy();
     expect(mocks.api).toHaveBeenCalledTimes(1);
   });
@@ -119,7 +119,7 @@ describe("Payment methods page", () => {
     fireEvent.change(screen.getByLabelText("IBAN"), {
       target: { value: "IT60 X054 2811 1010 0000 0123 456" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save account" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith(
         "/api/payment-methods",

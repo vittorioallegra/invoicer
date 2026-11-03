@@ -136,7 +136,7 @@
     "numberingTitle": "Invoice numbering {{year}}",
     "numberingIntro": "The number the next invoice of this year gets. Set it to continue from your previous invoicing tool. It cannot be lower than a number already used.",
     "nextNumber": "Next invoice number",
-    "saveNumber": "Save number",
+    "saveNumber": "Save",
     "numberSaved": "Number saved.",
     "numberInvalid": "Enter a whole number, 1 or more.",
     "numberBelowUsed": "The lowest allowed number is {{minimum}}: one above the highest number already used.",
@@ -223,7 +223,7 @@
     "title": "Company",
     "intro": "These details appear on every invoice you issue.",
     "saved": "Company details saved.",
-    "save": "Save company",
+    "save": "Save",
     "name": "Name or company name",
     "nameHint": "As registered with the tax office.",
     "vatNumber": "Partita IVA",
@@ -261,7 +261,7 @@
     "title": "Email settings",
     "intro": "Courtesy emails tell your client about the invoice. The legal copy always goes through the SdI.",
     "saved": "Email settings saved.",
-    "save": "Save email settings",
+    "save": "Save",
     "senderName": "Sender name",
     "senderNameHint": "Empty uses the company name.",
     "senderAddress": "Sender address",
@@ -398,7 +398,7 @@
       "ritenutaCausale": "Payment reason",
       "bollo": "Apply bollo (virtual stamp)",
       "termsDays": "Payment terms (days)",
-      "save": "Save client"
+      "save": "Save"
     }
   },
   "invoice": {
@@ -704,7 +704,7 @@
     "imapPort": "IMAP port",
     "smtpHost": "SMTP server",
     "smtpPort": "SMTP port",
-    "saveServers": "Save servers",
+    "saveServers": "Save",
     "usePreset": "Use Aruba preset",
     "serversSaved": "Servers saved. Run the connection test again.",
     "serversInvalid": "These servers are not valid. Check the host names and ports.",
@@ -852,7 +852,7 @@
     "editTitle": "Edit bank account",
     "label": "Short name",
     "labelHint": "How you recognise the account, for example Fineco.",
-    "save": "Save account",
+    "save": "Save",
     "edit": "Edit",
     "delete": "Delete account",
     "deleteConfirm": "Confirm delete",

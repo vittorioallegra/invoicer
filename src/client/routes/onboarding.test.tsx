@@ -158,7 +158,7 @@ describe("Profile form", () => {
       target: { value: "Mario Rossi" },
     });
     fireEvent.change(screen.getByLabelText("Partita IVA"), { target: { value: "123" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save company" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText(/11-digit partita IVA/)).toBeTruthy();
     expect(screen.getAllByText("This field is required.").length).toBeGreaterThan(0);
     expect(mocks.api).toHaveBeenCalledTimes(1);
@@ -215,7 +215,7 @@ describe("Settings", () => {
     await renderAt("/settings");
     const input = await screen.findByLabelText("Next invoice number");
     fireEvent.change(input, { target: { value: "3" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save number" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText(/lowest allowed number is 5/)).toBeTruthy();
     expect(mocks.api).not.toHaveBeenCalledWith("/api/settings/invoice-number", expect.anything());
   });

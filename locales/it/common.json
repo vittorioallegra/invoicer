@@ -136,7 +136,7 @@
     "numberingTitle": "Numerazione fatture {{year}}",
     "numberingIntro": "Il numero che avrà la prossima fattura di quest'anno. Impostalo per continuare dal tuo programma precedente. Non può essere inferiore a un numero già usato.",
     "nextNumber": "Prossimo numero fattura",
-    "saveNumber": "Salva numero",
+    "saveNumber": "Salva",
     "numberSaved": "Numero salvato.",
     "numberInvalid": "Inserisci un numero intero, 1 o più.",
     "numberBelowUsed": "Il numero minimo consentito è {{minimum}}: uno in più del più alto già usato.",
@@ -223,7 +223,7 @@
     "title": "Azienda",
     "intro": "Questi dati compaiono su ogni fattura che emetti.",
     "saved": "Dati azienda salvati.",
-    "save": "Salva azienda",
+    "save": "Salva",
     "name": "Nome o ragione sociale",
     "nameHint": "Come risulta all'Agenzia delle Entrate.",
     "vatNumber": "Partita IVA",
@@ -261,7 +261,7 @@
     "title": "Impostazioni email",
     "intro": "Le email di cortesia avvisano il cliente della fattura. La copia a valore legale passa sempre dal SdI.",
     "saved": "Impostazioni email salvate.",
-    "save": "Salva impostazioni email",
+    "save": "Salva",
     "senderName": "Nome del mittente",
     "senderNameHint": "Se vuoto usa il nome dell'azienda.",
     "senderAddress": "Indirizzo del mittente",
@@ -398,7 +398,7 @@
       "ritenutaCausale": "Causale pagamento",
       "bollo": "Applica il bollo virtuale",
       "termsDays": "Termini di pagamento (giorni)",
-      "save": "Salva cliente"
+      "save": "Salva"
     }
   },
   "invoice": {
@@ -704,7 +704,7 @@
     "imapPort": "Porta IMAP",
     "smtpHost": "Server SMTP",
     "smtpPort": "Porta SMTP",
-    "saveServers": "Salva server",
+    "saveServers": "Salva",
     "usePreset": "Usa preset Aruba",
     "serversSaved": "Server salvati. Esegui di nuovo il test di connessione.",
     "serversInvalid": "Questi server non sono validi. Controlla nomi host e porte.",
@@ -852,7 +852,7 @@
     "editTitle": "Modifica conto bancario",
     "label": "Nome breve",
     "labelHint": "Come riconosci il conto, ad esempio Fineco.",
-    "save": "Salva conto",
+    "save": "Salva",
     "edit": "Modifica",
     "delete": "Elimina conto",
     "deleteConfirm": "Conferma eliminazione",
