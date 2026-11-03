@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   signInEmail: vi.fn(),
   signInPasskey: vi.fn(),
   verifyTotp: vi.fn(),
+  enableTwoFactor: vi.fn(),
   verifyBackupCode: vi.fn(),
   api: vi.fn(),
 }));
@@ -22,7 +23,11 @@ vi.mock("../lib/auth-client", () => ({
   authClient: {
     useSession: () => mocks.session,
     signIn: { email: mocks.signInEmail, passkey: mocks.signInPasskey },
-    twoFactor: { verifyTotp: mocks.verifyTotp, verifyBackupCode: mocks.verifyBackupCode },
+    twoFactor: {
+      enable: mocks.enableTwoFactor,
+      verifyTotp: mocks.verifyTotp,
+      verifyBackupCode: mocks.verifyBackupCode,
+    },
   },
 }));
 
@@ -91,6 +96,25 @@ describe("setup screen", () => {
     await renderAt("/setup");
     await screen.findByRole("heading", { name: "Authenticator app" });
     expect(screen.queryByRole("button", { name: "Create owner account" })).toBeNull();
+  });
+
+  it("shows the otpauth URI as an SVG QR code on the authenticator step", async () => {
+    mocks.api.mockResolvedValue({ ownerExists: false });
+    mocks.session.data = { user: { id: "1", twoFactorEnabled: false } };
+    mocks.enableTwoFactor.mockResolvedValue({
+      data: {
+        method: "totp",
+        totpURI: "otpauth://totp/Invoicer:owner?secret=JBSWY3DPEHPK3PXP&issuer=Invoicer",
+        backupCodes: ["a"],
+      },
+      error: null,
+    });
+    await renderAt("/setup");
+    fireEvent.change(await screen.findByLabelText("Password"), { target: { value: "x" } });
+    fireEvent.click(screen.getByRole("button", { name: /start|set up|continue/i }));
+    const qr = await screen.findByRole("img", { name: /QR code/i });
+    expect(qr.tagName.toLowerCase()).toBe("svg");
+    expect(qr.querySelector("path")).not.toBeNull();
   });
 });
 

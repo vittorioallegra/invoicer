@@ -371,6 +371,7 @@ push and email.
 | Import | fflate (ZIP), papaparse (CSV) | 0.8 / 5.7 |
 | PDF | @react-pdf/renderer | 4.9 |
 | i18n | i18next + react-i18next | 26.7 / 17.1 |
+| QR code (TOTP enrolment, client-only) | uqr | 0.1.3 |
 | Push | @pushforge/builder | 2.0 |
 | Email | resend | 6.37 |
 | PEC send (SMTP over `cloudflare:sockets`) | worker-mailer | 1.3.0 |
@@ -456,6 +457,7 @@ Approved: yes (2026-11-02)
 - No end-to-end encryption of business data (owner's own server) (2026-11-02).
 - UI and documents in English (base) and Italian via i18n (2026-10-31).
 - Frontend React 19 + TanStack, Better Auth for auth, @react-pdf/renderer for PDF, i18next for i18n; all other library choices as in Architecture (2026-11-02).
+- TOTP enrolment shows the otpauth URI as a QR code, rendered as inline SVG with `uqr` 0.1.3 (zero dependencies); `qrcode` rejected for its dependencies (2026-11-03, owner request).
 - Courtesy email through Resend, not Cloudflare Email Sending (needs Workers Paid) (2026-11-02).
 - Channel switch Openapi -> PEC (2026-11-02): Openapi needs a 50 EUR minimum top-up; the owner already has a free PEC mailbox (Aruba infrastructure, provided by the Ordine degli Ingegneri, used for nothing else, tied to the partita IVA), so cost goes to 0 EUR. `PEC_USERNAME`/`PEC_PASSWORD` are Worker secrets (one password for IMAP, SMTP and webmail: if stolen, the mailbox can be read and PEC sent as the owner; accepted for a single-user app, mitigated by a generated password, second factors and the per-send passkey). SMTP send via `worker-mailer` 1.3.0, MIME parsing via `postal-mime` 4.2.0, a minimal in-repo IMAP client; `imapflow` rejected (Node net/tls, heavy dependencies); polling cron `*/10 * * * *` (3 of 5 free cron triggers); credit section replaced by a mailbox quota warning; manual AdE portal channel kept as fallback; Openapi kept as a possible future channel (out of v1).
 - Step 12 send handler must compute the SHA-256 of the stored final XML itself and pass it to `verifySendAuthorization`; that check is what binds the authorization to the XML (2026-11-02).

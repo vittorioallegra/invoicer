@@ -102,6 +102,8 @@
     "totpStart": "Set up authenticator",
     "totpScan": "Add this account to your authenticator app, then enter the code it shows.",
     "totpOpenApp": "Open in authenticator app",
+    "totpQrHint": "Scan with your authenticator app",
+    "totpQrLabel": "QR code with the authenticator setup key",
     "totpSecret": "Setup key",
     "totpSecretHint": "Enter this key by hand if the link does not open your app.",
     "recoveryTitle": "Recovery codes",

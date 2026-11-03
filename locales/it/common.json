@@ -102,6 +102,8 @@
     "totpStart": "Configura l'autenticatore",
     "totpScan": "Aggiungi questo account alla tua app di autenticazione, poi inserisci il codice che mostra.",
     "totpOpenApp": "Apri nell'app di autenticazione",
+    "totpQrHint": "Inquadralo con la tua app di autenticazione",
+    "totpQrLabel": "Codice QR con la chiave di configurazione dell'app di autenticazione",
     "totpSecret": "Chiave di configurazione",
     "totpSecretHint": "Inserisci questa chiave a mano se il link non apre la tua app.",
     "recoveryTitle": "Codici di recupero",

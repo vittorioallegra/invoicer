@@ -4,6 +4,7 @@ import { KeyRound } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AuthLayout } from "../components/auth-layout";
+import { QrCode } from "../components/qr-code";
 import { Banner } from "../components/ui/banner";
 import { Button, buttonVariants } from "../components/ui/button";
 import { Field } from "../components/ui/field";
@@ -226,6 +227,10 @@ function EnrollTotp({
     <AuthLayout title={t("auth.totpSetupTitle")}>
       <form onSubmit={confirm} className="flex flex-col gap-4">
         <p className="text-sm text-muted-foreground">{t("auth.totpScan")}</p>
+        <div className="flex flex-col items-center gap-2">
+          <QrCode text={enrolment.uri} label={t("auth.totpQrLabel")} />
+          <p className="text-xs text-muted-foreground">{t("auth.totpQrHint")}</p>
+        </div>
         <a href={enrolment.uri} className={buttonVariants({ variant: "secondary" })}>
           {t("auth.totpOpenApp")}
         </a>
