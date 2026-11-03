@@ -26,6 +26,14 @@ import { checkFatturaXml } from "./xsd";
 export const SEND_STEPS = ["validate", "reserve", "build", "upload", "authorize", "send"] as const;
 export type SendStep = (typeof SEND_STEPS)[number];
 
+/**
+ * The manual AdE channel stops after the files are stored: nothing is transmitted by the app, so
+ * there is no send authorization; the owner downloads the files, uploads them on the portal and
+ * confirms the hand-over on the invoice page.
+ */
+export const MANUAL_STEPS: readonly SendStep[] = ["validate", "reserve", "build", "upload"];
+export type SendChannel = "pec" | "manual";
+
 export type SendFlowErrorCode =
   /** The XML fails the XSD (provisional or final): a definite refusal, nothing was sent. */
   | "invalid_xml"
@@ -56,7 +64,10 @@ export type AuthorizeChoice = { kind: "passkey" } | { kind: "totp"; code: string
 export interface SendFlowHooks {
   onStep?: (step: SendStep) => void;
   /** Asked once the final XML is stored; resolves to how to answer the challenge. */
-  chooseAuthorization: (available: { passkey: boolean; totp: boolean }) => Promise<AuthorizeChoice>;
+  chooseAuthorization?: (available: {
+    passkey: boolean;
+    totp: boolean;
+  }) => Promise<AuthorizeChoice>;
 }
 
 const toIssuer = (profile: ProfileResponse): FatturaIssuer => ({
@@ -131,7 +142,8 @@ async function releaseAfterFailure(invoiceId: string): Promise<boolean> {
 export async function runSendFlow(
   invoiceId: string,
   hooks: SendFlowHooks,
-): Promise<{ messageId: string; fileName: string }> {
+  channel: SendChannel = "pec",
+): Promise<{ messageId: string | null; fileName: string }> {
   const step = (s: SendStep) => hooks.onStep?.(s);
 
   step("validate");
@@ -197,7 +209,10 @@ export async function runSendFlow(
   const { file } = await uploadXml(invoiceId, bytes);
   if (file.sha256 !== localHash) throw new SendFlowError("build_failed", { step: "upload" });
 
+  if (channel === "manual") return { messageId: null, fileName };
+
   step("authorize");
+  if (!hooks.chooseAuthorization) throw new SendFlowError("build_failed", { step: "authorize" });
   const challenge = await requestSendChallenge(invoiceId, localHash);
   const choice = await hooks.chooseAuthorization({
     passkey: challenge.passkeyAvailable,

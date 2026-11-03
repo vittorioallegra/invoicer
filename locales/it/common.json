@@ -511,7 +511,8 @@
       "creditNote": "Crea nota di credito",
       "delete": "Elimina bozza",
       "deleteConfirm": "Conferma eliminazione",
-      "fixResend": "Correggi e reinvia"
+      "fixResend": "Correggi e reinvia",
+      "prepareManual": "Prepara per il portale AdE"
     },
     "list": {
       "draft": "Bozza",
@@ -740,6 +741,9 @@
     "totp": "Codice di autenticazione",
     "totpHint": "Il codice a 6 cifre della tua app di autenticazione.",
     "confirmNote": "Il server verifica la tua passkey (o il codice) per questo preciso file prima di inviare qualsiasi cosa.",
+    "manualTitle": "Prepara per il portale AdE",
+    "manualConfirm": "Prepara i file",
+    "manualNote": "Riserva il numero e salva l'XML e il PDF definitivi. Non viene inviato nulla: scarica i file dalla pagina della fattura, caricali sul portale AdE e conferma lì.",
     "saveFirst": "Salva prima la fattura.",
     "errors": {
       "invalid_xml": "Il file della fattura non è ancora valido. Correggi questi punti e invia di nuovo:",

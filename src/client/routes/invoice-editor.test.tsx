@@ -294,6 +294,19 @@ describe("Invoice editor", () => {
     });
   });
 
+  it("offers the manual AdE channel when only the PEC setup is missing, but not without a profile", async () => {
+    serve({ send: { ready: false, reasons: ["pec_credentials_missing"] } });
+    await renderEditor();
+    await loaded();
+    type("Client", "c1");
+    type("Description", "Consulting");
+    type("Unit price", "50");
+    expect((screen.getByRole("button", { name: "Send" }) as HTMLButtonElement).disabled).toBe(true);
+    // No saved record yet, so the button is present but waits for the first save.
+    const manual = screen.getByRole("button", { name: "Prepare for the AdE portal" });
+    expect(manual).toBeTruthy();
+  });
+
   it("opens the inline client creation sheet", async () => {
     serve();
     await renderEditor();

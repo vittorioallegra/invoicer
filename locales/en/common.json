@@ -511,7 +511,8 @@
       "creditNote": "Create credit note",
       "delete": "Delete draft",
       "deleteConfirm": "Confirm delete",
-      "fixResend": "Fix & resend"
+      "fixResend": "Fix & resend",
+      "prepareManual": "Prepare for the AdE portal"
     },
     "list": {
       "draft": "Draft",
@@ -740,6 +741,9 @@
     "totp": "Authenticator code",
     "totpHint": "The 6-digit code from your authenticator app.",
     "confirmNote": "Your passkey (or code) is checked by the server for this exact invoice file before anything is sent.",
+    "manualTitle": "Prepare for the AdE portal",
+    "manualConfirm": "Prepare the files",
+    "manualNote": "This reserves the number and stores the final XML and PDF. Nothing is sent: download the files from the invoice page, upload them on the AdE portal, then confirm there.",
     "saveFirst": "Save the invoice first.",
     "errors": {
       "invalid_xml": "The invoice file is not valid yet. Fix these points and send again:",

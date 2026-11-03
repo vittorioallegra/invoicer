@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Copy, FileMinus, Pencil, Send, Trash2 } from "lucide-react";
+import { Copy, FileMinus, Pencil, Send, Trash2, Upload } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type ClientRecord, RITENUTA_TYPES } from "../../shared/client";
@@ -255,11 +255,13 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
   });
 
   const [sendOpen, setSendOpen] = useState(false);
+  const [sendChannel, setSendChannel] = useState<"pec" | "manual">("pec");
   // Saves what is on screen first, so the number is reserved for exactly what the owner reviewed.
-  async function startSend() {
+  async function startSend(channel: "pec" | "manual" = "pec") {
     if (!record || !structural.ok) return;
     try {
       await save.mutateAsync(structural.body);
+      setSendChannel(channel);
       setSendOpen(true);
     } catch {
       // The save banner already shows why.
@@ -891,7 +893,7 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
                 variant="secondary"
                 disabled={!online || !record || !send.ready || !issuing.ok || save.isPending}
                 title={record ? undefined : t("send.saveFirst")}
-                onClick={() => void startSend()}
+                onClick={() => void startSend("pec")}
               >
                 <Send aria-hidden />
                 {t(
@@ -899,6 +901,22 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
                     ? "invoice.actions.fixResend"
                     : "invoice.actions.send",
                 )}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={
+                  !online ||
+                  !record ||
+                  send.reasons.includes("profile_incomplete") ||
+                  !issuing.ok ||
+                  save.isPending
+                }
+                title={record ? undefined : t("send.saveFirst")}
+                onClick={() => void startSend("manual")}
+              >
+                <Upload aria-hidden />
+                {t("invoice.actions.prepareManual")}
               </Button>
             </>
           )
@@ -910,6 +928,7 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
           invoiceId={record.id}
           open={sendOpen}
           onOpenChange={setSendOpen}
+          channel={sendChannel}
           summary={{
             client: client?.name ?? "",
             number: record.number ?? "",

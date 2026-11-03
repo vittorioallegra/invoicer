@@ -4,7 +4,14 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../shared/errors";
 import { describeXsdErrors } from "../lib/fatturapa-errors";
-import { runSendFlow, SEND_STEPS, SendFlowError, type SendStep } from "../lib/send-flow";
+import {
+  MANUAL_STEPS,
+  runSendFlow,
+  SEND_STEPS,
+  type SendChannel,
+  SendFlowError,
+  type SendStep,
+} from "../lib/send-flow";
 import { Banner } from "./ui/banner";
 import { Button } from "./ui/button";
 import { Field } from "./ui/field";
@@ -18,10 +25,19 @@ export interface SendSheetProps {
   /** One line for the review: who it goes to and the amount due. */
   summary: { client: string; total: string; number: string };
   onSent: () => void;
+  /** `manual` prepares the files for the AdE portal instead of sending by PEC. */
+  channel?: SendChannel;
 }
 
 /** Review screen and progress of a send: the owner confirms once, the flow runs its steps. */
-export function SendSheet({ invoiceId, open, onOpenChange, summary, onSent }: SendSheetProps) {
+export function SendSheet({
+  invoiceId,
+  open,
+  onOpenChange,
+  summary,
+  onSent,
+  channel = "pec",
+}: SendSheetProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<SendStep | null>(null);
@@ -30,11 +46,15 @@ export function SendSheet({ invoiceId, open, onOpenChange, summary, onSent }: Se
 
   const run = useMutation({
     mutationFn: () =>
-      runSendFlow(invoiceId, {
-        onStep: setStep,
-        chooseAuthorization: async () =>
-          useTotp && /^\d{6}$/.test(totp) ? { kind: "totp", code: totp } : { kind: "passkey" },
-      }),
+      runSendFlow(
+        invoiceId,
+        {
+          onStep: setStep,
+          chooseAuthorization: async () =>
+            useTotp && /^\d{6}$/.test(totp) ? { kind: "totp", code: totp } : { kind: "passkey" },
+        },
+        channel,
+      ),
     onSettled: async () => {
       setStep(null);
       await Promise.all([
@@ -48,6 +68,8 @@ export function SendSheet({ invoiceId, open, onOpenChange, summary, onSent }: Se
 
   const error = run.error;
   const busy = run.isPending;
+  const manual = channel === "manual";
+  const steps = manual ? SEND_STEPS.filter((s) => MANUAL_STEPS.includes(s)) : SEND_STEPS;
 
   return (
     <Sheet
@@ -55,7 +77,7 @@ export function SendSheet({ invoiceId, open, onOpenChange, summary, onSent }: Se
       onOpenChange={(next) => {
         if (!busy) onOpenChange(next);
       }}
-      title={t("send.title")}
+      title={t(manual ? "send.manualTitle" : "send.title")}
       description={t("send.review", summary)}
     >
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
@@ -67,7 +89,7 @@ export function SendSheet({ invoiceId, open, onOpenChange, summary, onSent }: Se
 
       {busy ? (
         <ol className="space-y-1 text-sm" aria-label={t("send.progress")}>
-          {SEND_STEPS.map((s) => {
+          {steps.map((s) => {
             const done = step !== null && SEND_STEPS.indexOf(s) < SEND_STEPS.indexOf(step);
             return (
               <li key={s} className="flex items-center gap-2">
@@ -89,7 +111,16 @@ export function SendSheet({ invoiceId, open, onOpenChange, summary, onSent }: Se
 
       {error ? <SendError error={error} /> : null}
 
-      {!busy ? (
+      {!busy && manual ? (
+        <>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={() => run.mutate()}>{t("send.manualConfirm")}</Button>
+          </div>
+          <p className="text-sm text-muted-foreground">{t("send.manualNote")}</p>
+        </>
+      ) : null}
+
+      {!busy && !manual ? (
         <>
           {useTotp ? (
             <Field label={t("send.totp")} hint={t("send.totpHint")} className="max-w-xs">

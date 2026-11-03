@@ -136,6 +136,16 @@ describe("browser send flow", () => {
     });
   });
 
+  it("manual channel reserves, builds and stores the files, then stops before any authorization", async () => {
+    const steps: string[] = [];
+    const result = await runSendFlow("inv-1", { onStep: (s) => steps.push(s) }, "manual");
+    expect(result).toEqual({ messageId: null, fileName: "IT12345678903_00007.xml" });
+    expect(steps).toEqual(["validate", "reserve", "build", "upload"]);
+    expect(mocks.calls).toEqual(["reserve", "pdf", "upload"]);
+    expect(mocks.challenge).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+
   it("stops before reserving when the provisional XML fails the XSD", async () => {
     mocks.check.mockResolvedValueOnce(invalid);
     const error = await runSendFlow("inv-1", hooks).catch((e: unknown) => e as SendFlowError);
