@@ -1,50 +1,12 @@
 // @vitest-environment node
-import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { fixtureToFatturaInput } from "../../shared/fixtures/fatturapa";
 import { INVOICE_FIXTURES } from "../../shared/fixtures/invoices";
 import { formatMoney } from "../../shared/format";
 import type { PaymentTerms } from "../../shared/payment-terms";
 import type { InvoicePdfInput } from "./invoice-model";
+import { extractPages, extractText } from "./pdf-text";
 import { renderInvoicePdf } from "./render";
-
-/**
- * Minimal text extraction, enough for the standard Helvetica fonts the PDF uses: inflate every
- * stream and decode the hex strings of the text-showing operators (WinAnsi, one byte per glyph).
- */
-function extractText(pdf: Uint8Array): string {
-  return extractPages(pdf).join("\n");
-}
-
-/** The text of each page content stream, in page order. */
-function extractPages(pdf: Uint8Array): string[] {
-  const raw = Buffer.from(pdf).toString("latin1");
-  const pages: string[] = [];
-  for (const match of raw.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)) {
-    let content: string;
-    try {
-      content = inflateSync(Buffer.from(match[1] ?? "", "latin1")).toString("latin1");
-    } catch {
-      continue;
-    }
-    const parts: string[] = [];
-    for (const op of content.matchAll(
-      /\[((?:<[0-9a-fA-F]*>|[-\d.\s])*)\]\s*TJ|<([0-9a-fA-F]*)>\s*Tj/g,
-    )) {
-      const hexes = [...(op[1] ?? op[2] ?? "").matchAll(/<([0-9a-fA-F]*)>/g)].map(
-        (m) => m[1] ?? "",
-      );
-      if (op[2] !== undefined) hexes.push(op[2]);
-      parts.push(
-        hexes
-          .map((h) => Buffer.from(h, "hex").toString("latin1").replaceAll("\u0080", "€"))
-          .join(""),
-      );
-    }
-    if (parts.length > 0) pages.push(parts.join("\n").replaceAll(" ", " "));
-  }
-  return pages;
-}
 
 function inputFor(id: string): InvoicePdfInput {
   const fixture = INVOICE_FIXTURES.find((f) => f.id === id);

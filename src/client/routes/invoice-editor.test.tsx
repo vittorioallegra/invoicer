@@ -8,12 +8,15 @@ import { ApiError } from "../../shared/errors";
 import { EMPTY_INVOICE_DATA, type InvoiceRecord } from "../../shared/invoice";
 import { createI18n } from "../i18n";
 import { emptyForm, emptyLine, type InvoiceForm } from "../lib/invoice-form";
+import { SentContentError } from "../pdf/sent-content";
 import { createAppRouter } from "../router";
 
 const mocks = vi.hoisted(() => ({
   api: vi.fn(),
   runSend: vi.fn(),
   downloadUrl: vi.fn(),
+  downloadBytes: vi.fn(),
+  renderSentPdf: vi.fn(),
 }));
 
 vi.mock("../lib/auth-client", () => ({
@@ -27,7 +30,11 @@ vi.mock("../lib/auth-client", () => ({
   },
 }));
 vi.mock("../lib/api", () => ({ api: mocks.api }));
-vi.mock("../lib/invoice-download", () => ({ downloadUrl: mocks.downloadUrl }));
+vi.mock("../lib/invoice-download", () => ({
+  downloadUrl: mocks.downloadUrl,
+  downloadBytes: mocks.downloadBytes,
+}));
+vi.mock("../pdf/generate", () => ({ renderSentInvoicePdf: mocks.renderSentPdf }));
 vi.mock("../lib/send-flow", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../lib/send-flow")>()),
   runSendFlow: mocks.runSend,
@@ -276,6 +283,8 @@ beforeEach(() => {
   mocks.api.mockReset();
   mocks.runSend.mockReset();
   mocks.downloadUrl.mockReset();
+  mocks.downloadBytes.mockReset();
+  mocks.renderSentPdf.mockReset();
   proposal = 8;
   lastIssueDate = null;
 });
@@ -1027,11 +1036,42 @@ describe("Invoice editor", () => {
     ]);
     fireEvent.click(screen.getByRole("menuitem", { name: "Download XML" }));
     expect(mocks.downloadUrl).toHaveBeenCalledWith("/api/invoices/i1/xml");
+    expect(mocks.renderSentPdf).not.toHaveBeenCalled();
     // Nothing else sits on the page: no Delete, no Save, no separate buttons.
     expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Duplicate" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Create credit note" })).toBeNull();
+  });
+
+  it("renders Download PDF fresh from the sent content and saves it under the invoice name", async () => {
+    serve({
+      invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
+    });
+    const bytes = new Uint8Array([1, 2, 3]);
+    mocks.renderSentPdf.mockResolvedValue({ bytes, fileName: "invoice-7-acme-srl.pdf" });
+    await renderEditor("/invoices/i1");
+    await screen.findByText("No. 7/2026");
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Download PDF" }));
+    await waitFor(() =>
+      expect(mocks.downloadBytes).toHaveBeenCalledWith(bytes, "invoice-7-acme-srl.pdf"),
+    );
+    expect(mocks.renderSentPdf).toHaveBeenCalledWith("i1");
+    expect(mocks.downloadUrl).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the stored PDF when the invoice no longer matches its XML", async () => {
+    serve({
+      invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
+    });
+    mocks.renderSentPdf.mockRejectedValue(new SentContentError("differs"));
+    await renderEditor("/invoices/i1");
+    await screen.findByText("No. 7/2026");
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Download PDF" }));
+    await waitFor(() => expect(mocks.downloadUrl).toHaveBeenCalledWith("/api/invoices/i1/pdf"));
+    expect(mocks.downloadBytes).not.toHaveBeenCalled();
   });
 
   it("closes the actions menu with Escape", async () => {

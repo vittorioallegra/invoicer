@@ -1,9 +1,11 @@
 import type { ClientRecord } from "../../shared/client";
 import type { FatturaIssuer } from "../../shared/fatturapa";
 import { type InvoiceRecord, invoiceLanguage } from "../../shared/invoice";
+import { invoicePdfFileName } from "../../shared/pdf-name";
 import { api } from "../lib/api";
 import type { ProfileResponse } from "../lib/settings-api";
 import type { InvoicePdfInput } from "./invoice-model";
+import { pdfInputFromSentXml, SentContentError } from "./sent-content";
 
 export type PdfPreparationError = "not_numbered" | "no_client" | "no_profile";
 
@@ -93,4 +95,31 @@ export async function generateAndStoreInvoicePdf(invoiceId: string): Promise<Sto
     body: bytes as BodyInit,
   });
   return file;
+}
+
+export interface SentPdf {
+  bytes: Uint8Array;
+  fileName: string;
+}
+
+/**
+ * Renders the PDF of a sent invoice with the current layout, from the content of its stored XML
+ * (see `pdfInputFromSentXml`), for download only. Throws `SentContentError` when the invoice no
+ * longer matches its XML; the caller then falls back to the stored PDF.
+ */
+export async function renderSentInvoicePdf(invoiceId: string): Promise<SentPdf> {
+  const [{ invoice }, { clients }, response] = await Promise.all([
+    api<{ invoice: InvoiceRecord }>(`/api/invoices/${invoiceId}`),
+    api<{ clients: ClientRecord[] }>("/api/clients"),
+    fetch(`/api/invoices/${invoiceId}/xml`, { credentials: "same-origin" }),
+  ]);
+  if (!response.ok) throw new SentContentError("unreadable_xml");
+  const client = clients.find((c) => c.id === invoice.clientId);
+  if (!client || !invoice.number) throw new PdfError(client ? "not_numbered" : "no_client");
+  const input = pdfInputFromSentXml(await response.text(), invoice, client);
+  const { renderInvoicePdf } = await import("./render");
+  return {
+    bytes: await renderInvoicePdf(input),
+    fileName: invoicePdfFileName(invoice.number, input.client.name),
+  };
 }
