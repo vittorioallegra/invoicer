@@ -64,6 +64,8 @@ function issuerLines(issuer: FatturaIssuer, t: TFunction): string[] {
     ...addressLines(issuer),
     t("pdf.vatNumber", { value: `${issuer.country}${issuer.vatNumber}` }),
     ...(issuer.taxCode ? [t("pdf.taxCode", { value: issuer.taxCode })] : []),
+    ...(issuer.email ? [t("pdf.email", { value: issuer.email })] : []),
+    ...(issuer.phone ? [t("pdf.phone", { value: issuer.phone })] : []),
   ];
 }
 

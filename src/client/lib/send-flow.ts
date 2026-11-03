@@ -81,6 +81,8 @@ const toIssuer = (profile: ProfileResponse): FatturaIssuer => ({
   city: profile.city ?? "",
   province: profile.province,
   country: profile.country,
+  email: profile.email,
+  phone: profile.phone,
   regimeFiscale: profile.regimeFiscale as FatturaIssuer["regimeFiscale"],
 });
 

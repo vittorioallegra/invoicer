@@ -43,6 +43,18 @@ describe("invoice PDF layout", () => {
     }
   });
 
+  it("prints the issuer email and phone under the tax ids only when set", async () => {
+    const base = inputFor("b");
+    const without = extractText(await renderInvoicePdf(base));
+    expect(without).not.toContain("Email:");
+    expect(without).not.toContain("Tel.:");
+    const issuer = { ...base.issuer, email: "info@studio.it", phone: "+39 366 593 1825" };
+    const text = extractText(await renderInvoicePdf({ ...base, issuer }));
+    expect(text).toContain("Email: info@studio.it");
+    expect(text).toContain("Tel.: +39 366 593 1825");
+    expect(text.indexOf("Email: info@studio.it")).toBeLessThan(text.indexOf("Tel.:"));
+  });
+
   it("prints the due date once, in the payment block, and no amount line there", async () => {
     const text = extractText(await renderInvoicePdf(inputFor("c")));
     expect(text.match(/20 May 2026/g)).toHaveLength(1);

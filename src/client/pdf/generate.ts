@@ -57,6 +57,8 @@ export async function loadInvoicePdfInput(
       city: profile.city ?? "",
       province: profile.province,
       country: profile.country,
+      email: profile.email,
+      phone: profile.phone,
       regimeFiscale: profile.regimeFiscale as FatturaIssuer["regimeFiscale"],
     },
     client,
@@ -108,15 +110,16 @@ export interface SentPdf {
  * longer matches its XML; the caller then falls back to the stored PDF.
  */
 export async function renderSentInvoicePdf(invoiceId: string): Promise<SentPdf> {
-  const [{ invoice }, { clients }, response] = await Promise.all([
+  const [{ invoice }, { clients }, { profile }, response] = await Promise.all([
     api<{ invoice: InvoiceRecord }>(`/api/invoices/${invoiceId}`),
     api<{ clients: ClientRecord[] }>("/api/clients"),
+    api<{ profile: ProfileResponse | null }>("/api/profile"),
     fetch(`/api/invoices/${invoiceId}/xml`, { credentials: "same-origin" }),
   ]);
   if (!response.ok) throw new SentContentError("unreadable_xml");
   const client = clients.find((c) => c.id === invoice.clientId);
   if (!client || !invoice.number) throw new PdfError(client ? "not_numbered" : "no_client");
-  const input = pdfInputFromSentXml(await response.text(), invoice, client);
+  const input = pdfInputFromSentXml(await response.text(), invoice, client, profile?.phone ?? null);
   const { renderInvoicePdf } = await import("./render");
   return {
     bytes: await renderInvoicePdf(input),

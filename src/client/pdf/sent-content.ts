@@ -9,6 +9,7 @@ import {
   type ReceivedParty,
 } from "../../shared/fatturapa";
 import { type InvoiceRecord, invoiceLanguage } from "../../shared/invoice";
+import { phoneForXml } from "../../shared/profile";
 import type { InvoicePdfInput } from "./invoice-model";
 
 /** The stored XML does not describe the invoice as it is now (edited after the last attempt). */
@@ -22,7 +23,12 @@ export class SentContentError extends Error {
 /** XML placeholders for a foreign party without a tax id (see the builder); not real ids. */
 const FOREIGN_ID_FALLBACKS = new Set(["99999999999", "0000000"]);
 
-function issuerFromXml(party: ReceivedParty): FatturaIssuer {
+function issuerFromXml(party: ReceivedParty, currentPhone: string | null): FatturaIssuer {
+  // The XML holds the digits only; print the number as typed when it is still the one sent.
+  const phone =
+    party.phone && currentPhone && phoneForXml(currentPhone) === party.phone
+      ? currentPhone
+      : party.phone;
   return {
     name: party.name,
     vatNumber: party.vatId?.code ?? "",
@@ -32,6 +38,8 @@ function issuerFromXml(party: ReceivedParty): FatturaIssuer {
     city: party.address.city,
     province: party.address.province,
     country: party.vatId?.country ?? party.address.country,
+    email: party.email,
+    phone,
     regimeFiscale: (party.regimeFiscale ?? "RF01") as FatturaIssuer["regimeFiscale"],
   };
 }
@@ -77,11 +85,14 @@ function clientFromXml(
  * from the invoice record. The XML is then rebuilt from that input and must equal the stored file
  * byte for byte; otherwise the record no longer describes what was sent and this throws
  * `SentContentError("differs")`, so the PDF can never show something the XML does not say.
+ * `currentPhone` is the company phone as typed on the profile: it is printed instead of the XML's
+ * digits only while it still maps to that XML value.
  */
 export function pdfInputFromSentXml(
   xml: string,
   invoice: InvoiceRecord,
   currentClient: ClientRecord,
+  currentPhone: string | null = null,
 ): InvoicePdfInput {
   let parsed: ReturnType<typeof parseFatturaXml>;
   try {
@@ -93,7 +104,7 @@ export function pdfInputFromSentXml(
   if (progressive === null || !invoice.number || !invoice.issueDate) {
     throw new SentContentError("unreadable_xml");
   }
-  const issuer = issuerFromXml(parsed.supplier);
+  const issuer = issuerFromXml(parsed.supplier, currentPhone);
   const client = clientFromXml(parsed.customer, parsed.transmission, currentClient);
   const linked =
     invoice.linked?.number && invoice.linked.issueDate

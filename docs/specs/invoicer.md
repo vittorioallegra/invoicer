@@ -117,7 +117,12 @@ settle the open ones):
 2. **First run:** create the owner account (requires the deploy's setup token) and register
    the passkey; set the fallback password + TOTP.
 3. **Company (the issuer profile):** name or company name, partita IVA, codice fiscale,
-   address. It holds no invoice number: the number is set on the invoice (see Numbering). It
+   address, and optional contacts (email, phone). The email is the company's contact address, not the
+   courtesy-email sender (see Email settings). The phone is stored and printed as typed (digits, spaces,
+   dots, dashes, parentheses, a leading + or 00); the XML `Telefono` (TelFaxType, 5 to 12 characters)
+   is derived from it: digits only, the +/00 prefix dropped, then the Italian code 39 dropped if
+   still over 12 digits; saving fails if no 5 to 12 digit value results. The email follows
+   `EmailContattiType` (7 to 256 characters). It holds no invoice number: the number is set on the invoice (see Numbering). It
    holds no bank data (see Payment methods below) and no default payment terms:
    those are set on each invoice (clients keep their own defaults).
 3a. **Tax details** (Settings, Tax details): the owner's fiscal options. The regime fiscale
@@ -535,7 +540,8 @@ settle the open ones):
 
 - PDF of each issued invoice in the invoice's language (IT or EN, set per invoice and prefilled from the client), with all FatturaPA data
   relevant to the reader: sender ("Mittente" / "From") and recipient ("Destinatario" / "To")
-  data (no tax regime line), lines, natura and its legal reference, the invoice notes, and
+  data (no tax regime line; the sender block also shows the company email and phone, only when set, and the XML
+  carries them in `CedentePrestatore/Contatti`; the fresh PDF takes them from the sent XML, printing the phone as typed while the profile still maps to the sent value), lines, natura and its legal reference, the invoice notes, and
   the note that the legally valid invoice is the electronic one sent to SdI. There is no VAT
   summary table and the header holds only the title and the number and date. Payment (method,
   holder, bank, IBAN, BIC/SWIFT, due date; no terms, no amount line) and the totals recap

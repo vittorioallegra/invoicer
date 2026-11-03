@@ -447,6 +447,7 @@ Approved: yes (2026-11-02)
   - Preview PDF appeared to do nothing — `fix(pdf): make the PDF preview reliable with a download fallback`
 
 ### Decisions
+- Company email and phone: optional, sent in CedentePrestatore/Contatti and printed under the sender (owner's choice). The phone is kept as typed; the XML value is its digits (no +/00, Italian 39 dropped if over 12 digits).
 - View-mode actions in a "⋯" menu (Edit, Duplicate, Credit note, Payment, Download PDF/XML, Delete); Finalize stays a button (owner's choice).
 - Invoice page has a view mode (actions: Duplicate, Delete, Edit, Finalize) and an edit mode (Cancel, Save at the bottom); new and duplicated invoices open in edit mode (owner's choice, 2026-11-03).
 - Custom Radix Select and react-day-picker DatePicker on desktop, native controls on phones (owner's choice, 2026-11-03); `@radix-ui/react-select`, `@radix-ui/react-popover` and `react-day-picker` pinned. The Radix Select omits `Select.Viewport` because it injects an inline `<style>` the CSP blocks.

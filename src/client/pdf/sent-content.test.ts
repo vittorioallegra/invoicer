@@ -56,6 +56,32 @@ describe("PDF input from the sent XML", () => {
     },
   );
 
+  it("prints the issuer contacts parsed from the XML, and rebuilds an old XML without them", async () => {
+    const fixture = INVOICE_FIXTURES.find((f) => f.id === "b");
+    if (!fixture) throw new Error("fixture b");
+    const base = sent("b");
+    const plain = extractText(
+      await renderInvoicePdf(pdfInputFromSentXml(base.xml, base.invoice, base.client)),
+    );
+    expect(plain).not.toContain("Email:");
+    expect(plain).not.toContain("Tel.:");
+
+    const input = fixtureToFatturaInput(fixture, 7);
+    const issuer = { ...input.issuer, email: "info@studio.it", phone: "+39 366 593 1825" };
+    const { xml } = buildFatturaXml({ ...input, issuer });
+    const pdf = pdfInputFromSentXml(xml, base.invoice, base.client);
+    expect(pdf.issuer).toMatchObject({ email: "info@studio.it", phone: "393665931825" });
+    expect(extractText(await renderInvoicePdf(pdf))).toContain("Tel.: 393665931825");
+    // While the profile still holds the number that was sent, it prints as typed.
+    const typed = pdfInputFromSentXml(xml, base.invoice, base.client, "+39 366 593 1825");
+    const text = extractText(await renderInvoicePdf(typed));
+    expect(text).toContain("Email: info@studio.it");
+    expect(text).toContain("Tel.: +39 366 593 1825");
+    // A number changed since falls back to the XML value.
+    const changed = pdfInputFromSentXml(xml, base.invoice, base.client, "06 1234567");
+    expect(changed.issuer.phone).toBe("393665931825");
+  });
+
   it("ignores a client renamed after the invoice was sent", async () => {
     const { xml, invoice, client } = sent("b");
     const renamed = { ...client, name: "Renamed Holding Ltd", address: "Via Nuova 99" };
