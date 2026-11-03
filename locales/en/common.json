@@ -565,7 +565,7 @@
       "save": "Save payment status"
     },
     "actions": {
-      "title": "Actions",
+      "download": "Download",
       "saveDraft": "Save draft",
       "save": "Save",
       "send": "Send",
@@ -611,11 +611,11 @@
       "reissues": "This invoice reissues a rejected one.",
       "openOriginal": "View the rejected invoice"
     },
-    "pdf": {
-      "preview": "Preview PDF",
-      "failed": "The PDF could not be generated. Try again.",
-      "ready": "If no tab opened or it stays blank,",
-      "download": "download the PDF"
+    "download": {
+      "fixFirst": "Fix the errors in the form first.",
+      "completeFirst": "Complete the invoice first.",
+      "xmlInvalid": "The invoice file is not valid yet. Complete the invoice and try again.",
+      "failed": "The file could not be generated. Try again."
     }
   },
   "fatturapa": {

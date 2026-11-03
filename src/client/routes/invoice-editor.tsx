@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Copy, FileMinus, Pencil, Send, Trash2, Upload } from "lucide-react";
+import { Copy, Download, FileMinus, Pencil, Send, Trash2, Upload } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ClientRecord } from "../../shared/client";
@@ -42,11 +42,13 @@ import { Disclosure } from "../components/ui/disclosure";
 import { Field } from "../components/ui/field";
 import { GroupBox } from "../components/ui/group-box";
 import { Input } from "../components/ui/input";
+import { MenuButton } from "../components/ui/menu-button";
 import { Select } from "../components/ui/select";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Textarea } from "../components/ui/textarea";
 import { toast } from "../components/ui/toast";
 import { clientsQuery } from "../lib/clients-api";
+import { buildUnsentXml, downloadUrl, renderUnsentPdf, saveFile } from "../lib/invoice-download";
 import {
   applyDefaults,
   effectiveDueDate,
@@ -76,8 +78,8 @@ import {
   updateInvoice,
 } from "../lib/invoices-api";
 import { useOnline } from "../lib/online";
-import { previewPdf } from "../lib/pdf-preview";
 import { sdiErrorLine } from "../lib/sdi-error";
+import { SendFlowError } from "../lib/send-flow";
 import {
   fieldErrorsFromDetail,
   numberingSeriesQuery,
@@ -86,7 +88,6 @@ import {
   profileQuery,
   taxQuery,
 } from "../lib/settings-api";
-import { renderInvoicePdfFor } from "../pdf/generate";
 
 /** Select value for payment details that match no current account. */
 const SNAPSHOT = "__snapshot__";
@@ -389,17 +390,40 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     onError: () => toast.error(t("invoice.reserved.releaseFailed")),
   });
 
-  // The PDF is rendered in the browser; the tab is opened by the click itself (see previewPdf).
-  // The link below stays as a reliable way to get the file when the viewer stays blank.
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const preview = useMutation({
-    mutationFn: (id: string) =>
-      previewPdf(() => renderInvoicePdfFor(id), `invoice-${record?.number ?? id}.pdf`),
-    onSuccess: ({ url }) => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(url);
+  // Files of an invoice that is not sent yet are built in the browser from what is on screen
+  // (saved first); the stored files of a sent invoice come from the Worker.
+  const unsent = record?.state === "draft" || record?.state === "planned";
+  const download = useMutation({
+    mutationFn: async (kind: "pdf" | "xml") => {
+      if (!record) return;
+      if (!unsent) {
+        downloadUrl(`/api/invoices/${record.id}/${kind}`);
+        return;
+      }
+      if (!structural.ok) return;
+      await save.mutateAsync(structural.body);
+      if (kind === "pdf") {
+        saveFile(
+          await renderUnsentPdf(record.id),
+          `invoice-${record.number ?? record.id}.pdf`,
+          "application/pdf",
+        );
+      } else {
+        const built = await buildUnsentXml(record.id);
+        saveFile(built.xml, built.fileName, "application/xml");
+      }
     },
-    onError: () => toast.error(t("invoice.pdf.failed")),
+    onError: (error) => {
+      // A failed save already showed its own toast.
+      if (error instanceof ApiError) return;
+      toast.error(
+        t(
+          error instanceof SendFlowError && error.code === "invalid_xml"
+            ? "invoice.download.xmlInvalid"
+            : "invoice.download.failed",
+        ),
+      );
+    },
   });
 
   const [sendOpen, setSendOpen] = useState(false);
@@ -481,95 +505,77 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     });
   }
 
-  return (
-    <Page title={t(record ? "invoice.editTitle" : "invoice.newTitle")} aside={printedNumber}>
-      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
-        <div
-          role="toolbar"
-          aria-label={t("invoice.actions.title")}
-          className="flex flex-wrap gap-2"
-        >
-          {locked ? null : (
-            <>
-              <Button
-                type="button"
-                variant={send.ready ? "default" : "secondary"}
-                disabled={!online || !record || !send.ready || !issuing.ok || save.isPending}
-                title={record ? undefined : t("send.saveFirst")}
-                onClick={() => void startSend("pec")}
-              >
-                <Send aria-hidden />
-                {t(
-                  record?.state === "rejected"
-                    ? "invoice.actions.fixResend"
-                    : "invoice.actions.send",
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant={send.ready ? "secondary" : "default"}
-                disabled={
-                  !online ||
-                  !record ||
-                  send.reasons.includes("profile_incomplete") ||
-                  !issuing.ok ||
-                  save.isPending
-                }
-                title={record ? undefined : t("send.saveFirst")}
-                onClick={() => void startSend("manual")}
-              >
-                <Upload aria-hidden />
-                {t("invoice.actions.prepareManual")}
-              </Button>
-              <Button type="submit" variant="secondary" disabled={!online || save.isPending}>
-                {t(record ? "invoice.actions.save" : "invoice.actions.saveDraft")}
-              </Button>
-            </>
-          )}
-          {record ? (
-            <Button
-              variant="ghost"
-              disabled={!online || duplicate.isPending}
-              onClick={() => duplicate.mutate(record.id)}
-            >
-              <Copy aria-hidden />
-              {t("invoice.actions.duplicate")}
-            </Button>
-          ) : null}
-          {record &&
-          record.documentType === "TD01" &&
-          (record.state === "delivered" || record.state === "not_delivered") ? (
-            <Button
-              variant="ghost"
-              disabled={!online || creditNote.isPending}
-              onClick={() => creditNote.mutate(record.id)}
-            >
-              <FileMinus aria-hidden />
-              {t("invoice.actions.creditNote")}
-            </Button>
-          ) : null}
-          {record && (record.state === "draft" || record.state === "planned") && !confirmDelete ? (
-            <Button
-              variant="ghost"
-              className="ml-auto text-danger"
-              onClick={() => setConfirmDelete(true)}
-            >
-              <Trash2 aria-hidden />
-              {t("invoice.actions.delete")}
-            </Button>
-          ) : null}
-          {record && confirmDelete ? (
-            <Button
-              variant="destructive"
-              className="ml-auto"
-              disabled={!online || remove.isPending}
-              onClick={() => remove.mutate(record.id)}
-            >
-              {t("invoice.actions.deleteConfirm")}
-            </Button>
-          ) : null}
-        </div>
+  const offlineReason = online ? undefined : t("offline.reason");
+  const downloadBusy = download.isPending || save.isPending;
+  const unsentReason = (kind: "pdf" | "xml"): string | undefined => {
+    if (offlineReason) return offlineReason;
+    if (!record) return t("send.saveFirst");
+    if (!unsent) return undefined;
+    if (kind === "pdf") return structural.ok ? undefined : t("invoice.download.fixFirst");
+    return issuing.ok ? undefined : t("invoice.download.completeFirst");
+  };
+  const downloadItems = (["pdf", "xml"] as const).map((kind) => {
+    const reason = unsentReason(kind);
+    return {
+      key: kind,
+      label: kind.toUpperCase(),
+      disabled: reason !== undefined || downloadBusy,
+      reason,
+      onSelect: () => download.mutate(kind),
+    };
+  });
+  const manualReason = (() => {
+    if (offlineReason) return offlineReason;
+    if (!record) return t("send.saveFirst");
+    if (send.reasons.includes("profile_incomplete"))
+      return t("onboarding.reasons.profile_incomplete");
+    if (!issuing.ok) return t("invoice.download.completeFirst");
+    return undefined;
+  })();
+  const titleActions =
+    record || !locked ? (
+      <>
+        <MenuButton
+          label={t("invoice.actions.download")}
+          icon={<Download aria-hidden />}
+          items={[
+            ...downloadItems,
+            ...(locked
+              ? []
+              : [
+                  {
+                    key: "manual",
+                    label: t("invoice.actions.prepareManual"),
+                    icon: <Upload aria-hidden />,
+                    separated: true,
+                    disabled: manualReason !== undefined || save.isPending,
+                    reason: manualReason,
+                    onSelect: () => void startSend("manual"),
+                  },
+                ]),
+          ]}
+        />
+        {locked ? null : (
+          <Button
+            type="button"
+            disabled={!online || !record || !send.ready || !issuing.ok || save.isPending}
+            title={record ? undefined : t("send.saveFirst")}
+            onClick={() => void startSend("pec")}
+          >
+            <Send aria-hidden />
+            {t(record?.state === "rejected" ? "invoice.actions.fixResend" : "invoice.actions.send")}
+          </Button>
+        )}
+      </>
+    ) : null;
 
+  return (
+    <Page
+      title={t(record ? "invoice.editTitle" : "invoice.newTitle")}
+      subtitle={printedNumber}
+      aside={titleActions}
+    >
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
         {record ? (
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <StatusBadge status={record.state} />
@@ -577,17 +583,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               <span className="text-muted-foreground">
                 {t("invoice.issuedOn", { date: formatDate(record.issueDate, locale) })}
               </span>
-            ) : null}
-            {record.number ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                type="button"
-                disabled={!online || preview.isPending}
-                onClick={() => preview.mutate(record.id)}
-              >
-                {t("invoice.pdf.preview")}
-              </Button>
             ) : null}
           </div>
         ) : null}
@@ -600,18 +595,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           />
         ) : null}
 
-        {previewUrl ? (
-          <Banner tone="info">
-            {t("invoice.pdf.ready")}{" "}
-            <a
-              className="font-medium underline"
-              href={previewUrl}
-              download={`invoice-${record?.number ?? "preview"}.pdf`}
-            >
-              {t("invoice.pdf.download")}
-            </a>
-          </Banner>
-        ) : null}
         {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
         {locked ? <Banner tone="info">{t("invoice.readOnly")}</Banner> : null}
         {record?.numberReserved ? (
@@ -1207,6 +1190,56 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             </ul>
           </Banner>
         ) : null}
+
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {record && unsent && !confirmDelete ? (
+            <Button
+              variant="ghost"
+              className="mr-auto text-danger"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 aria-hidden />
+              {t("invoice.actions.delete")}
+            </Button>
+          ) : null}
+          {record && unsent && confirmDelete ? (
+            <Button
+              variant="destructive"
+              className="mr-auto"
+              disabled={!online || remove.isPending}
+              onClick={() => remove.mutate(record.id)}
+            >
+              {t("invoice.actions.deleteConfirm")}
+            </Button>
+          ) : null}
+          {record ? (
+            <Button
+              variant="secondary"
+              disabled={!online || duplicate.isPending}
+              onClick={() => duplicate.mutate(record.id)}
+            >
+              <Copy aria-hidden />
+              {t("invoice.actions.duplicate")}
+            </Button>
+          ) : null}
+          {record &&
+          record.documentType === "TD01" &&
+          (record.state === "delivered" || record.state === "not_delivered") ? (
+            <Button
+              variant="secondary"
+              disabled={!online || creditNote.isPending}
+              onClick={() => creditNote.mutate(record.id)}
+            >
+              <FileMinus aria-hidden />
+              {t("invoice.actions.creditNote")}
+            </Button>
+          ) : null}
+          {locked ? null : (
+            <Button type="submit" disabled={!online || save.isPending}>
+              {t(record ? "invoice.actions.save" : "invoice.actions.saveDraft")}
+            </Button>
+          )}
+        </div>
 
         <InvoiceTotals totals={totals} form={form} locale={locale} />
 

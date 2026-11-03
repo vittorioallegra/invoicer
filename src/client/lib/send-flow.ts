@@ -84,7 +84,7 @@ const toIssuer = (profile: ProfileResponse): FatturaIssuer => ({
   regimeFiscale: profile.regimeFiscale as FatturaIssuer["regimeFiscale"],
 });
 
-function fatturaInput(
+export function fatturaInput(
   invoice: InvoiceRecord,
   client: ClientRecord,
   profile: ProfileResponse,
@@ -134,6 +134,28 @@ async function releaseAfterFailure(invoiceId: string): Promise<boolean> {
 }
 
 /**
+ * The number an unnumbered invoice would get now: the one the owner asked for, else the next free
+ * one of its series, formatted with the series prefix and suffix.
+ */
+export async function provisionalNumberFor(
+  invoice: InvoiceRecord,
+  today = romeDateTime(new Date()).date,
+): Promise<string> {
+  const [next, { series }] = await Promise.all([
+    invoice.requestedNumber
+      ? Promise.resolve(invoice.requestedNumber)
+      : nextNumberQuery(Number(today.slice(0, 4)), invoice.seriesId)
+          .queryFn()
+          .then((proposal) => proposal.next),
+    numberingSeriesQuery.queryFn(),
+  ]);
+  return formatInvoiceNumber(
+    series.find((s) => s.id === invoice.seriesId) ?? { prefix: null, suffix: null },
+    next,
+  );
+}
+
+/**
  * The browser side of a send (plan step 12), in order: review data -> XSD validation with the
  * provisional next number -> the Worker reserves the number and sets `sending` -> the final XML
  * and the PDF are built and stored -> the final XML is validated again (a failure releases the
@@ -162,18 +184,7 @@ export async function runSendFlow(
     // Provisional number (the one the owner asked for, else the next free one) and today's date:
     // catches what the XSD would refuse before a number is used.
     const today = romeDateTime(new Date()).date;
-    const [next, { series }] = await Promise.all([
-      invoice.requestedNumber
-        ? Promise.resolve(invoice.requestedNumber)
-        : nextNumberQuery(Number(today.slice(0, 4)), invoice.seriesId)
-            .queryFn()
-            .then((proposal) => proposal.next),
-      numberingSeriesQuery.queryFn(),
-    ]);
-    const provisionalNumber = formatInvoiceNumber(
-      series.find((s) => s.id === invoice.seriesId) ?? { prefix: null, suffix: null },
-      next,
-    );
+    const provisionalNumber = await provisionalNumberFor(invoice, today);
     const provisional = buildFatturaXml(
       fatturaInput(invoice, client, profile, provisionalNumber, today, 0),
     );

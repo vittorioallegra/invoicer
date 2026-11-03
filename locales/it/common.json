@@ -565,7 +565,7 @@
       "save": "Salva stato di pagamento"
     },
     "actions": {
-      "title": "Azioni",
+      "download": "Scarica",
       "saveDraft": "Salva bozza",
       "save": "Salva",
       "send": "Invia",
@@ -611,11 +611,11 @@
       "reissues": "Questa fattura riemette una fattura scartata.",
       "openOriginal": "Vedi la fattura scartata"
     },
-    "pdf": {
-      "preview": "Anteprima PDF",
-      "failed": "Impossibile generare il PDF. Riprova.",
-      "ready": "Se non si è aperta nessuna scheda o resta vuota,",
-      "download": "scarica il PDF"
+    "download": {
+      "fixFirst": "Correggi prima gli errori nel modulo.",
+      "completeFirst": "Completa prima la fattura.",
+      "xmlInvalid": "Il file della fattura non è ancora valido. Completa la fattura e riprova.",
+      "failed": "Impossibile generare il file. Riprova."
     }
   },
   "fatturapa": {

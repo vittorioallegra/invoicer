@@ -9,7 +9,14 @@ import { EMPTY_INVOICE_DATA, type InvoiceRecord } from "../../shared/invoice";
 import { createI18n } from "../i18n";
 import { createAppRouter } from "../router";
 
-const mocks = vi.hoisted(() => ({ api: vi.fn(), runSend: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  api: vi.fn(),
+  runSend: vi.fn(),
+  saveFile: vi.fn(),
+  downloadUrl: vi.fn(),
+  buildXml: vi.fn(),
+  renderPdf: vi.fn(),
+}));
 
 vi.mock("../lib/auth-client", () => ({
   authClient: {
@@ -22,6 +29,12 @@ vi.mock("../lib/auth-client", () => ({
   },
 }));
 vi.mock("../lib/api", () => ({ api: mocks.api }));
+vi.mock("../lib/invoice-download", () => ({
+  saveFile: mocks.saveFile,
+  downloadUrl: mocks.downloadUrl,
+  buildUnsentXml: mocks.buildXml,
+  renderUnsentPdf: mocks.renderPdf,
+}));
 vi.mock("../lib/send-flow", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../lib/send-flow")>()),
   runSendFlow: mocks.runSend,
@@ -214,6 +227,10 @@ const loaded = () => screen.findByRole("combobox", { name: "Client" });
 beforeEach(() => {
   mocks.api.mockReset();
   mocks.runSend.mockReset();
+  mocks.saveFile.mockReset();
+  mocks.downloadUrl.mockReset();
+  mocks.buildXml.mockReset();
+  mocks.renderPdf.mockReset();
   proposal = 8;
 });
 afterEach(cleanup);
@@ -684,9 +701,11 @@ describe("Invoice editor", () => {
     type("Description", "Consulting");
     type("Unit price", "50");
     expect((screen.getByRole("button", { name: "Send" }) as HTMLButtonElement).disabled).toBe(true);
-    // No saved record yet, so the button is present but waits for the first save.
-    const manual = screen.getByRole("button", { name: "Prepare for the AdE portal" });
-    expect(manual).toBeTruthy();
+    // No saved record yet, so the item is present but waits for the first save.
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    const manual = screen.getByRole("menuitem", { name: /Prepare for the AdE portal/ });
+    expect(manual.getAttribute("aria-disabled")).toBe("true");
+    expect(within(manual).getByText("Save the invoice first.")).toBeTruthy();
   });
 
   it("shows the client title once: as the select label, with no repeated heading", async () => {
@@ -698,44 +717,83 @@ describe("Invoice editor", () => {
     expect(screen.getByRole("region", { name: "Client" })).toBeTruthy();
   });
 
-  it("groups the actions in one toolbar under the title and keeps only the totals in the sticky bar", async () => {
+  it("puts Download and Send on the title row and Delete, Duplicate and Save under the form", async () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
     await loaded();
-    const toolbar = screen.getByRole("toolbar", { name: "Actions" });
-    const names = within(toolbar)
-      .getAllByRole("button")
-      .map((button) => button.textContent);
-    expect(names).toEqual([
-      "Send",
-      "Prepare for the AdE portal",
-      "Save",
-      "Duplicate",
-      "Delete draft",
-    ]);
-    const [send, , save, duplicate, remove] = within(toolbar).getAllByRole("button");
-    expect(send?.className).toContain("bg-primary");
-    expect(save?.className).toContain("border-border");
-    expect(duplicate?.className).toContain("hover:bg-muted");
-    expect(remove?.className).toContain("ml-auto");
-    expect(remove?.className).toContain("text-danger");
-    // The toolbar follows the title; the totals bar has no action buttons.
+    expect(screen.queryByRole("toolbar")).toBeNull();
     const title = screen.getByRole("heading", { level: 1 });
-    expect(title.compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const download = screen.getByRole("button", { name: "Download" });
+    const send = screen.getByRole("button", { name: "Send" });
+    expect(send.className).toContain("bg-primary");
+    // Both follow the title; the footer actions come after the form fields.
+    for (const button of [download, send]) {
+      expect(title.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    const remove = screen.getByRole("button", { name: "Delete draft" });
+    const duplicate = screen.getByRole("button", { name: "Duplicate" });
+    const save = screen.getByRole("button", { name: "Save" });
+    expect(remove.className).toContain("mr-auto");
+    expect(remove.className).toContain("text-danger");
+    expect(
+      remove.compareDocumentPosition(duplicate) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(duplicate.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(send.compareDocumentPosition(remove) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The sticky bar shows totals only.
     const totals = screen.getByRole("region", { name: "Totals" });
     expect(within(totals).getAllByRole("button")).toHaveLength(1);
     // Deleting still asks for a confirmation first.
-    fireEvent.click(remove as HTMLElement);
-    expect(within(toolbar).getByRole("button", { name: "Confirm delete" })).toBeTruthy();
+    fireEvent.click(remove);
+    expect(screen.getByRole("button", { name: "Confirm delete" })).toBeTruthy();
   });
 
-  it("makes Prepare the primary action while the PEC setup blocks Send", async () => {
-    serve({ send: { ready: false, reasons: ["pec_credentials_missing"] } });
-    await renderEditor();
+  it("opens the Download menu with PDF, XML and the AdE preparation, closes it with Escape", async () => {
+    serve({ invoice: record() });
+    await renderEditor("/invoices/i1");
     await loaded();
-    const prepare = screen.getByRole("button", { name: "Prepare for the AdE portal" });
-    expect(prepare.className).toContain("bg-primary");
-    expect(screen.getByRole("button", { name: "Send" }).className).not.toContain("bg-primary");
+    const trigger = screen.getByRole("button", { name: "Download" });
+    expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(trigger);
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    const items = screen.getAllByRole("menuitem").map((item) => item.textContent);
+    expect(items).toEqual(["PDF", "XML", "Prepare for the AdE portal"]);
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it("downloads the XML of an unsent invoice after saving it, and explains a disabled item", async () => {
+    mocks.buildXml.mockResolvedValue({ fileName: "IT123_00000.xml", xml: "<xml/>" });
+    serve({ invoice: record() });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "XML" }));
+    await waitFor(() =>
+      expect(mocks.saveFile).toHaveBeenCalledWith("<xml/>", "IT123_00000.xml", "application/xml"),
+    );
+    expect(mocks.api).toHaveBeenCalledWith(
+      "/api/invoices/i1",
+      expect.objectContaining({ method: "PUT" }),
+    );
+    // Clearing the client makes the form incomplete: the XML item is disabled with the reason.
+    type("Client", "");
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    const xml = screen.getByRole("menuitem", { name: /XML/ });
+    expect(xml.getAttribute("aria-disabled")).toBe("true");
+    expect(within(xml).getByText("Complete the invoice first.")).toBeTruthy();
+  });
+
+  it("keeps Send disabled while the PEC setup blocks it, with Prepare still in the menu", async () => {
+    serve({ invoice: record(), send: { ready: false, reasons: ["pec_credentials_missing"] } });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect((screen.getByRole("button", { name: "Send" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    const prepare = screen.getByRole("menuitem", { name: /Prepare for the AdE portal/ });
+    expect(prepare.getAttribute("aria-disabled")).toBeNull();
   });
 
   it("opens the inline client creation sheet", async () => {

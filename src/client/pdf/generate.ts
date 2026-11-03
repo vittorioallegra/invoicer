@@ -23,14 +23,25 @@ export interface StoredPdf {
   attempt: number;
 }
 
-/** Loads what the PDF prints for an invoice that holds its number. */
-export async function loadInvoicePdfInput(invoiceId: string): Promise<InvoicePdfInput> {
+/** The number and date a PDF prints when the invoice does not hold them yet (a provisional copy). */
+export interface PdfIdentity {
+  number: string;
+  issueDate: string;
+}
+
+/** Loads what the PDF prints for an invoice that holds its number, or the given identity. */
+export async function loadInvoicePdfInput(
+  invoiceId: string,
+  identity?: PdfIdentity,
+): Promise<InvoicePdfInput> {
   const [{ invoice }, { clients }, { profile }] = await Promise.all([
     api<{ invoice: InvoiceRecord }>(`/api/invoices/${invoiceId}`),
     api<{ clients: ClientRecord[] }>("/api/clients"),
     api<{ profile: ProfileResponse | null }>("/api/profile"),
   ]);
-  if (!invoice.number || !invoice.issueDate) throw new PdfError("not_numbered");
+  const number = identity?.number ?? invoice.number;
+  const issueDate = identity?.issueDate ?? invoice.issueDate;
+  if (!number || !issueDate) throw new PdfError("not_numbered");
   const client = clients.find((c) => c.id === invoice.clientId);
   if (!client) throw new PdfError("no_client");
   if (!profile) throw new PdfError("no_profile");
@@ -48,8 +59,8 @@ export async function loadInvoicePdfInput(invoiceId: string): Promise<InvoicePdf
     },
     client,
     invoice,
-    number: invoice.number,
-    issueDate: invoice.issueDate,
+    number,
+    issueDate,
     linked:
       invoice.linked?.number && invoice.linked.issueDate
         ? { number: invoice.linked.number, issueDate: invoice.linked.issueDate }
@@ -58,10 +69,16 @@ export async function loadInvoicePdfInput(invoiceId: string): Promise<InvoicePdf
   };
 }
 
-/** Renders the PDF of a reserved or issued invoice, for viewing only (nothing is stored). */
-export async function renderInvoicePdfFor(invoiceId: string): Promise<Uint8Array> {
+/**
+ * Renders the PDF of a reserved or issued invoice, or of an unnumbered one with a provisional
+ * identity, for download only (nothing is stored).
+ */
+export async function renderInvoicePdfFor(
+  invoiceId: string,
+  identity?: PdfIdentity,
+): Promise<Uint8Array> {
   const { renderInvoicePdf } = await import("./render");
-  return renderInvoicePdf(await loadInvoicePdfInput(invoiceId));
+  return renderInvoicePdf(await loadInvoicePdfInput(invoiceId, identity));
 }
 
 /**
