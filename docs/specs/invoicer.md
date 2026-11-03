@@ -191,14 +191,33 @@ settle the open ones):
   keyboard operable, no drag library); the order is saved and is the XML `NumeroLinea` and PDF
   order. "Add line" sits under the last card. The amount of every line is shown even while
   another line has no VAT yet (only the invoice totals wait for it).
-- Editor actions: the title row has, on the right, a "Download" menu (PDF, XML; and "Prepare for
-  the AdE portal" as its last item) and "Send" as the primary button; under the form Delete (left,
-  ghost, red, with a confirmation, only while the invoice is not sent) and Duplicate, Save and,
-  for an issued invoice, "Create credit note" (right). The printed invoice number is under the
-  title. PDF and XML of an invoice that is not sent yet are built in the browser from what is on
-  screen (saved first) with the number it would get now; the XML item is disabled with a reason
-  until the invoice is complete and valid, and the XSD check runs before the file is offered.
-  The sticky bar shows the amount due and the breakdown only.
+- Save versus Finalize. **Save never validates**: it stores whatever the owner typed, complete or
+  not (no client, no VAT, bad amounts, number rules), and never loses typed input. Only what
+  cannot be stored at all is refused (a body that is not an invoice, an oversized form); a
+  reference to a deleted client or series is dropped. Unreadable values are stored as far as
+  they can be (an amount as 0, an invalid date as none) and the form as typed is stored with the
+  invoice (`editor_form`, raw text), so an unsent invoice reopens exactly as it was left. Inline
+  field errors stay as hints and never block. **Finalize runs every check**, then numbers and
+  sends (below). The Worker repeats the issuing rules before it reserves the number.
+- Editor actions. Before finalisation the title row has one primary "Finalize" button (no Download
+  yet) and under the form are Delete (left, ghost, red, with a confirmation) and Duplicate and
+  Save (right). "Finalize" opens a confirmation dialog: the invoice will be checked (complete
+  client, VAT or natura on every line, natura texts, totals, number rules, the built XML against
+  the XSD, send readiness) and, if valid, numbered, finalised and sent. Confirming runs the
+  checks that need no number first: when any fails, the dialog lists them (each with a link that
+  focuses its field, or a link to the company details) and nothing is saved, numbered or sent.
+  When all pass, what is on screen is saved, then the send flow runs (reserve the number, build
+  and store XML and PDF, passkey or authenticator code, send). The channel is the PEC when it is
+  ready; otherwise the manual AdE channel: the invoice is numbered and finalised, the XML is
+  stored for the owner to upload on the AdE portal (the invoice page offers it) and nothing is
+  sent by the app. After finalisation the Finalize button is gone, the title row has "Download"
+  (PDF and XML, the stored files), and the bottom has only "Duplicate" (and "Create credit
+  note" for an issued invoice); the payment status section stays editable. A rejected invoice
+  stays editable: "Fix & resend" replaces Finalize and Save stays. **Every Save button in the
+  app is disabled until the form differs from what was loaded or last saved** (new-item forms:
+  until something is entered). An invoice page starts with a back link to its list (Home for an
+  unsent invoice, Issued for a sent one). The printed invoice number is under the title. The
+  sticky bar shows the amount due and the breakdown only.
 - Line notes: each line has an optional note. The XML appends it to the line's `Descrizione` after a
   line feed (`description\nnote`); description and note together fit the 1000 characters of
   `Descrizione`, which the editor and the Worker check (`line_text_too_long` on the note).
@@ -377,7 +396,7 @@ settle the open ones):
   force on the AdE site at implementation time (1.2.3 per specifiche tecniche 1.9, to be
   re-checked), validated against the official XSD before sending; validation errors block
   sending and are shown in plain language next to the field.
-- Send flow: review screen with totals → "Send" → number reserved, final XML and PDF built
+- Send flow: "Finalize" → confirmation and checks (see Editor actions) → number reserved, final XML and PDF built
   and stored → passkey check (Face ID) → the Worker verifies it and sends the XML as a PEC
   attachment over SMTP (implicit TLS, port 465), stores the result (message id, file name) and
   moves the invoice to `sent` once the PEC delivery receipt from the SdI mailbox arrives.
