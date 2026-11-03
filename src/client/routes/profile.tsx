@@ -2,13 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../shared/errors";
-import { profileInputSchema, REGIME_FISCALE_CODES } from "../../shared/profile";
+import { profileInputSchema } from "../../shared/profile";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
 import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
-import { Select } from "../components/ui/select";
 import { toast } from "../components/ui/toast";
 import { useOnline } from "../lib/online";
 import {
@@ -28,7 +27,6 @@ interface FormState {
   city: string;
   province: string;
   country: string;
-  regimeFiscale: string;
 }
 
 const EMPTY: FormState = {
@@ -40,7 +38,6 @@ const EMPTY: FormState = {
   city: "",
   province: "",
   country: "IT",
-  regimeFiscale: "RF01",
 };
 
 function fromProfile(p: ProfileResponse): FormState {
@@ -53,7 +50,6 @@ function fromProfile(p: ProfileResponse): FormState {
     city: p.city ?? "",
     province: p.province ?? "",
     country: p.country,
-    regimeFiscale: p.regimeFiscale,
   };
 }
 
@@ -67,7 +63,6 @@ function toBody(f: FormState) {
     city: f.city,
     province: f.province,
     country: f.country,
-    regimeFiscale: f.regimeFiscale,
   };
 }
 
@@ -95,6 +90,7 @@ export function ProfilePage() {
         queryClient.invalidateQueries({ queryKey: ["profile"] }),
         queryClient.invalidateQueries({ queryKey: ["onboarding"] }),
         queryClient.invalidateQueries({ queryKey: ["settings"] }),
+        queryClient.invalidateQueries({ queryKey: ["tax"] }),
       ]);
     },
     onError: (error) => {
@@ -175,17 +171,6 @@ export function ProfilePage() {
                 )}
               </Field>
             </div>
-            <Field label={t("profile.regime")} error={err("regimeFiscale")}>
-              {(c) => (
-                <Select {...c} value={form.regimeFiscale} onChange={set("regimeFiscale")}>
-                  {REGIME_FISCALE_CODES.map((code) => (
-                    <option key={code} value={code}>
-                      {code} - {t(`profile.regimes.${code}`)}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
           </fieldset>
 
           <fieldset className="flex flex-col gap-4">

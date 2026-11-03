@@ -16,6 +16,7 @@ import { paymentMethods } from "./routes/payment-methods";
 import { profile } from "./routes/profile";
 import { send } from "./routes/send";
 import { settings } from "./routes/settings";
+import { tax } from "./routes/tax";
 import { originCheck, securityHeaders } from "./security";
 import { spike } from "./spike/routes";
 
@@ -35,6 +36,7 @@ export function createApp() {
   app.route("/api/clients", clients);
   app.route("/api/payment-methods", paymentMethods);
   app.route("/api/settings", settings);
+  app.route("/api/tax", tax);
   app.route("/api/mailbox", mailbox);
   app.route("/api/export", exportData);
   app.route("/api/onboarding", onboarding);

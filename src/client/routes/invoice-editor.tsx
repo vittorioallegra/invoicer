@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { Copy, FileMinus, Pencil, Send, Trash2, Upload } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { type ClientRecord, RITENUTA_TYPES } from "../../shared/client";
+import type { ClientRecord } from "../../shared/client";
 import { romeDateTime } from "../../shared/cron";
 import { ApiError } from "../../shared/errors";
 import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
@@ -18,6 +18,7 @@ import {
 } from "../../shared/invoice";
 import type { SendReadiness } from "../../shared/onboarding";
 import { maskIban, type PaymentMethodRecord } from "../../shared/payment-method";
+import { RITENUTA_TYPES } from "../../shared/tax";
 import {
   CASSA_TYPE_CODES,
   CAUSALE_PAGAMENTO_CODES,

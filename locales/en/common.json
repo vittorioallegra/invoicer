@@ -157,7 +157,11 @@
     "sections": {
       "profile": {
         "title": "Company",
-        "body": "Your details, tax regime and address"
+        "body": "Your details and address"
+      },
+      "tax": {
+        "title": "Tax details",
+        "body": "Tax regime, pension fund and withholding tax"
       },
       "email": {
         "title": "Email",
@@ -222,13 +226,32 @@
     "vatNumber": "Partita IVA",
     "taxCode": "Codice fiscale",
     "taxCodeHint": "Optional.",
-    "regime": "Tax regime (regime fiscale)",
     "addressTitle": "Registered address",
     "address": "Street and number",
     "postalCode": "Postal code",
     "city": "City",
     "province": "Province",
-    "country": "Country",
+    "country": "Country"
+  },
+  "tax": {
+    "title": "Tax details",
+    "intro": "Your tax regime, pension fund and withholding tax. Clients only choose whether the pension fund and the withholding tax apply; new invoices take the values from here.",
+    "saved": "Tax details saved.",
+    "save": "Save",
+    "regime": "Tax regime (regime fiscale)",
+    "regimeNeedsCompany": "Save your company details first: the regime is stored with them.",
+    "regimeCompanyLink": "Open Company",
+    "none": "None",
+    "pensionFund": "Pension fund contribution",
+    "cassa": "Cassa / rivalsa",
+    "rate": "Rate",
+    "mode": "Applies",
+    "modeAdded": "Added on top of the amount",
+    "modeIncluded": "Included in the amount",
+    "withholding": "Withholding tax (ritenuta d'acconto)",
+    "ritenuta": "Ritenuta",
+    "base": "Taxable base",
+    "reason": "Payment reason",
     "regimes": {
       "RF01": "Ordinary",
       "RF02": "Minimum taxpayers (obsolete)",

@@ -21,6 +21,7 @@ import { ProfilePage } from "./routes/profile";
 import { SettingsPage } from "./routes/settings";
 import { SetupPage } from "./routes/setup";
 import { SpikePage } from "./routes/spike";
+import { TaxPage } from "./routes/tax";
 
 /** Screens without the app shell and without a session: login and first-run setup. */
 const BARE_PATHS = new Set(["/login", "/setup"]);
@@ -58,6 +59,7 @@ const routeTree = rootRoute.addChildren([
       throw redirect({ to: "/settings/company", replace: true });
     },
   }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/settings/tax", component: TaxPage }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/settings/payment-methods",

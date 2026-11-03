@@ -9,10 +9,10 @@ import {
   type ClientType,
   clientInputSchema,
   EMPTY_CLIENT_DEFAULTS,
-  RITENUTA_TYPES,
 } from "../../shared/client";
 import { ApiError } from "../../shared/errors";
 import type { UiLocale } from "../../shared/format";
+import { RITENUTA_TYPES } from "../../shared/tax";
 import {
   CASSA_TYPE_CODES,
   CAUSALE_PAGAMENTO_CODES,

@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { legacyTerms, paymentTermsSchema } from "./payment-terms";
 import { isValidVatNumber } from "./profile";
-import { CASSA_TYPE_CODES, CAUSALE_PAGAMENTO_CODES, NATURA_CODES } from "./totals/types";
+import { cassaDefaultsSchema, ritenutaDefaultsSchema } from "./tax";
+import { NATURA_CODES } from "./totals/types";
 
 export const CLIENT_TYPES = ["it_company", "it_private", "eu_company", "non_eu_company"] as const;
 export type ClientType = (typeof CLIENT_TYPES)[number];
@@ -95,24 +96,7 @@ const emailAddress = z
   .refine((value) => value === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), "invalid_email")
   .transform((value) => value || null);
 
-export const RITENUTA_TYPES = ["RT01", "RT02", "RT03", "RT04", "RT05", "RT06"] as const;
-
 const rateBp = z.number().int().min(0).max(10000);
-
-export const cassaDefaultsSchema = z.object({
-  type: z.enum(["rivalsa_inps", ...CASSA_TYPE_CODES]),
-  rateBp: rateBp.min(1),
-  mode: z.enum(["excluded", "included"]),
-  subjectToRitenuta: z.boolean(),
-});
-
-export const ritenutaDefaultsSchema = z.object({
-  type: z.enum(RITENUTA_TYPES),
-  rateBp: rateBp.min(1),
-  /** Share of the amount subject to ritenuta the rate applies to (10000 = 100%); older rows lack it. */
-  baseBp: rateBp.min(1).default(10000),
-  causale: z.enum(CAUSALE_PAGAMENTO_CODES),
-});
 
 /**
  * Defaults that prefill a new invoice for this client (step 9). Reuses the totals engine types.

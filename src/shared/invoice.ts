@@ -1,14 +1,9 @@
 import { z } from "zod";
-import {
-  type ClientRecord,
-  cassaDefaultsSchema,
-  clientInputSchema,
-  clientRecordToInput,
-  ritenutaDefaultsSchema,
-} from "./client";
+import { type ClientRecord, clientInputSchema, clientRecordToInput } from "./client";
 import type { InvoiceState, PaymentState } from "./invoice-state";
 import { paymentDefaultsSchema } from "./payment-method";
 import { paymentTermsSchema } from "./payment-terms";
+import { cassaDefaultsSchema, ritenutaDefaultsSchema } from "./tax";
 import {
   computeTotals,
   DOCUMENT_TYPES,

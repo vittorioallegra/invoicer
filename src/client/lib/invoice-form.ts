@@ -1,4 +1,4 @@
-import type { ClientRecord, RITENUTA_TYPES } from "../../shared/client";
+import type { ClientRecord } from "../../shared/client";
 import { romeDateTime } from "../../shared/cron";
 import {
   defaultNaturaText,
@@ -21,6 +21,7 @@ import {
   type PaymentTerms,
   type PaymentTermsKind,
 } from "../../shared/payment-terms";
+import type { RITENUTA_TYPES } from "../../shared/tax";
 import {
   type CassaType,
   type CausalePagamento,

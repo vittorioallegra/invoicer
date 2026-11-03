@@ -1,7 +1,7 @@
 import { XMLBuilder } from "fast-xml-parser";
 import type { ClientData } from "../client";
 import { type InvoiceBody, invoiceTotalsInput } from "../invoice";
-import type { ProfileData } from "../profile";
+import type { ProfileData, RegimeFiscale } from "../profile";
 import { computeTotals, type Natura, type Totals } from "../totals";
 import { encodeFileProgressive, fatturaFileName } from "./file-name";
 import { formatBasisPoints, formatCents, formatQuantity, formatUnitPrice } from "./numbers";
@@ -21,16 +21,8 @@ export class FatturaBuildError extends Error {
 
 export type FatturaIssuer = Pick<
   ProfileData,
-  | "name"
-  | "vatNumber"
-  | "taxCode"
-  | "address"
-  | "postalCode"
-  | "city"
-  | "province"
-  | "country"
-  | "regimeFiscale"
->;
+  "name" | "vatNumber" | "taxCode" | "address" | "postalCode" | "city" | "province" | "country"
+> & { regimeFiscale: RegimeFiscale };
 
 export type FatturaClient = Pick<
   ClientData,

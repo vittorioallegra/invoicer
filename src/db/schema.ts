@@ -110,6 +110,9 @@ export const settings = sqliteTable(
     /** Setup checklist items the owner confirms by hand (set when done, null when pending). */
     adeGuideDoneAt: integer("ade_guide_done_at", { mode: "timestamp_ms" }),
     emailConfiguredAt: integer("email_configured_at", { mode: "timestamp_ms" }),
+    /** The owner's cassa previdenziale and ritenuta d'acconto (Tax details), JSON; null = none. */
+    taxCassa: text("tax_cassa", { mode: "json" }),
+    taxRitenuta: text("tax_ritenuta", { mode: "json" }),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
   },
   (t) => [

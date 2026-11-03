@@ -37,7 +37,6 @@ const profile = {
   city: "Roma",
   province: "RM",
   country: "IT",
-  regimeFiscale: "RF19",
 };
 
 const goodSession = () =>
@@ -103,7 +102,7 @@ describe("profile", () => {
 
     const bad = await owner.json<{ detail: string }>("/api/profile", {
       method: "PUT",
-      body: { ...profile, vatNumber: "123", regimeFiscale: "RF03" },
+      body: { ...profile, vatNumber: "123" },
     });
     expect(bad.status).toBe(400);
     expect(bad.body.detail).toContain("vatNumber: invalid_vat_number");
@@ -113,7 +112,8 @@ describe("profile", () => {
       { method: "PUT", body: profile },
     );
     expect(saved.status).toBe(200);
-    expect(saved.body.profile).toMatchObject({ regimeFiscale: "RF19", taxCode: null });
+    // The regime is not part of the Company form: a new row starts at the ordinary regime.
+    expect(saved.body.profile).toMatchObject({ regimeFiscale: "RF01", taxCode: null });
 
     await owner.json("/api/profile", { method: "PUT", body: { ...profile, name: "Mario R." } });
     const row = await env.DB.prepare("SELECT COUNT(*) AS n, name FROM profile").first<{

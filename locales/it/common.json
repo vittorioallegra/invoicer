@@ -157,7 +157,11 @@
     "sections": {
       "profile": {
         "title": "Azienda",
-        "body": "I tuoi dati, il regime fiscale e la sede"
+        "body": "I tuoi dati e la sede"
+      },
+      "tax": {
+        "title": "Dati fiscali",
+        "body": "Regime fiscale, cassa previdenziale e ritenuta d'acconto"
       },
       "email": {
         "title": "Email",
@@ -222,13 +226,32 @@
     "vatNumber": "Partita IVA",
     "taxCode": "Codice fiscale",
     "taxCodeHint": "Facoltativo.",
-    "regime": "Regime fiscale",
     "addressTitle": "Sede",
     "address": "Via e numero civico",
     "postalCode": "CAP",
     "city": "Città",
     "province": "Provincia",
-    "country": "Paese",
+    "country": "Paese"
+  },
+  "tax": {
+    "title": "Dati fiscali",
+    "intro": "Il tuo regime fiscale, la cassa previdenziale e la ritenuta d'acconto. Nei clienti si sceglie solo se applicarle; le nuove fatture prendono i valori da qui.",
+    "saved": "Dati fiscali salvati.",
+    "save": "Salva",
+    "regime": "Regime fiscale",
+    "regimeNeedsCompany": "Salva prima i dati dell'azienda: il regime viene memorizzato con essi.",
+    "regimeCompanyLink": "Apri Azienda",
+    "none": "Nessuna",
+    "pensionFund": "Contributo cassa previdenziale",
+    "cassa": "Cassa / rivalsa",
+    "rate": "Aliquota",
+    "mode": "Applicazione",
+    "modeAdded": "Aggiunto all'importo",
+    "modeIncluded": "Incluso nell'importo",
+    "withholding": "Ritenuta d'acconto",
+    "ritenuta": "Ritenuta",
+    "base": "Base imponibile",
+    "reason": "Causale pagamento",
     "regimes": {
       "RF01": "Ordinario",
       "RF02": "Contribuenti minimi (obsoleto)",

@@ -2,6 +2,7 @@ import type { ZodError } from "zod";
 import type { OnboardingStatus, PecTestResult } from "../../shared/onboarding";
 import type { PaymentMethodRecord } from "../../shared/payment-method";
 import type { CourtesyEmailMode } from "../../shared/profile";
+import type { TaxData } from "../../shared/tax";
 import { api } from "./api";
 
 export interface ProfileResponse {
@@ -15,6 +16,9 @@ export interface ProfileResponse {
   country: string;
   regimeFiscale: string;
 }
+
+/** The owner's fiscal options; the regime is null until the Company page has been saved. */
+export type TaxResponse = Omit<TaxData, "regimeFiscale"> & { regimeFiscale: string | null };
 
 export interface SettingsResponse {
   email: {
@@ -41,6 +45,10 @@ export const onboardingQuery = {
 export const profileQuery = {
   queryKey: ["profile"],
   queryFn: () => api<{ profile: ProfileResponse | null }>("/api/profile"),
+};
+export const taxQuery = {
+  queryKey: ["tax"],
+  queryFn: () => api<{ tax: TaxResponse }>("/api/tax"),
 };
 export const paymentMethodsQuery = {
   queryKey: ["payment-methods"],
