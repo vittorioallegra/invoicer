@@ -93,11 +93,12 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    `clients`,
    `invoices` (TD01/TD04, state including `sending` and `rejected_expired`, state rank,
    payment flag, `number_raw` + parsed `number_int`, year, issue date, source
-   `app`/`imported`; partial UNIQUE index on year + `number_int` where not null, covering app
-   and imported invoices), `transmissions` (one row per attempt: file progressive, file
+   `app`/`imported`, `series_id`; partial UNIQUE index on series + year + `number_int` where
+   not null, covering app and imported invoices), `numbering_series` (name, prefix, suffix,
+   one default), `transmissions` (one row per attempt: file progressive, file
    name, channel `pec`/`manual`, send-outcome `none`/`complete`/`unknown`, channel message id
    (the PEC Message-ID), SdI PEC address used, PDF/XML `files` ids, created before the SMTP send),
-   `number_sequences` (one counter row per year) and `file_sequence`
+   `number_sequences` (one counter row per series and year) and `file_sequence`
    (global file progressive counter), `invoice_lines`, `pec_messages` (every stored PEC message:
    Message-ID, UIDVALIDITY, UID, kind `pec_receipt`/`sdi_message`/`received_invoice`/`ignored`,
    parsed SdI message type, original file name, size, raw message as a `files` id, `processed_at`;
@@ -161,7 +162,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    document (the old number stays recorded, never reused). Numbering in the Worker, one
    guarded D1 batch whose first statement fails on a constraint when the invoice is not in
    draft/planned/retryable state (a 0-row UPDATE does not roll a batch back): next number =
-   highest number issued in the year (app and imported) + 1 computed in SQL, or the number the
+   highest number issued in the series and year (app and imported) + 1 computed in SQL, or the number the
    owner requested on the draft (`requested_number_int`) when it is above that highest (a gap is
    allowed), else `number_unavailable` and nothing is reserved;
    year and issue date = today in Europe/Rome (the Worker runs in UTC), asserted not earlier
@@ -453,6 +454,7 @@ Approved: yes (2026-11-02)
 - Client form: Company/Private + country, the type is derived; foreign private persons are supported (IdCodice 99999999999 when no tax ID) (owner's choice, 2026-11-03).
 - Fiscal options (regime, cassa, ritenuta) live in Settings > Tax details; clients only flag whether cassa/ritenuta apply; VAT is chosen per line with no default; bollo is a manual invoice checkbox with a hint above 77.47 EUR (owner's choice, 2026-11-03). Cassa and ritenuta are JSON columns of `settings` (`tax_cassa`, `tax_ritenuta`); the regime stays on the profile row, edited from Tax details (`/api/tax`). New clients default to cassa on, ritenuta on for Italian companies only. Older client defaults are read into the flags and are not copied into Tax details.
 - Invoice number on the invoice (2026-11-03, owner): the editor prefills the next free number of the year (highest issued app/imported + 1) and the owner may change it before sending; the Worker accepts a requested number only if it is above the highest issued that year and unique; the Settings 'next number' was removed.
+- Numbering series (sezionali) with optional prefix/suffix, yearly progressive per series, client default series; see docs/notes/invoice-numbering.md (2026-11-03, owner).
 - Transient confirmations are toasts (@radix-ui/react-toast 1.3.1, CSP-safe; sonner rejected because it injects a runtime style element blocked by style-src 'self'); persistent page messages stay inline (2026-11-03, owner).
 - Single-user, self-hosted deployment; generic public code, no owner data in the repo (2026-11-02).
 - SdI channel: the owner's PEC mailbox behind a channel interface (SMTP send, IMAP polling every 10 minutes, manual AdE portal channel as fallback); Openapi was the first choice and is now a possible future channel (2026-11-02, superseded by the 2026-11-02 channel switch below).

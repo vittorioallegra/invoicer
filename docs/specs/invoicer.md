@@ -264,10 +264,11 @@ settle the open ones):
   deferred invoice after the 15th of the following month (art. 21 DPR 633/72).
   - Payment flag, independent of the above: `unpaid` / `paid` (with paid date), set by hand.
     `overdue` is derived: unpaid and due date passed.
-- Numbering: progressive per calendar year, assigned when the invoice is sent; no
-  duplicates within a year, also with two devices sending at once. The invoice number is set
-  on the invoice, not in Settings: the editor shows a Number field prefilled with the next free
-  number of the year (highest number already issued that year, by the app or imported, plus 1;
+- Numbering: progressive per calendar year and per numbering series, assigned when the invoice
+  is sent; no duplicates within a series and year, also with two devices sending at once. The
+  invoice number is set on the invoice, not in Settings: the editor shows a Number field with
+  a short label, prefilled with the next free number of the year in the invoice's series
+  (highest number already issued that year in that series, by the app or imported, plus 1;
   1 when none), and the owner may change it before sending (for example the first invoice after
   Fatture in Cloud). Later invoices continue automatically from the highest issued number. A
   requested number is accepted only if it is a whole number of 1 or more, strictly above the
@@ -275,6 +276,25 @@ settle the open ones):
   If it is no longer valid when the number is reserved (another device took it), nothing is
   reserved, the Worker answers `number_unavailable` and the editor shows the new proposal next
   to the field. From reservation on the number is read-only.
+- Numbering series (sezionali, owner request 2026-11-03; research in
+  docs/notes/invoice-numbering.md): several series are allowed because the law only asks for a
+  progressive number that identifies the invoice uniquely (art. 21 DPR 633/72, Risoluzione 1/E
+  of 2013, art. 226 Directive 2006/112/EC). Settings > Numbering series
+  (`/settings/numbering`) lists the series like the payment methods; each has a name, an
+  optional prefix and an optional suffix (basic Latin letters, digits, `-`, `/`, `.`; together at
+  most 11 characters so the full number stays within the 20 characters of FatturaPA `Numero`)
+  and exactly one is the default. The migration creates the default series (no prefix or
+  suffix) and puts every existing invoice in it. The printed number, also the XML `Numero`, the
+  PDF and the lists, is prefix + progressive + suffix (`CH-3`, `3/CH`), stored on the invoice
+  when the number is reserved, so changing a series' prefix or suffix only affects later
+  invoices. Two series cannot share the same prefix and suffix. A series that numbered an
+  invoice cannot be deleted (409, message in the UI) but can be renamed; the default series
+  cannot be deleted (make another the default first); drafts of a deleted series move to the
+  default. A client has an optional default series (empty = default series) that a new
+  invoice for it starts in; the editor shows a series select next to the number only when more
+  than one series exists, and the series is fixed once the number is reserved. The proposed
+  and requested number rules, the date order check and the release rule all apply per series
+  and year.
 - Sent, delivered and not_delivered invoices are read-only (only payment flag and notes
   change).
 - Duplicate an existing invoice into a new draft.
@@ -340,7 +360,10 @@ settle the open ones):
 
 - Import of issued invoice files (XML / P7M / ZIP, e.g. the FiC or AdE export). Imported
   invoices are stored with state `delivered`, read-only, and count for numbering checks
-  (an imported number blocks reuse of the same number in that year).
+  (an imported number blocks reuse of the same number in that year and series). An imported
+  invoice belongs to the default series, unless its printed number is exactly the prefix and
+  suffix of another series around a digit run (`matchSeries` in `src/shared/numbering.ts`);
+  a number that does not parse that way is stored but takes no progressive.
 
 ### 7. Lists and dashboard
 
