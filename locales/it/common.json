@@ -625,8 +625,6 @@
       "allClients": "Tutti i clienti",
       "series": "Numerazione",
       "allSeries": "Tutte le numerazioni",
-      "search": "Cerca",
-      "searchPlaceholder": "Numero o cliente",
       "reset": "Azzera filtri"
     },
     "recap": {

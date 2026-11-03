@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { FileText } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { romeDateTime } from "../../shared/cron";
 import { formatMoney, type UiLocale } from "../../shared/format";
@@ -18,7 +18,6 @@ import { Button } from "../components/ui/button";
 import { Disclosure } from "../components/ui/disclosure";
 import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
-import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { clientsQuery } from "../lib/clients-api";
 import { invoiceOverviewQuery } from "../lib/invoices-api";
@@ -157,15 +156,6 @@ export function InvoicesPage() {
       replace: true,
     });
 
-  // The text box is local so typing does not fetch on every key; the URL follows after a pause.
-  const [text, setText] = useState(search.q ?? "");
-  useEffect(() => setText(search.q ?? ""), [search.q]);
-  useEffect(() => {
-    if (text.trim() === (search.q ?? "")) return;
-    const timer = setTimeout(() => setFilter({ q: text.trim() || undefined }), 300);
-    return () => clearTimeout(timer);
-  });
-
   // Phones start with the filters collapsed; wide screens with them open.
   const [open, setOpen] = useState(() =>
     typeof window.matchMedia === "function"
@@ -185,7 +175,6 @@ export function InvoicesPage() {
     search.status !== undefined ||
     search.client !== undefined ||
     search.series !== undefined ||
-    search.q !== undefined ||
     search.year !== undefined;
 
   return (
@@ -270,17 +259,6 @@ export function InvoicesPage() {
               )}
             </Field>
           ) : null}
-          <Field label={t("invoice.filters.search")} className="sm:col-span-2 lg:col-span-1">
-            {(control) => (
-              <Input
-                {...control}
-                type="search"
-                value={text}
-                placeholder={t("invoice.filters.searchPlaceholder")}
-                onChange={(event) => setText(event.target.value)}
-              />
-            )}
-          </Field>
         </div>
         {filtered ? (
           <Button

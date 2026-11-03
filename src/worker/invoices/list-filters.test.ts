@@ -154,7 +154,7 @@ describe("listFilteredInvoices", () => {
     expect(await pick("unpaid")).toEqual(["a", "cn", "usd"]);
   });
 
-  it("filters by client, series and a text over number and client name", async () => {
+  it("filters by client and series", async () => {
     expect(ids(await listFilteredInvoices(env.DB, { client: "c2" }, NOW)).sort()).toEqual([
       "d1",
       "rej",
@@ -163,24 +163,10 @@ describe("listFilteredInvoices", () => {
     expect(ids(await listFilteredInvoices(env.DB, { year: "all", series: "b" }, NOW))).toEqual([
       "old",
     ]);
-    expect(ids(await listFilteredInvoices(env.DB, { q: "acme" }, NOW)).sort()).toEqual([
-      "a",
-      "b",
-      "cn",
-      "p1",
-    ]);
-    expect(ids(await listFilteredInvoices(env.DB, { q: "2/A" }, NOW))).toEqual(["b"]);
-    // LIKE wildcards in the text are literal.
-    expect(ids(await listFilteredInvoices(env.DB, { q: "100%" }, NOW)).sort()).toEqual([
-      "d1",
-      "rej",
-      "usd",
-    ]);
-    expect(ids(await listFilteredInvoices(env.DB, { q: "0_" }, NOW))).toEqual([]);
   });
 
   it("lists EUR with zeros when nothing matches", async () => {
-    const empty = await listFilteredInvoices(env.DB, { q: "zzz" }, NOW);
+    const empty = await listFilteredInvoices(env.DB, { client: "nobody" }, NOW);
     expect(empty.invoices).toEqual([]);
     expect(empty.recap).toEqual({
       count: 0,

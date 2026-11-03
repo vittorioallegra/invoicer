@@ -157,6 +157,24 @@ describe("invoice lists", () => {
     expect(screen.getByText(/-€50\.00|−€50\.00|€-50\.00/)).toBeTruthy();
   });
 
+  it("shows the payment chip only on finalised payable rows, not on unsent, rejected or credit notes", async () => {
+    serve({
+      all: [
+        summary({ id: "p", state: "delivered", number: "1", paymentFlag: "paid" }),
+        summary({ id: "u", state: "sent", number: "2", paymentFlag: "unpaid" }),
+        summary({ id: "d", state: "draft" }),
+        summary({ id: "r", state: "rejected", number: "3" }),
+        summary({ id: "x", state: "rejected_expired", number: "4" }),
+        summary({ id: "c", documentType: "TD04", state: "delivered", number: "5" }),
+      ],
+    });
+    await renderAt("/invoices");
+    await screen.findByText(/No\. 1/);
+    const list = screen.getByText(/No\. 1/).closest("ul") as HTMLElement;
+    expect(within(list).getAllByText("Paid")).toHaveLength(1);
+    expect(within(list).getAllByText("Unpaid")).toHaveLength(1);
+  });
+
   it("keeps the old /issued address working by redirecting to /invoices", async () => {
     serve({});
     const router = await renderAt("/issued");
@@ -172,7 +190,7 @@ describe("invoice lists", () => {
 
   it("asks the server for the filters in the URL and writes changes back to it", async () => {
     serve({ all: [summary({ id: "a", state: "delivered", number: "1" })] });
-    const router = await renderAt("/invoices?year=all&status=paid&client=c1&series=s2&q=acme");
+    const router = await renderAt("/invoices?year=all&status=paid&client=c1&series=s2");
     await screen.findByText(/No\. 1/);
     const call = mocks.api.mock.calls
       .map(([path]) => String(path))
@@ -184,17 +202,14 @@ describe("invoice lists", () => {
       status: "paid",
       client: "c1",
       series: "s2",
-      q: "acme",
     });
     expect((screen.getByLabelText("Status") as HTMLSelectElement).value).toBe("paid");
-    expect((screen.getByLabelText("Search") as HTMLInputElement).value).toBe("acme");
+    expect(screen.queryByLabelText("Search")).toBeNull();
 
     fireEvent.change(screen.getByLabelText("Status"), { target: { value: "delivered" } });
     await waitFor(() =>
       expect(router.state.location.search).toMatchObject({ status: "delivered" }),
     );
-    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "beta" } });
-    await waitFor(() => expect(router.state.location.search).toMatchObject({ q: "beta" }));
     fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
     await waitFor(() => expect(router.state.location.search).toEqual({}));
   });

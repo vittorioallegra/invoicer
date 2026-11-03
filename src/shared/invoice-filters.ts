@@ -32,7 +32,6 @@ export const invoiceFiltersSchema = z.object({
   status: z.enum(INVOICE_STATUS_FILTERS).optional(),
   client: z.string().min(1).max(100).optional(),
   series: z.string().min(1).max(100).optional(),
-  q: z.string().trim().min(1).max(100).optional(),
 });
 export type InvoiceFilters = z.infer<typeof invoiceFiltersSchema>;
 

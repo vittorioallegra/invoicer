@@ -285,8 +285,6 @@ async function summarize(
 
 const FINALISED_STATES = ["sending", "sent", "delivered", "not_delivered"];
 
-const escapeLike = (text: string) => text.replace(/[\\%_]/g, (char) => `\\${char}`);
-
 /**
  * All invoices of the owner matching the filters (Invoices page), newest first by invoice date
  * (issue date, else planned date; an invoice without a date counts as today's), then number.
@@ -316,10 +314,6 @@ export async function listFilteredInvoices(
   }
   if (filters.client) where.push(`i.client_id = ${bind(filters.client)}`);
   if (filters.series) where.push(`i.series_id = ${bind(filters.series)}`);
-  if (filters.q) {
-    const like = bind(`%${escapeLike(filters.q)}%`);
-    where.push(`(i.number_raw LIKE ${like} ESCAPE '\\' OR c.name LIKE ${like} ESCAPE '\\')`);
-  }
   const { results } = await db
     .prepare(
       `${SELECT} ${where.length ? `WHERE ${where.join(" AND ")}` : ""}

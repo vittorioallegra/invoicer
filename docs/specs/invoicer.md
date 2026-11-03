@@ -473,7 +473,7 @@ settle the open ones):
   there). It lists ALL the owner's invoices, unsent ("To send") and sent in any state, credit notes
   included, newest first by invoice date (issue date, else the date set on an unsent invoice; an
   unsent invoice without a date counts as today), then by number. Every invoice page goes back to it.
-- Invoices page filters, kept in the URL search params (`year`, `status`, `client`, `series`, `q`) so
+- Invoices page filters, kept in the URL search params (`year`, `status`, `client`, `series`) so
   they survive reload and back, and applied by the Worker (`GET /api/invoices?scope=all`, SQL over
   indexed columns, the whole set in one response: single user, free-plan CPU budget):
   - year: default the current Europe/Rome year (not written to the URL), any year that has an
@@ -481,8 +481,10 @@ settle the open ones):
   - status: all, to send, sent (sending + sent), delivered (delivered + not delivered), rejected
     (rejected + expired), paid, unpaid (the last two apply to sent invoices only, by payment flag);
     labels come from `status.ts`;
-  - client (select), numbering series (select, shown only when there is more than one series), and
-    a text search over the printed number and the client name (case-insensitive substring).
+  - client (select) and numbering series (select, shown only when there is more than one series).
+    There is no free-text search (owner's choice, 2026-11-03).
+  Each finalised, payable row (not unsent, rejected or credit notes) shows the payment chip
+  ("Paid" / "Unpaid", from `status.ts`, as in the editor) next to the state badge.
   On phones the filters sit in a "Filters" disclosure, closed at first; on wide screens it starts open.
 - Invoices page recap, over exactly the filtered set, computed by the Worker in integer cents:
   "Invoiced" = sum of the document totals of finalised invoices (sending, sent, delivered, not

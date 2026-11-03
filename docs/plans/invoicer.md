@@ -447,6 +447,8 @@ Approved: yes (2026-11-02)
   - Preview PDF appeared to do nothing — `fix(pdf): make the PDF preview reliable with a download fallback`
 
 ### Decisions
+- Invoices list (2026-11-03, owner): each finalised payable row shows the payment chip (Paid/Unpaid) next to the state badge, with the editor's rule (no chip on unsent, rejected or credit notes); the free-text search filter is removed (URL param, API param, SQL and locale keys).
+- Duplicate (2026-11-03, owner): a duplicate is a normal unsent invoice, so its document type stays editable (the select was disabled for every stored record); it is locked only once finalised or rejected.
 - Responsive dialogs (centered on desktop, bottom sheet on phones) for finalize/payment; per-invoice language prefilled from the client; payment row: terms or custom days, computed due date, no manual due date (owner's choice, 2026-11-03).
 - Options show code + description; due date computed at reservation unless set by hand (2026-11-03, owner).
 - Ritenuta base and causale (2026-11-03, owner): the ritenuta rate applies to a configurable share of the amount subject to it (`baseBp`, default 100%, stored in the JSON columns; rows without it read as 100%); the reduced base is rounded to the cent, then the rate; the XML keeps the rate and writes the reduced `ImportoRitenuta`; the causale pagamento is a select of the XSD codes (Z left out, retired in 2021).

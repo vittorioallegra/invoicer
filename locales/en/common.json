@@ -625,8 +625,6 @@
       "allClients": "All clients",
       "series": "Numbering",
       "allSeries": "All numberings",
-      "search": "Search",
-      "searchPlaceholder": "Number or client",
       "reset": "Clear filters"
     },
     "recap": {

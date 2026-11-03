@@ -26,7 +26,13 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
       : invoice.invoiceDate !== null
         ? t("invoice.list.dated", { date: formatDate(invoice.invoiceDate, locale) })
         : null;
-  const issuedOut = invoice.state !== "draft" && invoice.state !== "planned";
+  // Same rule as the editor chip: finalised, not rejected, not a credit note.
+  const payable =
+    invoice.state !== "draft" &&
+    invoice.state !== "planned" &&
+    invoice.state !== "rejected" &&
+    invoice.state !== "rejected_expired" &&
+    !credit;
   return (
     <li className="flex flex-col">
       <Link
@@ -67,9 +73,7 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
           </span>
           <span className="flex flex-wrap justify-end gap-1">
             <StatusBadge status={invoice.state} />
-            {issuedOut && invoice.paymentFlag !== "unpaid" ? (
-              <StatusBadge status={invoice.paymentFlag} />
-            ) : null}
+            {payable ? <StatusBadge status={invoice.paymentFlag} /> : null}
           </span>
         </span>
       </Link>
