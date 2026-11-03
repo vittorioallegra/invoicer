@@ -1,6 +1,7 @@
 import type { ClientRecord } from "../../shared/client";
 import type { FatturaIssuer } from "../../shared/fatturapa";
 import { type InvoiceRecord, invoiceLanguage } from "../../shared/invoice";
+import { previewPdfFileName } from "../../shared/pdf-name";
 import { api } from "../lib/api";
 import type { ProfileResponse } from "../lib/settings-api";
 import type { InvoicePdfInput } from "./invoice-model";
@@ -95,4 +96,23 @@ export async function generateAndStoreInvoicePdf(invoiceId: string): Promise<Sto
     body: bytes as BodyInit,
   });
   return file;
+}
+
+export interface PreviewPdf {
+  bytes: Uint8Array;
+  fileName: string;
+}
+
+/**
+ * Renders a preview of an unsent invoice as saved, with the current profile, client and layout,
+ * under the given identity (the number and date it would get now). The PDF is marked as a preview
+ * and is never stored.
+ */
+export async function renderPreviewPdf(
+  invoiceId: string,
+  identity: PdfIdentity,
+): Promise<PreviewPdf> {
+  const input = { ...(await loadInvoicePdfInput(invoiceId, identity)), preview: true };
+  const { renderInvoicePdf } = await import("./render");
+  return { bytes: await renderInvoicePdf(input), fileName: previewPdfFileName(input.client.name) };
 }

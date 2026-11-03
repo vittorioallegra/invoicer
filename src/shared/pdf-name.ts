@@ -15,6 +15,12 @@ export function clientSlug(name: string): string {
     .replace(/-+$/g, "");
 }
 
+/** The download name of an invoice preview: `preview-<client>.pdf`, or `preview.pdf` without a client. */
+export function previewPdfFileName(clientName: string | null): string {
+  const slug = clientName ? clientSlug(clientName) : "";
+  return `preview${slug ? `-${slug}` : ""}.pdf`;
+}
+
 /**
  * The download name of an invoice PDF: `invoice-<number>-<client>.pdf`, e.g.
  * `invoice-CH-3-acme-srl.pdf`. The number is as printed with unsafe characters replaced by `-`.

@@ -6,7 +6,11 @@ import { safeTotals } from "../../shared/invoice";
 import { cassaTypeLabel, type Natura, type Totals } from "../../shared/totals";
 
 /** Everything the PDF prints; the same data the XML builder takes, plus the PDF language. */
-export type InvoicePdfInput = Omit<FatturaInput, "fileProgressive"> & { language: UiLocale };
+export type InvoicePdfInput = Omit<FatturaInput, "fileProgressive"> & {
+  language: UiLocale;
+  /** A preview of an unsent invoice: marked as such and never stored. */
+  preview?: boolean;
+};
 
 export interface PdfRow {
   label: string;
@@ -26,6 +30,10 @@ export interface PdfLine {
 export interface InvoicePdfModel {
   language: UiLocale;
   title: string;
+  /** The mark printed next to the title of a preview; null on a real PDF. */
+  previewMark: string | null;
+  /** The footer line of a preview: not a tax document; null on a real PDF. */
+  previewNote: string | null;
   numberLine: string;
   issuerName: string;
   issuerLines: string[];
@@ -205,6 +213,8 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
   return {
     language,
     title: t(credit ? "pdf.creditNote" : "pdf.invoice"),
+    previewMark: input.preview ? t("pdf.previewMark") : null,
+    previewNote: input.preview ? t("pdf.previewNote") : null,
     numberLine: t("pdf.numberLine", {
       number: input.number,
       date: formatDate(input.issueDate, language),

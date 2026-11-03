@@ -468,7 +468,8 @@
     "issuedOn": "Issued {{date}}",
     "saved": "Saved.",
     "errors": {
-      "locked": "This invoice can no longer be edited."
+      "locked": "This invoice can no longer be edited.",
+      "previewFailed": "The preview could not be created. Try again."
     },
     "warnings": {
       "late": "An invoice dated in the past must be transmitted to the SdI within 12 days of its date (art. 21 DPR 633/72). This one will be late."
@@ -594,6 +595,9 @@
       "download": "Download",
       "save": "Save",
       "send": "Send",
+      "preview": "Preview",
+      "previewRendering": "Rendering preview…",
+      "previewUnavailable": "Choose a client and complete the lines to preview.",
       "duplicate": "Duplicate",
       "creditNote": "Create credit note",
       "edit": "Edit",
@@ -792,6 +796,8 @@
       "MP19": "SEPA direct debit",
       "MP23": "PagoPA"
     },
+    "previewMark": "PREVIEW",
+    "previewNote": "Preview: not a tax document.",
     "legalNote": "Courtesy copy. The legally valid invoice is the electronic invoice (XML) transmitted through the Sistema di Interscambio (SdI) and available in the recipient's tax portal.",
     "page": "Page {{pageNumber}} of {{totalPages}}"
   },

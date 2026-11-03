@@ -43,6 +43,18 @@ describe("invoice PDF layout", () => {
     }
   });
 
+  it("marks a preview in the header and the footer, and a real PDF never", async () => {
+    const preview = extractText(await renderInvoicePdf({ ...inputFor("c"), preview: true }));
+    expect(preview).toContain("PREVIEW");
+    expect(preview).toContain("Preview: not a tax document.");
+    const anteprima = extractText(await renderInvoicePdf({ ...inputFor("b"), preview: true }));
+    expect(anteprima).toContain("ANTEPRIMA");
+    expect(anteprima).toContain("Anteprima: non è un documento fiscale.");
+    const real = extractText(await renderInvoicePdf(inputFor("c")));
+    expect(real).not.toMatch(/preview/i);
+    expect(extractText(await renderInvoicePdf(inputFor("b")))).not.toMatch(/anteprima/i);
+  });
+
   it("prints the issuer email and phone under the tax ids only when set", async () => {
     const base = inputFor("b");
     const without = extractText(await renderInvoicePdf(base));

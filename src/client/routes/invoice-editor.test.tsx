@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   api: vi.fn(),
   runSend: vi.fn(),
   downloadUrl: vi.fn(),
+  downloadBytes: vi.fn(),
+  renderPreview: vi.fn(),
 }));
 
 vi.mock("../lib/auth-client", () => ({
@@ -27,7 +29,11 @@ vi.mock("../lib/auth-client", () => ({
   },
 }));
 vi.mock("../lib/api", () => ({ api: mocks.api }));
-vi.mock("../lib/invoice-download", () => ({ downloadUrl: mocks.downloadUrl }));
+vi.mock("../lib/invoice-download", () => ({
+  downloadUrl: mocks.downloadUrl,
+  downloadBytes: mocks.downloadBytes,
+}));
+vi.mock("../pdf/generate", () => ({ renderPreviewPdf: mocks.renderPreview }));
 vi.mock("../lib/send-flow", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../lib/send-flow")>()),
   runSendFlow: mocks.runSend,
@@ -276,6 +282,8 @@ beforeEach(() => {
   mocks.api.mockReset();
   mocks.runSend.mockReset();
   mocks.downloadUrl.mockReset();
+  mocks.downloadBytes.mockReset();
+  mocks.renderPreview.mockReset();
   proposal = 8;
   lastIssueDate = null;
 });
@@ -818,6 +826,7 @@ describe("Invoice editor", () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
     await loaded();
+    await screen.findByText("No. 8/2026");
     expect(screen.queryByRole("toolbar")).toBeNull();
     const title = screen.getByRole("heading", { level: 1 });
     const more = screen.getByRole("button", { name: "More actions" });
@@ -834,7 +843,7 @@ describe("Invoice editor", () => {
     expect(follows(finalize, more)).toBe(true);
     // Nothing to download or pay before finalising; Delete comes last.
     fireEvent.click(more);
-    expect(menuItems()).toEqual(["Edit", "Duplicate", "Delete"]);
+    expect(menuItems()).toEqual(["Edit", "Preview", "Duplicate", "Delete"]);
     expect(
       within(screen.getByRole("menuitem", { name: "Delete" })).getByText("Delete").className,
     ).toContain("text-danger");
@@ -1043,6 +1052,75 @@ describe("Invoice editor", () => {
     fireEvent.click(screen.getByRole("button", { name: "More actions" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Download PDF" }));
     expect(mocks.downloadUrl).toHaveBeenCalledWith("/api/invoices/i1/pdf");
+  });
+
+  it("previews an unsent invoice with the proposed number and saves it as preview-<client>.pdf", async () => {
+    serve({ invoice: record() });
+    const bytes = new Uint8Array([1, 2, 3]);
+    mocks.renderPreview.mockResolvedValue({ bytes, fileName: "preview-acme-s-r-l.pdf" });
+    await renderEditor("/invoices/i1");
+    await screen.findByText("No. 8/2026");
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Preview" }));
+    await waitFor(() =>
+      expect(mocks.downloadBytes).toHaveBeenCalledWith(bytes, "preview-acme-s-r-l.pdf"),
+    );
+    expect(mocks.renderPreview).toHaveBeenCalledWith(
+      "i1",
+      expect.objectContaining({ number: "8" }),
+    );
+    expect(mocks.downloadUrl).not.toHaveBeenCalled();
+  });
+
+  it("previews with the requested number of the series, as printed", async () => {
+    serve({
+      invoice: record({ seriesId: "ch", requestedNumber: 12 }),
+      series: [DEFAULT_SERIES, CH_SERIES],
+    });
+    mocks.renderPreview.mockResolvedValue({ bytes: new Uint8Array(), fileName: "preview.pdf" });
+    await renderEditor("/invoices/i1");
+    await screen.findByText("No. CH-12/2026");
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Preview" }));
+    await waitFor(() =>
+      expect(mocks.renderPreview).toHaveBeenCalledWith(
+        "i1",
+        expect.objectContaining({ number: "CH-12" }),
+      ),
+    );
+  });
+
+  it("disables Preview with a reason when the invoice has no client", async () => {
+    serve({ invoice: record({ clientId: null, clientName: null }) });
+    await renderEditor("/invoices/i1");
+    await screen.findByText("No. 8/2026");
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    const item = screen.getByRole("menuitem", { name: /Preview/ });
+    expect(item.getAttribute("aria-disabled")).toBe("true");
+    expect(item.textContent).toContain("Choose a client");
+    fireEvent.click(item);
+    expect(mocks.renderPreview).not.toHaveBeenCalled();
+  });
+
+  it("shows a toast and no download when the preview fails", async () => {
+    serve({ invoice: record() });
+    mocks.renderPreview.mockRejectedValue(new Error("boom"));
+    await renderEditor("/invoices/i1");
+    await screen.findByText("No. 8/2026");
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Preview" }));
+    expect(await screen.findByText("The preview could not be created. Try again.")).toBeTruthy();
+    expect(mocks.downloadBytes).not.toHaveBeenCalled();
+  });
+
+  it("offers no Preview on a finalised invoice", async () => {
+    serve({
+      invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
+    });
+    await renderEditor("/invoices/i1");
+    await screen.findByText("No. 7/2026");
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    expect(screen.queryByRole("menuitem", { name: /Preview/ })).toBeNull();
   });
 
   it("closes the actions menu with Escape", async () => {

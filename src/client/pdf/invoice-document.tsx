@@ -5,7 +5,18 @@ import type { InvoicePdfModel } from "./invoice-model";
 const styles = StyleSheet.create({
   page: { padding: 36, paddingBottom: 64, fontSize: 9, fontFamily: "Helvetica", color: "#111" },
   header: { marginBottom: 18 },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   title: { fontSize: 18, fontFamily: "Helvetica-Bold" },
+  previewMark: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    color: "#b00020",
+    borderWidth: 1,
+    borderColor: "#b00020",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  previewNote: { fontFamily: "Helvetica-Bold", color: "#b00020", marginBottom: 2 },
   muted: { color: "#555" },
   bold: { fontFamily: "Helvetica-Bold" },
   parties: { flexDirection: "row", gap: 24, marginBottom: 28 },
@@ -45,7 +56,10 @@ export function InvoiceDocument({ model, t }: { model: InvoicePdfModel; t: TFunc
     <Document title={`${model.title} ${model.numberLine}`} author={model.issuerName}>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>{model.title}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{model.title}</Text>
+            {model.previewMark ? <Text style={styles.previewMark}>{model.previewMark}</Text> : null}
+          </View>
           <Text>{model.numberLine}</Text>
         </View>
 
@@ -141,6 +155,7 @@ export function InvoiceDocument({ model, t }: { model: InvoicePdfModel; t: TFunc
         </View>
 
         <View style={styles.footer} fixed>
+          {model.previewNote ? <Text style={styles.previewNote}>{model.previewNote}</Text> : null}
           <Text>{model.legalNote}</Text>
           <Text
             style={styles.pageNumber}

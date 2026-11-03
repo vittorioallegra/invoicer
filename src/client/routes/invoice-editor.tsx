@@ -6,6 +6,7 @@ import {
   Copy,
   Download,
   Ellipsis,
+  Eye,
   FileMinus,
   Pencil,
   Send,
@@ -24,6 +25,7 @@ import {
   invoiceEditability,
   PAYMENT_METHODS,
   SDI_ERROR_FIELDS,
+  safeTotals,
   transmissionTermWarning,
 } from "../../shared/invoice";
 import { formatInvoiceNumber, type NumberingSeriesRecord } from "../../shared/numbering";
@@ -64,7 +66,7 @@ import { UnsavedChangesGuard } from "../components/unsaved-changes-guard";
 import { INVOICE_LIST_BACK } from "../lib/back-links";
 import { clientsQuery } from "../lib/clients-api";
 import { type FinalizeProblem, finalizeProblems, focusField } from "../lib/finalize-checks";
-import { downloadUrl } from "../lib/invoice-download";
+import { downloadBytes, downloadUrl } from "../lib/invoice-download";
 import {
   applyDefaults,
   draftBody,
@@ -104,6 +106,7 @@ import {
   taxQuery,
 } from "../lib/settings-api";
 import { useDirty } from "../lib/use-dirty";
+import { renderPreviewPdf } from "../pdf/generate";
 
 /** Select value for payment details that match no current account. */
 const SNAPSHOT = "__snapshot__";
@@ -597,6 +600,27 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     });
   }
 
+  // "Preview" renders the unsent invoice as saved, with the current profile, client and layout, and
+  // the number and date it would get now. Marked as a preview in the browser, never stored.
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const previewReady =
+    record !== null &&
+    record !== undefined &&
+    typed !== null &&
+    !Number.isNaN(typed) &&
+    clients.some((c) => c.id === record.clientId) &&
+    safeTotals(record) !== null;
+  const showPreview = (id: string) => {
+    if (typed === null) return;
+    setPreviewBusy(true);
+    renderPreviewPdf(id, {
+      number: activeSeries ? formatInvoiceNumber(activeSeries, typed) : String(typed),
+      issueDate: issueDateNow,
+    })
+      .then(({ bytes, fileName }) => downloadBytes(bytes, fileName))
+      .catch(() => toast.error(t("invoice.errors.previewFailed")))
+      .finally(() => setPreviewBusy(false));
+  };
   // An unsent invoice has one action, Finalize; once finalised the stored files are offered.
   const downloadItems = (["pdf", "xml"] as const).map((kind) => ({
     key: kind,
@@ -620,6 +644,21 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
       label: t("invoice.actions.edit"),
       icon: <Pencil aria-hidden />,
       onSelect: startEdit,
+    });
+  }
+  if (record && unsent) {
+    const blocked = !online || !previewReady;
+    menuItems.push({
+      key: "preview",
+      label: t(previewBusy ? "invoice.actions.previewRendering" : "invoice.actions.preview"),
+      icon: <Eye aria-hidden />,
+      disabled: blocked || previewBusy,
+      reason: !online
+        ? t("offline.reason")
+        : previewReady
+          ? undefined
+          : t("invoice.actions.previewUnavailable"),
+      onSelect: () => showPreview(record.id),
     });
   }
   if (record) {

@@ -468,7 +468,8 @@
     "issuedOn": "Emessa il {{date}}",
     "saved": "Salvata.",
     "errors": {
-      "locked": "Questa fattura non si può più modificare."
+      "locked": "Questa fattura non si può più modificare.",
+      "previewFailed": "Non è stato possibile creare l'anteprima. Riprova."
     },
     "warnings": {
       "late": "Una fattura con data passata va trasmessa al SdI entro 12 giorni dalla sua data (art. 21 DPR 633/72). Questa sarà in ritardo."
@@ -594,6 +595,9 @@
       "download": "Scarica",
       "save": "Salva",
       "send": "Invia",
+      "preview": "Anteprima",
+      "previewRendering": "Creazione dell'anteprima…",
+      "previewUnavailable": "Scegli un cliente e completa le righe per l'anteprima.",
       "duplicate": "Duplica",
       "creditNote": "Crea nota di credito",
       "edit": "Modifica",
@@ -792,6 +796,8 @@
       "MP19": "Addebito diretto SEPA",
       "MP23": "PagoPA"
     },
+    "previewMark": "ANTEPRIMA",
+    "previewNote": "Anteprima: non è un documento fiscale.",
     "legalNote": "Copia di cortesia. La fattura giuridicamente valida è la fattura elettronica (XML) trasmessa tramite il Sistema di Interscambio (SdI) e disponibile nell'area riservata del destinatario.",
     "page": "Pagina {{pageNumber}} di {{totalPages}}"
   },

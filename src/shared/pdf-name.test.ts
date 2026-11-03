@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clientSlug, invoicePdfFileName } from "./pdf-name";
+import { clientSlug, invoicePdfFileName, previewPdfFileName } from "./pdf-name";
 
 describe("invoicePdfFileName", () => {
   it("joins the number as printed and the client slug", () => {
@@ -17,6 +17,18 @@ describe("invoicePdfFileName", () => {
   it("omits the client part when there is no client name", () => {
     expect(invoicePdfFileName("7", null)).toBe("invoice-7.pdf");
     expect(invoicePdfFileName("7", "***")).toBe("invoice-7.pdf");
+  });
+});
+
+describe("previewPdfFileName", () => {
+  it("is preview-<client>.pdf with the client slug", () => {
+    expect(previewPdfFileName("Acme S.r.l.")).toBe("preview-acme-s-r-l.pdf");
+    expect(previewPdfFileName("Caffè Società")).toBe("preview-caffe-societa.pdf");
+  });
+
+  it("omits the client part when there is no client name", () => {
+    expect(previewPdfFileName(null)).toBe("preview.pdf");
+    expect(previewPdfFileName("***")).toBe("preview.pdf");
   });
 });
 

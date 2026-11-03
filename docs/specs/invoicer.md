@@ -216,7 +216,7 @@ settle the open ones):
   add-line or client buttons, the extras accordion opens, no line controls). Before finalisation
   (and for a rejected invoice that can still be fixed) the title row has the primary "Finalize"
   button ("Fix & resend" when rejected), which stays visible, then an icon-only "⋯" menu button
-  ("More actions"); there are no buttons under the form. The menu lists "Edit", "Duplicate", and
+  ("More actions"); there are no buttons under the form. The menu lists "Edit", "Preview" (see the PDF section), "Duplicate", and
   "Delete" last (red, separated, unsent invoices only; it opens a confirmation dialog "Delete the
   invoice?" with Cancel and "Confirm delete"). A finalised invoice has no Finalize; its menu has
   Duplicate, Create credit note (issued invoices), Record/Undo payment, Download PDF and Download
@@ -551,6 +551,13 @@ settle the open ones):
   last one only.
 - A sent (finalised) invoice's PDF never changes: "Download PDF" returns the PDF stored at
   finalisation (the same file the courtesy email attaches). The menu item is disabled offline.
+- An unsent invoice has "Preview" ("Anteprima") in the "⋯" menu, after "Edit": it renders a PDF in
+  the browser from the invoice as saved, with the current company profile, client and layout, and
+  the number and date it would get now (the proposal of its series and year, as the editor shows
+  it). The PDF is marked: "PREVIEW" / "ANTEPRIMA" next to the title and a footer line "Preview: not
+  a tax document." It is never stored and downloads as `preview-<client>.pdf` (the client slug as
+  below). The item is disabled with a reason offline or when the invoice cannot be rendered (no
+  client, incomplete lines), and shows a busy label while rendering; a failure shows a toast.
 - The PDF download is named `invoice-<number>-<client>.pdf` (e.g. `invoice-CH-3-acme-srl.pdf`):
   the number as printed with `/ \ : * ? " < > |` and spaces replaced by `-`, and a lowercase
   ASCII slug of the client name (max 40 characters). The XML download keeps the official SdI
