@@ -85,3 +85,24 @@ export function fieldErrorsFromDetail(detail: string | undefined): Record<string
   }
   return out;
 }
+
+const sendJson = <T>(method: string, path: string, body?: unknown) =>
+  api<T>(path, {
+    method,
+    ...(body === undefined
+      ? {}
+      : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
+  });
+
+export const createPaymentMethod = (body: unknown) =>
+  sendJson<{ paymentMethod: PaymentMethodRecord }>("POST", "/api/payment-methods", body);
+export const updatePaymentMethod = (id: string, body: unknown) =>
+  sendJson<{ paymentMethod: PaymentMethodRecord }>("PUT", `/api/payment-methods/${id}`, body);
+export const deletePaymentMethod = (id: string) =>
+  sendJson<null>("DELETE", `/api/payment-methods/${id}`);
+export const setDefaultPaymentMethod = (id: string) =>
+  sendJson<{ paymentMethods: PaymentMethodRecord[] }>(
+    "POST",
+    `/api/payment-methods/${id}/default`,
+    {},
+  );

@@ -175,6 +175,10 @@
         "title": "Agenzia delle Entrate guide",
         "body": "Register your PEC address on the AdE portal"
       },
+      "paymentMethods": {
+        "title": "Payment methods",
+        "body": "Bank accounts printed on your invoices"
+      },
       "pec": {
         "title": "PEC mailbox",
         "body": "Servers, secrets and the connection test"
@@ -842,6 +846,24 @@
     "failed": "Could not copy. Select the text and copy it by hand."
   },
   "paymentMethods": {
+    "title": "Payment methods",
+    "intro": "Bank accounts printed on your invoices as bank transfer (MP05). The default account is preselected on every new invoice; you can change it in the invoice editor. An issued invoice keeps its own copy of the account details.",
+    "add": "Add bank account",
+    "newTitle": "New bank account",
+    "editTitle": "Edit bank account",
+    "label": "Short name",
+    "labelHint": "How you recognise the account, for example Fineco.",
+    "save": "Save account",
+    "edit": "Edit",
+    "delete": "Delete account",
+    "deleteConfirm": "Confirm delete",
+    "deleteNote": "Existing invoices keep the account details they already have. If this is the default account, another one becomes the default.",
+    "defaultBadge": "Default",
+    "setDefault": "Set as default",
+    "setDefaultFor": "Set {{label}} as default",
+    "editFor": "Edit {{label}}",
+    "emptyTitle": "No bank account yet",
+    "emptyBody": "Add the account where clients should pay you. It will be preselected on new invoices.",
     "iban": "IBAN",
     "bic": "BIC/SWIFT",
     "bankName": "Bank name",

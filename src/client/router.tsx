@@ -15,6 +15,7 @@ import { HomePage } from "./routes/home";
 import { InvoiceEditorPage } from "./routes/invoice-editor";
 import { LoginPage } from "./routes/login";
 import { IssuedPage, NotFoundPage, ReceivedPage } from "./routes/pages";
+import { PaymentMethodsPage } from "./routes/payment-methods";
 import { PecSettingsPage } from "./routes/pec-settings";
 import { ProfilePage } from "./routes/profile";
 import { SettingsPage } from "./routes/settings";
@@ -56,6 +57,11 @@ const routeTree = rootRoute.addChildren([
     beforeLoad: () => {
       throw redirect({ to: "/settings/company", replace: true });
     },
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/settings/payment-methods",
+    component: PaymentMethodsPage,
   }),
   createRoute({
     getParentRoute: () => rootRoute,

@@ -25,6 +25,7 @@ interface Features {
 
 const SECTIONS = [
   { to: "/settings/company", key: "profile" },
+  { to: "/settings/payment-methods", key: "paymentMethods" },
   { to: "/settings/pec", key: "pec" },
   { to: "/settings/email", key: "email" },
   { to: "/settings/ade-guide", key: "ade" },

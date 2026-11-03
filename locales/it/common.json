@@ -175,6 +175,10 @@
         "title": "Guida Agenzia delle Entrate",
         "body": "Registra l'indirizzo PEC sul portale dell'AdE"
       },
+      "paymentMethods": {
+        "title": "Metodi di pagamento",
+        "body": "Conti bancari stampati sulle fatture"
+      },
       "pec": {
         "title": "Casella PEC",
         "body": "Server, segreti e test di connessione"
@@ -842,6 +846,24 @@
     "failed": "Copia non riuscita. Seleziona il testo e copialo a mano."
   },
   "paymentMethods": {
+    "title": "Metodi di pagamento",
+    "intro": "I conti bancari stampati sulle fatture come bonifico (MP05). Il conto predefinito è preselezionato in ogni nuova fattura e si può cambiare nell'editor. Una fattura emessa conserva una propria copia dei dati del conto.",
+    "add": "Aggiungi conto bancario",
+    "newTitle": "Nuovo conto bancario",
+    "editTitle": "Modifica conto bancario",
+    "label": "Nome breve",
+    "labelHint": "Come riconosci il conto, ad esempio Fineco.",
+    "save": "Salva conto",
+    "edit": "Modifica",
+    "delete": "Elimina conto",
+    "deleteConfirm": "Conferma eliminazione",
+    "deleteNote": "Le fatture esistenti conservano i dati del conto che hanno già. Se è il conto predefinito, un altro diventa predefinito.",
+    "defaultBadge": "Predefinito",
+    "setDefault": "Imposta come predefinito",
+    "setDefaultFor": "Imposta {{label}} come predefinito",
+    "editFor": "Modifica {{label}}",
+    "emptyTitle": "Nessun conto bancario",
+    "emptyBody": "Aggiungi il conto su cui i clienti devono pagarti. Sarà preselezionato nelle nuove fatture.",
     "iban": "IBAN",
     "bic": "BIC/SWIFT",
     "bankName": "Nome della banca",
