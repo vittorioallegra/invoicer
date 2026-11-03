@@ -13,6 +13,7 @@ import {
 } from "../../shared/client";
 import { ApiError } from "../../shared/errors";
 import type { UiLocale } from "../../shared/format";
+import type { PaymentTerms } from "../../shared/payment-terms";
 import {
   CASSA_TYPE_CODES,
   type CassaType,
@@ -28,6 +29,7 @@ import { countryName, countryOptions } from "../lib/countries";
 import { useOnline } from "../lib/online";
 import { fieldErrors, fieldErrorsFromDetail } from "../lib/settings-api";
 import { cn } from "../lib/utils";
+import { PaymentTermsFields } from "./payment-terms-fields";
 import { Banner } from "./ui/banner";
 import { Button } from "./ui/button";
 import { Field } from "./ui/field";
@@ -62,6 +64,7 @@ interface FormState {
   ritenutaCausale: string;
   bollo: boolean;
   termsDays: string;
+  termsBasis: string;
 }
 
 const VAT_RATES = [2200, 1000, 500, 400];
@@ -91,6 +94,7 @@ const EMPTY: FormState = {
   ritenutaCausale: "A",
   bollo: false,
   termsDays: "",
+  termsBasis: "invoice_date",
 };
 
 const bpToText = (bp: number) => String(bp / 100).replace(".", ",");
@@ -128,12 +132,12 @@ function fromRecord(c: ClientRecord): FormState {
     ritenutaRate: d.ritenuta ? bpToText(d.ritenuta.rateBp) : "",
     ritenutaCausale: d.ritenuta?.causale ?? "A",
     bollo: d.bollo,
-    termsDays: d.paymentTermsDays === null ? "" : String(d.paymentTermsDays),
+    termsDays: d.terms ? String(d.terms.days) : "",
+    termsBasis: d.terms?.basis ?? "invoice_date",
   };
 }
 
 function toDefaults(f: FormState): ClientDefaults {
-  const days = f.termsDays.trim();
   return {
     vatRateBp: f.vat.startsWith("rate:") ? Number(f.vat.slice(5)) : null,
     natura: f.vat.startsWith("natura:") ? (f.vat.slice(7) as ClientDefaults["natura"]) : null,
@@ -153,7 +157,13 @@ function toDefaults(f: FormState): ClientDefaults {
         }
       : null,
     bollo: f.bollo,
-    paymentTermsDays: days === "" ? null : Number(days),
+    terms:
+      f.termsDays === ""
+        ? null
+        : {
+            days: Number(f.termsDays) as PaymentTerms["days"],
+            basis: f.termsBasis as PaymentTerms["basis"],
+          },
   };
 }
 
@@ -642,20 +652,13 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
               {t("clients.form.stampDuty")}
             </label>
             <div className={grid}>
-              <Field
-                label={t("clients.form.termsDays")}
-                hint={t("clients.form.termsDaysHint")}
-                error={err("defaults.paymentTermsDays")}
-              >
-                {(c) => (
-                  <Input
-                    {...c}
-                    value={form.termsDays}
-                    onChange={set("termsDays")}
-                    inputMode="numeric"
-                  />
-                )}
-              </Field>
+              <PaymentTermsFields
+                days={form.termsDays}
+                basis={form.termsBasis}
+                onChange={update}
+                daysError={err("defaults.terms.days")}
+                basisError={err("defaults.terms.basis")}
+              />
             </div>
             <div className={grid}>
               <Field

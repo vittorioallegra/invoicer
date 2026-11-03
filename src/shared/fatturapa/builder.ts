@@ -1,6 +1,7 @@
 import { XMLBuilder } from "fast-xml-parser";
 import type { ClientData } from "../client";
 import { type InvoiceBody, invoiceTotalsInput } from "../invoice";
+import { termsReferenceDate } from "../payment-terms";
 import type { ProfileData } from "../profile";
 import { computeTotals, type Natura, type Totals } from "../totals";
 import { encodeFileProgressive, fatturaFileName } from "./file-name";
@@ -217,12 +218,19 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
   }
 
   const payment = data.payment;
+  const terms = payment.terms && !payment.dueDateCustom ? payment.terms : null;
   const datiPagamento = payment.method
     ? node({
         CondizioniPagamento: "TP02",
         DettaglioPagamento: node({
           Beneficiario: payment.accountHolder ? toLatin(payment.accountHolder, 200) : undefined,
           ModalitaPagamento: payment.method,
+          // The terms are described only when the due date comes from them; a hand-set date
+          // stands alone. Order follows the XSD sequence.
+          DataRiferimentoTerminiPagamento: terms
+            ? termsReferenceDate(input.issueDate, terms)
+            : undefined,
+          GiorniTerminiPagamento: terms ? String(terms.days) : undefined,
           DataScadenzaPagamento: invoice.dueDate ?? undefined,
           ImportoPagamento: formatCents(totals.amountDueCents),
           IstitutoFinanziario: payment.bankName ? toLatin(payment.bankName, 80) : undefined,

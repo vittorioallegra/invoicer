@@ -1,5 +1,7 @@
 import { romeDateTime } from "../../shared/cron";
 import { fileProgressiveSql } from "../../shared/fatturapa/file-name";
+import { invoiceDataSchema } from "../../shared/invoice";
+import { dueDate } from "../../shared/payment-terms";
 import { makeError } from "../problem";
 
 /**
@@ -88,6 +90,30 @@ async function loadReservation(
 }
 
 /**
+ * The due date to store once the issue date is fixed: computed from the payment terms of the
+ * invoice, unless the owner set a date by hand or there are no terms (then null: keep the stored
+ * date). Pure given the stored data, so the XML and PDF show the right date.
+ */
+async function dueDateFromTerms(
+  db: D1Database,
+  invoiceId: string,
+  issueDate: string,
+): Promise<string | null> {
+  const row = await db
+    .prepare("SELECT data FROM invoices WHERE id = ?")
+    .bind(invoiceId)
+    .first<{ data: string | null }>();
+  if (!row?.data) return null;
+  try {
+    const parsed = invoiceDataSchema.safeParse(JSON.parse(row.data));
+    const payment = parsed.success ? parsed.data.payment : null;
+    return payment?.terms && !payment.dueDateCustom ? dueDate(issueDate, payment.terms) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Reserves the next number of the current Rome year for a draft or planned invoice, sets it to
  * `sending` and allocates the file progressive with a first transmission row. Repeating the call
  * for an invoice that already holds its number returns that number (two devices, or a retry).
@@ -108,6 +134,7 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
     if (held) return held;
     throw makeError("conflict", "already_numbered");
   }
+  const termsDueDate = await dueDateFromTerms(db, invoiceId, issueDate);
 
   try {
     await db.batch([
@@ -147,10 +174,11 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
              number_int = (SELECT last_number FROM number_sequences WHERE year = ?1),
              number_raw = CAST((SELECT last_number FROM number_sequences WHERE year = ?1) AS TEXT),
              requested_number_int = NULL,
-             year = ?1, issue_date = ?3, state = 'sending', state_rank = 2, updated_at = ?4
+             year = ?1, issue_date = ?3, state = 'sending', state_rank = 2, updated_at = ?4,
+             due_date = COALESCE(?5, due_date)
            WHERE id = ?2 AND state IN ${ISSUABLE_STATES} AND number_int IS NULL`,
         )
-        .bind(year, invoiceId, issueDate, stamp),
+        .bind(year, invoiceId, issueDate, stamp, termsDueDate),
       // 4. The global file progressive.
       db.prepare(
         `INSERT INTO file_sequence (id, last_value) VALUES (1, 1)

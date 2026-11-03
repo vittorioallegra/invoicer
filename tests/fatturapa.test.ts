@@ -9,6 +9,7 @@ import {
   fixtureToFatturaInput,
 } from "../src/shared/fixtures/fatturapa";
 import { INVOICE_FIXTURES } from "../src/shared/fixtures/invoices";
+import { dueDate, type PaymentTerms } from "../src/shared/payment-terms";
 import { NATURA_CODES, NATURA_TEXTS } from "../src/shared/totals";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
@@ -201,5 +202,55 @@ describe("text that the XSD would refuse", () => {
     const result = await validateFatturaXml(broken, assets);
     expect(result.valid).toBe(false);
     expect(result.errors[0]?.message).toContain("CAP");
+  });
+});
+
+describe("payment terms", () => {
+  const withTerms = (terms: PaymentTerms | null, dueDateCustom = false) => {
+    const input = fixtureToFatturaInput(fixture("a"));
+    return {
+      ...input,
+      issueDate: "2026-11-10",
+      invoice: {
+        ...input.invoice,
+        dueDate: terms ? dueDate("2026-11-10", terms) : "2026-12-05",
+        data: {
+          ...input.invoice.data,
+          payment: { ...input.invoice.data.payment, terms, dueDateCustom },
+        },
+      },
+    };
+  };
+
+  it("writes the days, the reference date and the due date, and validates", async () => {
+    const df = buildFatturaXml(withTerms({ days: 30, basis: "invoice_date" })).xml;
+    expect((await validateFatturaXml(df, assets)).errors).toEqual([]);
+    expect(df).toContain(
+      "<DataRiferimentoTerminiPagamento>2026-11-10</DataRiferimentoTerminiPagamento>",
+    );
+    expect(df).toContain("<GiorniTerminiPagamento>30</GiorniTerminiPagamento>");
+    expect(df).toContain("<DataScadenzaPagamento>2026-12-10</DataScadenzaPagamento>");
+
+    const fm = buildFatturaXml(withTerms({ days: 30, basis: "end_of_month" })).xml;
+    expect((await validateFatturaXml(fm, assets)).errors).toEqual([]);
+    expect(fm).toContain(
+      "<DataRiferimentoTerminiPagamento>2026-11-30</DataRiferimentoTerminiPagamento>",
+    );
+    expect(fm).toContain("<DataScadenzaPagamento>2026-12-31</DataScadenzaPagamento>");
+
+    const zero = buildFatturaXml(withTerms({ days: 0, basis: "invoice_date" })).xml;
+    expect((await validateFatturaXml(zero, assets)).errors).toEqual([]);
+    expect(zero).toContain("<GiorniTerminiPagamento>0</GiorniTerminiPagamento>");
+  });
+
+  it("writes only the due date when there are no terms or the date was set by hand", () => {
+    for (const xml of [
+      buildFatturaXml(withTerms(null)).xml,
+      buildFatturaXml(withTerms({ days: 30, basis: "invoice_date" }, true)).xml,
+    ]) {
+      expect(xml).not.toContain("GiorniTerminiPagamento");
+      expect(xml).not.toContain("DataRiferimentoTerminiPagamento");
+      expect(xml).toContain("<DataScadenzaPagamento>");
+    }
   });
 });

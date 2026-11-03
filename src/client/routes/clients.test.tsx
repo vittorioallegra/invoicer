@@ -101,7 +101,7 @@ describe("Clients screen", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
     const toggle = await screen.findByRole("button", { name: /Invoice defaults/ });
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByLabelText("Payment due after (days)")).toBeNull();
+    expect(screen.queryByLabelText("Payment due after")).toBeNull();
 
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
@@ -124,6 +124,41 @@ describe("Clients screen", () => {
       screen.getByRole("button", { name: /Invoice defaults/ }).getAttribute("aria-expanded"),
     ).toBe("true");
     expect(mocks.api).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves the payment terms as days plus basis", async () => {
+    mocks.api.mockResolvedValue({ clients: [] });
+    await renderClients();
+    fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Invoice defaults/ }));
+    const days = screen.getByLabelText("Payment due after") as HTMLSelectElement;
+    const basis = screen.getByLabelText("Counted from") as HTMLSelectElement;
+    expect([...days.options].map((o) => o.value)).toEqual(["", "0", "30", "60", "90", "120"]);
+    expect([...basis.options].map((o) => o.value)).toEqual(["invoice_date", "end_of_month"]);
+    expect(basis.disabled).toBe(true);
+    type("Payment due after", "60");
+    expect(basis.disabled).toBe(false);
+    type("Counted from", "end_of_month");
+    type("Company name", "Acme S.r.l.");
+    type("Partita IVA", "12345678903");
+    type("Street and number", "Via Roma 1");
+    type("Postal code", "00100");
+    type("City", "Roma");
+    type("Province", "RM");
+    mocks.api.mockResolvedValue({ client: saved, clients: [saved] });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(mocks.api).toHaveBeenCalledWith(
+        "/api/clients",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    const call = mocks.api.mock.calls.find(
+      ([path, init]) => path === "/api/clients" && init?.method === "POST",
+    );
+    const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
+    expect(body.defaults.terms).toEqual({ days: 60, basis: "end_of_month" });
+    expect(body.defaults).not.toHaveProperty("paymentTermsDays");
   });
 
   it("sends the fixed delivery code and country for each client type", async () => {

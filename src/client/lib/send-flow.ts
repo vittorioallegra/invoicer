@@ -172,9 +172,13 @@ export async function runSendFlow(
   step("reserve");
   let number = invoice.number;
   let issueDate = invoice.issueDate;
+  // The invoice as stored once the number is reserved: its due date is recomputed from the
+  // payment terms and the final issue date, so the XML and PDF must use this copy.
+  let issued = invoice;
   let fileName: string;
   if (fresh) {
-    const { reservation } = await reserveNumber(invoiceId);
+    const { reservation, invoice: reserved } = await reserveNumber(invoiceId);
+    issued = reserved;
     number = String(reservation.number);
     issueDate = reservation.issueDate;
     fileName = reservation.transmission.fileName;
@@ -187,7 +191,7 @@ export async function runSendFlow(
 
   step("build");
   const finalXml = buildFatturaXml(
-    fatturaInput(invoice, client, profile, number, issueDate, progressiveOf(fileName)),
+    fatturaInput(issued, client, profile, number, issueDate, progressiveOf(fileName)),
   ).xml;
   try {
     await validateOrThrow(finalXml, "build");

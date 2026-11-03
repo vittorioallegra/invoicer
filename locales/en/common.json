@@ -391,7 +391,6 @@
       "ritenutaRate": "Rate (%)",
       "ritenutaCausale": "Payment reason",
       "bollo": "Apply bollo (virtual stamp)",
-      "termsDays": "Payment due after (days)",
       "save": "Save",
       "typeLabels": {
         "it_company": "Company in Italy",
@@ -426,8 +425,7 @@
       "withholdingRate": "Rate (%)",
       "withholdingReason": "Payment reason (causale)",
       "withholdingReasonHint": "1 or 2 letters, for example A.",
-      "stampDuty": "Add the bollo (virtual stamp duty)",
-      "termsDaysHint": "Days from the invoice date."
+      "stampDuty": "Add the bollo (virtual stamp duty)"
     }
   },
   "invoice": {
@@ -728,7 +726,14 @@
       "MP23": "PagoPA"
     },
     "legalNote": "Courtesy copy. The legally valid invoice is the electronic invoice (XML) transmitted through the Sistema di Interscambio (SdI) and available in the recipient's tax portal.",
-    "page": "Page {{pageNumber}} of {{totalPages}}"
+    "page": "Page {{pageNumber}} of {{totalPages}}",
+    "terms": {
+      "label": "Terms",
+      "invoice_date": "{{days}} days from invoice date",
+      "end_of_month": "{{days}} days end of month",
+      "invoice_date_0": "On invoice date",
+      "end_of_month_0": "End of month of the invoice date"
+    }
   },
   "pec": {
     "title": "PEC mailbox",
@@ -907,5 +912,19 @@
   "toast": {
     "label": "Notifications",
     "close": "Dismiss"
+  },
+  "paymentTerms": {
+    "title": "Payment terms",
+    "days": "Payment due after",
+    "basis": "Counted from",
+    "none": "No terms",
+    "day0": "On the date",
+    "dayN": "{{days}} days",
+    "basis_invoice_date": "Invoice date",
+    "basis_end_of_month": "End of month of the invoice date",
+    "dueMode": "Due date from",
+    "mode_terms": "Computed from the terms",
+    "mode_custom": "Custom date",
+    "computed": "Computed from the invoice date, or from today until a date is planned."
   }
 }

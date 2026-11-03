@@ -1,4 +1,5 @@
 import type { ClientRecord, RITENUTA_TYPES } from "../../shared/client";
+import { romeDateTime } from "../../shared/cron";
 import {
   defaultNaturaText,
   EMPTY_INVOICE_DATA,
@@ -9,11 +10,13 @@ import {
   invoiceInputSchema,
   issueMap,
   issuingProblems,
+  isValidDate,
   MAX_INVOICE_NUMBER,
   parseQuantityMilli,
   safeTotals,
 } from "../../shared/invoice";
 import type { PaymentMethodRecord } from "../../shared/payment-method";
+import { dueDate as computeDueDate, type PaymentTerms } from "../../shared/payment-terms";
 import {
   type CassaType,
   defaultCassaSubjectToRitenuta,
@@ -45,7 +48,13 @@ export interface InvoiceForm {
   requestedNumber: string;
   plannedDate: string;
   operationDate: string;
+  /** Due date typed by the owner; used when there are no terms or `dueDateCustom` is on. */
   dueDate: string;
+  /** `""` = no terms, else one of the allowed numbers of days. */
+  termsDays: string;
+  termsBasis: "invoice_date" | "end_of_month";
+  /** The due date is the typed one, not computed from the terms. */
+  dueDateCustom: boolean;
   linkedInvoiceId: string;
   notes: string;
   lines: LineForm[];
@@ -83,6 +92,9 @@ export function emptyForm(): InvoiceForm {
     plannedDate: "",
     operationDate: "",
     dueDate: "",
+    termsDays: "",
+    termsBasis: "invoice_date",
+    dueDateCustom: false,
     linkedInvoiceId: "",
     notes: "",
     lines: [emptyLine(`rate:${FALLBACK_VAT_BP}`)],
@@ -130,6 +142,9 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
     plannedDate: record.plannedDate ?? "",
     operationDate: record.operationDate ?? "",
     dueDate: record.dueDate ?? "",
+    termsDays: data.payment.terms ? String(data.payment.terms.days) : "",
+    termsBasis: data.payment.terms?.basis ?? "invoice_date",
+    dueDateCustom: data.payment.dueDateCustom,
     linkedInvoiceId: record.linkedInvoiceId ?? "",
     notes: record.notes ?? "",
     lines: record.lines.map((line) => ({
@@ -159,19 +174,33 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
   };
 }
 
-const addDays = (date: string, days: number) =>
-  new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+/** The terms typed in the form, or null when none are chosen. */
+export function formTerms(
+  form: Pick<InvoiceForm, "termsDays" | "termsBasis">,
+): PaymentTerms | null {
+  if (form.termsDays === "") return null;
+  return { days: Number(form.termsDays) as PaymentTerms["days"], basis: form.termsBasis };
+}
+
+/**
+ * The due date the invoice is saved with: computed from the terms (counted from the planned
+ * issue date, else today) unless the owner set a date by hand or there are no terms.
+ */
+export function effectiveDueDate(form: InvoiceForm, today: string): string {
+  const terms = formTerms(form);
+  if (terms && !form.dueDateCustom) {
+    const base = form.plannedDate.trim() || today;
+    return isValidDate(base) ? computeDueDate(base, terms) : "";
+  }
+  return form.dueDate.trim();
+}
 
 /**
  * Prefills a new invoice from the client's defaults: VAT or
- * exemption on the lines, cassa/rivalsa, ritenuta, bollo, currency and due date. The bank
+ * exemption on the lines, cassa/rivalsa, ritenuta, bollo, currency and payment terms. The bank
  * account is chosen separately (`withAccount`), so picking a client never overrides it.
  */
-export function applyDefaults(
-  form: InvoiceForm,
-  client: ClientRecord | null,
-  today: string,
-): InvoiceForm {
+export function applyDefaults(form: InvoiceForm, client: ClientRecord | null): InvoiceForm {
   const next: InvoiceForm = { ...form };
   const defaults = client?.defaults;
   if (client) next.currency = client.currency;
@@ -191,8 +220,10 @@ export function applyDefaults(
     next.ritenutaCausale = defaults.ritenuta?.causale ?? "A";
     next.bollo = defaults.bollo;
   }
-  const days = defaults?.paymentTermsDays ?? null;
-  if (days !== null) next.dueDate = addDays(today, days);
+  // Terms prefill from the client default (none = no terms); the due date follows them.
+  next.termsDays = defaults?.terms ? String(defaults.terms.days) : "";
+  next.termsBasis = defaults?.terms?.basis ?? "invoice_date";
+  if (defaults?.terms) next.dueDateCustom = false;
   // Natura legal texts follow the lines.
   next.naturaTexts = naturaTextsFor(next.lines, next.naturaTexts);
   return next;
@@ -248,7 +279,11 @@ export function typedNumber(text: string): number | null {
  * Reads the form into the API shape; unreadable numbers become NaN and are reported. `proposal`
  * is the next free number of the year: a typed number equal to it means "automatic" (null).
  */
-export function buildInvoice(form: InvoiceForm, proposal: number | null = null): BuiltInvoice {
+export function buildInvoice(
+  form: InvoiceForm,
+  proposal: number | null = null,
+  today: string = romeDateTime(new Date()).date,
+): BuiltInvoice {
   const problems: Record<string, string> = {};
   const requested = typedNumber(form.requestedNumber);
   if (Number.isNaN(requested)) problems.requestedNumber = "invalid_number";
@@ -295,6 +330,8 @@ export function buildInvoice(form: InvoiceForm, proposal: number | null = null):
     deferred: form.deferred,
     naturaTexts: naturaTextsFor(form.lines, form.naturaTexts),
     payment: {
+      terms: formTerms(form),
+      dueDateCustom: form.dueDateCustom && formTerms(form) !== null,
       method: (form.paymentMethod || null) as InvoiceData["payment"]["method"],
       iban: form.iban,
       bic: form.bic,
@@ -311,7 +348,7 @@ export function buildInvoice(form: InvoiceForm, proposal: number | null = null):
       requestedNumber: requested === null || requested === proposal ? null : requested,
       plannedDate: blank(form.plannedDate),
       operationDate: blank(form.operationDate),
-      dueDate: blank(form.dueDate),
+      dueDate: blank(effectiveDueDate(form, today)),
       linkedInvoiceId: form.linkedInvoiceId || null,
       notes: blank(form.notes),
       lines,
@@ -329,8 +366,9 @@ export function validateForm(
   client: ClientRecord | null,
   issuing: boolean,
   proposal: number | null = null,
+  today: string = romeDateTime(new Date()).date,
 ): { errors: Record<string, string>; ok: boolean; body: InvoiceInput } {
-  const { input, problems } = buildInvoice(form, proposal);
+  const { input, problems } = buildInvoice(form, proposal, today);
   const parsed = invoiceInputSchema.safeParse(input);
   const rules: Record<string, string> = issuing
     ? Object.fromEntries(

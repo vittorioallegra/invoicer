@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  clientDefaultsSchema,
   clientInputSchema,
   EMPTY_CLIENT_DEFAULTS,
   isValidClientTaxCode,
@@ -140,8 +141,30 @@ describe("defaults", () => {
       cassa: { type: "TC22", rateBp: 400, mode: "included", subjectToRitenuta: true },
       ritenuta: { type: "RT01", rateBp: 2000, causale: "A" },
       bollo: true,
-      paymentTermsDays: 30,
+      terms: { days: 30, basis: "end_of_month" },
     };
     expect(parse({ defaults }).success).toBe(true);
+  });
+  it("maps the older numeric payment terms to the nearest allowed days from the invoice date", () => {
+    const read = (legacy: number | null) => {
+      const parsed = clientDefaultsSchema.parse({
+        ...EMPTY_CLIENT_DEFAULTS,
+        terms: undefined,
+        paymentTermsDays: legacy,
+      });
+      return { terms: parsed.terms, hasLegacy: "paymentTermsDays" in parsed };
+    };
+    expect(read(30)).toEqual({ terms: { days: 30, basis: "invoice_date" }, hasLegacy: false });
+    expect(read(45).terms).toEqual({ days: 30, basis: "invoice_date" });
+    expect(read(50).terms).toEqual({ days: 60, basis: "invoice_date" });
+    expect(read(0).terms).toEqual({ days: 0, basis: "invoice_date" });
+    expect(read(null).terms).toBeNull();
+  });
+  it("rejects terms outside the allowed days and bases", () => {
+    const bad = (terms: unknown) =>
+      parse({ defaults: { ...EMPTY_CLIENT_DEFAULTS, terms } }).success;
+    expect(bad({ days: 45, basis: "invoice_date" })).toBe(false);
+    expect(bad({ days: 30, basis: "month" })).toBe(false);
+    expect(bad({ days: 120, basis: "end_of_month" })).toBe(true);
   });
 });

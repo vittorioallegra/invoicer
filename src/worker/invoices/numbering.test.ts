@@ -1,6 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { encodeFileProgressive } from "../../shared/fatturapa/file-name";
+import { EMPTY_INVOICE_DATA } from "../../shared/invoice";
 import { applyMigrations } from "../auth/test-helpers";
 import { addTransmissionAttempt, nextFreeNumber, releaseNumber, reserveNumber } from "./numbering";
 
@@ -20,6 +21,8 @@ async function insertInvoice(
     issueDate?: string;
     plannedDate?: string;
     requested?: number;
+    dueDate?: string;
+    data?: unknown;
   } = {},
 ): Promise<string> {
   const id = `inv-${++counter}`;
@@ -37,7 +40,8 @@ async function insertInvoice(
   await db
     .prepare(
       `INSERT INTO invoices (id, state, state_rank, source, year, number_int, number_raw, issue_date,
-         planned_date, requested_number_int, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         planned_date, requested_number_int, created_at, due_date, data)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       id,
@@ -51,6 +55,8 @@ async function insertInvoice(
       fields.plannedDate ?? null,
       fields.requested ?? null,
       Date.now(),
+      fields.dueDate ?? null,
+      fields.data === undefined ? null : JSON.stringify(fields.data),
     )
     .run();
   return id;
@@ -197,6 +203,56 @@ describe("number reservation", () => {
     });
     expect(await sequenceOf(2040)).toBeNull();
     expect((await reserve(late, "2040-05-10T10:00:00Z")).number).toBe(6);
+  });
+});
+
+describe("due date from the payment terms", () => {
+  const payment = (terms: unknown, dueDateCustom = false) => ({
+    ...EMPTY_INVOICE_DATA,
+    payment: { ...EMPTY_INVOICE_DATA.payment, terms, dueDateCustom },
+  });
+  const dueOf = async (id: string) =>
+    (
+      await db.prepare("SELECT due_date FROM invoices WHERE id = ?").bind(id).first<{
+        due_date: string | null;
+      }>()
+    )?.due_date;
+
+  it("recomputes the due date from the issue date when the number is reserved", async () => {
+    const id = await insertInvoice({
+      dueDate: "2070-01-01",
+      data: payment({ days: 30, basis: "end_of_month" }),
+    });
+    const reservation = await reserve(id, "2070-11-10T10:00:00Z");
+    expect(reservation.issueDate).toBe("2070-11-10");
+    expect(await dueOf(id)).toBe("2070-12-31");
+
+    const plain = await insertInvoice({ data: payment({ days: 60, basis: "invoice_date" }) });
+    await reserve(plain, "2070-11-10T11:00:00Z");
+    expect(await dueOf(plain)).toBe("2071-01-09");
+  });
+
+  it("uses the Rome date, not the UTC one", async () => {
+    const id = await insertInvoice({ data: payment({ days: 0, basis: "invoice_date" }) });
+    await reserve(id, "2070-12-31T23:30:00Z");
+    expect(await dueOf(id)).toBe("2071-01-01");
+  });
+
+  it("keeps a due date set by hand and an invoice without terms as stored", async () => {
+    const custom = await insertInvoice({
+      dueDate: "2070-12-24",
+      data: payment({ days: 30, basis: "invoice_date" }, true),
+    });
+    await reserve(custom, "2070-11-11T10:00:00Z");
+    expect(await dueOf(custom)).toBe("2070-12-24");
+
+    const none = await insertInvoice({ dueDate: "2070-12-25", data: payment(null) });
+    await reserve(none, "2070-11-11T11:00:00Z");
+    expect(await dueOf(none)).toBe("2070-12-25");
+
+    const bare = await insertInvoice({ dueDate: "2070-12-26" });
+    await reserve(bare, "2070-11-11T12:00:00Z");
+    expect(await dueOf(bare)).toBe("2070-12-26");
   });
 });
 

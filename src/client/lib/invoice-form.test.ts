@@ -3,6 +3,7 @@ import { type ClientRecord, EMPTY_CLIENT_DEFAULTS } from "../../shared/client";
 import {
   applyDefaults,
   buildInvoice,
+  effectiveDueDate,
   emptyForm,
   formTotals,
   typedNumber,
@@ -31,21 +32,59 @@ const client: ClientRecord = {
     ...EMPTY_CLIENT_DEFAULTS,
     natura: "N2.1",
     cassa: { type: "TC04", rateBp: 400, mode: "included", subjectToRitenuta: false },
-    paymentTermsDays: 30,
+    terms: { days: 30, basis: "invoice_date" },
   },
 };
 
 describe("invoice form", () => {
   it("prefills from the client defaults", () => {
-    const form = applyDefaults(emptyForm(), client, "2026-01-20");
+    const form = applyDefaults(emptyForm(), client);
     expect(form).toMatchObject({
       currency: "USD",
       cassaType: "TC04",
       cassaMode: "included",
-      dueDate: "2026-02-19",
+      termsDays: "30",
+      termsBasis: "invoice_date",
+      dueDateCustom: false,
     });
     expect(form.lines[0]?.vat).toBe("natura:N2.1");
     expect(form.naturaTexts["N2.1"]).toContain("7-ter");
+  });
+
+  it("saves the due date computed from the terms, from the planned date or today", () => {
+    const form = applyDefaults(emptyForm(), client);
+    expect(effectiveDueDate(form, "2026-01-20")).toBe("2026-02-19");
+    expect(effectiveDueDate({ ...form, plannedDate: "2026-03-05" }, "2026-01-20")).toBe(
+      "2026-04-04",
+    );
+    const monthEnd = { ...form, termsBasis: "end_of_month" as const };
+    expect(effectiveDueDate(monthEnd, "2026-01-20")).toBe("2026-02-28");
+    expect(buildInvoice(monthEnd, null, "2026-11-10").input.dueDate).toBe("2026-12-31");
+    expect(buildInvoice(monthEnd, null, "2026-11-10").input.data.payment).toMatchObject({
+      terms: { days: 30, basis: "end_of_month" },
+      dueDateCustom: false,
+    });
+  });
+
+  it("keeps a custom due date, and a typed date when there are no terms", () => {
+    const base = applyDefaults(emptyForm(), client);
+    const custom = { ...base, dueDateCustom: true, dueDate: "2026-02-03" };
+    expect(effectiveDueDate(custom, "2026-01-20")).toBe("2026-02-03");
+    expect(buildInvoice(custom, null, "2026-01-20").input.data.payment).toMatchObject({
+      dueDateCustom: true,
+    });
+    const none = { ...emptyForm(), dueDate: "2026-05-01" };
+    expect(effectiveDueDate(none, "2026-01-20")).toBe("2026-05-01");
+    expect(buildInvoice(none, null, "2026-01-20").input.data.payment).toMatchObject({
+      terms: null,
+      dueDateCustom: false,
+    });
+  });
+
+  it("starts without terms and without a due date when the client has no default", () => {
+    const form = applyDefaults(emptyForm(), { ...client, defaults: EMPTY_CLIENT_DEFAULTS });
+    expect(form.termsDays).toBe("");
+    expect(effectiveDueDate(form, "2026-01-20")).toBe("");
   });
 
   it("copies a bank account into the invoice and clears it again", () => {

@@ -30,6 +30,7 @@ import { InvoiceDetail } from "../components/invoice-detail";
 import { InvoiceLines } from "../components/invoice-lines";
 import { InvoiceTotals } from "../components/invoice-totals";
 import { Page } from "../components/page";
+import { PaymentTermsFields } from "../components/payment-terms-fields";
 import { SendSheet } from "../components/send-sheet";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
@@ -42,7 +43,9 @@ import { toast } from "../components/ui/toast";
 import { clientsQuery } from "../lib/clients-api";
 import {
   applyDefaults,
+  effectiveDueDate,
   emptyForm,
+  formTerms,
   formTotals,
   fromRecord,
   type InvoiceForm,
@@ -168,7 +171,7 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
     record
       ? fromRecord(record)
       : withAccount(
-          applyDefaults(emptyForm(), null, today),
+          applyDefaults(emptyForm(), null),
           accounts.find((account) => account.isDefault) ?? null,
         ),
   );
@@ -194,12 +197,12 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
 
   const totals = useMemo(() => formTotals(form), [form]);
   const issuing = useMemo(
-    () => validateForm(form, client, true, proposal),
-    [form, client, proposal],
+    () => validateForm(form, client, true, proposal, today),
+    [form, client, proposal, today],
   );
   const structural = useMemo(
-    () => validateForm(form, client, false, proposal),
-    [form, client, proposal],
+    () => validateForm(form, client, false, proposal, today),
+    [form, client, proposal, today],
   );
 
   const issued = useQuery({ ...invoicesQuery("issued"), enabled: form.documentType === "TD04" });
@@ -225,7 +228,7 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
     setForm((current) => {
       const next = { ...current, clientId: chosen?.id ?? "" };
       // Defaults prefill a new invoice only; an existing one keeps what it has.
-      return record ? next : applyDefaults(next, chosen, today);
+      return record ? next : applyDefaults(next, chosen);
     });
   }
 
@@ -245,6 +248,17 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
     setForm((current) =>
       withAccount(current, accounts.find((account) => account.id === value) ?? null),
     );
+  }
+
+  const terms = formTerms(form);
+  const computedDueDate = effectiveDueDate({ ...form, dueDateCustom: false }, today);
+  // Clearing the terms keeps the date they gave as a plain date.
+  function changeTerms(changes: { termsDays?: string; termsBasis?: string }) {
+    const clearing = changes.termsDays === "" && terms !== null && !form.dueDateCustom;
+    patch({
+      ...changes,
+      ...(clearing ? { dueDate: computedDueDate, dueDateCustom: false } : {}),
+    } as Partial<InvoiceForm>);
   }
 
   function setLines(lines: LineForm[]) {
@@ -715,9 +729,6 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
                 />
               )}
             </Field>
-            <Field label={t("invoice.document.dueDate")} error={err("dueDate")}>
-              {(c) => <Input {...c} type="date" value={form.dueDate} onChange={text("dueDate")} />}
-            </Field>
           </div>
           <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
             <input
@@ -919,6 +930,48 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
                   ))}
                 </Select>
               )}
+            </Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <PaymentTermsFields
+              days={form.termsDays}
+              basis={form.termsBasis}
+              onChange={changeTerms}
+              daysError={err("data.payment.terms.days")}
+              basisError={err("data.payment.terms.basis")}
+            />
+            {terms ? (
+              <Field label={t("paymentTerms.dueMode")}>
+                {(c) => (
+                  <Select
+                    {...c}
+                    value={form.dueDateCustom ? "custom" : "terms"}
+                    onChange={(e) =>
+                      patch(
+                        e.target.value === "custom"
+                          ? { dueDateCustom: true, dueDate: computedDueDate }
+                          : { dueDateCustom: false },
+                      )
+                    }
+                  >
+                    <option value="terms">{t("paymentTerms.mode_terms")}</option>
+                    <option value="custom">{t("paymentTerms.mode_custom")}</option>
+                  </Select>
+                )}
+              </Field>
+            ) : null}
+            <Field
+              label={t("invoice.document.dueDate")}
+              error={err("dueDate")}
+              {...(terms && !form.dueDateCustom ? { hint: t("paymentTerms.computed") } : {})}
+            >
+              {(c) =>
+                terms && !form.dueDateCustom ? (
+                  <Input {...c} type="date" value={computedDueDate} readOnly />
+                ) : (
+                  <Input {...c} type="date" value={form.dueDate} onChange={text("dueDate")} />
+                )
+              }
             </Field>
           </div>
         </section>

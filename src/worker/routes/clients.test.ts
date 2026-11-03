@@ -27,7 +27,7 @@ const acme = {
     ...EMPTY_CLIENT_DEFAULTS,
     vatRateBp: 2200,
     cassa: { type: "TC22", rateBp: 400, mode: "included", subjectToRitenuta: true },
-    paymentTermsDays: 30,
+    terms: { days: 30, basis: "end_of_month" },
   },
 };
 
@@ -36,7 +36,11 @@ interface Record_ {
   name: string;
   recipientCode: string;
   pdfLanguage: string;
-  defaults: { vatRateBp: number; cassa: { type: string } };
+  defaults: {
+    vatRateBp: number;
+    cassa: { type: string };
+    terms: { days: number; basis: string } | null;
+  };
 }
 
 beforeAll(async () => {
@@ -62,7 +66,11 @@ describe("clients API", () => {
     expect(created.body.client).toMatchObject({
       recipientCode: "0000000",
       pdfLanguage: "en",
-      defaults: { vatRateBp: 2200, cassa: { type: "TC22" } },
+      defaults: {
+        vatRateBp: 2200,
+        cassa: { type: "TC22" },
+        terms: { days: 30, basis: "end_of_month" },
+      },
     });
     const { id } = created.body.client;
 
@@ -78,6 +86,25 @@ describe("clients API", () => {
 
     expect((await owner.json(`/api/clients/${id}`, { method: "DELETE" })).status).toBe(204);
     expect((await owner.json(`/api/clients/${id}`)).status).toBe(404);
+  });
+
+  it("reads the older numeric payment terms of a stored client as terms from the invoice date", async () => {
+    const created = await owner.json<{ client: Record_ }>("/api/clients", { body: acme });
+    const { id } = created.body.client;
+    const stored = {
+      vatRateBp: 2200,
+      natura: null,
+      cassa: null,
+      ritenuta: null,
+      bollo: false,
+      paymentTermsDays: 50,
+    };
+    await env.DB.prepare("UPDATE clients SET defaults = ? WHERE id = ?")
+      .bind(JSON.stringify(stored), id)
+      .run();
+    const read = await owner.json<{ client: Record_ }>(`/api/clients/${id}`);
+    expect(read.body.client.defaults.terms).toEqual({ days: 60, basis: "invoice_date" });
+    await owner.json(`/api/clients/${id}`, { method: "DELETE" });
   });
 
   it("rejects type rule violations with field codes", async () => {

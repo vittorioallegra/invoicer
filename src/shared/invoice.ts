@@ -8,6 +8,7 @@ import {
 } from "./client";
 import type { InvoiceState, PaymentState } from "./invoice-state";
 import { paymentDefaultsSchema } from "./payment-method";
+import { paymentTermsSchema } from "./payment-terms";
 import {
   computeTotals,
   DOCUMENT_TYPES,
@@ -81,7 +82,13 @@ export const invoicePaymentSchema = z.preprocess(
     for (const key of ["iban", "bic", "accountHolder", "bankName"]) text[key] ??= "";
     return text;
   },
-  paymentDefaultsSchema.extend({ method: z.enum(PAYMENT_METHODS).nullable() }),
+  paymentDefaultsSchema.extend({
+    method: z.enum(PAYMENT_METHODS).nullable(),
+    /** Payment terms (days + basis); the due date is computed from the issue date. */
+    terms: paymentTermsSchema.nullable().default(null),
+    /** The owner set the due date by hand: it is kept as typed, never recomputed. */
+    dueDateCustom: z.boolean().default(false),
+  }),
 );
 
 export const invoiceDataSchema = z.object({
@@ -105,7 +112,15 @@ export const EMPTY_INVOICE_DATA: InvoiceData = {
   bolloSuggestionDismissed: false,
   deferred: false,
   naturaTexts: {},
-  payment: { method: null, iban: null, bic: null, accountHolder: null, bankName: null },
+  payment: {
+    method: null,
+    iban: null,
+    bic: null,
+    accountHolder: null,
+    bankName: null,
+    terms: null,
+    dueDateCustom: false,
+  },
 };
 
 /** Largest number the owner may request (keeps the number a safe, printable integer). */

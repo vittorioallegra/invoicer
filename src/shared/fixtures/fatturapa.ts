@@ -59,6 +59,8 @@ export function fixtureToFatturaInput(fixture: InvoiceFixture, fileProgressive =
       bic: null,
       accountHolder: FIXTURE_ISSUER.name,
       bankName: "Example Bank",
+      terms: null,
+      dueDateCustom: false,
     },
   };
   return {

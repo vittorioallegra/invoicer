@@ -192,6 +192,13 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
       value: formatDate(invoice.operationDate, language),
     });
   }
+  const terms = pay.terms && !pay.dueDateCustom ? pay.terms : null;
+  if (terms) {
+    meta.push({
+      label: t("pdf.terms.label"),
+      value: t(`pdf.terms.${terms.basis}${terms.days === 0 ? "_0" : ""}`, { days: terms.days }),
+    });
+  }
   if (invoice.dueDate) {
     meta.push({ label: t("pdf.dueDate"), value: formatDate(invoice.dueDate, language) });
   }

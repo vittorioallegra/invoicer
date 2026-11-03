@@ -83,6 +83,8 @@ beforeEach(() => {
           fileName: "IT12345678903_00007.xml",
         },
       },
+      // Stored copy after the reservation: the due date is recomputed from the issue date.
+      invoice: { ...invoice, dueDate: "2026-12-31" },
     };
   });
   mocks.release.mockImplementation(async () => {
@@ -127,6 +129,8 @@ describe("browser send flow", () => {
     const [provisional, final] = mocks.check.mock.calls.map((c) => c[0] as string);
     expect(provisional).toContain("<Numero>2</Numero>");
     expect(final).toContain("<ProgressivoInvio>00007</ProgressivoInvio>");
+    // The final XML carries the due date stored by the reservation, not the one from the draft.
+    expect(final).toContain("<DataScadenzaPagamento>2026-12-31</DataScadenzaPagamento>");
     // The challenge is bound to the hash of the exact bytes that were uploaded.
     const uploaded = mocks.upload.mock.calls[0]?.[1] as Uint8Array;
     const digest = await crypto.subtle.digest("SHA-256", uploaded as BufferSource);

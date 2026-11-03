@@ -391,7 +391,6 @@
       "ritenutaRate": "Aliquota (%)",
       "ritenutaCausale": "Causale pagamento",
       "bollo": "Applica il bollo virtuale",
-      "termsDays": "Scadenza del pagamento (giorni)",
       "save": "Salva",
       "typeLabels": {
         "it_company": "Azienda in Italia",
@@ -426,8 +425,7 @@
       "withholdingRate": "Aliquota (%)",
       "withholdingReason": "Causale del pagamento",
       "withholdingReasonHint": "1 o 2 lettere, ad esempio A.",
-      "stampDuty": "Aggiungi il bollo virtuale",
-      "termsDaysHint": "Giorni dalla data della fattura."
+      "stampDuty": "Aggiungi il bollo virtuale"
     }
   },
   "invoice": {
@@ -728,7 +726,14 @@
       "MP23": "PagoPA"
     },
     "legalNote": "Copia di cortesia. La fattura giuridicamente valida è la fattura elettronica (XML) trasmessa tramite il Sistema di Interscambio (SdI) e disponibile nell'area riservata del destinatario.",
-    "page": "Pagina {{pageNumber}} di {{totalPages}}"
+    "page": "Pagina {{pageNumber}} di {{totalPages}}",
+    "terms": {
+      "label": "Termini",
+      "invoice_date": "{{days}} gg data fattura",
+      "end_of_month": "{{days}} gg fine mese data fattura",
+      "invoice_date_0": "Alla data fattura",
+      "end_of_month_0": "Fine mese data fattura"
+    }
   },
   "pec": {
     "title": "Casella PEC",
@@ -907,5 +912,19 @@
   "toast": {
     "label": "Notifiche",
     "close": "Chiudi"
+  },
+  "paymentTerms": {
+    "title": "Termini di pagamento",
+    "days": "Pagamento a",
+    "basis": "Calcolati da",
+    "none": "Nessun termine",
+    "day0": "Alla data",
+    "dayN": "{{days}} giorni",
+    "basis_invoice_date": "Data fattura",
+    "basis_end_of_month": "Fine mese data fattura",
+    "dueMode": "Scadenza da",
+    "mode_terms": "Calcolata dai termini",
+    "mode_custom": "Data personalizzata",
+    "computed": "Calcolata dalla data fattura, o da oggi finché non scegli una data prevista."
   }
 }

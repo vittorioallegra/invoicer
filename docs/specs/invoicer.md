@@ -152,7 +152,7 @@ settle the open ones):
   company), name, partita IVA and/or codice fiscale, foreign VAT/tax ID with country code,
   address, codice destinatario (7 chars) and/or PEC, email for courtesy copies,
   language (IT or EN, used for the invoice PDF and the courtesy email), default currency, default VAT/exemption, default rivalsa / cassa /
-  ritenuta / bollo settings, default payment terms.
+  ritenuta / bollo settings, default payment terms (days + basis, see Payment terms below).
 - Field rules derived from type: Italian company needs partita IVA and codice
   destinatario or PEC (default "0000000"); Italian private person needs codice fiscale and
   gets codice destinatario "0000000"; foreign clients get codice destinatario "XXXXXXX".
@@ -181,6 +181,26 @@ settle the open ones):
   automatically when exempt amounts exceed 77.47 EUR); currency (default EUR); payment
   data (method, due date and the bank account copied from the Payment methods list: IBAN,
   BIC/SWIFT, holder).
+- Options that stand for a code show the code and a short description in the UI language
+  (for example "22% — aliquota ordinaria", "N2.2 — non soggette: altri casi (es. forfettario)",
+  "RT01 — ritenuta persone fisiche", "TC04 — Inarcassa (ingegneri e architetti)"); the stored
+  value is the code. The descriptions follow the official FatturaPA names (Allegato A) and live
+  in one module (`src/shared/totals/labels.ts`).
+- Payment terms: two selects, days (0, 30, 60, 90, 120) and basis (invoice date, "data
+  fattura" DF; or end of month of the invoice date, "fine mese data fattura" FM DF).
+  The due date is the invoice date plus the days, moved to the last day of that month for FM
+  (30 gg FM DF: issued 2026-11-10 gives 2026-12-31); 0 days from the invoice date is the
+  invoice date itself. Dates are plain `YYYY-MM-DD` on the Europe/Rome calendar. A client may
+  have default terms (none by default; the Company page has none) that prefill a new invoice.
+  The invoice stores its terms in its payment data. While it is a draft or planned the editor
+  shows the date computed from today (or the planned date) and the owner may keep "computed
+  from the terms" or choose "custom date". When the number is reserved the issue date is
+  fixed and the due date is recomputed from the stored terms, unless it was set by hand, so
+  the XML and the PDF show the right date. Without terms there is no computed date.
+  The XML keeps `DataScadenzaPagamento` and, when the date comes from the terms, adds
+  `GiorniTerminiPagamento` (days) and `DataRiferimentoTerminiPagamento` (the invoice date, or
+  the last day of the invoice month for FM). The PDF prints the terms in words ("30 gg fine
+  mese data fattura" / "30 days end of month") and the due date.
 - Totals (taxable per rate, VAT, contribution, withholding, stamp, amount due) are computed
   live and shown before sending.
 - States:

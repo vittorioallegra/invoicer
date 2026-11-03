@@ -87,6 +87,55 @@ describe("invoice PDF (AC 13)", () => {
   });
 });
 
+describe("invoice PDF payment terms", () => {
+  const withTerms = (
+    id: string,
+    terms: { days: 0 | 30 | 60 | 90 | 120; basis: "invoice_date" | "end_of_month" } | null,
+    dueDateCustom = false,
+  ): InvoicePdfInput => {
+    const input = inputFor(id);
+    return {
+      ...input,
+      invoice: {
+        ...input.invoice,
+        dueDate: "2026-12-31",
+        data: {
+          ...input.invoice.data,
+          payment: { ...input.invoice.data.payment, terms, dueDateCustom },
+        },
+      },
+    };
+  };
+
+  it("prints the terms in words and the due date, in the PDF language", async () => {
+    const it = extractText(
+      await renderInvoicePdf(withTerms("b", { days: 30, basis: "end_of_month" })),
+    );
+    expect(it).toContain("30 gg fine mese data fattura");
+    expect(it).toContain("31 dic 2026");
+    const en = extractText(
+      await renderInvoicePdf(withTerms("c", { days: 30, basis: "end_of_month" })),
+    );
+    expect(en).toContain("30 days end of month");
+    expect(en).toContain("31 Dec 2026");
+    const df = extractText(
+      await renderInvoicePdf(withTerms("c", { days: 60, basis: "invoice_date" })),
+    );
+    expect(df).toContain("60 days from invoice date");
+  });
+
+  it("prints only the due date without terms or with a custom date", async () => {
+    for (const input of [
+      withTerms("c", null),
+      withTerms("c", { days: 30, basis: "invoice_date" }, true),
+    ]) {
+      const text = extractText(await renderInvoicePdf(input));
+      expect(text).not.toContain("Terms");
+      expect(text).toContain("31 Dec 2026");
+    }
+  });
+});
+
 describe("invoice PDF content", () => {
   it.each(INVOICE_FIXTURES.map((f) => [f.id, f] as const))(
     "fixture (%s) prints the amount due in its own currency and language",

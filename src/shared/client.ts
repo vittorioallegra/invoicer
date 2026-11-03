@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { legacyTerms, paymentTermsSchema } from "./payment-terms";
 import { isValidVatNumber } from "./profile";
 import { CASSA_TYPE_CODES, NATURA_CODES } from "./totals/types";
 
@@ -111,7 +112,11 @@ export const ritenutaDefaultsSchema = z.object({
   causale: z.string().trim().min(1).max(2),
 });
 
-/** Defaults that prefill a new invoice for this client (step 9). Reuses the totals engine types. */
+/**
+ * Defaults that prefill a new invoice for this client (step 9). Reuses the totals engine types.
+ * Older stored rows carry `paymentTermsDays` (a plain number); reading maps it to `terms` counted
+ * from the invoice date, and only `terms` is written.
+ */
 export const clientDefaultsSchema = z
   .object({
     vatRateBp: rateBp.nullable(),
@@ -119,12 +124,22 @@ export const clientDefaultsSchema = z
     cassa: cassaDefaultsSchema.nullable(),
     ritenuta: ritenutaDefaultsSchema.nullable(),
     bollo: z.boolean(),
-    paymentTermsDays: z.number().int().min(0).max(365).nullable(),
+    terms: paymentTermsSchema.nullable().optional(),
+    /** Legacy input only: replaced by `terms`. */
+    paymentTermsDays: z.number().int().min(0).max(365).nullable().optional(),
   })
   .refine((value) => !(value.vatRateBp !== null && value.natura !== null), {
     message: "invalid_vat_default",
     path: ["natura"],
-  });
+  })
+  .transform(({ paymentTermsDays, terms, ...rest }) => ({
+    ...rest,
+    terms:
+      terms ??
+      (paymentTermsDays !== null && paymentTermsDays !== undefined
+        ? legacyTerms(paymentTermsDays)
+        : null),
+  }));
 
 export type ClientDefaults = z.output<typeof clientDefaultsSchema>;
 
@@ -134,7 +149,7 @@ export const EMPTY_CLIENT_DEFAULTS: ClientDefaults = {
   cassa: null,
   ritenuta: null,
   bollo: false,
-  paymentTermsDays: null,
+  terms: null,
 };
 
 /** Rules per type, applied after the field checks: required fields and fixed values. */
