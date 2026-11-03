@@ -1,7 +1,7 @@
 import { XMLBuilder } from "fast-xml-parser";
 import { type ClientData, isItalianClientType } from "../client";
 import { type InvoiceBody, invoiceTotalsInput } from "../invoice";
-import type { ProfileData, RegimeFiscale } from "../profile";
+import { type ProfileData, phoneForXml, type RegimeFiscale } from "../profile";
 import { computeTotals, type Natura, STAMP_CENTS, type Totals } from "../totals";
 import { encodeFileProgressive, fatturaFileName } from "./file-name";
 import { formatBasisPoints, formatCents, formatQuantity, formatUnitPrice } from "./numbers";
@@ -29,7 +29,12 @@ export class FatturaBuildError extends Error {
 export type FatturaIssuer = Pick<
   ProfileData,
   "name" | "vatNumber" | "taxCode" | "address" | "postalCode" | "city" | "province" | "country"
-> & { regimeFiscale: RegimeFiscale };
+> & {
+  regimeFiscale: RegimeFiscale;
+  /** Optional contacts, written in `CedentePrestatore/Contatti`. */
+  email?: string | null;
+  phone?: string | null;
+};
 
 export type FatturaClient = Pick<
   ClientData,
@@ -300,6 +305,10 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
     DatiPagamento: datiPagamento,
   });
 
+  const phone = (issuer.phone && phoneForXml(issuer.phone)) || undefined;
+  const email = issuer.email || undefined;
+  const contacts = phone || email ? node({ Telefono: phone, Email: email }) : undefined;
+
   const document = {
     "?xml": { "@_version": "1.0", "@_encoding": "UTF-8" },
     "p:FatturaElettronica": {
@@ -329,6 +338,7 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
             Provincia: issuer.province ?? undefined,
             Nazione: issuer.country,
           }),
+          Contatti: contacts,
         },
         CessionarioCommittente: {
           DatiAnagrafici: clientIdentity(client),

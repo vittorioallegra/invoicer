@@ -20,6 +20,9 @@ export interface ReceivedParty {
     province: string | null;
     country: string;
   };
+  /** `Contatti` (supplier only in practice): phone and email as written. */
+  phone: string | null;
+  email: string | null;
 }
 
 export interface ReceivedLine {
@@ -125,6 +128,7 @@ function party(raw: unknown): ReceivedParty {
   const name = asTree(data.Anagrafica);
   const vat = asTree(data.IdFiscaleIVA);
   const seat = asTree(asTree(raw).Sede);
+  const contacts = asTree(asTree(raw).Contatti);
   const person = [text(name.Nome), text(name.Cognome)].filter(Boolean).join(" ");
   return {
     name: text(name.Denominazione) ?? person,
@@ -139,6 +143,8 @@ function party(raw: unknown): ReceivedParty {
       province: text(seat.Provincia),
       country: str(seat.Nazione),
     },
+    phone: text(contacts.Telefono),
+    email: text(contacts.Email),
   };
 }
 

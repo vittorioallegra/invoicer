@@ -281,6 +281,39 @@ describe("text that the XSD would refuse", () => {
   });
 });
 
+describe("issuer contacts", () => {
+  const withContacts = (contacts: { email?: string | null; phone?: string | null }) => {
+    const input = fixtureToFatturaInput(fixture("a"));
+    return buildFatturaXml({ ...input, issuer: { ...input.issuer, ...contacts } }).xml;
+  };
+
+  it("writes Telefono then Email in CedentePrestatore/Contatti, XSD-valid and parsed back", async () => {
+    const xml = withContacts({ email: "info@studio.it", phone: "+39 366 593 1825" });
+    expect((await validateFatturaXml(xml, assets)).errors).toEqual([]);
+    expect(xml).toMatch(
+      /<\/Sede>\s*<Contatti>\s*<Telefono>393665931825<\/Telefono>\s*<Email>info@studio.it<\/Email>\s*<\/Contatti>\s*<\/CedentePrestatore>/,
+    );
+    expect(parseFatturaXml(xml).supplier).toMatchObject({
+      email: "info@studio.it",
+      phone: "393665931825",
+    });
+  });
+
+  it("writes only the one that is set, and no Contatti without either", async () => {
+    const phoneOnly = withContacts({ phone: "06 12345" });
+    expect((await validateFatturaXml(phoneOnly, assets)).errors).toEqual([]);
+    expect(phoneOnly).toContain("<Telefono>0612345</Telefono>");
+    expect(phoneOnly).not.toContain("<Email>");
+    const emailOnly = withContacts({ email: "info@studio.it" });
+    expect((await validateFatturaXml(emailOnly, assets)).errors).toEqual([]);
+    expect(emailOnly).not.toContain("<Telefono>");
+    const none = withContacts({ email: null, phone: null });
+    expect((await validateFatturaXml(none, assets)).errors).toEqual([]);
+    expect(none).not.toContain("<Contatti>");
+    expect(parseFatturaXml(none).supplier).toMatchObject({ email: null, phone: null });
+  });
+});
+
 describe("line notes", () => {
   it("are appended to Descrizione on a new line and stay XSD-valid", async () => {
     const input = fixtureToFatturaInput(fixture("a"));

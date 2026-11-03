@@ -42,6 +42,8 @@ const PARTY_FIELDS: Record<string, string> = {
   Provincia: "province",
   Nazione: "country",
   RegimeFiscale: "regimeFiscale",
+  Telefono: "phone",
+  Email: "email",
 };
 
 const LINE_FIELDS: Record<string, string> = {
