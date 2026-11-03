@@ -75,15 +75,12 @@ afterEach(() => {
 });
 
 describe("Invoice detail panel", () => {
-  it("offers PDF and XML as downloads from the Worker endpoints", async () => {
+  it("offers Send for an attempt that was not handed over", async () => {
     await show(base, { attempts: [attempt({})], retry: { allowed: true, mode: "same_attempt" } });
-    const pdf = (await screen.findByRole("link", { name: /Download PDF/ })) as HTMLAnchorElement;
-    expect(pdf.getAttribute("href")).toBe("/api/invoices/i1/pdf");
-    expect(pdf.hasAttribute("download")).toBe(true);
-    expect(screen.getByRole("link", { name: /Download XML/ }).getAttribute("href")).toBe(
-      "/api/invoices/i1/xml",
-    );
     expect(await screen.findByRole("button", { name: "Send" })).toBeTruthy();
+    // No downloads and no attempts list: the page's title row carries the files.
+    expect(screen.queryByRole("link", { name: /Download/ })).toBeNull();
+    expect(screen.queryByText("Attempts")).toBeNull();
   });
 
   it("does not offer a resend while an unknown outcome is inside the quiet period", async () => {
@@ -130,7 +127,7 @@ describe("Invoice detail panel", () => {
     );
   });
 
-  it("leads with Mark paid once the invoice is delivered", async () => {
+  it("renders nothing once the invoice is delivered", async () => {
     await show(
       { ...base, state: "delivered" },
       {
@@ -138,6 +135,8 @@ describe("Invoice detail panel", () => {
         retry: { allowed: false, reason: "not_sendable" },
       },
     );
-    expect(await screen.findByRole("button", { name: "Mark paid" })).toBeTruthy();
+    await waitFor(() => expect(mocks.api).toHaveBeenCalled());
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.queryByRole("heading")).toBeNull();
   });
 });

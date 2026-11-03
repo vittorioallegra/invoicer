@@ -863,9 +863,6 @@
     }
   },
   "detail": {
-    "title": "Transmission",
-    "downloadPdf": "Download PDF",
-    "downloadXml": "Download XML",
     "waitingReceipt": "Handed to the PEC server. Waiting for the delivery receipt from the SdI mailbox.",
     "unknown": "The send was interrupted and its outcome is unknown. The mailbox is checked automatically for the sent message and its receipts; do not send it again yet.",
     "retryAt": "If nothing shows up, you can resend after {{when}}.",
@@ -881,19 +878,7 @@
     "errorCode": "Error code (optional)",
     "errorText": "Error text from the portal",
     "saveRejected": "Save rejection",
-    "fixAndResend": "The SdI rejected this invoice. Fix the points shown next to the fields, then use Fix & resend: same number and date, new file name.",
-    "markPaid": "Mark paid",
-    "attempts": "Attempts",
-    "attempt": "#{{n}} {{file}}: {{outcome}} ({{channel}})",
-    "outcome": {
-      "none": "not sent",
-      "complete": "handed over",
-      "unknown": "outcome unknown"
-    },
-    "channel": {
-      "pec": "PEC",
-      "manual": "manual"
-    }
+    "fixAndResend": "The SdI rejected this invoice. Fix the points shown next to the fields, then use Fix & resend: same number and date, new file name."
   },
   "notifications": {
     "invoice_delivered": {

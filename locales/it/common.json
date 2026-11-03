@@ -863,9 +863,6 @@
     }
   },
   "detail": {
-    "title": "Trasmissione",
-    "downloadPdf": "Scarica PDF",
-    "downloadXml": "Scarica XML",
     "waitingReceipt": "Consegnata al server PEC. In attesa della ricevuta di consegna dalla casella del SdI.",
     "unknown": "L'invio è stato interrotto e l'esito è sconosciuto. La casella viene controllata automaticamente per trovare il messaggio inviato e le ricevute; non reinviarla ancora.",
     "retryAt": "Se non compare nulla, potrai reinviare dopo {{when}}.",
@@ -881,19 +878,7 @@
     "errorCode": "Codice errore (facoltativo)",
     "errorText": "Testo dell'errore dal portale",
     "saveRejected": "Salva lo scarto",
-    "fixAndResend": "Il SdI ha scartato questa fattura. Correggi i punti indicati accanto ai campi, poi usa Correggi e reinvia: stesso numero e data, nuovo nome file.",
-    "markPaid": "Segna come pagata",
-    "attempts": "Tentativi",
-    "attempt": "#{{n}} {{file}}: {{outcome}} ({{channel}})",
-    "outcome": {
-      "none": "non inviato",
-      "complete": "consegnato",
-      "unknown": "esito sconosciuto"
-    },
-    "channel": {
-      "pec": "PEC",
-      "manual": "manuale"
-    }
+    "fixAndResend": "Il SdI ha scartato questa fattura. Correggi i punti indicati accanto ai campi, poi usa Correggi e reinvia: stesso numero e data, nuovo nome file."
   },
   "notifications": {
     "invoice_delivered": {

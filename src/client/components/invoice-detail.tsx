@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { InvoiceRecord } from "../../shared/invoice";
@@ -20,9 +20,9 @@ export interface InvoiceDetailProps {
 }
 
 /**
- * State-aware panel of a numbered invoice: where it is in the SdI journey, the attempts, the
- * PDF/XML downloads (Worker attachments, so they work whatever the in-browser viewer does), the
- * manual AdE channel, and the primary action that follows the state.
+ * What a numbered invoice still waits for, with the action that follows: a send that was not
+ * completed or whose outcome is unknown, the SdI outcome, the manual AdE channel. It renders
+ * nothing once the invoice is delivered or not delivered.
  */
 export function InvoiceDetail({ record, clientName, totalLabel }: InvoiceDetailProps) {
   const { t, i18n } = useTranslation();
@@ -59,34 +59,10 @@ export function InvoiceDetail({ record, clientName, totalLabel }: InvoiceDetailP
   const state = record.state;
   const manualSent = state === "sent" && latest?.channel === "manual";
 
+  if (state !== "sending" && state !== "sent" && state !== "rejected") return null;
+
   return (
-    <section
-      className="flex flex-col gap-3 rounded-card border border-border p-4"
-      aria-labelledby="inv-detail"
-    >
-      <h2 id="inv-detail" className="text-base font-medium">
-        {t("detail.title")}
-      </h2>
-
-      <div className="flex flex-wrap gap-3">
-        <a
-          className="inline-flex min-h-11 items-center gap-2 rounded-control border border-border px-3 text-sm font-medium hover:bg-muted"
-          href={`/api/invoices/${record.id}/pdf`}
-          download
-        >
-          <Download aria-hidden className="size-4" />
-          {t("detail.downloadPdf")}
-        </a>
-        <a
-          className="inline-flex min-h-11 items-center gap-2 rounded-control border border-border px-3 text-sm font-medium hover:bg-muted"
-          href={`/api/invoices/${record.id}/xml`}
-          download
-        >
-          <Download aria-hidden className="size-4" />
-          {t("detail.downloadXml")}
-        </a>
-      </div>
-
+    <div className="flex flex-col gap-3">
       {state === "sending" ? (
         <div className="flex flex-col gap-2">
           {latest?.outcome === "complete" ? (
@@ -191,38 +167,6 @@ export function InvoiceDetail({ record, clientName, totalLabel }: InvoiceDetailP
 
       {state === "rejected" ? <Banner tone="warning">{t("detail.fixAndResend")}</Banner> : null}
 
-      {state === "delivered" || state === "not_delivered" ? (
-        <div className="flex flex-wrap gap-3">
-          {record.paymentFlag !== "paid" ? (
-            <Button
-              onClick={() =>
-                document.getElementById("inv-paid")?.scrollIntoView({ behavior: "smooth" })
-              }
-            >
-              {t("detail.markPaid")}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-
-      {attempts.length > 0 ? (
-        <div className="flex flex-col gap-1">
-          <h3 className="text-sm font-medium">{t("detail.attempts")}</h3>
-          <ul className="space-y-1 text-sm text-muted-foreground">
-            {attempts.map((a) => (
-              <li key={a.id}>
-                {t("detail.attempt", {
-                  n: a.attempt,
-                  file: a.fileName,
-                  outcome: t(`detail.outcome.${a.outcome}`),
-                  channel: t(`detail.channel.${a.channel}`),
-                })}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       <SendSheet
         invoiceId={record.id}
         open={sendOpen}
@@ -233,6 +177,6 @@ export function InvoiceDetail({ record, clientName, totalLabel }: InvoiceDetailP
           void refresh();
         }}
       />
-    </section>
+    </div>
   );
 }
