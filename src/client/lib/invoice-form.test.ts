@@ -51,7 +51,6 @@ describe("invoice form", () => {
       cassaMode: "included",
       termsDays: "30",
       termsKind: "custom",
-      dueDateCustom: false,
     });
     // The ritenuta flag is off: nothing is copied for it. VAT and bollo are never prefilled.
     expect(form).toMatchObject({ cassaRate: "4", ritenutaType: "", bollo: false });
@@ -93,22 +92,15 @@ describe("invoice form", () => {
     expect(buildInvoice(monthEnd, null, "2026-11-10").input.dueDate).toBe("2026-12-31");
     expect(buildInvoice(monthEnd, null, "2026-11-10").input.data.payment).toMatchObject({
       terms: { kind: "eom_30" },
-      dueDateCustom: false,
     });
   });
 
-  it("keeps a custom due date, and a typed date when there are no terms", () => {
-    const base = applyDefaults(emptyForm(), client, tax);
-    const custom = { ...base, dueDateCustom: true, dueDate: "2026-02-03" };
-    expect(effectiveDueDate(custom, "2026-01-20")).toBe("2026-02-03");
-    expect(buildInvoice(custom, null, "2026-01-20").input.data.payment).toMatchObject({
-      dueDateCustom: true,
-    });
-    const none = { ...emptyForm(), dueDate: "2026-05-01" };
-    expect(effectiveDueDate(none, "2026-01-20")).toBe("2026-05-01");
+  it("has no due date without terms, whatever the form held", () => {
+    const none = { ...emptyForm(), invoiceDate: "2026-05-01" };
+    expect(effectiveDueDate(none, "2026-01-20")).toBe("");
+    expect(buildInvoice(none, null, "2026-01-20").input.dueDate).toBeNull();
     expect(buildInvoice(none, null, "2026-01-20").input.data.payment).toMatchObject({
       terms: null,
-      dueDateCustom: false,
     });
   });
 

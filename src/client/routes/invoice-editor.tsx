@@ -340,15 +340,9 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   }
 
   const terms = formTerms(form);
-  const computedDueDate = effectiveDueDate({ ...form, dueDateCustom: false }, today);
-  // Clearing the terms keeps the date they gave as a plain date.
-  function changeTerms(changes: { termsKind?: string; termsDays?: string }) {
-    const clearing = changes.termsKind === "" && terms !== null && !form.dueDateCustom;
-    patch({
-      ...changes,
-      ...(clearing ? { dueDate: computedDueDate, dueDateCustom: false } : {}),
-    } as Partial<InvoiceForm>);
-  }
+  const computedDueDate = effectiveDueDate(form, today);
+  const changeTerms = (changes: { termsKind?: string; termsDays?: string }) =>
+    patch(changes as Partial<InvoiceForm>);
 
   function setLines(lines: LineForm[]) {
     patch({ lines, naturaTexts: naturaTextsFor(lines, form.naturaTexts) });
@@ -1129,6 +1123,21 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             <h2 id="inv-payment" className="text-base font-medium">
               {t("invoice.payment.title")}
             </h2>
+            <div className="flex flex-wrap items-end gap-4">
+              <PaymentTermsFields
+                compact
+                kind={form.termsKind}
+                days={form.termsDays}
+                onChange={changeTerms}
+                kindError={err("data.payment.terms.kind")}
+                daysError={err("data.payment.terms.days")}
+              />
+              {terms ? (
+                <Field label={t("invoice.document.dueDate")} className="w-44">
+                  {(c) => <Input {...c} type="date" value={computedDueDate} readOnly />}
+                </Field>
+              ) : null}
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 label={t("invoice.payment.method")}
@@ -1167,49 +1176,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                     ))}
                   </Select>
                 )}
-              </Field>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <PaymentTermsFields
-                kind={form.termsKind}
-                days={form.termsDays}
-                onChange={changeTerms}
-                kindError={err("data.payment.terms.kind")}
-                daysError={err("data.payment.terms.days")}
-              />
-              {terms ? (
-                <Field label={t("paymentTerms.dueMode")}>
-                  {(c) => (
-                    <Select
-                      {...c}
-                      value={form.dueDateCustom ? "custom" : "terms"}
-                      onChange={(e) =>
-                        patch(
-                          e.target.value === "custom"
-                            ? { dueDateCustom: true, dueDate: computedDueDate }
-                            : { dueDateCustom: false },
-                        )
-                      }
-                    >
-                      <option value="terms">{t("paymentTerms.mode_terms")}</option>
-                      <option value="custom">{t("paymentTerms.mode_custom")}</option>
-                    </Select>
-                  )}
-                </Field>
-              ) : null}
-              <Field
-                label={t("invoice.document.dueDate")}
-                error={err("dueDate")}
-                name="dueDate"
-                {...(terms && !form.dueDateCustom ? { hint: t("paymentTerms.computed") } : {})}
-              >
-                {(c) =>
-                  terms && !form.dueDateCustom ? (
-                    <Input {...c} type="date" value={computedDueDate} readOnly />
-                  ) : (
-                    <Input {...c} type="date" value={form.dueDate} onChange={text("dueDate")} />
-                  )
-                }
               </Field>
             </div>
           </section>

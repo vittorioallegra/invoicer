@@ -89,11 +89,7 @@ describe("invoice PDF (AC 13)", () => {
 });
 
 describe("invoice PDF payment terms", () => {
-  const withTerms = (
-    id: string,
-    terms: PaymentTerms | null,
-    dueDateCustom = false,
-  ): InvoicePdfInput => {
+  const withTerms = (id: string, terms: PaymentTerms | null): InvoicePdfInput => {
     const input = inputFor(id);
     return {
       ...input,
@@ -102,7 +98,7 @@ describe("invoice PDF payment terms", () => {
         dueDate: "2026-12-31",
         data: {
           ...input.invoice.data,
-          payment: { ...input.invoice.data.payment, terms, dueDateCustom },
+          payment: { ...input.invoice.data.payment, terms },
         },
       },
     };
@@ -133,15 +129,10 @@ describe("invoice PDF payment terms", () => {
     expect(eom60It).toContain("60 gg fine mese data fattura");
   });
 
-  it("prints only the due date without terms or with a custom date", async () => {
-    for (const input of [
-      withTerms("c", null),
-      withTerms("c", { kind: "custom", days: 30 }, true),
-    ]) {
-      const text = extractText(await renderInvoicePdf(input));
-      expect(text).not.toContain("Terms");
-      expect(text).toContain("31 Dec 2026");
-    }
+  it("prints only the due date without terms", async () => {
+    const text = extractText(await renderInvoicePdf(withTerms("c", null)));
+    expect(text).not.toContain("Terms");
+    expect(text).toContain("31 Dec 2026");
   });
 });
 

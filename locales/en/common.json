@@ -964,11 +964,7 @@
     "kind_eom_60": "60 days end of month",
     "kind_custom": "Custom",
     "days": "Days from invoice date",
-    "daysHint": "Number of days, 0 to 365.",
-    "dueMode": "Due date from",
-    "mode_terms": "Computed from the terms",
-    "mode_custom": "Custom date",
-    "computed": "Computed from the invoice date, or from today while the date is empty."
+    "daysHint": "Number of days, 0 to 365."
   },
   "numbering": {
     "title": "Numbering series",

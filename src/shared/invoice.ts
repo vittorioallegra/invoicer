@@ -95,10 +95,8 @@ export const invoicePaymentSchema = z.preprocess(
   },
   paymentDefaultsSchema.extend({
     method: z.enum(PAYMENT_METHODS).nullable(),
-    /** Payment terms (one of five choices); the due date is computed from the issue date. */
+    /** Payment terms (one of five choices); the due date is always computed from the issue date. */
     terms: paymentTermsSchema.nullable().default(null),
-    /** The owner set the due date by hand: it is kept as typed, never recomputed. */
-    dueDateCustom: z.boolean().default(false),
   }),
 );
 
@@ -153,7 +151,6 @@ export const EMPTY_INVOICE_DATA: InvoiceData = {
     accountHolder: null,
     bankName: null,
     terms: null,
-    dueDateCustom: false,
   },
 };
 
@@ -239,7 +236,6 @@ function draftData(raw: unknown): InvoiceData {
       ...empty,
       method: orFallback(z.enum(PAYMENT_METHODS).nullable(), payment.method, null),
       terms: orFallback(paymentTermsSchema.nullable(), payment.terms, null),
-      dueDateCustom: payment.dueDateCustom === true,
     }),
   };
 }

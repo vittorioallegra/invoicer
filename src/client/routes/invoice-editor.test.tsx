@@ -286,7 +286,7 @@ describe("Invoice editor", () => {
     expect((screen.getByLabelText("Ritenuta") as HTMLSelectElement).value).toBe("");
   });
 
-  it("computes the due date from the terms and the planned date, or keeps a custom date", async () => {
+  it("computes the due date from the terms and the invoice date, and it is never typed", async () => {
     serve();
     await renderEditor();
     await loaded();
@@ -301,13 +301,8 @@ describe("Invoice editor", () => {
     type("Days from invoice date", "90");
     expect(due().value).toBe("2027-02-08");
 
-    // A custom date starts from the computed one and is then kept as typed.
-    type("Due date from", "custom");
-    expect(due().readOnly).toBe(false);
-    expect(due().value).toBe("2027-02-08");
-    type("Due date", "2027-01-15");
     type("Invoice date", "2026-11-20");
-    expect(due().value).toBe("2027-01-15");
+    expect(due().value).toBe("2027-02-18");
 
     type("Description", "Consulting");
     type("Unit price", "50");
@@ -320,11 +315,9 @@ describe("Invoice editor", () => {
     );
     const call = mocks.api.mock.calls.find(([path]) => path === "/api/invoices");
     const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
-    expect(body.dueDate).toBe("2027-01-15");
-    expect(body.data.payment).toMatchObject({
-      terms: { kind: "custom", days: 90 },
-      dueDateCustom: true,
-    });
+    expect(body.dueDate).toBe("2027-02-18");
+    expect(body.data.payment).toMatchObject({ terms: { kind: "custom", days: 90 } });
+    expect(body.data.payment).not.toHaveProperty("dueDateCustom");
   });
 
   it("computes the due date for each terms choice and shows the days only for custom", async () => {
@@ -353,8 +346,7 @@ describe("Invoice editor", () => {
     await loaded();
     type("Client", "c1");
     type("Payment terms", "");
-    expect(screen.queryByLabelText("Due date from")).toBeNull();
-    expect((screen.getByLabelText("Due date") as HTMLInputElement).readOnly).toBe(false);
+    expect(screen.queryByLabelText("Due date")).toBeNull();
   });
 
   it("shows the amount due live, with no contribution chip and an expandable breakdown", async () => {
@@ -651,7 +643,6 @@ describe("Invoice editor", () => {
       bankName: "",
       accountHolder: "Mario Rossi",
       terms: { kind: "custom", days: 30 },
-      dueDateCustom: false,
     });
   });
 
@@ -666,7 +657,6 @@ describe("Invoice editor", () => {
           accountHolder: null,
           bankName: "Old Bank",
           terms: null,
-          dueDateCustom: false,
         },
       },
     });

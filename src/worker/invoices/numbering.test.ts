@@ -231,9 +231,9 @@ describe("number reservation", () => {
 });
 
 describe("due date from the payment terms", () => {
-  const payment = (terms: unknown, dueDateCustom = false) => ({
+  const payment = (terms: unknown) => ({
     ...EMPTY_INVOICE_DATA,
-    payment: { ...EMPTY_INVOICE_DATA.payment, terms, dueDateCustom },
+    payment: { ...EMPTY_INVOICE_DATA.payment, terms },
   });
   const dueOf = async (id: string) =>
     (
@@ -262,13 +262,16 @@ describe("due date from the payment terms", () => {
     expect(await dueOf(id)).toBe("2071-01-01");
   });
 
-  it("keeps a due date set by hand and an invoice without terms as stored", async () => {
-    const custom = await insertInvoice({
+  it("ignores a legacy hand-set flag and keeps the stored date of an invoice without terms", async () => {
+    const legacy = await insertInvoice({
       dueDate: "2070-12-24",
-      data: payment({ kind: "custom", days: 30 }, true),
+      data: {
+        ...payment({ kind: "custom", days: 30 }),
+        payment: { ...payment({ kind: "custom", days: 30 }).payment, dueDateCustom: true },
+      },
     });
-    await reserve(custom, "2070-11-11T10:00:00Z");
-    expect(await dueOf(custom)).toBe("2070-12-24");
+    await reserve(legacy, "2070-11-11T10:00:00Z");
+    expect(await dueOf(legacy)).toBe("2070-12-11");
 
     const none = await insertInvoice({ dueDate: "2070-12-25", data: payment(null) });
     await reserve(none, "2070-11-11T11:00:00Z");

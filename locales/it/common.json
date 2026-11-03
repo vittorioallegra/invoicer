@@ -964,11 +964,7 @@
     "kind_eom_60": "60 gg fine mese data fattura",
     "kind_custom": "Personalizzato",
     "days": "Giorni da data fattura",
-    "daysHint": "Numero di giorni, da 0 a 365.",
-    "dueMode": "Scadenza da",
-    "mode_terms": "Calcolata dai termini",
-    "mode_custom": "Data personalizzata",
-    "computed": "Calcolata dalla data fattura, o da oggi finché la data è vuota."
+    "daysHint": "Numero di giorni, da 0 a 365."
   },
   "numbering": {
     "title": "Numerazioni",

@@ -287,14 +287,16 @@ settle the open ones):
   are plain `YYYY-MM-DD` on the
   Europe/Rome calendar. A client may
   have default terms (none by default; Company and Tax details have none) that prefill a new invoice.
-  The invoice stores its terms in its payment data. While it is not sent the editor
-  shows the date computed from the invoice date (today when empty) and the owner may keep "computed
-  from the terms" or choose "custom date". When the number is reserved the issue date is
-  fixed and the due date is recomputed from the stored terms, unless it was set by hand, so
-  the XML and the PDF show the right date. Without terms there is no computed date.
-  The XML keeps `DataScadenzaPagamento` and, when the date comes from the terms, adds
-  `GiorniTerminiPagamento` (days) and `DataRiferimentoTerminiPagamento` (the invoice date) for
-  custom terms only; the other choices write just `DataScadenzaPagamento`. The PDF prints the
+  The invoice stores its terms in its payment data. The editor's payment section has one row:
+  the terms select (its "Personalizzato" option reveals the days input inline, in the same row)
+  and the due date, read-only. The due date is always computed from the terms and the invoice
+  date (today when empty) on every save and again when the number is reserved (the issue date is
+  then fixed), so the XML and the PDF show the right date; there is no manual due date and no
+  "custom date" option. Without terms there is no due date and the field is hidden. An invoice
+  stored with a hand-set due date keeps it until it is edited. The bank account select (payment
+  method MP05) stays in the section, right below the row.
+  The XML keeps `DataScadenzaPagamento` (the computed date) and, for custom terms, adds
+  `GiorniTerminiPagamento` (days) and `DataRiferimentoTerminiPagamento` (the invoice date); the other choices write just `DataScadenzaPagamento`. The PDF prints the
   terms in words ("Data fattura", "15 gg fine mese data fattura", "30 gg fine mese data
   fattura", "60 gg fine mese data fattura", "30 gg data fattura" / "Invoice date", "30 days
   from invoice date") and the due date.

@@ -223,19 +223,16 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
 
   const payment = data.payment;
   // Reference date + days must equal the due date, which only holds for custom days from the
-  // invoice date; the other terms and a hand-set date are written as the due date alone.
-  const terms =
-    payment.terms && !payment.dueDateCustom && payment.terms.kind === "custom"
-      ? payment.terms
-      : null;
+  // invoice date; the other terms are written as the due date alone.
+  const terms = payment.terms?.kind === "custom" ? payment.terms : null;
   const datiPagamento = payment.method
     ? node({
         CondizioniPagamento: "TP02",
         DettaglioPagamento: node({
           Beneficiario: payment.accountHolder ? toLatin(payment.accountHolder, 200) : undefined,
           ModalitaPagamento: payment.method,
-          // The terms are described only when the due date comes from them; a hand-set date
-          // stands alone. Order follows the XSD sequence.
+          // Custom days are described next to the due date they give. Order follows the XSD
+          // sequence.
           DataRiferimentoTerminiPagamento: terms ? input.issueDate : undefined,
           GiorniTerminiPagamento: terms ? String(terms.days) : undefined,
           DataScadenzaPagamento: invoice.dueDate ?? undefined,

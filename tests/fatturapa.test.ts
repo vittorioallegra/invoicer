@@ -301,7 +301,7 @@ describe("invoice note", () => {
 });
 
 describe("payment terms", () => {
-  const withTerms = (terms: PaymentTerms | null, dueDateCustom = false) => {
+  const withTerms = (terms: PaymentTerms | null) => {
     const input = fixtureToFatturaInput(fixture("a"));
     return {
       ...input,
@@ -311,7 +311,7 @@ describe("payment terms", () => {
         dueDate: terms ? dueDate("2026-11-10", terms) : "2026-12-05",
         data: {
           ...input.invoice.data,
-          payment: { ...input.invoice.data.payment, terms, dueDateCustom },
+          payment: { ...input.invoice.data.payment, terms },
         },
       },
     };
@@ -345,15 +345,11 @@ describe("payment terms", () => {
     }
   });
 
-  it("writes only the due date when there are no terms or the date was set by hand", () => {
-    for (const xml of [
-      buildFatturaXml(withTerms(null)).xml,
-      buildFatturaXml(withTerms({ kind: "custom", days: 30 }, true)).xml,
-    ]) {
-      expect(xml).not.toContain("GiorniTerminiPagamento");
-      expect(xml).not.toContain("DataRiferimentoTerminiPagamento");
-      expect(xml).toContain("<DataScadenzaPagamento>");
-    }
+  it("writes only the stored due date when there are no terms", () => {
+    const xml = buildFatturaXml(withTerms(null)).xml;
+    expect(xml).not.toContain("GiorniTerminiPagamento");
+    expect(xml).not.toContain("DataRiferimentoTerminiPagamento");
+    expect(xml).toContain("<DataScadenzaPagamento>");
   });
 });
 

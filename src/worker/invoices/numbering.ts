@@ -117,9 +117,8 @@ async function loadReservation(
 }
 
 /**
- * The due date to store once the issue date is fixed: computed from the payment terms of the
- * invoice, unless the owner set a date by hand or there are no terms (then null: keep the stored
- * date). Pure given the stored data, so the XML and PDF show the right date.
+ * The due date to store once the issue date is fixed: always computed from the payment terms of
+ * the invoice (null when there are no terms: keep the stored date). Pure given the stored data, so the XML and PDF show the right date.
  */
 async function dueDateFromTerms(
   db: D1Database,
@@ -134,7 +133,7 @@ async function dueDateFromTerms(
   try {
     const parsed = invoiceDataSchema.safeParse(JSON.parse(row.data));
     const payment = parsed.success ? parsed.data.payment : null;
-    return payment?.terms && !payment.dueDateCustom ? dueDate(issueDate, payment.terms) : null;
+    return payment?.terms ? dueDate(issueDate, payment.terms) : null;
   } catch {
     return null;
   }

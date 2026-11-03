@@ -10,6 +10,8 @@ interface PaymentTermsFieldsProps {
   /** Days from the invoice date, as typed; shown only for the custom kind. */
   days: string;
   disabled?: boolean;
+  /** Fit in a one-line row: the days field is narrow and has no hint. */
+  compact?: boolean;
   onChange: (changes: { termsKind?: string; termsDays?: string }) => void;
   kindError?: string | undefined;
   daysError?: string | undefined;
@@ -20,6 +22,7 @@ export function PaymentTermsFields({
   kind,
   days,
   disabled,
+  compact,
   onChange,
   kindError,
   daysError,
@@ -27,7 +30,11 @@ export function PaymentTermsFields({
   const { t } = useTranslation();
   return (
     <>
-      <Field label={t("paymentTerms.label")} error={kindError}>
+      <Field
+        label={t("paymentTerms.label")}
+        error={kindError}
+        {...(compact ? { className: "min-w-48 flex-1" } : {})}
+      >
         {(c) => (
           <Select
             {...c}
@@ -45,7 +52,11 @@ export function PaymentTermsFields({
         )}
       </Field>
       {kind === "custom" ? (
-        <Field label={t("paymentTerms.days")} hint={t("paymentTerms.daysHint")} error={daysError}>
+        <Field
+          label={t("paymentTerms.days")}
+          error={daysError}
+          {...(compact ? { className: "w-36" } : { hint: t("paymentTerms.daysHint") })}
+        >
           {(c) => (
             <Input
               {...c}

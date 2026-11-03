@@ -60,15 +60,10 @@ export interface InvoiceForm {
   /** Numbering series; `""` = the default series. */
   seriesId: string;
   invoiceDate: string;
-  /** Due date typed by the owner; used when there are no terms or `dueDateCustom` is on. */
-  dueDate: string;
-  /** `""` = no terms, else one of the allowed numbers of days. */
   /** `""` = no terms. */
   termsKind: "" | PaymentTermsKind;
   /** Days from the invoice date; used by the custom kind only. */
   termsDays: string;
-  /** The due date is the typed one, not computed from the terms. */
-  dueDateCustom: boolean;
   linkedInvoiceId: string;
   lines: LineForm[];
   cassaType: string;
@@ -117,10 +112,8 @@ export function emptyForm(): InvoiceForm {
     requestedNumber: "",
     seriesId: "",
     invoiceDate: "",
-    dueDate: "",
     termsKind: "",
     termsDays: "",
-    dueDateCustom: false,
     linkedInvoiceId: "",
     lines: [emptyLine()],
     cassaType: "",
@@ -177,9 +170,7 @@ function fromStored(record: InvoiceRecord, client: ClientRecord | null): Invoice
     requestedNumber: record.requestedNumber === null ? "" : String(record.requestedNumber),
     seriesId: record.seriesId,
     invoiceDate: record.invoiceDate ?? "",
-    dueDate: record.dueDate ?? "",
     ...termsToForm(data.payment.terms),
-    dueDateCustom: data.payment.dueDateCustom,
     linkedInvoiceId: record.linkedInvoiceId ?? "",
     lines: record.lines.map((line) => ({
       key: newLineKey(),
@@ -285,16 +276,17 @@ export function formTerms(form: Pick<InvoiceForm, "termsKind" | "termsDays">): P
 }
 
 /**
- * The due date the invoice is saved with: computed from the terms (counted from the planned
- * issue date, else today) unless the owner set a date by hand or there are no terms.
+ * The due date the invoice is saved with: always computed from the terms (counted from the
+ * invoice date, else today); empty without terms.
  */
-export function effectiveDueDate(form: InvoiceForm, today: string): string {
+export function effectiveDueDate(
+  form: Pick<InvoiceForm, "termsKind" | "termsDays" | "invoiceDate">,
+  today: string,
+): string {
   const terms = formTerms(form);
-  if (terms && !form.dueDateCustom) {
-    const base = form.invoiceDate.trim() || today;
-    return isValidDate(base) ? computeDueDate(base, terms) : "";
-  }
-  return form.dueDate.trim();
+  if (!terms) return "";
+  const base = form.invoiceDate.trim() || today;
+  return isValidDate(base) ? computeDueDate(base, terms) : "";
 }
 
 /**
@@ -331,7 +323,6 @@ export function applyDefaults(
   }
   // Terms prefill from the client default (none = no terms); the due date follows them.
   Object.assign(next, termsToForm(defaults?.terms));
-  if (defaults?.terms) next.dueDateCustom = false;
   // Natura legal texts follow the lines.
   next.naturaTexts = naturaTextsFor(next.lines, next.naturaTexts);
   return next;
@@ -449,7 +440,6 @@ export function buildInvoice(
     language: form.language,
     payment: {
       terms: formTerms(form),
-      dueDateCustom: form.dueDateCustom && formTerms(form) !== null,
       method: (form.paymentMethod || null) as InvoiceData["payment"]["method"],
       iban: form.iban,
       bic: form.bic,
