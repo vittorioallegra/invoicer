@@ -783,7 +783,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                   <Select
                     {...c}
                     value={form.documentType}
-                    disabled={locked || record !== null}
+                    disabled={locked || editability === "rejected"}
                     onChange={(e) =>
                       patch({
                         documentType: e.target.value as "TD01" | "TD04",

@@ -397,7 +397,7 @@ settle the open ones):
   and year.
 - Sent, delivered and not_delivered invoices are read-only (only the payment status, recorded
   from the title row, changes).
-- Duplicate an existing invoice into a new unsent invoice.
+- Duplicate an existing invoice into a new unsent invoice: everything on it is editable, the document type included (the type is locked only from finalisation on, and on a rejected invoice).
 
 ### 3a. Credit notes (TD04)
 

@@ -924,6 +924,24 @@ describe("Invoice editor", () => {
     expect(await screen.findByRole("heading", { name: "New client" })).toBeTruthy();
   });
 
+  it("keeps every field, the document type included, editable on a saved unsent invoice (a duplicate)", async () => {
+    serve({ invoice: record({ state: "planned" }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect((field("Document type") as HTMLSelectElement).disabled).toBe(false);
+    type("Document type", "TD04");
+    expect((field("Document type") as HTMLSelectElement).value).toBe("TD04");
+  });
+
+  it("locks the document type once the invoice is finalised", async () => {
+    serve({
+      invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
+    });
+    await renderEditor("/invoices/i1");
+    await screen.findByText("No. 7/2026");
+    expect((field("Document type") as HTMLSelectElement).disabled).toBe(true);
+  });
+
   it("shows an issued invoice read-only, with a payment chip, no save and no read-only banner", async () => {
     serve({
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
