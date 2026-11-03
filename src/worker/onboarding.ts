@@ -73,7 +73,7 @@ export async function loadOnboarding(env: Bindings, userId: string): Promise<Onb
   return {
     checklist,
     complete: checklist.every((item) => item.done),
-    send: sendReadiness(facts),
+    send: sendReadiness(facts, { mockChannel: isMockChannel(env) }),
     pecTest: facts.pecTest,
   };
 }
@@ -84,13 +84,5 @@ export async function loadOnboarding(env: Bindings, userId: string): Promise<Onb
  */
 export async function loadSendReadiness(env: Bindings): Promise<SendReadiness> {
   const facts = await loadFacts(env, null);
-  // The mock channel needs no mailbox: only the profile gates it.
-  if (isMockChannel(env)) {
-    return sendReadiness({
-      ...facts,
-      pecCredentials: { username: true, password: true },
-      pecTest: { ok: true, at: Date.now(), error: null },
-    });
-  }
-  return sendReadiness(facts);
+  return sendReadiness(facts, { mockChannel: isMockChannel(env) });
 }

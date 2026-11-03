@@ -34,6 +34,21 @@ describe("sendReadiness", () => {
   });
 });
 
+describe("sendReadiness with the mock channel", () => {
+  it("needs only the profile: credentials and the connection test are satisfied", () => {
+    const noMailbox = {
+      ...done,
+      pecCredentials: { username: false, password: false },
+      pecTest: null,
+    };
+    expect(sendReadiness(noMailbox, { mockChannel: true })).toEqual({ ready: true, reasons: [] });
+    expect(sendReadiness(noMailbox).reasons).toEqual(["pec_credentials_missing"]);
+    expect(
+      sendReadiness({ ...noMailbox, profileComplete: false }, { mockChannel: true }).reasons,
+    ).toEqual(["profile_incomplete"]);
+  });
+});
+
 describe("buildChecklist", () => {
   it("marks each item from its own fact", () => {
     expect(buildChecklist(done).every((item) => item.done)).toBe(true);

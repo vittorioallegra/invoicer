@@ -88,11 +88,17 @@ export interface SendReadiness {
   reasons: SendBlockReason[];
 }
 
+/**
+ * With the mock channel (local development) no mailbox is involved: only the profile gates
+ * sending, the PEC credentials and connection test are treated as satisfied.
+ */
 export function sendReadiness(
   facts: Pick<OnboardingFacts, "profileComplete" | "pecCredentials" | "pecTest">,
+  options: { mockChannel?: boolean } = {},
 ): SendReadiness {
   const reasons: SendBlockReason[] = [];
   if (!facts.profileComplete) reasons.push("profile_incomplete");
+  if (options.mockChannel) return { ready: reasons.length === 0, reasons };
   if (!facts.pecCredentials.username || !facts.pecCredentials.password) {
     reasons.push("pec_credentials_missing");
   } else if (!facts.pecTest) {

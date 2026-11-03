@@ -429,6 +429,8 @@ Approved: yes (2026-11-02)
 ### Verification
 - qa: pending
 - review: pending
+- walkthrough (2026-11-03): done
+  - mock channel could not send — `fix(send): treat the mock channel as ready to send`
 
 ### Decisions
 - Single-user, self-hosted deployment; generic public code, no owner data in the repo (2026-11-02).

@@ -242,6 +242,25 @@ describe("PEC connection test and the send gate", () => {
     await owner.json("/api/profile", { method: "PUT", body: profile });
   });
 
+  it("is ready on the mock channel without PEC secrets, through the onboarding API too", async () => {
+    const mock = new TestClient("10.8.2.2", {
+      ...env,
+      PEC_USERNAME: "",
+      PEC_PASSWORD: "",
+      SEND_CHANNEL: "mock",
+      APP_ORIGIN: "http://localhost",
+    } as unknown as Bindings);
+    await setupOwnerSession(mock);
+    await mock.json("/api/profile", { method: "PUT", body: profile });
+    expect((await mock.json<Onboarding>("/api/onboarding")).body.send).toEqual({
+      ready: true,
+      reasons: [],
+    });
+    // Production behaviour is unchanged: without the mock channel the same secrets gate sending.
+    const real = { ...env, PEC_USERNAME: "", PEC_PASSWORD: "" } as unknown as Bindings;
+    expect((await loadSendReadiness(real)).reasons).toEqual(["pec_credentials_missing"]);
+  });
+
   it("names the missing secrets and opens no connection when they are unset", async () => {
     const client = new TestClient("10.8.2.1", {
       ...env,

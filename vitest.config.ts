@@ -21,6 +21,8 @@ export default defineConfig({
                 SETUP_TOKEN: "test-setup-token",
                 // Hermetic: a local .dev.vars must not change the origin the tests run on.
                 APP_ORIGIN: "http://localhost",
+                // Hermetic: a local .dev.vars with SEND_CHANNEL=mock must not change the channel.
+                SEND_CHANNEL: "",
                 SPIKE_SECRET: "test-spike-secret",
               },
             },
