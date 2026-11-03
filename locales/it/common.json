@@ -583,6 +583,8 @@
       "send": "Invia",
       "duplicate": "Duplica",
       "creditNote": "Crea nota di credito",
+      "edit": "Modifica",
+      "discardConfirm": "Scarta le modifiche",
       "delete": "Elimina",
       "deleteConfirm": "Conferma eliminazione",
       "fixResend": "Correggi e reinvia",

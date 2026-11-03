@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { Copy, Download, FileMinus, Pencil, Send, Trash2 } from "lucide-react";
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ClientRecord } from "../../shared/client";
 import { romeDateTime } from "../../shared/cron";
@@ -96,6 +96,8 @@ import { useDirty } from "../lib/use-dirty";
 /** Select value for payment details that match no current account. */
 const SNAPSHOT = "__snapshot__";
 const REQUIRED_LIKE = new Set(["required", "natura_text_required"]);
+/** Invoices just duplicated: they open straight in edit mode, once (read when the page mounts). */
+const OPEN_IN_EDIT = new Set<string>();
 
 export function InvoiceEditorPage() {
   const { t } = useTranslation();
@@ -213,8 +215,23 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
         ),
   );
   const [form, setForm] = useState<InvoiceForm>(initialForm);
-  // Save is enabled once the form differs from what was loaded or last saved.
+  // What is stored: Cancel puts it back. Save is enabled once the form differs from it.
+  const [stored, setStored] = useState<InvoiceForm>(initialForm);
   const { dirty, markSaved } = useDirty(initialForm, form);
+  // View mode shows the invoice read-only; a new or just duplicated invoice opens in edit mode.
+  const [editing, setEditing] = useState(() => !record || OPEN_IN_EDIT.has(record.id));
+  useEffect(() => {
+    if (record) OPEN_IN_EDIT.delete(record.id);
+  }, [record]);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const editButton = useRef<HTMLButtonElement>(null);
+  const focusEditButton = useRef(false);
+  useEffect(() => {
+    if (!editing && focusEditButton.current) {
+      focusEditButton.current = false;
+      editButton.current?.focus();
+    }
+  }, [editing]);
   const [submitted, setSubmitted] = useState(false);
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
   const [clientSheet, setClientSheet] = useState<"new" | "edit" | null>(null);
@@ -222,6 +239,8 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
 
   const editability = record ? invoiceEditability(record.state) : "full";
   const locked = editability === "locked";
+  // Fields are read-only in view mode and once the invoice is finalised.
+  const readOnly = locked || !editing;
   // Not finalised yet: no number, freely editable and deletable.
   const unsent = record?.state === "draft" || record?.state === "planned";
   // A rejected invoice (also once its term expired) was never issued, so there is nothing to pay; credit notes neither.
@@ -266,6 +285,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
 
   const patch = (changes: Partial<InvoiceForm>) => {
     setServerErrors({});
+    setConfirmCancel(false);
     setForm((current) => ({ ...current, ...changes }));
   };
   const text = (key: keyof InvoiceForm) => (event: { target: { value: string } }) =>
@@ -363,18 +383,22 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     await queryClient.invalidateQueries({ queryKey: ["invoice", id] });
   };
 
-  // A new invoice created by Finalize stays on this page until the flow ends; later saves update it.
-  const [createdId, setCreatedId] = useState<string | null>(null);
-  const savedId = record?.id ?? createdId;
   const save = useMutation({
     mutationFn: ({ body }: { body: unknown; form: InvoiceForm; quiet?: boolean }) =>
-      savedId ? updateInvoice(savedId, body) : createInvoice(body),
+      record ? updateInvoice(record.id, body) : createInvoice(body),
     onSuccess: async ({ invoice }, { quiet, form: submitted }) => {
       markSaved(submitted);
+      setStored(submitted);
       await refresh(invoice.id);
-      if (quiet) setCreatedId(invoice.id);
-      else if (record) toast.success(t("invoice.saved"));
-      else void navigate({ to: "/invoices/$invoiceId", params: { invoiceId: invoice.id } });
+      if (quiet) return;
+      if (record) {
+        toast.success(t("invoice.saved"));
+        focusEditButton.current = true;
+        setEditing(false);
+      } else {
+        // The first save of a new invoice moves to its own page, which opens in view mode.
+        void navigate({ to: "/invoices/$invoiceId", params: { invoiceId: invoice.id } });
+      }
     },
     onError: (error) => {
       if (error instanceof ApiError && error.code === "bad_request") {
@@ -399,6 +423,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     mutationFn: (id: string) => duplicateInvoice(id),
     onSuccess: async ({ invoice }) => {
       await queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      OPEN_IN_EDIT.add(invoice.id);
       void navigate({ to: "/invoices/$invoiceId", params: { invoiceId: invoice.id } });
     },
   });
@@ -436,7 +461,9 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   }
   function showProblem(problem: FinalizeProblem) {
     setFinalizeOpen(false);
-    // The dialog closes first (it restores the focus), then the field takes it.
+    // A problem is fixed in edit mode. The dialog closes first (it restores the focus), then the
+    // field takes it.
+    setEditing(true);
     window.setTimeout(() => focusField(document, problem.field ?? ""), 0);
   }
 
@@ -456,9 +483,36 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     },
   });
 
+  function startEdit() {
+    setEditing(true);
+    // The first field takes the focus once it is editable.
+    window.setTimeout(() => focusField(document, "clientId"), 0);
+  }
+  function cancelEdit() {
+    if (dirty && !confirmCancel) {
+      setConfirmCancel(true);
+      return;
+    }
+    setConfirmCancel(false);
+    if (!record) {
+      void navigate({ to: "/invoices" });
+      return;
+    }
+    // Back to the stored values, as if nothing had been typed.
+    setForm(stored);
+    markSaved(stored);
+    setServerErrors({});
+    setSubmitted(false);
+    setNumberTouched(false);
+    setNumberTaken(false);
+    setExtrasChoice(null);
+    focusEditButton.current = true;
+    setEditing(false);
+  }
+
   function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (locked) return;
+    if (readOnly) return;
     // Saving never validates: whatever is typed is stored, and Finalize runs every check.
     setSubmitted(true);
     save.mutate({ body: draftBody(form, proposal, today), form });
@@ -517,7 +571,9 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const issuedCreditable =
     record?.documentType === "TD01" &&
     (record.state === "delivered" || record.state === "not_delivered");
-  const titleActions = (
+  // View mode of an unsent (or rejected) invoice: Duplicate, Delete, Edit, Finalize. Edit mode has
+  // no title actions: Cancel and Save are under the form.
+  const titleActions = editing ? undefined : (
     <>
       {record ? (
         <Button
@@ -528,6 +584,21 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
         >
           <Copy aria-hidden />
           {t("invoice.actions.duplicate")}
+        </Button>
+      ) : null}
+      {record && unsent && !confirmDelete ? (
+        <Button variant="ghost" className="text-danger" onClick={() => setConfirmDelete(true)}>
+          <Trash2 aria-hidden />
+          {t("invoice.actions.delete")}
+        </Button>
+      ) : null}
+      {record && unsent && confirmDelete ? (
+        <Button
+          variant="destructive"
+          disabled={!online || remove.isPending}
+          onClick={() => remove.mutate(record.id)}
+        >
+          {t("invoice.actions.deleteConfirm")}
         </Button>
       ) : null}
       {record && issuedCreditable ? (
@@ -550,6 +621,12 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           icon={<Download aria-hidden />}
           items={downloadItems}
         />
+      ) : null}
+      {finalizable ? (
+        <Button ref={editButton} type="button" variant="secondary" onClick={startEdit}>
+          <Pencil aria-hidden />
+          {t("invoice.actions.edit")}
+        </Button>
       ) : null}
       {finalizable ? (
         <Button
@@ -689,7 +766,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           </Banner>
         ) : null}
         {lateTransmission ? <Banner tone="warning">{t("invoice.warnings.late")}</Banner> : null}
-        {numberEditable && numberGap ? (
+        {editing && numberEditable && numberGap ? (
           <Banner tone="warning">
             {t(
               numberGap.from === numberGap.to
@@ -699,7 +776,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             )}
           </Banner>
         ) : null}
-        {suggestBollo ? (
+        {editing && suggestBollo ? (
           <Banner
             tone="info"
             action={
@@ -718,7 +795,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
         ) : null}
 
         <div className="flex min-w-0 flex-col gap-6">
-          <fieldset disabled={locked} className="flex min-w-0 flex-col gap-6">
+          <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-6">
             <section className="flex flex-col gap-4" aria-label={t("invoice.client.label")}>
               <div className="flex flex-wrap items-end gap-3">
                 <Field
@@ -744,12 +821,12 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                     </Select>
                   )}
                 </Field>
-                {locked ? null : (
+                {readOnly ? null : (
                   <Button variant="secondary" onClick={() => setClientSheet("new")}>
                     {t("invoice.client.new")}
                   </Button>
                 )}
-                {client && !locked ? (
+                {client && !readOnly ? (
                   <Button variant="ghost" onClick={() => setClientSheet("edit")}>
                     <Pencil aria-hidden />
                     {t("invoice.client.edit")}
@@ -787,7 +864,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                     <Select
                       {...c}
                       value={form.documentType}
-                      disabled={locked || editability === "rejected"}
+                      disabled={readOnly || editability === "rejected"}
                       onChange={(e) =>
                         patch({
                           documentType: e.target.value as "TD01" | "TD04",
@@ -809,7 +886,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                     <DatePicker
                       {...c}
                       value={form.invoiceDate}
-                      disabled={locked || editability === "rejected"}
+                      disabled={readOnly || editability === "rejected"}
                       onChange={text("invoiceDate")}
                     />
                   )}
@@ -820,7 +897,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                       <Select
                         {...c}
                         value={activeSeries?.id ?? ""}
-                        disabled={!numberEditable}
+                        disabled={!numberEditable || !editing}
                         onChange={(event) => {
                           setNumberTouched(false);
                           setNumberTaken(false);
@@ -846,7 +923,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                       {...c}
                       inputMode="numeric"
                       value={numberEditable ? numberText : (record?.number ?? "")}
-                      disabled={!numberEditable}
+                      disabled={!numberEditable || !editing}
                       onChange={(event) => {
                         setNumberTouched(true);
                         setNumberTaken(false);
@@ -922,7 +999,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             open={extrasOpen}
             onToggle={() => setExtrasChoice(!extrasOpen)}
           >
-            <fieldset disabled={locked} className="flex min-w-0 flex-col gap-4">
+            <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-4">
               <GroupBox title={t("clients.form.pensionFund")}>
                 <Field
                   label={t("clients.form.cassa")}
@@ -966,7 +1043,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                             value={form.cassaRate}
                             suffix="%"
                             inputMode="decimal"
-                            disabled={locked}
+                            disabled={readOnly}
                             onChange={text("cassaRate")}
                           />
                         )}
@@ -976,7 +1053,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                           <Select
                             {...c}
                             value={form.cassaMode}
-                            disabled={locked}
+                            disabled={readOnly}
                             onChange={text("cassaMode")}
                           >
                             <option value="excluded">{t("clients.form.modeExcluded")}</option>
@@ -1029,7 +1106,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                           value={form.ritenutaRate}
                           suffix="%"
                           inputMode="decimal"
-                          disabled={locked}
+                          disabled={readOnly}
                           onChange={text("ritenutaRate")}
                         />
                       )}
@@ -1045,7 +1122,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                           value={form.ritenutaBase}
                           suffix="%"
                           inputMode="decimal"
-                          disabled={locked}
+                          disabled={readOnly}
                           onChange={text("ritenutaBase")}
                         />
                       )}
@@ -1060,7 +1137,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                         <Select
                           {...c}
                           value={form.ritenutaCausale}
-                          disabled={locked}
+                          disabled={readOnly}
                           onChange={text("ritenutaCausale")}
                         >
                           {CAUSALE_PAGAMENTO_CODES.map((code) => (
@@ -1109,7 +1186,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             </fieldset>
           </Disclosure>
 
-          <fieldset disabled={locked} className="flex min-w-0 flex-col gap-6">
+          <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-6">
             <section className="flex flex-col gap-4" aria-labelledby="inv-lines">
               <h2 id="inv-lines" className="text-base font-medium">
                 {t("invoice.lines.title")}
@@ -1121,7 +1198,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 locale={locale}
                 error={err}
                 onChange={setLines}
-                disabled={locked}
+                disabled={readOnly}
               />
               {totals?.stampLine ? (
                 <div
@@ -1178,7 +1255,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                   <Textarea
                     {...c}
                     value={form.invoiceNote}
-                    disabled={locked}
+                    disabled={readOnly}
                     onChange={text("invoiceNote")}
                   />
                 )}
@@ -1262,28 +1339,15 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           </Banner>
         ) : null}
 
-        {locked ? null : (
+        {readOnly ? null : (
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {record && unsent && !confirmDelete ? (
-              <Button
-                variant="ghost"
-                className="mr-auto text-danger"
-                onClick={() => setConfirmDelete(true)}
-              >
-                <Trash2 aria-hidden />
-                {t("invoice.actions.delete")}
-              </Button>
-            ) : null}
-            {record && unsent && confirmDelete ? (
-              <Button
-                variant="destructive"
-                className="mr-auto"
-                disabled={!online || remove.isPending}
-                onClick={() => remove.mutate(record.id)}
-              >
-                {t("invoice.actions.deleteConfirm")}
-              </Button>
-            ) : null}
+            <Button
+              type="button"
+              variant={confirmCancel ? "destructive" : "secondary"}
+              onClick={cancelEdit}
+            >
+              {t(confirmCancel ? "invoice.actions.discardConfirm" : "common.cancel")}
+            </Button>
             <Button type="submit" disabled={!online || !dirty || save.isPending}>
               {t("invoice.actions.save")}
             </Button>

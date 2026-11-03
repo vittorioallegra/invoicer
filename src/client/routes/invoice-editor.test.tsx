@@ -230,6 +230,8 @@ const patchBody = () => {
   return call ? JSON.parse((call[1] as { body: string }).body) : null;
 };
 const loaded = () => screen.findByRole("combobox", { name: "Client" });
+const edit = () => fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+const cancel = () => fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
 beforeEach(() => {
   mocks.api.mockReset();
@@ -733,35 +735,34 @@ describe("Invoice editor", () => {
     expect(screen.getByRole("region", { name: "Client" })).toBeTruthy();
   });
 
-  it("puts Duplicate then Finalize on the title row and Delete and Save under the form", async () => {
+  it("opens a saved unsent invoice in view mode: Duplicate, Delete, Edit, Finalize on the title row and no bottom buttons", async () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
     await loaded();
     expect(screen.queryByRole("toolbar")).toBeNull();
     const title = screen.getByRole("heading", { level: 1 });
-    const finalize = screen.getByRole("button", { name: "Finalize" });
     const duplicate = screen.getByRole("button", { name: "Duplicate" });
+    const remove = screen.getByRole("button", { name: "Delete" });
+    const editButton = screen.getByRole("button", { name: "Edit" });
+    const finalize = screen.getByRole("button", { name: "Finalize" });
     expect(finalize.className).toContain("bg-primary");
+    expect(remove.className).toContain("text-danger");
     // Nothing to download or pay before finalising.
     expect(screen.queryByRole("button", { name: "Download" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Record payment" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
-    expect(
-      title.compareDocumentPosition(duplicate) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      duplicate.compareDocumentPosition(finalize) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    const remove = screen.getByRole("button", { name: "Delete" });
-    const save = screen.getByRole("button", { name: "Save" });
-    expect(remove.className).toContain("mr-auto");
-    expect(remove.className).toContain("text-danger");
-    expect(remove.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(
-      finalize.compareDocumentPosition(remove) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    // Duplicate is on the title row only, not repeated at the bottom.
-    expect(screen.getAllByRole("button", { name: "Duplicate" })).toHaveLength(1);
+    const follows = (a: HTMLElement, b: HTMLElement) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(title, duplicate)).toBe(true);
+    expect(follows(duplicate, remove)).toBe(true);
+    expect(follows(remove, editButton)).toBe(true);
+    expect(follows(editButton, finalize)).toBe(true);
+    // No save or cancel in view mode, and every field is read-only.
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+    expect((field("Description") as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Add line" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "New client" })).toBeNull();
     // The sticky bar shows totals only.
     const totals = screen.getByRole("region", { name: "Totals" });
     expect(within(totals).getAllByRole("button")).toHaveLength(1);
@@ -770,10 +771,114 @@ describe("Invoice editor", () => {
     expect(screen.getByRole("button", { name: "Confirm delete" })).toBeTruthy();
   });
 
+  it("edits a saved invoice: Edit shows Cancel and Save instead of the title actions, Save returns to view mode", async () => {
+    serve({ invoice: record() });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    edit();
+    for (const name of ["Duplicate", "Delete", "Edit", "Finalize"]) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+    const cancelButton = screen.getByRole("button", { name: "Cancel" });
+    const save = screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
+    expect(
+      cancelButton.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(save.disabled).toBe(true);
+    // The first field takes the focus.
+    await waitFor(() => expect(document.activeElement).toBe(field("Client")));
+    type("Description", "Consulting, edited");
+    fireEvent.click(save);
+    await waitFor(() =>
+      expect(mocks.api).toHaveBeenCalledWith(
+        "/api/invoices/i1",
+        expect.objectContaining({ method: "PUT" }),
+      ),
+    );
+    // Back in view mode with the new text, and the focus on Edit.
+    const editButton = await screen.findByRole("button", { name: "Edit" });
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect((field("Description") as HTMLInputElement).disabled).toBe(true);
+    expect((field("Description") as HTMLInputElement).value).toBe("Consulting, edited");
+    await waitFor(() => expect(document.activeElement).toBe(editButton));
+  });
+
+  it("restores the stored values on Cancel, asking only when something changed", async () => {
+    serve({ invoice: record() });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    // Nothing changed: Cancel leaves at once.
+    edit();
+    cancel();
+    expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
+    // Changed: the first click asks, the second discards.
+    edit();
+    type("Description", "Typed and abandoned");
+    cancel();
+    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
+    const editButton = screen.getByRole("button", { name: "Edit" });
+    expect((field("Description") as HTMLInputElement).value).toBe("Consulting");
+    expect((field("Description") as HTMLInputElement).disabled).toBe(true);
+    expect(document.activeElement).toBe(editButton);
+    expect(mocks.api).not.toHaveBeenCalledWith(
+      "/api/invoices/i1",
+      expect.objectContaining({ method: "PUT" }),
+    );
+    // Editing again starts from the stored values.
+    edit();
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("starts a new invoice in edit mode, with Cancel back to the list and no Finalize", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    expect(screen.queryByRole("button", { name: "Finalize" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Duplicate" })).toBeNull();
+    expect((field("Description") as HTMLInputElement).disabled).toBe(false);
+    type("Description", "Consulting");
+    cancel();
+    fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Invoices" })).toBeTruthy();
+    expect(mocks.api).not.toHaveBeenCalledWith("/api/invoices", expect.anything());
+  });
+
+  it("opens a just duplicated invoice in edit mode", async () => {
+    serve({ invoice: record() });
+    const base = mocks.api.getMockImplementation();
+    mocks.api.mockImplementation(async (path: string, init?: { method?: string }) => {
+      if (path === "/api/invoices/i1/duplicate" || path === "/api/invoices/d1") {
+        return { invoice: record({ id: "d1" }) };
+      }
+      return base?.(path, init);
+    });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate" }));
+    await screen.findByRole("button", { name: "Cancel" });
+    expect((field("Description") as HTMLInputElement).disabled).toBe(false);
+    expect(screen.queryByRole("button", { name: "Finalize" })).toBeNull();
+  });
+
+  it("offers neither Edit nor Delete on a finalised invoice", async () => {
+    serve({
+      invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
+    });
+    await renderEditor("/invoices/i1");
+    await screen.findByRole("button", { name: "Download" });
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Duplicate" })).toBeTruthy();
+  });
+
   it("keeps Save disabled until the form differs from what was loaded or last saved", async () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
     await loaded();
+    edit();
     const save = () => screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
     expect(save().disabled).toBe(true);
     type("Description", "Consulting, edited");
@@ -789,7 +894,10 @@ describe("Invoice editor", () => {
         expect.objectContaining({ method: "PUT" }),
       ),
     );
-    await waitFor(() => expect(save().disabled).toBe(true));
+    // Saved: back in view mode; editing again starts disabled.
+    await screen.findByRole("button", { name: "Edit" });
+    edit();
+    expect(save().disabled).toBe(true);
   });
 
   it("keeps Save disabled on a new invoice until something is entered", async () => {
@@ -897,25 +1005,6 @@ describe("Invoice editor", () => {
     expect(mocks.runSend.mock.calls[0]?.[2]).toBe("pec");
   });
 
-  it("finalises a new invoice: it is created first and the flow runs on the new one", async () => {
-    serve();
-    mocks.runSend.mockResolvedValue({ messageId: "m1", fileName: "IT1_00001.xml" });
-    await renderEditor();
-    await loaded();
-    type("Client", "c1");
-    type("Description", "Consulting");
-    type("Unit price", "50");
-    type("VAT", "rate:2200");
-    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Finalize and send with passkey" }));
-    await waitFor(() => expect(mocks.runSend).toHaveBeenCalled());
-    expect(mocks.api).toHaveBeenCalledWith(
-      "/api/invoices",
-      expect.objectContaining({ method: "POST" }),
-    );
-    expect(mocks.runSend.mock.calls[0]?.[0]).toBe("new1");
-  });
-
   it("opens the inline client creation sheet", async () => {
     serve();
     await renderEditor();
@@ -928,6 +1017,7 @@ describe("Invoice editor", () => {
     serve({ invoice: record({ state: "planned" }) });
     await renderEditor("/invoices/i1");
     await loaded();
+    edit();
     expect((field("Document type") as HTMLSelectElement).disabled).toBe(false);
     type("Document type", "TD04");
     expect((field("Document type") as HTMLSelectElement).value).toBe("TD04");
@@ -1140,6 +1230,9 @@ describe("Invoice editor", () => {
     serve({ invoice: record({ lines: two }) });
     await renderEditor("/invoices/i1");
     await screen.findAllByTestId("invoice-line");
+    // View mode has no line controls either.
+    expect(screen.queryByRole("button", { name: /^Move up line/ })).toBeNull();
+    edit();
     expect(screen.getAllByRole("button", { name: /^Move up line/ })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: /^Remove line/ })).toHaveLength(2);
   });
@@ -1373,6 +1466,8 @@ describe("Invoice editor, number on the invoice", () => {
     await renderEditor("/invoices/i1");
     await loaded();
     await waitFor(() => expect(numberInput().value).toBe("120"));
+    expect(numberInput().disabled).toBe(true);
+    edit();
     expect(numberInput().disabled).toBe(false);
     expect(
       screen.getByText(new RegExp(`the numbers 8 to 119 of ${YEAR} will stay unused`)),
@@ -1433,6 +1528,9 @@ describe("Invoice editor, rejected invoices", () => {
     await renderEditor("/invoices/i1");
     expect(await screen.findByText(/Fix and resend by/)).toBeTruthy();
     expect(screen.getByText(/number and issue date stay the same/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Fix & resend" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+    edit();
     expect((screen.getByLabelText("Description") as HTMLInputElement).disabled).toBe(false);
     expect((screen.getByLabelText("Invoice date") as HTMLInputElement).disabled).toBe(true);
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
