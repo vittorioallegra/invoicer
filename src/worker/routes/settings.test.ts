@@ -38,12 +38,6 @@ const profile = {
   province: "RM",
   country: "IT",
   regimeFiscale: "RF19",
-  paymentDefaults: {
-    iban: "IT60X0542811101000000123456",
-    bic: "",
-    accountHolder: "",
-    bankName: "",
-  },
   defaultPaymentTermsDays: 30,
 };
 

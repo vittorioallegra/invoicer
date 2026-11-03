@@ -12,6 +12,7 @@ import {
   parseQuantityMilli,
   safeTotals,
 } from "../../shared/invoice";
+import type { PaymentMethodRecord } from "../../shared/payment-method";
 import {
   type CassaType,
   defaultCassaSubjectToRitenuta,
@@ -158,8 +159,9 @@ const addDays = (date: string, days: number) =>
   new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 
 /**
- * Prefills a new invoice from the client's defaults and the profile's payment defaults: VAT or
- * exemption on the lines, cassa/rivalsa, ritenuta, bollo, currency, payment terms and bank data.
+ * Prefills a new invoice from the client's defaults and the profile's payment terms: VAT or
+ * exemption on the lines, cassa/rivalsa, ritenuta, bollo, currency and due date. The bank
+ * account is chosen separately (`withAccount`), so picking a client never overrides it.
  */
 export function applyDefaults(
   form: InvoiceForm,
@@ -188,17 +190,25 @@ export function applyDefaults(
   }
   const days = defaults?.paymentTermsDays ?? profile?.defaultPaymentTermsDays ?? null;
   if (days !== null) next.dueDate = addDays(today, days);
-  const payment = profile?.paymentDefaults;
-  if (payment) {
-    next.iban = payment.iban ?? "";
-    next.bic = payment.bic ?? "";
-    next.accountHolder = payment.accountHolder ?? "";
-    next.bankName = payment.bankName ?? "";
-    next.paymentMethod = payment.iban ? "MP05" : "";
-  }
   // Natura legal texts follow the lines.
   next.naturaTexts = naturaTextsFor(next.lines, next.naturaTexts);
   return next;
+}
+
+/**
+ * Copies a bank account into the invoice's own payment data (the snapshot an invoice keeps;
+ * `null` clears it). The payment method becomes bank transfer unless one is already set.
+ */
+export function withAccount(form: InvoiceForm, account: PaymentMethodRecord | null): InvoiceForm {
+  if (!account) return { ...form, iban: "", bic: "", accountHolder: "", bankName: "" };
+  return {
+    ...form,
+    iban: account.iban,
+    bic: account.bic ?? "",
+    accountHolder: account.accountHolder ?? "",
+    bankName: account.bankName ?? "",
+    paymentMethod: form.paymentMethod || "MP05",
+  };
 }
 
 /** Keeps the legal text of each natura in use (prefilled when new), drops the unused ones. */

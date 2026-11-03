@@ -1,6 +1,7 @@
 import type { ZodError } from "zod";
 import type { OnboardingStatus, PecTestResult } from "../../shared/onboarding";
-import type { CourtesyEmailMode, PaymentDefaults } from "../../shared/profile";
+import type { PaymentMethodRecord } from "../../shared/payment-method";
+import type { CourtesyEmailMode } from "../../shared/profile";
 import { api } from "./api";
 
 export interface ProfileResponse {
@@ -13,7 +14,6 @@ export interface ProfileResponse {
   province: string | null;
   country: string;
   regimeFiscale: string;
-  paymentDefaults: PaymentDefaults;
   defaultPaymentTermsDays: number | null;
 }
 
@@ -43,6 +43,10 @@ export const onboardingQuery = {
 export const profileQuery = {
   queryKey: ["profile"],
   queryFn: () => api<{ profile: ProfileResponse | null }>("/api/profile"),
+};
+export const paymentMethodsQuery = {
+  queryKey: ["payment-methods"],
+  queryFn: () => api<{ paymentMethods: PaymentMethodRecord[] }>("/api/payment-methods"),
 };
 export const settingsQuery = {
   queryKey: ["settings"],

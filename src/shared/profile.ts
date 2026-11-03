@@ -46,42 +46,12 @@ export function isValidTaxCode(value: string): boolean {
   return /^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$/.test(value) || /^\d{11}$/.test(value);
 }
 
-/** IBAN: country, check digits, mod-97 check (ISO 13616). Spaces are ignored by the caller. */
-export function isValidIban(value: string): boolean {
-  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(value)) return false;
-  const rearranged = value.slice(4) + value.slice(0, 4);
-  let remainder = 0;
-  for (const char of rearranged) {
-    const digits = /\d/.test(char) ? char : String(char.charCodeAt(0) - 55);
-    for (const digit of digits) remainder = (remainder * 10 + Number(digit)) % 97;
-  }
-  return remainder === 1;
-}
-
 const text = (max: number) => z.string().trim().max(max);
 const required = (max: number) => text(max).min(1);
 /** Optional text field: an empty string means "not set". */
 const optional = (max: number) => text(max).transform((value) => value || null);
 
 const upper = (value: string) => value.replaceAll(/\s+/g, "").toUpperCase();
-
-export const paymentDefaultsSchema = z.object({
-  iban: z
-    .string()
-    .transform(upper)
-    .refine((value) => value === "" || isValidIban(value), "invalid_iban")
-    .transform((value) => value || null),
-  bic: z
-    .string()
-    .transform(upper)
-    .refine((value) => value === "" || /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(value), {
-      message: "invalid_bic",
-    })
-    .transform((value) => value || null),
-  accountHolder: optional(140),
-  bankName: optional(140),
-});
-export type PaymentDefaults = z.infer<typeof paymentDefaultsSchema>;
 
 /** Issuer profile as the owner submits it. Validation messages are stable codes for the UI. */
 export const profileInputSchema = z.object({
@@ -111,7 +81,6 @@ export const profileInputSchema = z.object({
     .transform(upper)
     .refine((value) => /^[A-Z]{2}$/.test(value), "invalid_country"),
   regimeFiscale: z.enum(REGIME_FISCALE_CODES),
-  paymentDefaults: paymentDefaultsSchema,
   defaultPaymentTermsDays: z.number().int().min(0).max(365).nullable(),
 });
 export type ProfileInput = z.input<typeof profileInputSchema>;

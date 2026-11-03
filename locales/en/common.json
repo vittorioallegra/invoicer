@@ -165,7 +165,7 @@
     "sections": {
       "profile": {
         "title": "Company",
-        "body": "Your details, tax regime and payment defaults"
+        "body": "Your details, tax regime and payment terms"
       },
       "email": {
         "title": "Email",
@@ -233,11 +233,7 @@
     "city": "City",
     "province": "Province",
     "country": "Country",
-    "paymentTitle": "Payment defaults",
-    "iban": "IBAN",
-    "bic": "BIC/SWIFT",
-    "bankName": "Bank name",
-    "accountHolder": "Account holder",
+    "paymentTitle": "Payment terms",
     "termsDays": "Default payment terms (days)",
     "termsDaysHint": "Used to suggest the due date. Leave empty for none.",
     "regimes": {
@@ -319,7 +315,7 @@
       },
       "profile": {
         "title": "Fill in your company details",
-        "body": "Your details, tax regime and payment defaults."
+        "body": "Your details, tax regime and payment terms."
       },
       "pec": {
         "title": "Connect the PEC mailbox",
@@ -844,5 +840,11 @@
     "setupKey": "Copy setup key",
     "copied": "Copied",
     "failed": "Could not copy. Select the text and copy it by hand."
+  },
+  "paymentMethods": {
+    "iban": "IBAN",
+    "bic": "BIC/SWIFT",
+    "bankName": "Bank name",
+    "accountHolder": "Account holder"
   }
 }

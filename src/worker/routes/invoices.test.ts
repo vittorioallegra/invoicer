@@ -232,7 +232,6 @@ describe("reserving a number through the API", () => {
         province: "MI",
         country: "IT",
         regimeFiscale: "RF01",
-        paymentDefaults: { iban: "", bic: "", accountHolder: "", bankName: "" },
         defaultPaymentTermsDays: null,
       },
     });

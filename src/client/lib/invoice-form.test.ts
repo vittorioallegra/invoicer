@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { type ClientRecord, EMPTY_CLIENT_DEFAULTS } from "../../shared/client";
-import { applyDefaults, buildInvoice, emptyForm, formTotals, validateForm } from "./invoice-form";
+import {
+  applyDefaults,
+  buildInvoice,
+  emptyForm,
+  formTotals,
+  validateForm,
+  withAccount,
+} from "./invoice-form";
 
 const client: ClientRecord = {
   id: "c1",
@@ -28,7 +35,7 @@ const client: ClientRecord = {
 };
 
 describe("invoice form", () => {
-  it("prefills from the client defaults and the profile payment defaults", () => {
+  it("prefills from the client defaults and the profile payment terms", () => {
     const form = applyDefaults(
       emptyForm(),
       client,
@@ -42,12 +49,6 @@ describe("invoice form", () => {
         province: null,
         country: "IT",
         regimeFiscale: "RF01",
-        paymentDefaults: {
-          iban: "IT60X0542811101000000123456",
-          bic: null,
-          accountHolder: "X",
-          bankName: null,
-        },
         defaultPaymentTermsDays: 15,
       },
       "2026-01-20",
@@ -57,11 +58,32 @@ describe("invoice form", () => {
       cassaType: "TC04",
       cassaMode: "included",
       dueDate: "2026-02-19",
-      paymentMethod: "MP05",
-      iban: "IT60X0542811101000000123456",
     });
     expect(form.lines[0]?.vat).toBe("natura:N2.1");
     expect(form.naturaTexts["N2.1"]).toContain("7-ter");
+  });
+
+  it("copies a bank account into the invoice and clears it again", () => {
+    const account = {
+      id: "a",
+      label: "Fineco",
+      iban: "IT60X0542811101000000123456",
+      bic: "FINEITMM",
+      bankName: "Fineco Bank",
+      accountHolder: "X",
+      isDefault: true,
+    };
+    const filled = withAccount(emptyForm(), account);
+    expect(filled).toMatchObject({
+      paymentMethod: "MP05",
+      iban: account.iban,
+      bic: "FINEITMM",
+      bankName: "Fineco Bank",
+      accountHolder: "X",
+    });
+    expect(buildInvoice(filled).input.data.payment).toMatchObject({ iban: account.iban });
+    expect(withAccount({ ...filled, paymentMethod: "MP08" }, account).paymentMethod).toBe("MP08");
+    expect(withAccount(filled, null)).toMatchObject({ iban: "", bic: "", bankName: "" });
   });
 
   it("reads typed amounts into cents and totals them live", () => {

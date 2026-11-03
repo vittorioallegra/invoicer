@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import * as schema from "../../db/schema";
-import { type PaymentDefaults, profileInputSchema } from "../../shared/profile";
+import { profileInputSchema } from "../../shared/profile";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
 import { makeError } from "../problem";
@@ -21,12 +21,6 @@ function toResponse(row: typeof schema.profile.$inferSelect) {
     province: row.province,
     country: row.country,
     regimeFiscale: row.regimeFiscale,
-    paymentDefaults: (row.paymentDefaults as PaymentDefaults | null) ?? {
-      iban: null,
-      bic: null,
-      accountHolder: null,
-      bankName: null,
-    },
     defaultPaymentTermsDays: row.defaultPaymentTermsDays,
   };
 }

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   emailSettingsInputSchema,
-  isValidIban,
   isValidTaxCode,
   isValidVatNumber,
   minimumNextNumber,
@@ -18,12 +17,6 @@ const profile = {
   province: "rm",
   country: "it",
   regimeFiscale: "RF19",
-  paymentDefaults: {
-    iban: "IT60 X054 2811 1010 0000 0123 456",
-    bic: "",
-    accountHolder: "",
-    bankName: "",
-  },
   defaultPaymentTermsDays: 30,
 };
 
@@ -39,11 +32,6 @@ describe("identifier checks", () => {
     expect(isValidTaxCode("12345678903")).toBe(true);
     expect(isValidTaxCode("RSSMRA80A01H501")).toBe(false);
   });
-
-  it("validates the IBAN mod-97 check", () => {
-    expect(isValidIban("IT60X0542811101000000123456")).toBe(true);
-    expect(isValidIban("IT61X0542811101000000123456")).toBe(false);
-  });
 });
 
 describe("profile input", () => {
@@ -54,7 +42,6 @@ describe("profile input", () => {
       taxCode: null,
       province: "RM",
       country: "IT",
-      paymentDefaults: { iban: "IT60X0542811101000000123456", bic: null },
     });
   });
 
@@ -64,13 +51,11 @@ describe("profile input", () => {
       vatNumber: "123",
       postalCode: "1",
       regimeFiscale: "RF03",
-      paymentDefaults: { ...profile.paymentDefaults, iban: "IT00" },
     });
     expect(result.success).toBe(false);
     const messages = new Map(result.error?.issues.map((i) => [i.path.join("."), i.message]));
     expect(messages.get("vatNumber")).toBe("invalid_vat_number");
     expect(messages.get("postalCode")).toBe("invalid_postal_code");
-    expect(messages.get("paymentDefaults.iban")).toBe("invalid_iban");
     expect(messages.has("regimeFiscale")).toBe(true);
   });
 });

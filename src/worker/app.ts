@@ -12,6 +12,7 @@ import { health } from "./routes/health";
 import { invoices } from "./routes/invoices";
 import { mailbox } from "./routes/mailbox";
 import { onboarding } from "./routes/onboarding";
+import { paymentMethods } from "./routes/payment-methods";
 import { profile } from "./routes/profile";
 import { send } from "./routes/send";
 import { settings } from "./routes/settings";
@@ -32,6 +33,7 @@ export function createApp() {
   app.route("/api/invoices", invoices);
   app.route("/api/profile", profile);
   app.route("/api/clients", clients);
+  app.route("/api/payment-methods", paymentMethods);
   app.route("/api/settings", settings);
   app.route("/api/mailbox", mailbox);
   app.route("/api/export", exportData);

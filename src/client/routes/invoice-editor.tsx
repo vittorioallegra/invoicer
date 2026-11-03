@@ -17,6 +17,7 @@ import {
   SDI_ERROR_FIELDS,
 } from "../../shared/invoice";
 import type { SendReadiness } from "../../shared/onboarding";
+import type { PaymentMethodRecord } from "../../shared/payment-method";
 import {
   CASSA_TYPE_CODES,
   type CassaType,
@@ -45,6 +46,7 @@ import {
   type LineForm,
   naturaTextsFor,
   validateForm,
+  withAccount,
 } from "../lib/invoice-form";
 import {
   createCreditNote,
@@ -65,6 +67,7 @@ import {
   fieldErrorsFromDetail,
   onboardingQuery,
   type ProfileResponse,
+  paymentMethodsQuery,
   profileQuery,
 } from "../lib/settings-api";
 import { renderInvoicePdfFor } from "../pdf/generate";
@@ -76,15 +79,24 @@ export function InvoiceEditorPage() {
   const { invoiceId } = useParams({ strict: false }) as { invoiceId?: string };
   const clients = useQuery(clientsQuery);
   const profile = useQuery(profileQuery);
+  const accounts = useQuery(paymentMethodsQuery);
   const onboarding = useQuery(onboardingQuery);
   const record = useQuery({
     ...invoiceQuery(invoiceId ?? ""),
     enabled: invoiceId !== undefined,
   });
 
-  const failed = clients.isError || profile.isError || (invoiceId !== undefined && record.isError);
+  const failed =
+    clients.isError ||
+    profile.isError ||
+    accounts.isError ||
+    (invoiceId !== undefined && record.isError);
   const ready =
-    clients.data && profile.data && (invoiceId === undefined || record.data) && onboarding.data;
+    clients.data &&
+    profile.data &&
+    accounts.data &&
+    (invoiceId === undefined || record.data) &&
+    onboarding.data;
 
   return (
     <Page title={t(invoiceId ? "invoice.editTitle" : "invoice.newTitle")}>
@@ -98,6 +110,7 @@ export function InvoiceEditorPage() {
               onClick={() => {
                 void clients.refetch();
                 void profile.refetch();
+                void accounts.refetch();
                 void record.refetch();
               }}
             >
@@ -117,12 +130,13 @@ export function InvoiceEditorPage() {
           {t("common.loading")}
         </p>
       ) : null}
-      {ready && clients.data && profile.data && onboarding.data ? (
+      {ready && clients.data && profile.data && accounts.data && onboarding.data ? (
         <EditorForm
           key={record.data?.invoice.id ?? "new"}
           record={record.data?.invoice ?? null}
           clients={clients.data.clients}
           profile={profile.data.profile}
+          accounts={accounts.data.paymentMethods}
           send={onboarding.data.send}
         />
       ) : null}
@@ -134,10 +148,11 @@ interface EditorFormProps {
   record: InvoiceRecord | null;
   clients: ClientRecord[];
   profile: ProfileResponse | null;
+  accounts: PaymentMethodRecord[];
   send: SendReadiness;
 }
 
-function EditorForm({ record, clients, profile, send }: EditorFormProps) {
+function EditorForm({ record, clients, profile, accounts, send }: EditorFormProps) {
   const { t, i18n } = useTranslation();
   const locale: UiLocale = i18n.language.startsWith("it") ? "it" : "en";
   const online = useOnline();
@@ -146,7 +161,12 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
   const today = romeDateTime(new Date()).date;
 
   const [form, setForm] = useState<InvoiceForm>(() =>
-    record ? fromRecord(record) : applyDefaults(emptyForm(), null, profile, today),
+    record
+      ? fromRecord(record)
+      : withAccount(
+          applyDefaults(emptyForm(), null, profile, today),
+          accounts.find((account) => account.isDefault) ?? null,
+        ),
   );
   const [submitted, setSubmitted] = useState(false);
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
@@ -801,16 +821,19 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
                 </Select>
               )}
             </Field>
-            <Field label={t("profile.iban")} error={err("data.payment.iban")}>
+            <Field label={t("paymentMethods.iban")} error={err("data.payment.iban")}>
               {(c) => <Input {...c} value={form.iban} onChange={text("iban")} />}
             </Field>
-            <Field label={t("profile.bic")} error={err("data.payment.bic")}>
+            <Field label={t("paymentMethods.bic")} error={err("data.payment.bic")}>
               {(c) => <Input {...c} value={form.bic} onChange={text("bic")} />}
             </Field>
-            <Field label={t("profile.accountHolder")} error={err("data.payment.accountHolder")}>
+            <Field
+              label={t("paymentMethods.accountHolder")}
+              error={err("data.payment.accountHolder")}
+            >
               {(c) => <Input {...c} value={form.accountHolder} onChange={text("accountHolder")} />}
             </Field>
-            <Field label={t("profile.bankName")} error={err("data.payment.bankName")}>
+            <Field label={t("paymentMethods.bankName")} error={err("data.payment.bankName")}>
               {(c) => <Input {...c} value={form.bankName} onChange={text("bankName")} />}
             </Field>
           </div>

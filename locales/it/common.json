@@ -165,7 +165,7 @@
     "sections": {
       "profile": {
         "title": "Azienda",
-        "body": "I tuoi dati, il regime fiscale e i pagamenti predefiniti"
+        "body": "I tuoi dati, il regime fiscale e i termini di pagamento"
       },
       "email": {
         "title": "Email",
@@ -233,11 +233,7 @@
     "city": "Città",
     "province": "Provincia",
     "country": "Paese",
-    "paymentTitle": "Pagamento predefinito",
-    "iban": "IBAN",
-    "bic": "BIC/SWIFT",
-    "bankName": "Nome della banca",
-    "accountHolder": "Intestatario del conto",
+    "paymentTitle": "Termini di pagamento",
     "termsDays": "Termini di pagamento predefiniti (giorni)",
     "termsDaysHint": "Usati per proporre la scadenza. Lascia vuoto per nessuno.",
     "regimes": {
@@ -319,7 +315,7 @@
       },
       "profile": {
         "title": "Compila i dati dell'azienda",
-        "body": "I tuoi dati, il regime fiscale e i pagamenti predefiniti."
+        "body": "I tuoi dati, il regime fiscale e i termini di pagamento."
       },
       "pec": {
         "title": "Collega la casella PEC",
@@ -844,5 +840,11 @@
     "setupKey": "Copia la chiave di configurazione",
     "copied": "Copiati",
     "failed": "Copia non riuscita. Seleziona il testo e copialo a mano."
+  },
+  "paymentMethods": {
+    "iban": "IBAN",
+    "bic": "BIC/SWIFT",
+    "bankName": "Nome della banca",
+    "accountHolder": "Intestatario del conto"
   }
 }

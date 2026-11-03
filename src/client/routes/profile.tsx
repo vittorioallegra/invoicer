@@ -28,10 +28,6 @@ interface FormState {
   province: string;
   country: string;
   regimeFiscale: string;
-  iban: string;
-  bic: string;
-  accountHolder: string;
-  bankName: string;
   termsDays: string;
 }
 
@@ -45,10 +41,6 @@ const EMPTY: FormState = {
   province: "",
   country: "IT",
   regimeFiscale: "RF01",
-  iban: "",
-  bic: "",
-  accountHolder: "",
-  bankName: "",
   termsDays: "",
 };
 
@@ -63,10 +55,6 @@ function fromProfile(p: ProfileResponse): FormState {
     province: p.province ?? "",
     country: p.country,
     regimeFiscale: p.regimeFiscale,
-    iban: p.paymentDefaults.iban ?? "",
-    bic: p.paymentDefaults.bic ?? "",
-    accountHolder: p.paymentDefaults.accountHolder ?? "",
-    bankName: p.paymentDefaults.bankName ?? "",
     termsDays: p.defaultPaymentTermsDays === null ? "" : String(p.defaultPaymentTermsDays),
   };
 }
@@ -83,12 +71,6 @@ function toBody(f: FormState) {
     province: f.province,
     country: f.country,
     regimeFiscale: f.regimeFiscale,
-    paymentDefaults: {
-      iban: f.iban,
-      bic: f.bic,
-      accountHolder: f.accountHolder,
-      bankName: f.bankName,
-    },
     defaultPaymentTermsDays: days === "" ? null : Number(days),
   };
 }
@@ -279,34 +261,6 @@ export function ProfilePage() {
 
           <fieldset className="flex flex-col gap-4">
             <legend className="mb-2 text-base font-medium">{t("profile.paymentTitle")}</legend>
-            <Field label={t("profile.iban")} error={err("paymentDefaults.iban")}>
-              {(c) => (
-                <Input
-                  {...c}
-                  value={form.iban}
-                  onChange={set("iban")}
-                  autoCapitalize="characters"
-                />
-              )}
-            </Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t("profile.bic")} error={err("paymentDefaults.bic")}>
-                {(c) => (
-                  <Input
-                    {...c}
-                    value={form.bic}
-                    onChange={set("bic")}
-                    autoCapitalize="characters"
-                  />
-                )}
-              </Field>
-              <Field label={t("profile.bankName")} error={err("paymentDefaults.bankName")}>
-                {(c) => <Input {...c} value={form.bankName} onChange={set("bankName")} />}
-              </Field>
-            </div>
-            <Field label={t("profile.accountHolder")} error={err("paymentDefaults.accountHolder")}>
-              {(c) => <Input {...c} value={form.accountHolder} onChange={set("accountHolder")} />}
-            </Field>
             <Field
               label={t("profile.termsDays")}
               hint={t("profile.termsDaysHint")}

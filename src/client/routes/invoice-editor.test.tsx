@@ -65,14 +65,20 @@ const profile = {
   province: "MI",
   country: "IT",
   regimeFiscale: "RF01",
-  paymentDefaults: {
-    iban: "IT60X0542811101000000123456",
-    bic: null,
-    accountHolder: "Mario Rossi",
-    bankName: null,
-  },
   defaultPaymentTermsDays: null,
 };
+
+const ACCOUNTS = [
+  {
+    id: "pm1",
+    label: "Fineco",
+    iban: "IT60X0542811101000000123456",
+    bic: null,
+    bankName: null,
+    accountHolder: "Mario Rossi",
+    isDefault: true,
+  },
+];
 
 const ready = { ready: true, reasons: [] };
 
@@ -121,6 +127,7 @@ function serve(opts: { send?: object; invoice?: InvoiceRecord; clients?: ClientR
     if (path === "/api/clients")
       return { clients: opts.clients ?? [acme, exemptClient, brokenClient] };
     if (path === "/api/profile") return { profile };
+    if (path === "/api/payment-methods") return { paymentMethods: ACCOUNTS };
     if (path === "/api/onboarding") {
       return { checklist: [], complete: true, send: opts.send ?? ready, pecTest: null };
     }

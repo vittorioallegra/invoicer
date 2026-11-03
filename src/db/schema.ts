@@ -55,11 +55,33 @@ export const profile = sqliteTable(
     province: text("province"),
     country: text("country").notNull().default("IT"),
     regimeFiscale: text("regime_fiscale").notNull().default("RF01"),
-    paymentDefaults: text("payment_defaults", { mode: "json" }),
     defaultPaymentTermsDays: integer("default_payment_terms_days"),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
   },
   (t) => [check("profile_single_row", sql`${t.id} = 1`)],
+);
+
+/**
+ * Bank accounts the owner can print on invoices (payment method MP05). Exactly one is the
+ * default while any exist (partial unique index; the Worker keeps it so). Invoices copy the
+ * chosen account into their own data, so editing or deleting an account never changes one.
+ */
+export const paymentMethods = sqliteTable(
+  "payment_methods",
+  {
+    id: id(),
+    label: text("label").notNull(),
+    iban: text("iban").notNull(),
+    bic: text("bic"),
+    bankName: text("bank_name"),
+    accountHolder: text("account_holder"),
+    isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    uniqueIndex("payment_methods_single_default").on(t.isDefault).where(sql`${t.isDefault} = 1`),
+  ],
 );
 
 /** Application settings: a single row (`id = 1`), including the PEC mailbox cursor. */

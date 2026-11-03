@@ -44,7 +44,7 @@ const invoice = {
   linked: null,
 };
 const client = { ...input.client, id: "c-1" };
-const profile = { ...input.issuer, paymentDefaults: {} };
+const profile = { ...input.issuer };
 const valid = { valid: true, mapped: { problems: [], technical: [] } };
 const invalid = {
   valid: false,

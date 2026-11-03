@@ -7,7 +7,7 @@ import {
   ritenutaDefaultsSchema,
 } from "./client";
 import type { InvoiceState, PaymentState } from "./invoice-state";
-import { paymentDefaultsSchema } from "./profile";
+import { paymentDefaultsSchema } from "./payment-method";
 import {
   computeTotals,
   DOCUMENT_TYPES,
