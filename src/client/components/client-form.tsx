@@ -65,6 +65,7 @@ interface FormState {
   bollo: boolean;
   termsDays: string;
   termsBasis: string;
+  termsExtraDays: string;
 }
 
 const VAT_RATES = [2200, 1000, 500, 400];
@@ -95,6 +96,7 @@ const EMPTY: FormState = {
   bollo: false,
   termsDays: "",
   termsBasis: "invoice_date",
+  termsExtraDays: "0",
 };
 
 const bpToText = (bp: number) => String(bp / 100).replace(".", ",");
@@ -134,6 +136,7 @@ function fromRecord(c: ClientRecord): FormState {
     bollo: d.bollo,
     termsDays: d.terms ? String(d.terms.days) : "",
     termsBasis: d.terms?.basis ?? "invoice_date",
+    termsExtraDays: String(d.terms?.extraDays ?? 0),
   };
 }
 
@@ -161,8 +164,9 @@ function toDefaults(f: FormState): ClientDefaults {
       f.termsDays === ""
         ? null
         : {
-            days: Number(f.termsDays) as PaymentTerms["days"],
+            days: Number(f.termsDays),
             basis: f.termsBasis as PaymentTerms["basis"],
+            extraDays: f.termsBasis === "end_of_month" ? Number(f.termsExtraDays || 0) : 0,
           },
   };
 }
@@ -655,9 +659,11 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
               <PaymentTermsFields
                 days={form.termsDays}
                 basis={form.termsBasis}
+                extraDays={form.termsExtraDays}
                 onChange={update}
                 daysError={err("defaults.terms.days")}
                 basisError={err("defaults.terms.basis")}
+                extraDaysError={err("defaults.terms.extraDays")}
               />
             </div>
             <div className={grid}>

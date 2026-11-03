@@ -32,7 +32,7 @@ const client: ClientRecord = {
     ...EMPTY_CLIENT_DEFAULTS,
     natura: "N2.1",
     cassa: { type: "TC04", rateBp: 400, mode: "included", subjectToRitenuta: false },
-    terms: { days: 30, basis: "invoice_date" },
+    terms: { days: 30, basis: "invoice_date", extraDays: 0 },
   },
 };
 
@@ -61,7 +61,7 @@ describe("invoice form", () => {
     expect(effectiveDueDate(monthEnd, "2026-01-20")).toBe("2026-02-28");
     expect(buildInvoice(monthEnd, null, "2026-11-10").input.dueDate).toBe("2026-12-31");
     expect(buildInvoice(monthEnd, null, "2026-11-10").input.data.payment).toMatchObject({
-      terms: { days: 30, basis: "end_of_month" },
+      terms: { days: 30, basis: "end_of_month", extraDays: 0 },
       dueDateCustom: false,
     });
   });

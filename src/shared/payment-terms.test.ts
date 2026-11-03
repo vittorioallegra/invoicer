@@ -3,13 +3,17 @@ import {
   dueDate,
   endOfMonth,
   legacyTerms,
-  nearestTermsDays,
   type PaymentTerms,
+  paymentTermsSchema,
   termsReferenceDate,
 } from "./payment-terms";
 
-const df = (days: PaymentTerms["days"]): PaymentTerms => ({ days, basis: "invoice_date" });
-const fm = (days: PaymentTerms["days"]): PaymentTerms => ({ days, basis: "end_of_month" });
+const df = (days: number): PaymentTerms => ({ days, basis: "invoice_date", extraDays: 0 });
+const fm = (days: number, extraDays = 0): PaymentTerms => ({
+  days,
+  basis: "end_of_month",
+  extraDays,
+});
 
 describe("dueDate", () => {
   it("0 days from the invoice date is the invoice date", () => {
@@ -58,15 +62,52 @@ describe("termsReferenceDate", () => {
   });
 });
 
+describe("extra days after the end of month", () => {
+  it("adds them after the end of the month", () => {
+    expect(dueDate("2026-11-10", fm(0, 5))).toBe("2026-12-05");
+    expect(dueDate("2026-11-10", fm(30, 0))).toBe("2026-12-31");
+    expect(dueDate("2026-11-10", fm(30, 10))).toBe("2027-01-10");
+    expect(dueDate("2026-11-10", df(30))).toBe("2026-12-10");
+    expect(dueDate("2026-11-10", df(0))).toBe("2026-11-10");
+  });
+
+  it("handles February and leap years", () => {
+    expect(dueDate("2027-01-10", fm(0, 5))).toBe("2027-02-05");
+    expect(dueDate("2027-01-31", fm(30, 3))).toBe("2027-04-03");
+    expect(dueDate("2028-02-10", fm(0, 1))).toBe("2028-03-01");
+    expect(dueDate("2027-02-10", fm(0, 1))).toBe("2027-03-01");
+    expect(dueDate("2028-01-30", fm(30, 31))).toBe("2028-03-31");
+  });
+});
+
+describe("terms schema", () => {
+  it("defaults extraDays to 0 and drops it for invoice-date terms", () => {
+    expect(paymentTermsSchema.parse({ days: 30, basis: "end_of_month" })).toEqual({
+      days: 30,
+      basis: "end_of_month",
+      extraDays: 0,
+    });
+    expect(paymentTermsSchema.parse({ days: 30, basis: "invoice_date", extraDays: 9 })).toEqual(
+      df(30),
+    );
+  });
+
+  it("accepts any whole number of days 0-365 and 0-31 extra days", () => {
+    const ok = (value: unknown) => paymentTermsSchema.safeParse(value).success;
+    expect(ok({ days: 45, basis: "invoice_date" })).toBe(true);
+    expect(ok({ days: 365, basis: "end_of_month", extraDays: 31 })).toBe(true);
+    expect(ok({ days: 366, basis: "invoice_date" })).toBe(false);
+    expect(ok({ days: -1, basis: "invoice_date" })).toBe(false);
+    expect(ok({ days: 1.5, basis: "invoice_date" })).toBe(false);
+    expect(ok({ days: 0, basis: "end_of_month", extraDays: 32 })).toBe(false);
+  });
+});
+
 describe("legacy default", () => {
-  it("maps a free-form number of days to the nearest allowed value from the invoice date", () => {
-    expect(nearestTermsDays(0)).toBe(0);
-    expect(nearestTermsDays(14)).toBe(0);
-    expect(nearestTermsDays(15)).toBe(0);
-    expect(nearestTermsDays(16)).toBe(30);
-    expect(nearestTermsDays(45)).toBe(30);
-    expect(nearestTermsDays(75)).toBe(60);
-    expect(nearestTermsDays(365)).toBe(120);
-    expect(legacyTerms(30)).toEqual({ days: 30, basis: "invoice_date" });
+  it("keeps the number of days as is, clamped to 0-365, from the invoice date", () => {
+    expect(legacyTerms(30)).toEqual(df(30));
+    expect(legacyTerms(45)).toEqual(df(45));
+    expect(legacyTerms(0)).toEqual(df(0));
+    expect(legacyTerms(400)).toEqual(df(365));
   });
 });

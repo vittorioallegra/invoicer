@@ -131,14 +131,17 @@ describe("Clients screen", () => {
     await renderClients();
     fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
     fireEvent.click(await screen.findByRole("button", { name: /Invoice defaults/ }));
-    const days = screen.getByLabelText("Payment due after") as HTMLSelectElement;
+    const days = screen.getByLabelText("Payment due after") as HTMLInputElement;
     const basis = screen.getByLabelText("Counted from") as HTMLSelectElement;
-    expect([...days.options].map((o) => o.value)).toEqual(["", "0", "30", "60", "90", "120"]);
+    expect(days.type).toBe("number");
+    expect(days.value).toBe("");
     expect([...basis.options].map((o) => o.value)).toEqual(["invoice_date", "end_of_month"]);
     expect(basis.disabled).toBe(true);
     type("Payment due after", "60");
     expect(basis.disabled).toBe(false);
+    expect(screen.queryByLabelText("Days after the end of the month")).toBeNull();
     type("Counted from", "end_of_month");
+    type("Days after the end of the month", "5");
     type("Company name", "Acme S.r.l.");
     type("Partita IVA", "12345678903");
     type("Street and number", "Via Roma 1");
@@ -157,7 +160,7 @@ describe("Clients screen", () => {
       ([path, init]) => path === "/api/clients" && init?.method === "POST",
     );
     const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
-    expect(body.defaults.terms).toEqual({ days: 60, basis: "end_of_month" });
+    expect(body.defaults.terms).toEqual({ days: 60, basis: "end_of_month", extraDays: 5 });
     expect(body.defaults).not.toHaveProperty("paymentTermsDays");
   });
 

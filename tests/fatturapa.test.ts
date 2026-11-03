@@ -223,7 +223,7 @@ describe("payment terms", () => {
   };
 
   it("writes the days, the reference date and the due date, and validates", async () => {
-    const df = buildFatturaXml(withTerms({ days: 30, basis: "invoice_date" })).xml;
+    const df = buildFatturaXml(withTerms({ days: 30, basis: "invoice_date", extraDays: 0 })).xml;
     expect((await validateFatturaXml(df, assets)).errors).toEqual([]);
     expect(df).toContain(
       "<DataRiferimentoTerminiPagamento>2026-11-10</DataRiferimentoTerminiPagamento>",
@@ -231,13 +231,21 @@ describe("payment terms", () => {
     expect(df).toContain("<GiorniTerminiPagamento>30</GiorniTerminiPagamento>");
     expect(df).toContain("<DataScadenzaPagamento>2026-12-10</DataScadenzaPagamento>");
 
-    const fm = buildFatturaXml(withTerms({ days: 30, basis: "end_of_month" })).xml;
+    const fm = buildFatturaXml(withTerms({ days: 30, basis: "end_of_month", extraDays: 0 })).xml;
     expect((await validateFatturaXml(fm, assets)).errors).toEqual([]);
     expect(fm).not.toContain("DataRiferimentoTerminiPagamento");
     expect(fm).not.toContain("GiorniTerminiPagamento");
     expect(fm).toContain("<DataScadenzaPagamento>2026-12-31</DataScadenzaPagamento>");
 
-    const zero = buildFatturaXml(withTerms({ days: 0, basis: "invoice_date" })).xml;
+    const fmExtra = buildFatturaXml(
+      withTerms({ days: 0, basis: "end_of_month", extraDays: 5 }),
+    ).xml;
+    expect((await validateFatturaXml(fmExtra, assets)).errors).toEqual([]);
+    expect(fmExtra).not.toContain("DataRiferimentoTerminiPagamento");
+    expect(fmExtra).not.toContain("GiorniTerminiPagamento");
+    expect(fmExtra).toContain("<DataScadenzaPagamento>2026-12-05</DataScadenzaPagamento>");
+
+    const zero = buildFatturaXml(withTerms({ days: 0, basis: "invoice_date", extraDays: 0 })).xml;
     expect((await validateFatturaXml(zero, assets)).errors).toEqual([]);
     expect(zero).toContain("<GiorniTerminiPagamento>0</GiorniTerminiPagamento>");
   });
@@ -245,7 +253,7 @@ describe("payment terms", () => {
   it("writes only the due date when there are no terms or the date was set by hand", () => {
     for (const xml of [
       buildFatturaXml(withTerms(null)).xml,
-      buildFatturaXml(withTerms({ days: 30, basis: "invoice_date" }, true)).xml,
+      buildFatturaXml(withTerms({ days: 30, basis: "invoice_date", extraDays: 0 }, true)).xml,
     ]) {
       expect(xml).not.toContain("GiorniTerminiPagamento");
       expect(xml).not.toContain("DataRiferimentoTerminiPagamento");

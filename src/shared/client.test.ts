@@ -145,7 +145,7 @@ describe("defaults", () => {
     };
     expect(parse({ defaults }).success).toBe(true);
   });
-  it("maps the older numeric payment terms to the nearest allowed days from the invoice date", () => {
+  it("maps the older numeric payment terms to the same days from the invoice date", () => {
     const read = (legacy: number | null) => {
       const parsed = clientDefaultsSchema.parse({
         ...EMPTY_CLIENT_DEFAULTS,
@@ -154,17 +154,21 @@ describe("defaults", () => {
       });
       return { terms: parsed.terms, hasLegacy: "paymentTermsDays" in parsed };
     };
-    expect(read(30)).toEqual({ terms: { days: 30, basis: "invoice_date" }, hasLegacy: false });
-    expect(read(45).terms).toEqual({ days: 30, basis: "invoice_date" });
-    expect(read(50).terms).toEqual({ days: 60, basis: "invoice_date" });
-    expect(read(0).terms).toEqual({ days: 0, basis: "invoice_date" });
+    expect(read(30)).toEqual({
+      terms: { days: 30, basis: "invoice_date", extraDays: 0 },
+      hasLegacy: false,
+    });
+    expect(read(45).terms).toEqual({ days: 45, basis: "invoice_date", extraDays: 0 });
+    expect(read(0).terms).toEqual({ days: 0, basis: "invoice_date", extraDays: 0 });
     expect(read(null).terms).toBeNull();
   });
-  it("rejects terms outside the allowed days and bases", () => {
+  it("rejects terms outside the allowed days, extra days and bases", () => {
     const bad = (terms: unknown) =>
       parse({ defaults: { ...EMPTY_CLIENT_DEFAULTS, terms } }).success;
-    expect(bad({ days: 45, basis: "invoice_date" })).toBe(false);
+    expect(bad({ days: 366, basis: "invoice_date" })).toBe(false);
     expect(bad({ days: 30, basis: "month" })).toBe(false);
+    expect(bad({ days: 0, basis: "end_of_month", extraDays: 32 })).toBe(false);
+    expect(bad({ days: 45, basis: "invoice_date" })).toBe(true);
     expect(bad({ days: 120, basis: "end_of_month" })).toBe(true);
   });
 });

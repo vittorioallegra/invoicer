@@ -732,7 +732,9 @@
       "invoice_date": "{{days}} gg data fattura",
       "end_of_month": "{{days}} gg fine mese data fattura",
       "invoice_date_0": "Alla data fattura",
-      "end_of_month_0": "Fine mese data fattura"
+      "end_of_month_0": "Fine mese data fattura",
+      "end_of_month_extra": "{{days}} gg fine mese data fattura + {{extraDays}} gg",
+      "end_of_month_0_extra": "Fine mese data fattura + {{extraDays}} gg"
     }
   },
   "pec": {
@@ -916,10 +918,10 @@
   "paymentTerms": {
     "title": "Termini di pagamento",
     "days": "Pagamento a",
+    "daysHint": "Numero di giorni, da 0 a 365. Lascia vuoto per nessun termine.",
     "basis": "Calcolati da",
+    "extraDays": "Giorni dopo fine mese",
     "none": "Nessun termine",
-    "day0": "Alla data",
-    "dayN": "{{days}} giorni",
     "basis_invoice_date": "Data fattura",
     "basis_end_of_month": "Fine mese data fattura",
     "dueMode": "Scadenza da",

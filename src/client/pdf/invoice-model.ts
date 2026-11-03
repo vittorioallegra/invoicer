@@ -196,7 +196,10 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
   if (terms) {
     meta.push({
       label: t("pdf.terms.label"),
-      value: t(`pdf.terms.${terms.basis}${terms.days === 0 ? "_0" : ""}`, { days: terms.days }),
+      value: t(
+        `pdf.terms.${terms.basis}${terms.days === 0 ? "_0" : ""}${terms.extraDays > 0 ? "_extra" : ""}`,
+        { days: terms.days, extraDays: terms.extraDays },
+      ),
     });
   }
   if (invoice.dueDate) {

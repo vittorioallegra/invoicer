@@ -730,9 +730,11 @@
     "terms": {
       "label": "Terms",
       "invoice_date": "{{days}} days from invoice date",
-      "end_of_month": "{{days}} days end of month",
+      "end_of_month": "{{days}} days end of month from invoice date",
       "invoice_date_0": "On invoice date",
-      "end_of_month_0": "End of month of the invoice date"
+      "end_of_month_0": "End of month of the invoice date",
+      "end_of_month_extra": "{{days}} days end of month from invoice date + {{extraDays}} days",
+      "end_of_month_0_extra": "End of month of the invoice date + {{extraDays}} days"
     }
   },
   "pec": {
@@ -916,10 +918,10 @@
   "paymentTerms": {
     "title": "Payment terms",
     "days": "Payment due after",
+    "daysHint": "Number of days, 0 to 365. Leave empty for no terms.",
     "basis": "Counted from",
+    "extraDays": "Days after the end of the month",
     "none": "No terms",
-    "day0": "On the date",
-    "dayN": "{{days}} days",
     "basis_invoice_date": "Invoice date",
     "basis_end_of_month": "End of month of the invoice date",
     "dueMode": "Due date from",

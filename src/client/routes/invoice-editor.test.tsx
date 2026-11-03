@@ -55,7 +55,7 @@ const acme: ClientRecord = {
     vatRateBp: 2200,
     cassa: { type: "rivalsa_inps", rateBp: 400, mode: "excluded", subjectToRitenuta: true },
     ritenuta: { type: "RT01", rateBp: 2000, causale: "A" },
-    terms: { days: 30, basis: "invoice_date" },
+    terms: { days: 30, basis: "invoice_date", extraDays: 0 },
   },
 };
 const exemptClient: ClientRecord = {
@@ -243,9 +243,26 @@ describe("Invoice editor", () => {
     const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
     expect(body.dueDate).toBe("2027-01-15");
     expect(body.data.payment).toMatchObject({
-      terms: { days: 90, basis: "end_of_month" },
+      terms: { days: 90, basis: "end_of_month", extraDays: 0 },
       dueDateCustom: true,
     });
+  });
+
+  it("shows the days after the end of month only for the end-of-month basis", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    type("Client", "c1");
+    type("Planned issue date", "2026-11-10");
+    const due = () => screen.getByLabelText("Due date") as HTMLInputElement;
+    expect(screen.queryByLabelText("Days after the end of the month")).toBeNull();
+    type("Counted from", "end_of_month");
+    type("Payment due after", "0");
+    type("Days after the end of the month", "5");
+    expect(due().value).toBe("2026-12-05");
+    type("Counted from", "invoice_date");
+    expect(screen.queryByLabelText("Days after the end of the month")).toBeNull();
+    expect(due().value).toBe("2026-11-10");
   });
 
   it("has no terms and no due date when the client has no default terms", async () => {
@@ -382,7 +399,7 @@ describe("Invoice editor", () => {
       bic: "REVODEB2",
       bankName: "",
       accountHolder: "Mario Rossi",
-      terms: { days: 30, basis: "invoice_date" },
+      terms: { days: 30, basis: "invoice_date", extraDays: 0 },
       dueDateCustom: false,
     });
   });

@@ -53,6 +53,7 @@ export interface InvoiceForm {
   /** `""` = no terms, else one of the allowed numbers of days. */
   termsDays: string;
   termsBasis: "invoice_date" | "end_of_month";
+  termsExtraDays: string;
   /** The due date is the typed one, not computed from the terms. */
   dueDateCustom: boolean;
   linkedInvoiceId: string;
@@ -94,6 +95,7 @@ export function emptyForm(): InvoiceForm {
     dueDate: "",
     termsDays: "",
     termsBasis: "invoice_date",
+    termsExtraDays: "0",
     dueDateCustom: false,
     linkedInvoiceId: "",
     notes: "",
@@ -144,6 +146,7 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
     dueDate: record.dueDate ?? "",
     termsDays: data.payment.terms ? String(data.payment.terms.days) : "",
     termsBasis: data.payment.terms?.basis ?? "invoice_date",
+    termsExtraDays: String(data.payment.terms?.extraDays ?? 0),
     dueDateCustom: data.payment.dueDateCustom,
     linkedInvoiceId: record.linkedInvoiceId ?? "",
     notes: record.notes ?? "",
@@ -176,10 +179,14 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
 
 /** The terms typed in the form, or null when none are chosen. */
 export function formTerms(
-  form: Pick<InvoiceForm, "termsDays" | "termsBasis">,
+  form: Pick<InvoiceForm, "termsDays" | "termsBasis" | "termsExtraDays">,
 ): PaymentTerms | null {
   if (form.termsDays === "") return null;
-  return { days: Number(form.termsDays) as PaymentTerms["days"], basis: form.termsBasis };
+  return {
+    days: Number(form.termsDays),
+    basis: form.termsBasis,
+    extraDays: form.termsBasis === "end_of_month" ? Number(form.termsExtraDays || 0) : 0,
+  };
 }
 
 /**
@@ -223,6 +230,7 @@ export function applyDefaults(form: InvoiceForm, client: ClientRecord | null): I
   // Terms prefill from the client default (none = no terms); the due date follows them.
   next.termsDays = defaults?.terms ? String(defaults.terms.days) : "";
   next.termsBasis = defaults?.terms?.basis ?? "invoice_date";
+  next.termsExtraDays = String(defaults?.terms?.extraDays ?? 0);
   if (defaults?.terms) next.dueDateCustom = false;
   // Natura legal texts follow the lines.
   next.naturaTexts = naturaTextsFor(next.lines, next.naturaTexts);

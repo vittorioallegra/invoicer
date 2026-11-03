@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { fixtureToFatturaInput } from "../../shared/fixtures/fatturapa";
 import { INVOICE_FIXTURES } from "../../shared/fixtures/invoices";
 import { formatMoney } from "../../shared/format";
+import type { PaymentTerms } from "../../shared/payment-terms";
 import type { InvoicePdfInput } from "./invoice-model";
 import { renderInvoicePdf } from "./render";
 
@@ -90,7 +91,7 @@ describe("invoice PDF (AC 13)", () => {
 describe("invoice PDF payment terms", () => {
   const withTerms = (
     id: string,
-    terms: { days: 0 | 30 | 60 | 90 | 120; basis: "invoice_date" | "end_of_month" } | null,
+    terms: PaymentTerms | null,
     dueDateCustom = false,
   ): InvoicePdfInput => {
     const input = inputFor(id);
@@ -109,25 +110,33 @@ describe("invoice PDF payment terms", () => {
 
   it("prints the terms in words and the due date, in the PDF language", async () => {
     const it = extractText(
-      await renderInvoicePdf(withTerms("b", { days: 30, basis: "end_of_month" })),
+      await renderInvoicePdf(withTerms("b", { days: 30, basis: "end_of_month", extraDays: 0 })),
     );
     expect(it).toContain("30 gg fine mese data fattura");
     expect(it).toContain("31 dic 2026");
     const en = extractText(
-      await renderInvoicePdf(withTerms("c", { days: 30, basis: "end_of_month" })),
+      await renderInvoicePdf(withTerms("c", { days: 30, basis: "end_of_month", extraDays: 0 })),
     );
     expect(en).toContain("30 days end of month");
     expect(en).toContain("31 Dec 2026");
     const df = extractText(
-      await renderInvoicePdf(withTerms("c", { days: 60, basis: "invoice_date" })),
+      await renderInvoicePdf(withTerms("c", { days: 60, basis: "invoice_date", extraDays: 0 })),
     );
     expect(df).toContain("60 days from invoice date");
+    const fmExtra = extractText(
+      await renderInvoicePdf(withTerms("c", { days: 0, basis: "end_of_month", extraDays: 5 })),
+    );
+    expect(fmExtra).toContain("End of month of the invoice date + 5 days");
+    const fmExtraIt = extractText(
+      await renderInvoicePdf(withTerms("b", { days: 30, basis: "end_of_month", extraDays: 10 })),
+    );
+    expect(fmExtraIt).toContain("30 gg fine mese data fattura + 10 gg");
   });
 
   it("prints only the due date without terms or with a custom date", async () => {
     for (const input of [
       withTerms("c", null),
-      withTerms("c", { days: 30, basis: "invoice_date" }, true),
+      withTerms("c", { days: 30, basis: "invoice_date", extraDays: 0 }, true),
     ]) {
       const text = extractText(await renderInvoicePdf(input));
       expect(text).not.toContain("Terms");

@@ -39,7 +39,7 @@ interface Record_ {
   defaults: {
     vatRateBp: number;
     cassa: { type: string };
-    terms: { days: number; basis: string } | null;
+    terms: { days: number; basis: string; extraDays: number } | null;
   };
 }
 
@@ -103,7 +103,11 @@ describe("clients API", () => {
       .bind(JSON.stringify(stored), id)
       .run();
     const read = await owner.json<{ client: Record_ }>(`/api/clients/${id}`);
-    expect(read.body.client.defaults.terms).toEqual({ days: 60, basis: "invoice_date" });
+    expect(read.body.client.defaults.terms).toEqual({
+      days: 50,
+      basis: "invoice_date",
+      extraDays: 0,
+    });
     await owner.json(`/api/clients/${id}`, { method: "DELETE" });
   });
 
