@@ -34,8 +34,8 @@
       "emptyTitle": "No invoices yet",
       "emptyBody": "Create your first invoice to get started.",
       "emptyAction": "New invoice",
-      "emptyBodyProfile": "Fill in your issuer profile first, then create your first invoice.",
-      "profileAction": "Complete your profile"
+      "emptyBodyProfile": "Fill in your company details first, then create your first invoice.",
+      "profileAction": "Complete your company details"
     },
     "issued": {
       "title": "Issued",
@@ -164,7 +164,7 @@
     "pecTesting": "Testing...",
     "sections": {
       "profile": {
-        "title": "Issuer profile",
+        "title": "Company",
         "body": "Your details, tax regime and payment defaults"
       },
       "email": {
@@ -216,10 +216,10 @@
     "invalid_rate": "Enter a percentage such as 4 or 22,5."
   },
   "profile": {
-    "title": "Issuer profile",
+    "title": "Company",
     "intro": "These details appear on every invoice you issue.",
-    "saved": "Profile saved.",
-    "save": "Save profile",
+    "saved": "Company details saved.",
+    "save": "Save company",
     "issuer": "Issuer",
     "name": "Name or company name",
     "nameHint": "As registered with the tax office.",
@@ -267,7 +267,7 @@
     "saved": "Email settings saved.",
     "save": "Save email settings",
     "senderName": "Sender name",
-    "senderNameHint": "Empty uses the issuer name from your profile.",
+    "senderNameHint": "Empty uses the company name.",
     "senderAddress": "Sender address",
     "senderAddressHint": "Empty uses the address configured on the server.",
     "replyTo": "Reply-To address",
@@ -318,7 +318,7 @@
         "body": "An authenticator app for email and password sign-in."
       },
       "profile": {
-        "title": "Fill in your profile",
+        "title": "Fill in your company details",
         "body": "Your details, tax regime and payment defaults."
       },
       "pec": {
@@ -336,7 +336,7 @@
     },
     "sendBlocked": "You cannot send invoices yet:",
     "reasons": {
-      "profile_incomplete": "The issuer profile is not complete.",
+      "profile_incomplete": "The company details are not complete.",
       "pec_credentials_missing": "The PEC username and password are not set on the server.",
       "pec_test_missing": "The PEC connection has not been tested yet.",
       "pec_test_failed": "The last PEC connection test failed."
@@ -562,15 +562,15 @@
   "fatturapa": {
     "fields": {
       "issuer": {
-        "name": "Your name (profile)",
-        "vatNumber": "Your partita IVA (profile)",
-        "taxCode": "Your codice fiscale (profile)",
-        "address": "Your address (profile)",
-        "postalCode": "Your postal code (profile)",
-        "city": "Your city (profile)",
-        "province": "Your province (profile)",
-        "country": "Your country (profile)",
-        "regimeFiscale": "Your tax regime (profile)"
+        "name": "Your name (company)",
+        "vatNumber": "Your partita IVA (company)",
+        "taxCode": "Your codice fiscale (company)",
+        "address": "Your address (company)",
+        "postalCode": "Your postal code (company)",
+        "city": "Your city (company)",
+        "province": "Your province (company)",
+        "country": "Your country (company)",
+        "regimeFiscale": "Your tax regime (company)"
       },
       "client": {
         "name": "Client name",
@@ -760,7 +760,7 @@
       "numberKept": "The number stays reserved for this invoice (it cannot be given back); fix the points and send again.",
       "cancelled": "Cancelled. Nothing was sent. The invoice keeps its reserved number until you send it.",
       "build_failed": "The invoice file could not be prepared. Try again.",
-      "missing_data": "The client or the issuer profile is missing.",
+      "missing_data": "The client or the company details are missing.",
       "send_not_authorized": "Your passkey or code was not accepted for this invoice file. Nothing was sent; try again.",
       "pec_auth_failed": "The PEC server refused the login. Aruba needs the dedicated mail-client password: set it again with wrangler secret put PEC_PASSWORD and run the connection test. Nothing was sent.",
       "pec_mailbox_full": "The PEC mailbox is full. Free some space in the Aruba webmail and send again. Nothing was sent.",

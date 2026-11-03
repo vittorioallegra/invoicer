@@ -34,8 +34,8 @@
       "emptyTitle": "Ancora nessuna fattura",
       "emptyBody": "Crea la tua prima fattura per iniziare.",
       "emptyAction": "Nuova fattura",
-      "emptyBodyProfile": "Compila prima il profilo dell'emittente, poi crea la tua prima fattura.",
-      "profileAction": "Completa il profilo"
+      "emptyBodyProfile": "Compila prima i dati dell'azienda, poi crea la tua prima fattura.",
+      "profileAction": "Completa i dati dell'azienda"
     },
     "issued": {
       "title": "Emesse",
@@ -164,7 +164,7 @@
     "pecTesting": "Test in corso...",
     "sections": {
       "profile": {
-        "title": "Profilo emittente",
+        "title": "Azienda",
         "body": "I tuoi dati, il regime fiscale e i pagamenti predefiniti"
       },
       "email": {
@@ -216,10 +216,10 @@
     "invalid_rate": "Inserisci una percentuale come 4 o 22,5."
   },
   "profile": {
-    "title": "Profilo emittente",
+    "title": "Azienda",
     "intro": "Questi dati compaiono su ogni fattura che emetti.",
-    "saved": "Profilo salvato.",
-    "save": "Salva profilo",
+    "saved": "Dati azienda salvati.",
+    "save": "Salva azienda",
     "issuer": "Emittente",
     "name": "Nome o ragione sociale",
     "nameHint": "Come risulta all'Agenzia delle Entrate.",
@@ -267,7 +267,7 @@
     "saved": "Impostazioni email salvate.",
     "save": "Salva impostazioni email",
     "senderName": "Nome del mittente",
-    "senderNameHint": "Se vuoto usa il nome dell'emittente del profilo.",
+    "senderNameHint": "Se vuoto usa il nome dell'azienda.",
     "senderAddress": "Indirizzo del mittente",
     "senderAddressHint": "Se vuoto usa l'indirizzo configurato sul server.",
     "replyTo": "Indirizzo Reply-To",
@@ -318,7 +318,7 @@
         "body": "Un'app di autenticazione per l'accesso con email e password."
       },
       "profile": {
-        "title": "Compila il profilo",
+        "title": "Compila i dati dell'azienda",
         "body": "I tuoi dati, il regime fiscale e i pagamenti predefiniti."
       },
       "pec": {
@@ -336,7 +336,7 @@
     },
     "sendBlocked": "Non puoi ancora inviare fatture:",
     "reasons": {
-      "profile_incomplete": "Il profilo dell'emittente non è completo.",
+      "profile_incomplete": "I dati dell'azienda non sono completi.",
       "pec_credentials_missing": "Utente e password PEC non sono impostati sul server.",
       "pec_test_missing": "La connessione PEC non è ancora stata testata.",
       "pec_test_failed": "L'ultimo test di connessione PEC è fallito."
@@ -562,15 +562,15 @@
   "fatturapa": {
     "fields": {
       "issuer": {
-        "name": "Il tuo nome (profilo)",
-        "vatNumber": "La tua partita IVA (profilo)",
-        "taxCode": "Il tuo codice fiscale (profilo)",
-        "address": "Il tuo indirizzo (profilo)",
-        "postalCode": "Il tuo CAP (profilo)",
-        "city": "Il tuo comune (profilo)",
-        "province": "La tua provincia (profilo)",
-        "country": "Il tuo paese (profilo)",
-        "regimeFiscale": "Il tuo regime fiscale (profilo)"
+        "name": "Il tuo nome (azienda)",
+        "vatNumber": "La tua partita IVA (azienda)",
+        "taxCode": "Il tuo codice fiscale (azienda)",
+        "address": "Il tuo indirizzo (azienda)",
+        "postalCode": "Il tuo CAP (azienda)",
+        "city": "Il tuo comune (azienda)",
+        "province": "La tua provincia (azienda)",
+        "country": "Il tuo paese (azienda)",
+        "regimeFiscale": "Il tuo regime fiscale (azienda)"
       },
       "client": {
         "name": "Nome del cliente",
@@ -760,7 +760,7 @@
       "numberKept": "Il numero resta riservato a questa fattura (non può essere restituito); correggi i punti e invia di nuovo.",
       "cancelled": "Annullato. Non è stato inviato nulla. La fattura mantiene il numero riservato finché non la invii.",
       "build_failed": "Non è stato possibile preparare il file della fattura. Riprova.",
-      "missing_data": "Mancano il cliente o il profilo dell'emittente.",
+      "missing_data": "Mancano il cliente o i dati dell'azienda.",
       "send_not_authorized": "La passkey o il codice non sono stati accettati per questo file. Non è stato inviato nulla; riprova.",
       "pec_auth_failed": "Il server PEC ha rifiutato l'accesso. Aruba richiede la password dedicata per client di posta: impostala di nuovo con wrangler secret put PEC_PASSWORD ed esegui il test di connessione. Non è stato inviato nulla.",
       "pec_mailbox_full": "La casella PEC è piena. Libera spazio nella webmail Aruba e invia di nuovo. Non è stato inviato nulla.",

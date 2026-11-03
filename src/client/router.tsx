@@ -3,6 +3,7 @@ import {
   createRoute,
   createRouter,
   Outlet,
+  redirect,
   useLocation,
 } from "@tanstack/react-router";
 import { AppShell } from "./components/app-shell";
@@ -45,8 +46,16 @@ const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: SettingsPage }),
   createRoute({
     getParentRoute: () => rootRoute,
-    path: "/settings/profile",
+    path: "/settings/company",
     component: ProfilePage,
+  }),
+  // Former path of the Company page.
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/settings/profile",
+    beforeLoad: () => {
+      throw redirect({ to: "/settings/company", replace: true });
+    },
   }),
   createRoute({
     getParentRoute: () => rootRoute,

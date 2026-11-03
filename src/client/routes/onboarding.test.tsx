@@ -119,9 +119,9 @@ describe("Home", () => {
     expect(rows).toHaveLength(6);
     expect(within(rows[0] as HTMLElement).getByText("Done")).toBeTruthy();
     expect(within(rows[2] as HTMLElement).getByText("To do")).toBeTruthy();
-    expect(rows[2]?.getAttribute("href")).toBe("/settings/profile");
+    expect(rows[2]?.getAttribute("href")).toBe("/settings/company");
     expect(screen.getByText("You cannot send invoices yet:")).toBeTruthy();
-    expect(screen.getByText("The issuer profile is not complete.")).toBeTruthy();
+    expect(screen.getByText("The company details are not complete.")).toBeTruthy();
     expect(
       screen.getByText("The PEC username and password are not set on the server."),
     ).toBeTruthy();
@@ -130,8 +130,8 @@ describe("Home", () => {
   it("leads a first-run owner with no profile to the profile form", async () => {
     respond({ "/api/onboarding": status([], ["profile_incomplete"]) });
     await renderAt("/");
-    const action = await screen.findByRole("link", { name: "Complete your profile" });
-    expect(action.getAttribute("href")).toBe("/settings/profile");
+    const action = await screen.findByRole("link", { name: "Complete your company details" });
+    expect(action.getAttribute("href")).toBe("/settings/company");
   });
 
   it("hides the checklist and offers a new invoice once everything is done", async () => {
@@ -145,14 +145,20 @@ describe("Home", () => {
 });
 
 describe("Profile form", () => {
-  it("shows field errors and does not call the server until the form is valid", async () => {
+  it("redirects the old /settings/profile path to the Company page", async () => {
     respond({ "/api/profile": { profile: null } });
     await renderAt("/settings/profile");
+    expect(await screen.findByRole("heading", { name: "Company" })).toBeTruthy();
+  });
+
+  it("shows field errors and does not call the server until the form is valid", async () => {
+    respond({ "/api/profile": { profile: null } });
+    await renderAt("/settings/company");
     fireEvent.change(await screen.findByLabelText("Name or company name"), {
       target: { value: "Mario Rossi" },
     });
     fireEvent.change(screen.getByLabelText("Partita IVA"), { target: { value: "123" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save company" }));
     expect(await screen.findByText(/11-digit partita IVA/)).toBeTruthy();
     expect(screen.getAllByText("This field is required.").length).toBeGreaterThan(0);
     expect(mocks.api).toHaveBeenCalledTimes(1);

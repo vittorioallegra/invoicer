@@ -15,7 +15,7 @@ import { onboardingQuery } from "../lib/settings-api";
 const TARGETS: Record<ChecklistItemId, string> = {
   passkey: "/setup",
   fallback_login: "/setup",
-  profile: "/settings/profile",
+  profile: "/settings/company",
   pec: "/settings/pec",
   ade_guide: "/settings/ade-guide",
   email: "/settings/email",
@@ -126,7 +126,7 @@ export function HomePage() {
           }
           action={
             profileMissing ? (
-              <Link to="/settings/profile" className={buttonVariants()}>
+              <Link to="/settings/company" className={buttonVariants()}>
                 {t("pages.home.profileAction")}
               </Link>
             ) : (
