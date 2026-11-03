@@ -184,7 +184,6 @@ invoices.post("/:id/credit-note", async (c) => {
     ...recordToBody(source),
     documentType: "TD04",
     linkedInvoiceId: source.id,
-    operationDate: null,
   });
   return c.json({ invoice: await requireInvoice(c.env.DB, id) }, 201);
 });
@@ -231,7 +230,7 @@ invoices.post("/:id/reserve-number", async (c) => {
     const client = await loadClient(c.env.DB, record.clientId);
     const parsed = invoiceIssuableSchema(client).safeParse({
       ...recordToBody(record),
-      plannedDate: record.plannedDate,
+      invoiceDate: record.invoiceDate,
       dueDate: record.dueDate,
     });
     const problems = parsed.success ? {} : issueMap(parsed.error);

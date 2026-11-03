@@ -29,7 +29,7 @@ const summary = (over: Partial<InvoiceSummary>): InvoiceSummary => ({
   clientName: "Acme S.r.l.",
   number: null,
   issueDate: null,
-  plannedDate: null,
+  invoiceDate: null,
   dueDate: null,
   currency: "EUR",
   totalCents: 12200,
@@ -87,7 +87,7 @@ describe("invoice lists", () => {
   it("lists drafts and planned invoices under To issue on Home", async () => {
     serve({
       to_issue: [
-        summary({ id: "a", state: "planned", plannedDate: "2026-12-01" }),
+        summary({ id: "a", state: "planned", invoiceDate: "2026-12-01" }),
         summary({ id: "b", clientName: "Beta Srl" }),
       ],
     });

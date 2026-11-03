@@ -84,7 +84,7 @@ describe("invoice form", () => {
   it("saves the due date computed from the terms, from the planned date or today", () => {
     const form = applyDefaults(emptyForm(), client, tax);
     expect(effectiveDueDate(form, "2026-01-20")).toBe("2026-02-19");
-    expect(effectiveDueDate({ ...form, plannedDate: "2026-03-05" }, "2026-01-20")).toBe(
+    expect(effectiveDueDate({ ...form, invoiceDate: "2026-03-05" }, "2026-01-20")).toBe(
       "2026-04-04",
     );
     const monthEnd = { ...form, termsKind: "eom_30" as const };

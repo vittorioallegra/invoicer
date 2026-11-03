@@ -23,8 +23,8 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
   const dateLine =
     invoice.issueDate !== null
       ? t("invoice.list.issued", { date: formatDate(invoice.issueDate, locale) })
-      : invoice.plannedDate !== null
-        ? t("invoice.list.planned", { date: formatDate(invoice.plannedDate, locale) })
+      : invoice.invoiceDate !== null
+        ? t("invoice.list.planned", { date: formatDate(invoice.invoiceDate, locale) })
         : null;
   const issuedOut = invoice.state !== "draft" && invoice.state !== "planned";
   return (

@@ -19,7 +19,7 @@ async function insertInvoice(
     year?: number;
     number?: number;
     issueDate?: string;
-    plannedDate?: string;
+    invoiceDate?: string;
     requested?: number;
     series?: string;
     dueDate?: string;
@@ -53,7 +53,7 @@ async function insertInvoice(
       fields.number ?? null,
       fields.number === undefined ? null : String(fields.number),
       fields.issueDate ?? null,
-      fields.plannedDate ?? null,
+      fields.invoiceDate ?? null,
       fields.requested ?? null,
       Date.now(),
       fields.dueDate ?? null,
@@ -202,6 +202,20 @@ describe("number reservation", () => {
     // Summer time (CEST, UTC+2): 22:30 UTC on 30 June is 00:30 on 1 July.
     const summer = await reserve(await insertInvoice(), "2045-06-30T22:30:00Z");
     expect(summer.issueDate).toBe("2045-07-01");
+  });
+
+  it("uses the invoice date as issue date and numbering year when it is not in the future", async () => {
+    const past = await reserve(
+      await insertInvoice({ state: "planned", invoiceDate: "2060-12-30" }),
+      "2061-01-08T10:00:00Z",
+    );
+    expect([past.year, past.issueDate, past.number]).toEqual([2060, "2060-12-30", 1]);
+    // A date in the future means the day it is sent.
+    const future = await reserve(
+      await insertInvoice({ state: "planned", invoiceDate: "2061-02-01" }),
+      "2061-01-09T10:00:00Z",
+    );
+    expect([future.year, future.issueDate]).toEqual([2061, "2061-01-09"]);
   });
 
   it("refuses an issue date earlier than the highest number of the year", async () => {
@@ -386,7 +400,7 @@ describe("number release", () => {
   });
 
   it("returns a planned invoice to planned", async () => {
-    const id = await insertInvoice({ state: "planned", plannedDate: "2042-03-01" });
+    const id = await insertInvoice({ state: "planned", invoiceDate: "2042-03-01" });
     await reserve(id, "2042-03-01T10:00:00Z");
     expect((await releaseNumber(db, id)).state).toBe("planned");
   });

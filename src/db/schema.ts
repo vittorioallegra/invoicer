@@ -210,7 +210,9 @@ export const invoices = sqliteTable(
     year: integer("year"),
     /** Calendar dates as `YYYY-MM-DD`. */
     issueDate: text("issue_date"),
-    plannedDate: text("planned_date"),
+    /** The invoice date set by the owner on an unnumbered invoice (column kept from "planned date"). */
+    invoiceDate: text("planned_date"),
+    /** Unused since the editor has a single invoice date; the column is kept to avoid a data loss. */
     operationDate: text("operation_date"),
     dueDate: text("due_date"),
     currency: text("currency").notNull().default("EUR"),

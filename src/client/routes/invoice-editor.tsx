@@ -412,8 +412,8 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     data: bolloData,
   });
   const warning = issuanceTermWarning({
-    operationDate: form.operationDate || null,
-    issueDate: record?.issueDate ?? (form.plannedDate || today),
+    invoiceDate: record?.issueDate ?? (form.invoiceDate || null),
+    sendDate: today,
     deferred: form.deferred,
   });
   const typed = typedNumber(numberText);
@@ -764,31 +764,17 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             <Field
-              label={t("invoice.document.operationDate")}
-              hint={t("invoice.document.operationHint")}
-              error={err("operationDate")}
+              label={t("invoice.document.invoiceDate")}
+              hint={t("invoice.document.invoiceDateHint")}
+              error={err("invoiceDate")}
             >
               {(c) => (
                 <Input
                   {...c}
                   type="date"
-                  value={form.operationDate}
-                  onChange={text("operationDate")}
-                />
-              )}
-            </Field>
-            <Field
-              label={t("invoice.document.plannedDate")}
-              hint={t("invoice.document.plannedHint")}
-              error={err("plannedDate")}
-            >
-              {(c) => (
-                <Input
-                  {...c}
-                  type="date"
-                  value={form.plannedDate}
+                  value={form.invoiceDate}
                   disabled={locked || editability === "rejected"}
-                  onChange={text("plannedDate")}
+                  onChange={text("invoiceDate")}
                 />
               )}
             </Field>

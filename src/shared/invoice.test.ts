@@ -41,8 +41,7 @@ const input = (over: Record<string, unknown> = {}) => ({
   documentType: "TD01",
   clientId: "c1",
   currency: "EUR",
-  plannedDate: null,
-  operationDate: null,
+  invoiceDate: null,
   dueDate: null,
   linkedInvoiceId: null,
   notes: null,
@@ -57,24 +56,24 @@ const issues = (over: Record<string, unknown> = {}, c: ClientRecord | null = cli
 };
 
 describe("issuance-term warning (art. 21 DPR 633/72)", () => {
-  const base = { operationDate: "2026-03-10", deferred: false };
-  it("allows an immediate invoice up to 12 days after the operation", () => {
-    expect(issuanceTermWarning({ ...base, issueDate: "2026-03-22" })).toBeNull();
-    expect(issuanceTermWarning({ ...base, issueDate: "2026-03-23" })).toBe("immediate_late");
+  const base = { invoiceDate: "2026-03-10", deferred: false };
+  it("allows an immediate invoice to be sent up to 12 days after its date", () => {
+    expect(issuanceTermWarning({ ...base, sendDate: "2026-03-22" })).toBeNull();
+    expect(issuanceTermWarning({ ...base, sendDate: "2026-03-23" })).toBe("immediate_late");
   });
   it("allows a deferred invoice up to the 15th of the following month", () => {
     const deferred = { ...base, deferred: true };
-    expect(issuanceTermWarning({ ...deferred, issueDate: "2026-04-15" })).toBeNull();
-    expect(issuanceTermWarning({ ...deferred, issueDate: "2026-04-16" })).toBe("deferred_late");
+    expect(issuanceTermWarning({ ...deferred, sendDate: "2026-04-15" })).toBeNull();
+    expect(issuanceTermWarning({ ...deferred, sendDate: "2026-04-16" })).toBe("deferred_late");
   });
   it("wraps the deferred limit across the year end", () => {
-    const deferred = { operationDate: "2026-12-20", deferred: true };
-    expect(issuanceTermWarning({ ...deferred, issueDate: "2027-01-15" })).toBeNull();
-    expect(issuanceTermWarning({ ...deferred, issueDate: "2027-01-16" })).toBe("deferred_late");
+    const deferred = { invoiceDate: "2026-12-20", deferred: true };
+    expect(issuanceTermWarning({ ...deferred, sendDate: "2027-01-15" })).toBeNull();
+    expect(issuanceTermWarning({ ...deferred, sendDate: "2027-01-16" })).toBe("deferred_late");
   });
-  it("stays silent without an operation date", () => {
+  it("stays silent without an invoice date", () => {
     expect(
-      issuanceTermWarning({ operationDate: null, issueDate: "2026-03-10", deferred: false }),
+      issuanceTermWarning({ invoiceDate: null, sendDate: "2026-03-10", deferred: false }),
     ).toBeNull();
   });
 });

@@ -75,6 +75,7 @@ interface InvoiceNumberRow {
   series_id: string;
   year: number | null;
   issue_date: string | null;
+  planned_date: string | null;
 }
 
 async function loadReservation(
@@ -84,7 +85,7 @@ async function loadReservation(
 ): Promise<Reservation | null> {
   const invoice = await db
     .prepare(
-      "SELECT state, number_int, number_raw, series_id, year, issue_date FROM invoices WHERE id = ?",
+      "SELECT state, number_int, number_raw, series_id, year, issue_date, planned_date FROM invoices WHERE id = ?",
     )
     .bind(invoiceId)
     .first<InvoiceNumberRow>();
@@ -146,13 +147,13 @@ async function dueDateFromTerms(
  */
 export async function reserveNumber(db: D1Database, input: ReserveInput): Promise<Reservation> {
   const { invoiceId, now, idPaese, idCodice } = input;
-  const issueDate = romeDateTime(now).date;
-  const year = Number(issueDate.slice(0, 4));
+  const today = romeDateTime(now).date;
   const stamp = now.getTime();
 
   const existing = await db
     .prepare(
-      "SELECT state, number_int, number_raw, series_id, year, issue_date FROM invoices WHERE id = ?",
+      `SELECT state, number_int, number_raw, series_id, year, issue_date, planned_date
+         FROM invoices WHERE id = ?`,
     )
     .bind(invoiceId)
     .first<InvoiceNumberRow>();
@@ -162,6 +163,13 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
     if (held) return held;
     throw makeError("conflict", "already_numbered");
   }
+  // The invoice date the owner set (the day of the operation, possibly earlier than today); a
+  // missing or future date means the day it is sent. It fixes the numbering year.
+  const issueDate =
+    existing.planned_date !== null && existing.planned_date <= today
+      ? existing.planned_date
+      : today;
+  const year = Number(issueDate.slice(0, 4));
   const seriesId = existing.series_id;
   const termsDueDate = await dueDateFromTerms(db, invoiceId, issueDate);
 
@@ -234,7 +242,7 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
     // The guard failed or a concurrent request won: explain which, never leave a half state.
     const now_ = await db
       .prepare(
-        "SELECT state, number_int, number_raw, series_id, year, issue_date FROM invoices WHERE id = ?",
+        "SELECT state, number_int, number_raw, series_id, year, issue_date, planned_date FROM invoices WHERE id = ?",
       )
       .bind(invoiceId)
       .first<InvoiceNumberRow>();

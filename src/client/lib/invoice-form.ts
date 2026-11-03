@@ -52,8 +52,7 @@ export interface InvoiceForm {
   requestedNumber: string;
   /** Numbering series; `""` = the default series. */
   seriesId: string;
-  plannedDate: string;
-  operationDate: string;
+  invoiceDate: string;
   /** Due date typed by the owner; used when there are no terms or `dueDateCustom` is on. */
   dueDate: string;
   /** `""` = no terms, else one of the allowed numbers of days. */
@@ -101,8 +100,7 @@ export function emptyForm(): InvoiceForm {
     currency: "EUR",
     requestedNumber: "",
     seriesId: "",
-    plannedDate: "",
-    operationDate: "",
+    invoiceDate: "",
     dueDate: "",
     termsKind: "",
     termsDays: "",
@@ -153,8 +151,7 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
     currency: record.currency,
     requestedNumber: record.requestedNumber === null ? "" : String(record.requestedNumber),
     seriesId: record.seriesId,
-    plannedDate: record.plannedDate ?? "",
-    operationDate: record.operationDate ?? "",
+    invoiceDate: record.invoiceDate ?? "",
     dueDate: record.dueDate ?? "",
     ...termsToForm(data.payment.terms),
     dueDateCustom: data.payment.dueDateCustom,
@@ -213,7 +210,7 @@ export function formTerms(form: Pick<InvoiceForm, "termsKind" | "termsDays">): P
 export function effectiveDueDate(form: InvoiceForm, today: string): string {
   const terms = formTerms(form);
   if (terms && !form.dueDateCustom) {
-    const base = form.plannedDate.trim() || today;
+    const base = form.invoiceDate.trim() || today;
     return isValidDate(base) ? computeDueDate(base, terms) : "";
   }
   return form.dueDate.trim();
@@ -382,8 +379,7 @@ export function buildInvoice(
       currency: form.currency,
       requestedNumber: requested === null || requested === proposal ? null : requested,
       seriesId: form.seriesId || null,
-      plannedDate: blank(form.plannedDate),
-      operationDate: blank(form.operationDate),
+      invoiceDate: blank(form.invoiceDate),
       dueDate: blank(effectiveDueDate(form, today)),
       linkedInvoiceId: form.linkedInvoiceId || null,
       notes: blank(form.notes),

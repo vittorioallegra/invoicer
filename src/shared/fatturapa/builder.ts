@@ -42,7 +42,7 @@ export type FatturaClient = Pick<
 
 export type FatturaInvoice = Pick<
   InvoiceBody,
-  "documentType" | "currency" | "operationDate" | "dueDate" | "lines" | "data"
+  "documentType" | "currency" | "dueDate" | "lines" | "data"
 >;
 
 export interface FatturaInput {

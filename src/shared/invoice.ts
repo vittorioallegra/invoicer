@@ -128,8 +128,12 @@ export const invoiceInputSchema = z.object({
     .string()
     .transform((value) => value.replaceAll(/\s+/g, "").toUpperCase())
     .refine((value) => /^[A-Z]{3}$/.test(value), "invalid_currency"),
-  plannedDate: dateOnly.nullable(),
-  operationDate: dateOnly.nullable(),
+  /**
+   * The invoice date ("Data fattura"): the XML `Data`, the numbering year and the base of the
+   * payment terms. Null = the day the invoice is sent. A date set on an unnumbered invoice lists
+   * it as planned (stored in the `planned_date` column).
+   */
+  invoiceDate: dateOnly.nullable(),
   dueDate: dateOnly.nullable(),
   /** Number the owner asked for; null = automatic (the next free number of the year). */
   requestedNumber: z.number().int().min(1).max(MAX_INVOICE_NUMBER).nullable().default(null),
@@ -239,22 +243,22 @@ const daysBetween = (from: string, to: string) =>
   Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS);
 
 /**
- * Non-blocking warning for a late issue date (art. 21 DPR 633/72): an immediate invoice issued
- * more than 12 days after the operation, or a deferred one after the 15th of the month that
- * follows the operation.
+ * Non-blocking warning for a late transmission (art. 21 DPR 633/72): an immediate invoice sent
+ * more than 12 days after its date, or a deferred one after the 15th of the month that follows
+ * its date.
  */
 export function issuanceTermWarning(input: {
-  operationDate: string | null;
-  issueDate: string;
+  invoiceDate: string | null;
+  sendDate: string;
   deferred: boolean;
 }): IssuanceWarning | null {
-  const { operationDate, issueDate, deferred } = input;
-  if (!operationDate || !isValidDate(operationDate) || !isValidDate(issueDate)) return null;
-  if (!deferred) return daysBetween(operationDate, issueDate) > 12 ? "immediate_late" : null;
-  const year = Number(operationDate.slice(0, 4));
-  const month = Number(operationDate.slice(5, 7));
+  const { invoiceDate, sendDate, deferred } = input;
+  if (!invoiceDate || !isValidDate(invoiceDate) || !isValidDate(sendDate)) return null;
+  if (!deferred) return daysBetween(invoiceDate, sendDate) > 12 ? "immediate_late" : null;
+  const year = Number(invoiceDate.slice(0, 4));
+  const month = Number(invoiceDate.slice(5, 7));
   const limit = new Date(Date.UTC(year, month, 15)).toISOString().slice(0, 10);
-  return issueDate > limit ? "deferred_late" : null;
+  return sendDate > limit ? "deferred_late" : null;
 }
 
 /** How much of an invoice the owner may change in each state. */
@@ -318,8 +322,7 @@ export interface InvoiceRecord {
   seriesId: string;
   year: number | null;
   issueDate: string | null;
-  plannedDate: string | null;
-  operationDate: string | null;
+  invoiceDate: string | null;
   dueDate: string | null;
   currency: string;
   totalCents: number | null;
@@ -349,7 +352,7 @@ export type InvoiceSummary = Pick<
   | "clientName"
   | "number"
   | "issueDate"
-  | "plannedDate"
+  | "invoiceDate"
   | "dueDate"
   | "currency"
   | "totalCents"

@@ -43,8 +43,7 @@ const body = (over: Record<string, unknown> = {}) => ({
   documentType: "TD01",
   clientId,
   currency: "EUR",
-  plannedDate: null,
-  operationDate: null,
+  invoiceDate: null,
   dueDate: null,
   linkedInvoiceId: null,
   notes: null,
@@ -84,7 +83,7 @@ describe("invoices API", () => {
 
     const planned = await owner.json<Invoice>(`/api/invoices/${draft.id}`, {
       method: "PUT",
-      body: body({ plannedDate: "2030-01-31", notes: "Thanks" }),
+      body: body({ invoiceDate: "2030-01-31", notes: "Thanks" }),
     });
     expect(planned.body.invoice).toMatchObject({ state: "planned", notes: "Thanks" });
 
@@ -95,17 +94,17 @@ describe("invoices API", () => {
 
     const unplanned = await owner.json<Invoice>(`/api/invoices/${draft.id}`, {
       method: "PUT",
-      body: body({ plannedDate: null }),
+      body: body({ invoiceDate: null }),
     });
     expect(unplanned.body.invoice.state).toBe("draft");
   });
 
   it("rejects malformed content with the failing fields", async () => {
     const bad = await owner.json<{ detail: string }>("/api/invoices", {
-      body: body({ plannedDate: "2030-02-31", lines: [line({ quantityMilli: 0 })] }),
+      body: body({ invoiceDate: "2030-02-31", lines: [line({ quantityMilli: 0 })] }),
     });
     expect(bad.status).toBe(400);
-    expect(bad.body.detail).toContain("plannedDate: invalid_date");
+    expect(bad.body.detail).toContain("invoiceDate: invalid_date");
     expect(bad.body.detail).toContain("lines.0.quantityMilli");
     const unknownClient = await owner.json<{ detail: string }>("/api/invoices", {
       body: body({ clientId: "nope" }),
@@ -114,7 +113,7 @@ describe("invoices API", () => {
   });
 
   it("duplicates into a new unnumbered draft", async () => {
-    const original = await create({ operationDate: "2030-01-10", dueDate: "2030-02-10" });
+    const original = await create({ dueDate: "2030-02-10" });
     const copy = (await owner.json<Invoice>(`/api/invoices/${original.id}/duplicate`, { body: {} }))
       .body.invoice;
     expect(copy.id).not.toBe(original.id);
@@ -122,7 +121,6 @@ describe("invoices API", () => {
       state: "draft",
       number: null,
       dueDate: null,
-      operationDate: "2030-01-10",
       paymentFlag: "unpaid",
     });
     expect(copy.lines).toEqual(original.lines);
@@ -198,7 +196,7 @@ describe("invoices API", () => {
       .run();
     const refused = await owner.json<{ detail: string }>(`/api/invoices/${invoice.id}`, {
       method: "PUT",
-      body: body({ plannedDate: null }),
+      body: body({ invoiceDate: null }),
     });
     expect(refused.status).toBe(409);
     expect(refused.body.detail).toBe("invoice_locked");
@@ -500,7 +498,7 @@ describe("rejected invoices", () => {
       method: "PUT",
       body: body({
         lines: [line({ description: "Fixed description" })],
-        plannedDate: "2052-05-05",
+        invoiceDate: "2052-05-05",
       }),
     });
     expect(saved.status).toBe(200);

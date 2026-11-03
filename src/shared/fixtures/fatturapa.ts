@@ -74,7 +74,6 @@ export function fixtureToFatturaInput(fixture: InvoiceFixture, fileProgressive =
     invoice: {
       documentType: fixture.documentType,
       currency: fixture.currency,
-      operationDate: null,
       dueDate: "2026-05-20",
       lines: fixture.lines.map((line) => ({ ...line, unit: null })),
       data,

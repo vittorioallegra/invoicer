@@ -127,8 +127,7 @@ function record(over: Partial<InvoiceRecord> = {}): InvoiceRecord {
     requestedNumber: null,
     year: null,
     issueDate: null,
-    plannedDate: null,
-    operationDate: null,
+    invoiceDate: null,
     dueDate: null,
     currency: "EUR",
     totalCents: 12200,
@@ -265,7 +264,7 @@ describe("Invoice editor", () => {
     await renderEditor();
     await loaded();
     type("Client", "c1");
-    type("Planned issue date", "2026-11-10");
+    type("Invoice date", "2026-11-10");
     const due = () => screen.getByLabelText("Due date") as HTMLInputElement;
     expect(due().value).toBe("2026-12-10");
     expect(due().readOnly).toBe(true);
@@ -280,7 +279,7 @@ describe("Invoice editor", () => {
     expect(due().readOnly).toBe(false);
     expect(due().value).toBe("2027-02-08");
     type("Due date", "2027-01-15");
-    type("Planned issue date", "2026-11-20");
+    type("Invoice date", "2026-11-20");
     expect(due().value).toBe("2027-01-15");
 
     type("Description", "Consulting");
@@ -306,7 +305,7 @@ describe("Invoice editor", () => {
     await renderEditor();
     await loaded();
     type("Client", "c1");
-    type("Planned issue date", "2026-11-10");
+    type("Invoice date", "2026-11-10");
     const due = () => screen.getByLabelText("Due date") as HTMLInputElement;
     type("Payment terms", "eom_15");
     expect(screen.queryByLabelText("Days from invoice date")).toBeNull();
@@ -437,11 +436,10 @@ describe("Invoice editor", () => {
     serve();
     await renderEditor();
     await loaded();
-    type("Operation date", "2020-01-01");
-    type("Planned issue date", "2020-03-01");
-    expect(await screen.findByText(/within 12 days of the operation date/)).toBeTruthy();
+    type("Invoice date", "2020-03-01");
+    expect(await screen.findByText(/within 12 days of its date/)).toBeTruthy();
     fireEvent.click(screen.getByLabelText(/Deferred invoice/));
-    expect(await screen.findByText(/by the 15th of the month after the operation/)).toBeTruthy();
+    expect(await screen.findByText(/by the 15th of the month after its date/)).toBeTruthy();
   });
 
   it("offers the accounts and saves the chosen one as a copy on the invoice", async () => {
@@ -756,7 +754,7 @@ describe("Invoice editor, rejected invoices", () => {
     expect(await screen.findByText(/Fix and resend by/)).toBeTruthy();
     expect(screen.getByText(/number and issue date stay the same/)).toBeTruthy();
     expect((screen.getByLabelText("Description") as HTMLInputElement).disabled).toBe(false);
-    expect((screen.getByLabelText("Planned issue date") as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByLabelText("Invoice date") as HTMLInputElement).disabled).toBe(true);
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
     // Listed in the banner and repeated next to the client field.
     expect(screen.getAllByText("SdI error 00311: CodiceDestinatario non valido")).toHaveLength(2);

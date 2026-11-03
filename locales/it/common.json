@@ -456,8 +456,8 @@
       "locked": "Questa fattura non si può più modificare."
     },
     "warnings": {
-      "immediate_late": "Una fattura immediata va emessa entro 12 giorni dalla data dell'operazione (art. 21 DPR 633/72). Questa sarà in ritardo.",
-      "deferred_late": "Una fattura differita va emessa entro il 15 del mese successivo all'operazione (art. 21 DPR 633/72). Questa sarà in ritardo."
+      "immediate_late": "Una fattura immediata va emessa entro 12 giorni dalla sua data (art. 21 DPR 633/72). Questa sarà in ritardo.",
+      "deferred_late": "Una fattura differita va emessa entro il 15 del mese successivo alla sua data (art. 21 DPR 633/72). Questa sarà in ritardo."
     },
     "bollo": {
       "suggestion": "Gli importi esenti superano 77,47 EUR: di solito è dovuto il bollo virtuale da 2,00 EUR.",
@@ -480,10 +480,8 @@
       "currency": "Valuta",
       "linked": "Fattura collegata",
       "noLinked": "Nessuna (nota di credito autonoma)",
-      "operationDate": "Data operazione",
-      "operationHint": "Quando è avvenuta la vendita o la prestazione.",
-      "plannedDate": "Data di emissione prevista",
-      "plannedHint": "Mette la fattura tra quelle da emettere.",
+      "invoiceDate": "Data fattura",
+      "invoiceDateHint": "Se vuota è il giorno dell'invio. Con una data compare tra le fatture da emettere.",
       "dueDate": "Scadenza",
       "deferred": "Fattura differita (emessa entro il 15 del mese successivo)",
       "number": "Numero",
@@ -687,7 +685,6 @@
     "recipientCode": "Codice destinatario SdI: {{value}}",
     "pec": "PEC: {{value}}",
     "regime": "Regime fiscale: {{code}}",
-    "operationDate": "Data operazione",
     "dueDate": "Scadenza",
     "currency": "Valuta",
     "linked": "Rettifica la fattura {{number}} del {{date}}",

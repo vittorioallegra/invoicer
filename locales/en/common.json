@@ -456,8 +456,8 @@
       "locked": "This invoice can no longer be edited."
     },
     "warnings": {
-      "immediate_late": "An immediate invoice should be issued within 12 days of the operation date (art. 21 DPR 633/72). This one will be late.",
-      "deferred_late": "A deferred invoice should be issued by the 15th of the month after the operation (art. 21 DPR 633/72). This one will be late."
+      "immediate_late": "An immediate invoice should be issued within 12 days of its date (art. 21 DPR 633/72). This one will be late.",
+      "deferred_late": "A deferred invoice should be issued by the 15th of the month after its date (art. 21 DPR 633/72). This one will be late."
     },
     "bollo": {
       "suggestion": "Exempt amounts exceed 77.47 EUR: the 2.00 EUR virtual stamp (bollo) is usually due.",
@@ -480,10 +480,8 @@
       "currency": "Currency",
       "linked": "Linked invoice",
       "noLinked": "None (stand-alone credit note)",
-      "operationDate": "Operation date",
-      "operationHint": "When the sale or service took place.",
-      "plannedDate": "Planned issue date",
-      "plannedHint": "Lists the invoice under To issue.",
+      "invoiceDate": "Invoice date",
+      "invoiceDateHint": "Empty means the day the invoice is sent. A date lists it under To issue.",
       "dueDate": "Due date",
       "deferred": "Deferred invoice (issued by the 15th of the next month)",
       "number": "Number",
@@ -687,7 +685,6 @@
     "recipientCode": "SdI recipient code: {{value}}",
     "pec": "PEC: {{value}}",
     "regime": "Tax regime: {{code}}",
-    "operationDate": "Operation date",
     "dueDate": "Due date",
     "currency": "Currency",
     "linked": "Corrects invoice {{number}} of {{date}}",

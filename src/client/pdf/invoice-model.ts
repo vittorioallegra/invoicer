@@ -187,12 +187,6 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
   }
 
   const meta: PdfRow[] = [{ label: t("pdf.currency"), value: currency }];
-  if (invoice.operationDate) {
-    meta.push({
-      label: t("pdf.operationDate"),
-      value: formatDate(invoice.operationDate, language),
-    });
-  }
   const terms = pay.terms && !pay.dueDateCustom ? pay.terms : null;
   if (terms) {
     meta.push({
