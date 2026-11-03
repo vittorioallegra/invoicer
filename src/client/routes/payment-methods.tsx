@@ -119,15 +119,14 @@ function AccountForm({
       <Field label={t("paymentMethods.accountHolder")} error={err("accountHolder")}>
         {(c) => <Input {...c} value={form.accountHolder} onChange={set("accountHolder")} />}
       </Field>
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={!online || save.isPending}>
-          {t("paymentMethods.save")}
-        </Button>
-        <Button type="button" variant="secondary" onClick={onDone}>
-          {t("common.cancel")}
-        </Button>
+      <div className="flex flex-wrap items-center gap-3">
         {method && !confirmDelete ? (
-          <Button type="button" variant="ghost" onClick={() => setConfirmDelete(true)}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-danger hover:text-danger"
+            onClick={() => setConfirmDelete(true)}
+          >
             {t("paymentMethods.delete")}
           </Button>
         ) : null}
@@ -141,6 +140,14 @@ function AccountForm({
             {t("paymentMethods.deleteConfirm")}
           </Button>
         ) : null}
+        <div className="ms-auto flex flex-wrap gap-3">
+          <Button type="button" variant="secondary" onClick={onDone}>
+            {t("common.cancel")}
+          </Button>
+          <Button type="submit" disabled={!online || save.isPending}>
+            {t("paymentMethods.save")}
+          </Button>
+        </div>
       </div>
       {method && confirmDelete ? (
         <p className="text-sm text-muted-foreground">{t("paymentMethods.deleteNote")}</p>

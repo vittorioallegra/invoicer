@@ -535,15 +535,14 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
         </Field>
       </fieldset>
 
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={!online || save.isPending}>
-          {t("clients.form.save")}
-        </Button>
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          {t("common.cancel")}
-        </Button>
+      <div className="flex flex-wrap items-center gap-3">
         {client && !confirmDelete ? (
-          <Button type="button" variant="ghost" onClick={() => setConfirmDelete(true)}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-danger hover:text-danger"
+            onClick={() => setConfirmDelete(true)}
+          >
             {t("clients.delete")}
           </Button>
         ) : null}
@@ -557,6 +556,14 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
             {t("clients.deleteConfirm")}
           </Button>
         ) : null}
+        <div className="ms-auto flex flex-wrap gap-3">
+          <Button type="button" variant="secondary" onClick={onCancel}>
+            {t("common.cancel")}
+          </Button>
+          <Button type="submit" disabled={!online || save.isPending}>
+            {t("clients.form.save")}
+          </Button>
+        </div>
       </div>
     </form>
   );
