@@ -26,6 +26,7 @@ import {
   type CassaType,
   type CausalePagamento,
   defaultCassaSubjectToRitenuta,
+  divRound,
   type Natura,
   parseMoney,
   type Totals,
@@ -450,6 +451,17 @@ export function formTotals(form: InvoiceForm): Totals | null {
       unitPriceCents: clean(line.unitPriceCents),
     })),
   });
+}
+
+/**
+ * Amount of each line (quantity x price) as typed so far. It does not depend on the VAT: a line
+ * without VAT makes the invoice totals unavailable, but must not blank the other lines' amounts.
+ */
+export function formLineAmounts(form: InvoiceForm): number[] {
+  const clean = (n: number) => (Number.isFinite(n) ? n : 0);
+  return buildInvoice(form).input.lines.map((line) =>
+    divRound(clean(line.quantityMilli) * clean(line.unitPriceCents), 1000),
+  );
 }
 
 function invoiceDataFor(input: InvoiceInput): InvoiceData {

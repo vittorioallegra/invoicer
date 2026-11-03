@@ -381,6 +381,19 @@ describe("Invoice editor", () => {
     ]);
   });
 
+  it("keeps the amounts of the filled lines when a line without VAT is added", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    type("Description", "Consulting");
+    type("Unit price", "50");
+    type("Quantity", "2");
+    expect(screen.getByText("€100.00")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Add line" }));
+    expect(screen.getAllByTestId("invoice-line")).toHaveLength(2);
+    expect(screen.getByText("€100.00")).toBeTruthy();
+  });
+
   it("validates inline: required fields after a save attempt, malformed ones at once", async () => {
     serve();
     await renderEditor();

@@ -2,7 +2,7 @@ import { Plus, StickyNote, Trash2, X } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatMoney, type UiLocale } from "../../shared/format";
-import { NATURA_CODES, naturaLabel, type Totals, vatRateLabel } from "../../shared/totals";
+import { NATURA_CODES, naturaLabel, vatRateLabel } from "../../shared/totals";
 import { emptyLine, type InvoiceForm, type LineForm, VAT_RATES } from "../lib/invoice-form";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -54,7 +54,8 @@ const COLUMNS =
 
 export interface InvoiceLinesProps {
   form: InvoiceForm;
-  totals: Totals | null;
+  /** Amount of each line in cents, by position (see `formLineAmounts`). */
+  amounts: readonly number[];
   locale: UiLocale;
   /** Translated message for a field path, or undefined. */
   error: (path: string) => string | undefined;
@@ -65,7 +66,7 @@ export interface InvoiceLinesProps {
 /** Lines as stacked cards on a phone and as a table on wider screens. */
 export function InvoiceLines({
   form,
-  totals,
+  amounts,
   locale,
   error,
   onChange,
@@ -109,7 +110,7 @@ export function InvoiceLines({
       <ul className="flex flex-col gap-3 md:gap-0">
         {form.lines.map((line, index) => {
           const path = (field: string) => `lines.${index}.${field}`;
-          const amount = totals?.lines[index]?.amountCents;
+          const amount = amounts[index];
           return (
             <li
               key={line.key}

@@ -51,6 +51,7 @@ import {
   applyDefaults,
   effectiveDueDate,
   emptyForm,
+  formLineAmounts,
   formTerms,
   formTotals,
   fromRecord,
@@ -234,6 +235,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     : form.requestedNumber || (proposal === null ? "" : String(proposal));
 
   const totals = useMemo(() => formTotals(form), [form]);
+  const lineAmounts = useMemo(() => formLineAmounts(form), [form]);
   const issuing = useMemo(
     () => validateForm(form, client, true, proposal, today),
     [form, client, proposal, today],
@@ -1061,7 +1063,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             <SdiNotes record={record} field="lines" />
             <InvoiceLines
               form={form}
-              totals={totals}
+              amounts={lineAmounts}
               locale={locale}
               error={err}
               onChange={setLines}
