@@ -199,9 +199,22 @@ settle the open ones):
   invoice (`editor_form`, raw text), so an unsent invoice reopens exactly as it was left. Inline
   field errors stay as hints and never block. **Finalize runs every check**, then numbers and
   sends (below). The Worker repeats the issuing rules before it reserves the number.
-- Editor actions. Before finalisation the title row has one primary "Finalize" button (no Download
-  yet) is led by "Duplicate" (first, leftmost button of the group) and under the form are
-  Delete (left, ghost, red, with a confirmation) and Save (right). Confirmation dialogs (Finalize,
+- Editor modes. A saved invoice opens in view mode: every field is read-only (no disabled
+  add-line or client buttons, the extras accordion opens, no line controls). Before finalisation
+  (and for a rejected invoice that can still be fixed) the title row has "Duplicate" (first,
+  leftmost), "Delete" (ghost, red, with a confirmation; unsent invoices only), "Edit" and the
+  primary "Finalize" ("Fix & resend" when rejected); there are no buttons under the form. A
+  finalised invoice has Duplicate, Create credit note, Record/Undo payment and Download, and no
+  Edit or Delete. "Edit" enters edit mode: the title actions disappear, the fields become
+  editable (the focus goes to the first field) and under the form are Cancel (secondary) and Save
+  (primary, right). Save stores and returns to view mode (toast), with the focus back on Edit.
+  Cancel returns to view mode with the stored values; when something changed it first asks
+  ("Discard changes"). A new invoice and a just duplicated one open directly in edit mode; Cancel
+  on a new invoice leads back to the Invoices list, and its first Save moves to the invoice's own
+  page in view mode. Finalize exists only in view mode, so unsaved edits are never finalised; a
+  failed check in its dialog switches to edit mode and focuses the field. There is no
+  unsaved-changes guard when leaving the page.
+- Editor actions. Confirmation dialogs (Finalize,
   Record payment, Undo payment) are one responsive dialog: a bottom sheet on phones and a centered
   modal (at most 32rem wide) from the `md` breakpoint up, with a title, a body and a footer with
   Cancel (secondary, left) and the primary action (right); the client, payment method and
