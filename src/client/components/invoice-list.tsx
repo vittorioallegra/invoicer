@@ -28,11 +28,11 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
         : null;
   const issuedOut = invoice.state !== "draft" && invoice.state !== "planned";
   return (
-    <li className="flex flex-col gap-2 px-4 py-3">
+    <li className="flex flex-col">
       <Link
         to="/invoices/$invoiceId"
         params={{ invoiceId: invoice.id }}
-        className="flex min-h-14 items-start gap-3 hover:bg-muted"
+        className="flex min-h-14 items-start gap-3 px-4 py-3 hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">
@@ -73,7 +73,7 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
           </span>
         </span>
       </Link>
-      {extra}
+      {extra ? <div className="px-4 pb-3">{extra}</div> : null}
     </li>
   );
 }
@@ -112,7 +112,7 @@ export function InvoiceList({ scope, empty }: InvoiceListProps) {
   const invoices = query.data.invoices;
   if (invoices.length === 0) return <>{empty}</>;
   return (
-    <ul className="flex flex-col divide-y divide-border rounded-card border border-border">
+    <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
       {invoices.map((invoice) => (
         <Row key={invoice.id} invoice={invoice} />
       ))}
@@ -142,7 +142,7 @@ export function ReservedList() {
         {t("invoice.reserved.title")}
       </h2>
       <p className="text-sm text-muted-foreground">{t("invoice.reserved.intro")}</p>
-      <ul className="flex flex-col divide-y divide-border rounded-card border border-border">
+      <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
         {invoices.map((invoice) => (
           <Row
             key={invoice.id}

@@ -45,13 +45,13 @@ export function ClientsPage() {
       {clients.length > 0 ? (
         <>
           <div>{addButton}</div>
-          <ul className="flex flex-col divide-y divide-border rounded-card border border-border">
+          <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
             {clients.map((client) => (
               <li key={client.id}>
                 <button
                   type="button"
                   onClick={() => open(client)}
-                  className="flex min-h-14 w-full flex-col items-start gap-0.5 px-4 py-3 text-left hover:bg-muted"
+                  className="flex min-h-14 w-full flex-col items-start gap-0.5 px-4 py-3 text-left hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
                 >
                   <span className="font-medium">{client.name}</span>
                   <span className="text-sm text-muted-foreground">
