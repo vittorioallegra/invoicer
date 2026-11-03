@@ -1,13 +1,12 @@
 import {
   Ban,
-  CalendarClock,
   CheckCheck,
   Circle,
   CircleCheck,
   CircleX,
+  Clock,
   Loader,
   MailWarning,
-  Pencil,
   Send,
   TriangleAlert,
 } from "lucide-react";
@@ -18,16 +17,19 @@ export type Tone = "neutral" | "info" | "success" | "warning" | "danger";
 
 export interface StatusEntry {
   /** i18n key under `status.` */
-  label: InvoiceState | PaymentState;
+  label: Exclude<InvoiceState, "draft" | "planned"> | PaymentState | "to_send";
   tone: Tone;
   /** The icon carries the meaning too: colour is never the only signal. */
   icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 }
 
+/** The user sees no draft: a saved invoice that is not sent is "to send", planned or not. */
+const TO_SEND: StatusEntry = { label: "to_send", tone: "neutral", icon: Clock };
+
 /** Single source of truth for state label, colour and icon (spec section 3). */
 export const STATUS_MAP: Record<InvoiceState | PaymentState, StatusEntry> = {
-  draft: { label: "draft", tone: "neutral", icon: Pencil },
-  planned: { label: "planned", tone: "info", icon: CalendarClock },
+  draft: TO_SEND,
+  planned: TO_SEND,
   sending: { label: "sending", tone: "info", icon: Loader },
   sent: { label: "sent", tone: "info", icon: Send },
   delivered: { label: "delivered", tone: "success", icon: CheckCheck },

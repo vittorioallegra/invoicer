@@ -11,6 +11,7 @@ export type NotificationType =
   | "invoice_rejected"
   | "pec_send_error"
   | "received_invoice"
+  | "invoice_due"
   | "poll_failed"
   | "message_oversize"
   | "message_unreadable";

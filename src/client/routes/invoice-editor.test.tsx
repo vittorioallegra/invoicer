@@ -307,7 +307,7 @@ describe("Invoice editor", () => {
 
     type("Description", "Consulting");
     type("Unit price", "50");
-    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith(
         "/api/invoices",
@@ -419,7 +419,7 @@ describe("Invoice editor", () => {
     type("Unit price", "1,2,3");
     expect(screen.getByText(/Enter an amount such as/)).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText("Fix the highlighted fields to save.")).toBeTruthy();
     expect(mocks.api).not.toHaveBeenCalledWith("/api/invoices", expect.anything());
   });
@@ -444,7 +444,7 @@ describe("Invoice editor", () => {
     const text = screen.getByLabelText("Legal reference for N2.2") as HTMLTextAreaElement;
     expect(text.value).toContain("L. 190/2014");
     fireEvent.change(text, { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText("Add the legal reference for this exemption.")).toBeTruthy();
   });
 
@@ -518,7 +518,7 @@ describe("Invoice editor", () => {
     type("Description", "Consulting");
     type("Note (optional)", "Phase 1");
     type("Unit price", "50");
-    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith(
         "/api/invoices",
@@ -558,7 +558,7 @@ describe("Invoice editor", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Move up line 2" }));
     expect(descriptions()).toEqual(["Second", "First"]);
-    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith(
         "/api/invoices",
@@ -582,7 +582,7 @@ describe("Invoice editor", () => {
     type("Unit price", "50");
     type("VAT", "rate:2200");
     type("Note", "Printed on the invoice");
-    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith(
         "/api/invoices",
@@ -603,7 +603,7 @@ describe("Invoice editor", () => {
     type("Note (optional)", "N".repeat(500));
     type("Unit price", "50");
     type("VAT", "rate:2200");
-    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText(/must fit 1000 characters together/)).toBeTruthy();
   });
 
@@ -623,7 +623,7 @@ describe("Invoice editor", () => {
     expect(select.value).toBe("pm2");
     type("Description", "Consulting");
     type("Unit price", "50");
-    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith(
         "/api/invoices",
@@ -677,7 +677,7 @@ describe("Invoice editor", () => {
     type("Unit price", "50");
     expect((screen.getByRole("button", { name: "Send" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("You cannot send invoices yet:")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith(
         "/api/invoices",
@@ -730,7 +730,7 @@ describe("Invoice editor", () => {
     for (const button of [download, send]) {
       expect(title.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
-    const remove = screen.getByRole("button", { name: "Delete draft" });
+    const remove = screen.getByRole("button", { name: "Delete" });
     const duplicate = screen.getByRole("button", { name: "Duplicate" });
     const save = screen.getByRole("button", { name: "Save" });
     expect(remove.className).toContain("mr-auto");
@@ -840,7 +840,7 @@ describe("Invoice editor, number on the invoice", () => {
     type("Client", "c1");
     type("Description", "Consulting");
     type("Unit price", "50");
-    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(postedBody().documentType).toBe("TD01"));
     return postedBody();
   };

@@ -84,7 +84,7 @@ describe("invoice lists", () => {
     expect(await screen.findByText("No invoices yet")).toBeTruthy();
   });
 
-  it("lists drafts and planned invoices under To issue on Home", async () => {
+  it("lists every unsent invoice under To send on Home with one status, planned or not", async () => {
     serve({
       to_issue: [
         summary({ id: "a", state: "planned", invoiceDate: "2026-12-01" }),
@@ -92,9 +92,15 @@ describe("invoice lists", () => {
       ],
     });
     await renderAt("/");
-    const section = await screen.findByRole("region", { name: "To issue" });
+    const section = await screen.findByRole("region", { name: "To send" });
     expect(await within(section).findByText(/Acme S\.r\.l\./)).toBeTruthy();
-    expect(within(section).getByText("Planned")).toBeTruthy();
+    // One badge per row; the section title is the other match.
+    expect(
+      within(section)
+        .getAllByText("To send")
+        .filter((node) => node.tagName !== "H2"),
+    ).toHaveLength(2);
+    expect(within(section).queryByText(/Draft|Planned/)).toBeNull();
     expect(within(section).getByText(/Beta Srl/)).toBeTruthy();
     expect(screen.queryByText("No invoices yet")).toBeNull();
   });

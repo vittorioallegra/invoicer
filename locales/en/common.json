@@ -16,8 +16,7 @@
     "reason": "Not available offline"
   },
   "status": {
-    "draft": "Draft",
-    "planned": "Planned",
+    "to_send": "To send",
     "sending": "Sending",
     "sent": "Sent",
     "delivered": "Delivered",
@@ -484,7 +483,7 @@
       "note": "Note",
       "noteHint": "Printed on the invoice and sent in the XML (Causale).",
       "invoiceDate": "Invoice date",
-      "invoiceDateHint": "Today for a new invoice. A future date marks it as planned.",
+      "invoiceDateHint": "Today for a new invoice. You get a reminder when the date arrives and the invoice is not sent.",
       "dueDate": "Due date",
       "number": "Number",
       "numberAssigned": "Fixed once sent.",
@@ -566,26 +565,25 @@
     },
     "actions": {
       "download": "Download",
-      "saveDraft": "Save draft",
       "save": "Save",
       "send": "Send",
       "duplicate": "Duplicate",
       "creditNote": "Create credit note",
-      "delete": "Delete draft",
+      "delete": "Delete",
       "deleteConfirm": "Confirm delete",
       "fixResend": "Fix & resend",
       "prepareManual": "Prepare for the AdE portal"
     },
     "list": {
-      "draft": "Draft",
-      "creditNoteDraft": "Credit note draft",
+      "invoice": "Invoice",
+      "creditNote": "Credit note",
       "number": "No. {{number}}",
       "creditNoteNumber": "Credit note {{number}}",
       "noClient": "No client",
       "issued": "Issued {{date}}",
-      "planned": "Planned {{date}}",
-      "toIssueTitle": "To issue",
-      "toIssueEmpty": "Nothing to issue.",
+      "dated": "Dated {{date}}",
+      "toSendTitle": "To send",
+      "toSendEmpty": "Nothing to send.",
       "issuedEmpty": "Invoices you send appear here.",
       "resendBy": "Resend by {{date}}"
     },
@@ -892,6 +890,10 @@
       "title": "PEC send failed",
       "body": "The PEC provider could not deliver invoice {{number}} to the SdI. Nothing reached the SdI, so you can send it again."
     },
+    "invoice_due": {
+      "title": "Invoice to send",
+      "body": "The invoice for {{client}} dated {{date}} has not been sent yet."
+    },
     "received_invoice": {
       "title": "Invoice received",
       "body": "A new invoice arrived in the PEC mailbox: {{file}}."
@@ -952,7 +954,7 @@
     "dueMode": "Due date from",
     "mode_terms": "Computed from the terms",
     "mode_custom": "Custom date",
-    "computed": "Computed from the invoice date, or from today until a date is planned."
+    "computed": "Computed from the invoice date, or from today while the date is empty."
   },
   "numbering": {
     "title": "Numbering series",
@@ -969,7 +971,7 @@
     "save": "Save",
     "delete": "Delete series",
     "deleteConfirm": "Confirm delete",
-    "deleteNote": "Draft invoices and clients in this series move to the default series.",
+    "deleteNote": "Unsent invoices and clients in this series move to the default series.",
     "defaultNote": "The default series cannot be deleted. Make another series the default first.",
     "defaultBadge": "Default",
     "emptyTitle": "No series yet",

@@ -46,7 +46,15 @@ describe("locale files and status map", () => {
   it("maps every invoice and payment state to a label, tone and icon", () => {
     for (const state of [...INVOICE_STATES, ...PAYMENT_STATES]) {
       expect(STATUS_MAP[state].icon).toBeDefined();
-      expect(enCommon.status[state]).toBeTruthy();
+      const label = STATUS_MAP[state].label;
+      expect(enCommon.status[label]).toBeTruthy();
+      expect(itCommon.status[label]).toBeTruthy();
     }
+  });
+
+  it("shows no draft or planned state to the user: both read as To send", () => {
+    expect(STATUS_MAP.draft).toBe(STATUS_MAP.planned);
+    expect(enCommon.status.to_send).toBe("To send");
+    expect(itCommon.status.to_send).toBe("Da inviare");
   });
 });

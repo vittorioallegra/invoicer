@@ -16,8 +16,7 @@
     "reason": "Non disponibile offline"
   },
   "status": {
-    "draft": "Bozza",
-    "planned": "Pianificata",
+    "to_send": "Da inviare",
     "sending": "In invio",
     "sent": "Inviata",
     "delivered": "Consegnata",
@@ -484,7 +483,7 @@
       "note": "Note",
       "noteHint": "Stampata sulla fattura e inviata nell'XML (Causale).",
       "invoiceDate": "Data fattura",
-      "invoiceDateHint": "Oggi per una fattura nuova. Con una data futura la fattura risulta pianificata.",
+      "invoiceDateHint": "Oggi per una fattura nuova. Ricevi un promemoria quando arriva la data e la fattura non è stata inviata.",
       "dueDate": "Scadenza",
       "number": "Numero",
       "numberAssigned": "Fisso dopo l'invio.",
@@ -566,26 +565,25 @@
     },
     "actions": {
       "download": "Scarica",
-      "saveDraft": "Salva bozza",
       "save": "Salva",
       "send": "Invia",
       "duplicate": "Duplica",
       "creditNote": "Crea nota di credito",
-      "delete": "Elimina bozza",
+      "delete": "Elimina",
       "deleteConfirm": "Conferma eliminazione",
       "fixResend": "Correggi e reinvia",
       "prepareManual": "Prepara per il portale AdE"
     },
     "list": {
-      "draft": "Bozza",
-      "creditNoteDraft": "Bozza di nota di credito",
+      "invoice": "Fattura",
+      "creditNote": "Nota di credito",
       "number": "N. {{number}}",
       "creditNoteNumber": "Nota di credito {{number}}",
       "noClient": "Nessun cliente",
       "issued": "Emessa il {{date}}",
-      "planned": "Prevista il {{date}}",
-      "toIssueTitle": "Da emettere",
-      "toIssueEmpty": "Niente da emettere.",
+      "dated": "Del {{date}}",
+      "toSendTitle": "Da inviare",
+      "toSendEmpty": "Niente da inviare.",
       "issuedEmpty": "Le fatture che invii compaiono qui.",
       "resendBy": "Reinvia entro il {{date}}"
     },
@@ -892,6 +890,10 @@
       "title": "Invio PEC non riuscito",
       "body": "Il gestore PEC non ha potuto consegnare la fattura {{number}} al SdI. Nulla è arrivato al SdI, quindi puoi inviarla di nuovo."
     },
+    "invoice_due": {
+      "title": "Fattura da inviare",
+      "body": "La fattura per {{client}} con data {{date}} non è ancora stata inviata."
+    },
     "received_invoice": {
       "title": "Fattura ricevuta",
       "body": "È arrivata una nuova fattura nella casella PEC: {{file}}."
@@ -952,7 +954,7 @@
     "dueMode": "Scadenza da",
     "mode_terms": "Calcolata dai termini",
     "mode_custom": "Data personalizzata",
-    "computed": "Calcolata dalla data fattura, o da oggi finché non scegli una data prevista."
+    "computed": "Calcolata dalla data fattura, o da oggi finché la data è vuota."
   },
   "numbering": {
     "title": "Numerazioni",
@@ -969,7 +971,7 @@
     "save": "Salva",
     "delete": "Elimina numerazione",
     "deleteConfirm": "Conferma eliminazione",
-    "deleteNote": "Le bozze e i clienti di questa numerazione passano alla numerazione predefinita.",
+    "deleteNote": "Le fatture non inviate e i clienti di questa numerazione passano alla numerazione predefinita.",
     "defaultNote": "La numerazione predefinita non si può eliminare. Prima rendine predefinita un'altra.",
     "defaultBadge": "Predefinita",
     "emptyTitle": "Nessuna numerazione",

@@ -24,7 +24,7 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
     invoice.issueDate !== null
       ? t("invoice.list.issued", { date: formatDate(invoice.issueDate, locale) })
       : invoice.invoiceDate !== null
-        ? t("invoice.list.planned", { date: formatDate(invoice.invoiceDate, locale) })
+        ? t("invoice.list.dated", { date: formatDate(invoice.invoiceDate, locale) })
         : null;
   const issuedOut = invoice.state !== "draft" && invoice.state !== "planned";
   return (
@@ -40,7 +40,7 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
               ? t(credit ? "invoice.list.creditNoteNumber" : "invoice.list.number", {
                   number: invoice.number,
                 })
-              : t(credit ? "invoice.list.creditNoteDraft" : "invoice.list.draft")}
+              : t(credit ? "invoice.list.creditNote" : "invoice.list.invoice")}
             {" · "}
             {invoice.clientName ?? t("invoice.list.noClient")}
           </span>

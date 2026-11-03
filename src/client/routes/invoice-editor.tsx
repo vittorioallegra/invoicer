@@ -1236,7 +1236,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           ) : null}
           {locked ? null : (
             <Button type="submit" disabled={!online || save.isPending}>
-              {t(record ? "invoice.actions.save" : "invoice.actions.saveDraft")}
+              {t("invoice.actions.save")}
             </Button>
           )}
         </div>

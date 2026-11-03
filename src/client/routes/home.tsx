@@ -140,13 +140,11 @@ export function HomePage() {
       ) : (
         <section aria-labelledby="to-issue-title" className="flex flex-col gap-2">
           <h2 id="to-issue-title" className="text-base font-semibold">
-            {t("invoice.list.toIssueTitle")}
+            {t("invoice.list.toSendTitle")}
           </h2>
           <InvoiceList
             scope="to_issue"
-            empty={
-              <p className="text-sm text-muted-foreground">{t("invoice.list.toIssueEmpty")}</p>
-            }
+            empty={<p className="text-sm text-muted-foreground">{t("invoice.list.toSendEmpty")}</p>}
           />
         </section>
       )}
