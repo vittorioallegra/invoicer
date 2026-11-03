@@ -55,7 +55,7 @@ async function renderClients() {
   );
 }
 
-const pickType = (name: string) => fireEvent.click(screen.getByRole("radio", { name }));
+const pickKind = (name: string) => fireEvent.click(screen.getByRole("radio", { name }));
 const type = (label: string, value: string) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
 
@@ -78,21 +78,43 @@ describe("Clients screen", () => {
     expect(screen.getByLabelText("Company name")).toBeTruthy();
     expect(screen.getByLabelText("Province")).toBeTruthy();
     expect(screen.getByLabelText("Partita IVA")).toBeTruthy();
-    expect(screen.getAllByRole("radio")).toHaveLength(4);
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect((screen.getByLabelText("Country") as HTMLSelectElement).value).toBe("IT");
 
-    pickType("Private person in Italy");
+    pickKind("Private person");
     expect(screen.getByLabelText("Full name")).toBeTruthy();
     expect(screen.getByLabelText("Codice fiscale")).toBeTruthy();
     expect(screen.queryByLabelText("Partita IVA")).toBeNull();
     expect(screen.queryByLabelText("Codice destinatario")).toBeNull();
     expect(screen.getByText(/0000000 is set automatically/)).toBeTruthy();
 
-    pickType("Company in the EU");
+    // Foreign private person: name, address and an optional tax ID, no Italian fields.
+    type("Country", "FR");
+    expect(screen.getByLabelText("Full name")).toBeTruthy();
+    expect(screen.queryByLabelText("Codice fiscale")).toBeNull();
+    expect(screen.queryByLabelText("Province")).toBeNull();
+    expect(screen.getByLabelText("VAT / tax ID")).toBeTruthy();
+    expect(screen.getByText(/XXXXXXX is set automatically/)).toBeTruthy();
+
+    pickKind("Company");
+    expect(screen.getByLabelText("Company name")).toBeTruthy();
     expect(screen.queryByLabelText("Province")).toBeNull();
     expect(screen.queryByLabelText("Codice fiscale")).toBeNull();
     expect(screen.getByLabelText("VAT / tax ID")).toBeTruthy();
-    expect(screen.getByLabelText("Country")).toBeTruthy();
     expect(screen.getByText(/XXXXXXX is set automatically/)).toBeTruthy();
+
+    type("Country", "IT");
+    expect(screen.getByLabelText("Partita IVA")).toBeTruthy();
+    expect(screen.getByLabelText("Province")).toBeTruthy();
+  });
+
+  it("lists Italy first in the country select", async () => {
+    mocks.api.mockResolvedValue({ clients: [] });
+    await renderClients();
+    fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
+    const select = (await screen.findByLabelText("Country")) as HTMLSelectElement;
+    expect(select.options[0]?.value).toBe("IT");
+    expect(select.options.length).toBeGreaterThan(60);
   });
 
   it("keeps the invoice defaults collapsed and opens them on a validation error", async () => {
@@ -147,9 +169,13 @@ describe("Clients screen", () => {
     ) as HTMLInputElement;
     // Italian company: both on. Other client types: cassa on, ritenuta off.
     expect([cassa.checked, ritenuta.checked]).toEqual([true, true]);
-    pickType("Private person in Italy");
+    pickKind("Private person");
     expect([cassa.checked, ritenuta.checked]).toEqual([true, false]);
-    pickType("Company in the EU");
+    pickKind("Company");
+    expect([cassa.checked, ritenuta.checked]).toEqual([true, true]);
+    type("Country", "DE");
+    expect([cassa.checked, ritenuta.checked]).toEqual([true, false]);
+    pickKind("Private person");
     expect([cassa.checked, ritenuta.checked]).toEqual([true, false]);
     // The old per-client fields are gone.
     expect(screen.queryByLabelText("VAT or exemption")).toBeNull();
@@ -222,9 +248,8 @@ describe("Clients screen", () => {
     mocks.api.mockResolvedValue({ clients: [] });
     await renderClients();
     fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
-    pickType("Company in the EU");
-    type("Company name", "Beta GmbH");
     type("Country", "DE");
+    type("Company name", "Beta GmbH");
     type("VAT / tax ID", "DE123456789");
     type("Street and number", "Hauptstrasse 1");
     type("Postal code", "10115");
@@ -248,6 +273,53 @@ describe("Clients screen", () => {
       recipientCode: "",
       province: "",
     });
+  });
+
+  it("saves a foreign private person with the derived type and no tax ID", async () => {
+    mocks.api.mockResolvedValue({ clients: [] });
+    await renderClients();
+    fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
+    pickKind("Private person");
+    type("Country", "US");
+    type("Full name", "Jane Roe");
+    type("Street and number", "5 Main St");
+    type("Postal code", "10001");
+    type("City", "New York");
+    mocks.api.mockResolvedValue({ client: saved, clients: [saved] });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(mocks.api).toHaveBeenCalledWith(
+        "/api/clients",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    const call = mocks.api.mock.calls.find(([, init]) => init?.method === "POST");
+    const body = JSON.parse(call?.[1].body as string);
+    expect(body).toMatchObject({
+      type: "foreign_private",
+      countryCode: "US",
+      foreignTaxId: "",
+      pdfLanguage: "en",
+      recipientCode: "",
+      province: "",
+      defaults: { applyRitenuta: false },
+    });
+  });
+
+  it("shows kind and country in the list subtitle", async () => {
+    const foreign = {
+      ...saved,
+      id: "c2",
+      type: "foreign_private",
+      name: "Jane Roe",
+      vatNumber: null,
+      foreignTaxId: null,
+      countryCode: "US",
+    };
+    mocks.api.mockResolvedValue({ clients: [saved, foreign] });
+    await renderClients();
+    expect(await screen.findByText("Italian company · 12345678903")).toBeTruthy();
+    expect(screen.getByText("Private person · United States")).toBeTruthy();
   });
 
   it("marks type rule errors without calling the server, then saves a valid client", async () => {

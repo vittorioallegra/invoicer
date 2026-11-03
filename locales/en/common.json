@@ -215,7 +215,8 @@
     "invalid_amount": "Enter an amount such as 1.040,00.",
     "invalid_quantity": "Enter a quantity above zero (up to 3 decimals).",
     "invalid_rate": "Enter a percentage such as 4 or 22,5.",
-    "invalid_number": "Enter a whole number, 1 or more."
+    "invalid_number": "Enter a whole number, 1 or more.",
+    "invalid_foreign_country": "Choose a country other than Italy."
   },
   "profile": {
     "title": "Company",
@@ -362,19 +363,12 @@
     "delete": "Delete client",
     "deleteConfirm": "Confirm delete",
     "inUse": "This client has invoices or recurring templates and cannot be deleted.",
-    "types": {
-      "it_company": "Italian company",
-      "it_private": "Italian private person",
-      "eu_company": "EU company",
-      "non_eu_company": "Non-EU company"
-    },
     "languages": {
       "it": "Italian",
       "en": "English"
     },
     "form": {
       "identity": "Client",
-      "type": "Client type",
       "name": "Name or company name",
       "vatNumber": "Partita IVA",
       "vatOptional": "Optional.",
@@ -382,7 +376,7 @@
       "taxCodeOptional": "Optional.",
       "countryCode": "Country (2 letters)",
       "foreignTaxId": "VAT / tax ID",
-      "foreignTaxIdOptional": "Optional.",
+      "foreignTaxIdOptional": "Optional. The client's tax ID, if any.",
       "addressTitle": "Address",
       "address": "Street and number",
       "postalCode": "Postal code",
@@ -412,27 +406,13 @@
       "ritenutaBase": "Taxable base",
       "ritenutaCausale": "Payment reason",
       "save": "Save",
-      "typeLabels": {
-        "it_company": "Company in Italy",
-        "it_private": "Private person in Italy",
-        "eu_company": "Company in the EU",
-        "non_eu_company": "Company outside the EU"
-      },
-      "typeHints": {
-        "it_company": "Italian company: has a partita IVA.",
-        "it_private": "Private person in Italy: codice fiscale only.",
-        "eu_company": "Company in another EU country.",
-        "non_eu_company": "Company outside the EU."
-      },
       "companyName": "Company name",
       "fullName": "Full name",
       "vatNumberHint": "11 digits.",
       "separateTaxCode": "The codice fiscale is different from the partita IVA",
       "taxCodeHint": "16 characters.",
       "country": "Country",
-      "countryPlaceholder": "Select a country",
       "foreignTaxIdEu": "The client's EU VAT number, with country prefix.",
-      "foreignTaxIdNonEu": "Optional. The client's tax ID, if any.",
       "deliveryIntro": "Enter the 7-character code from the SdI, or the client's PEC.",
       "pecHint": "Used when the client has no code.",
       "pensionFund": "Pension fund contribution",
@@ -440,7 +420,18 @@
       "applyCassa": "Apply the pension fund contribution",
       "applyRitenuta": "Apply the withholding tax (ritenuta)",
       "taxNotSet": "not set up yet.",
-      "taxOpen": "Set it up in Tax details"
+      "taxOpen": "Set it up in Tax details",
+      "kind": "Client kind",
+      "kindLabels": {
+        "company": "Company",
+        "private": "Private person"
+      }
+    },
+    "summary": {
+      "company_it": "Italian company",
+      "private_it": "Italian private person",
+      "company_foreign": "Company · {{country}}",
+      "private_foreign": "Private person · {{country}}"
     }
   },
   "invoice": {

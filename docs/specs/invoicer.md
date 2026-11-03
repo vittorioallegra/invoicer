@@ -153,9 +153,8 @@ settle the open ones):
 
 ### 2. Clients
 
-- CRUD for clients: type (Italian company, Italian private person, EU company, non-EU
-  company), name, partita IVA and/or codice fiscale, foreign VAT/tax ID with country code,
-  address, codice destinatario (7 chars) and/or PEC, email for courtesy copies,
+- CRUD for clients: kind (company or private person) and country (Italy first, then the others),
+  name, partita IVA and/or codice fiscale, foreign VAT/tax ID, address, codice destinatario (7 chars) and/or PEC, email for courtesy copies,
   language (IT or EN, used for the invoice PDF and the courtesy email), default currency,
   default payment terms (see Payment terms below), and two flags: apply the cassa
   previdenziale and apply the ritenuta d'acconto. The values behind the flags are the owner's, in
@@ -165,9 +164,15 @@ settle the open ones):
   A client has no default VAT/exemption and no bollo setting. Stored defaults of the older shape are
   read into the flags (cassa applies when the old defaults had a cassa, likewise the ritenuta) and
   their VAT and bollo values are dropped; the owner's values are not copied from a client.
-- Field rules derived from type: Italian company needs partita IVA and codice
-  destinatario or PEC (default "0000000"); Italian private person needs codice fiscale and
-  gets codice destinatario "0000000"; foreign clients get codice destinatario "XXXXXXX".
+- The stored type is derived from kind + country: `it_company`, `it_private`, `eu_company`,
+  `non_eu_company` or `foreign_private` (a private person outside Italy, EU or not). The name is
+  "Ragione sociale" for companies and "Nome e cognome" for private persons (one field, written as
+  `Denominazione`). Field rules derived from the type: Italian company needs partita IVA and
+  codice destinatario or PEC (default "0000000"); Italian private person needs codice fiscale and
+  gets codice destinatario "0000000"; EU company needs the EU VAT ID; non-EU company has an
+  optional foreign tax ID (XML `IdCodice` 0000000 when empty); foreign private person has name,
+  address and an optional foreign tax ID (XML `IdFiscaleIVA` with the country and the ID, or
+  `IdCodice` 99999999999 when there is none). Foreign clients get codice destinatario "XXXXXXX".
 - Import from a Fatture in Cloud clients CSV export (columns mapped on an import preview;
   rows with errors are shown and skipped, not silently dropped).
 

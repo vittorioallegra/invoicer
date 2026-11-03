@@ -4,16 +4,18 @@ import { ChevronDown } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  CLIENT_TYPES,
   type ClientDefaults,
+  type ClientKind,
   type ClientRecord,
-  type ClientType,
   clientInputSchema,
+  clientKind,
+  deriveClientType,
+  isItalianClientType,
   newClientDefaults,
 } from "../../shared/client";
 import { ApiError } from "../../shared/errors";
 import { createClient, deleteClient, updateClient } from "../lib/clients-api";
-import { countryName, countryOptions } from "../lib/countries";
+import { countryOptions } from "../lib/countries";
 import { formTerms, type InvoiceForm, termsToForm } from "../lib/invoice-form";
 import { useOnline } from "../lib/online";
 import { fieldErrors, fieldErrorsFromDetail, taxQuery } from "../lib/settings-api";
@@ -27,8 +29,10 @@ import { Select } from "./ui/select";
 import { Sheet } from "./ui/sheet";
 import { toast } from "./ui/toast";
 
+const KINDS: ClientKind[] = ["company", "private"];
+
 interface FormState {
-  type: ClientType;
+  kind: ClientKind;
   name: string;
   vatNumber: string;
   taxCode: string;
@@ -50,7 +54,7 @@ interface FormState {
 }
 
 const EMPTY: FormState = {
-  type: "it_company",
+  kind: "company",
   name: "",
   vatNumber: "",
   taxCode: "",
@@ -78,7 +82,7 @@ function flagsOf(d: ClientDefaults) {
 function fromRecord(c: ClientRecord): FormState {
   const d = c.defaults;
   return {
-    type: c.type,
+    kind: clientKind(c.type),
     name: c.name,
     vatNumber: c.vatNumber ?? "",
     taxCode: c.taxCode ?? "",
@@ -113,7 +117,7 @@ function toDefaults(f: FormState): ClientDefaults {
 
 function toBody(f: FormState) {
   return {
-    type: f.type,
+    type: deriveClientType(f.kind, f.countryCode),
     name: f.name,
     vatNumber: f.vatNumber,
     taxCode: f.taxCode,
@@ -134,9 +138,10 @@ function toBody(f: FormState) {
 
 /** True when the form holds invoice defaults other than a new client's, or a PDF language or currency other than the type's. */
 function defaultsDiffer(f: FormState): boolean {
-  const italian = f.type === "it_company" || f.type === "it_private";
+  const type = deriveClientType(f.kind, f.countryCode);
+  const italian = isItalianClientType(type);
   return (
-    JSON.stringify(toDefaults(f)) !== JSON.stringify(newClientDefaults(f.type)) ||
+    JSON.stringify(toDefaults(f)) !== JSON.stringify(newClientDefaults(type)) ||
     f.pdfLanguage !== (italian ? "it" : "en") ||
     f.currency !== "EUR"
   );
@@ -235,7 +240,8 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
   });
   const inUse = remove.error instanceof ApiError && remove.error.code === "conflict";
 
-  const italian = form.type === "it_company" || form.type === "it_private";
+  const type = deriveClientType(form.kind, form.countryCode);
+  const italian = isItalianClientType(type);
   const foreign = !italian;
   const update = (patch: Partial<FormState>) => setForm((current) => ({ ...current, ...patch }));
   const set = (key: keyof FormState) => (event: { target: { value: string } }) =>
@@ -257,17 +263,25 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
     if (Object.keys(next).some(inDefaultsSection)) setDefaultsOpen(true);
   }
 
-  function onTypeChange(type: ClientType) {
-    const toItalian = type === "it_company" || type === "it_private";
+  /** Changes the kind and/or the country; everything else follows from the derived type. */
+  function onKindOrCountryChange(kind: ClientKind, countryCode: string) {
+    const next = deriveClientType(kind, countryCode);
+    const toItalian = isItalianClientType(next);
     update({
-      type,
-      countryCode: toItalian ? "IT" : italian ? "" : form.countryCode,
-      pdfLanguage: toItalian ? "it" : "en",
-      recipientCode: type === "it_company" ? form.recipientCode : "",
-      pec: type === "it_company" ? form.pec : "",
+      kind,
+      countryCode,
+      // The PDF language follows Italy vs abroad only when that changes.
+      ...(toItalian !== italian ? { pdfLanguage: toItalian ? "it" : "en" } : {}),
+      recipientCode: next === "it_company" ? form.recipientCode : "",
+      pec: next === "it_company" ? form.pec : "",
+      province: toItalian ? form.province : "",
+      // A tax code only fits the Italian type it was typed for; the foreign tax ID only foreign ones.
+      taxCode: next === type ? form.taxCode : "",
+      foreignTaxId: toItalian ? "" : form.foreignTaxId,
       // A new client starts from its type's defaults; an existing one keeps its choices.
-      ...(client ? {} : { applyRitenuta: newClientDefaults(type).applyRitenuta }),
+      ...(client ? {} : { applyRitenuta: newClientDefaults(next).applyRitenuta }),
     });
+    if (next !== "it_company") setSeparateTaxCode(false);
   }
 
   function onSubmit(event: FormEvent) {
@@ -284,14 +298,7 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
 
   const grid = "grid grid-cols-1 items-start gap-4 sm:grid-cols-2";
   const legend = "mb-2 text-base font-medium";
-  const countries =
-    form.type === "eu_company" || form.type === "non_eu_company"
-      ? countryOptions(
-          form.type === "eu_company" ? "eu" : "non_eu",
-          i18n.language,
-          form.countryCode,
-        )
-      : [];
+  const countries = countryOptions(i18n.language, form.countryCode);
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
@@ -302,38 +309,48 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
         <legend className={legend}>{t("clients.form.identity")}</legend>
         <div
           role="radiogroup"
-          aria-label={t("clients.form.type")}
+          aria-label={t("clients.form.kind")}
           className="grid grid-cols-2 gap-2"
         >
-          {CLIENT_TYPES.map((option) => (
+          {KINDS.map((option) => (
             <label
               key={option}
               className="flex min-h-11 cursor-pointer items-center justify-center rounded-control border border-border bg-surface px-3 py-2 text-center text-sm font-medium has-[:checked]:border-primary has-[:checked]:bg-primary/10 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary"
             >
               <input
                 type="radio"
-                name="client-type"
+                name="client-kind"
                 value={option}
-                checked={form.type === option}
-                onChange={() => onTypeChange(option)}
+                checked={form.kind === option}
+                onChange={() => onKindOrCountryChange(option, form.countryCode)}
                 className="sr-only"
               />
-              {t(`clients.form.typeLabels.${option}`)}
+              {t(`clients.form.kindLabels.${option}`)}
             </label>
           ))}
         </div>
-        <p className="-mt-2 text-sm text-muted-foreground">
-          {t(`clients.form.typeHints.${form.type}`)}
-        </p>
-        <Field
-          label={t(
-            form.type === "it_private" ? "clients.form.fullName" : "clients.form.companyName",
+        <Field label={t("clients.form.country")} error={err("countryCode")}>
+          {(c) => (
+            <Select
+              {...c}
+              value={form.countryCode}
+              onChange={(event) => onKindOrCountryChange(form.kind, event.target.value)}
+            >
+              {countries.map((country) => (
+                <option key={country.code} value={country.code}>
+                  {country.name}
+                </option>
+              ))}
+            </Select>
           )}
+        </Field>
+        <Field
+          label={t(form.kind === "private" ? "clients.form.fullName" : "clients.form.companyName")}
           error={err("name")}
         >
           {(c) => <Input {...c} value={form.name} onChange={set("name")} autoComplete="off" />}
         </Field>
-        {form.type === "it_company" ? (
+        {type === "it_company" ? (
           <>
             <Field
               label={t("clients.form.vatNumber")}
@@ -375,7 +392,7 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
             ) : null}
           </>
         ) : null}
-        {form.type === "it_private" ? (
+        {type === "it_private" ? (
           <Field
             label={t("clients.form.taxCode")}
             hint={t("clients.form.taxCodeHint")}
@@ -393,31 +410,17 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
           </Field>
         ) : null}
         {foreign ? (
-          <div className="flex flex-col gap-4">
-            <Field label={t("clients.form.country")} error={err("countryCode")}>
-              {(c) => (
-                <Select {...c} value={form.countryCode} onChange={set("countryCode")}>
-                  <option value="">{t("clients.form.countryPlaceholder")}</option>
-                  {countries.map((country) => (
-                    <option key={country.code} value={country.code}>
-                      {country.name}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-            <Field
-              label={t("clients.form.foreignTaxId")}
-              hint={t(
-                form.type === "eu_company"
-                  ? "clients.form.foreignTaxIdEu"
-                  : "clients.form.foreignTaxIdNonEu",
-              )}
-              error={err("foreignTaxId")}
-            >
-              {(c) => <Input {...c} value={form.foreignTaxId} onChange={set("foreignTaxId")} />}
-            </Field>
-          </div>
+          <Field
+            label={t("clients.form.foreignTaxId")}
+            hint={t(
+              type === "eu_company"
+                ? "clients.form.foreignTaxIdEu"
+                : "clients.form.foreignTaxIdOptional",
+            )}
+            error={err("foreignTaxId")}
+          >
+            {(c) => <Input {...c} value={form.foreignTaxId} onChange={set("foreignTaxId")} />}
+          </Field>
         ) : null}
       </fieldset>
 
@@ -434,30 +437,25 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
             {(c) => <Input {...c} value={form.city} onChange={set("city")} />}
           </Field>
           {italian ? (
-            <>
-              <Field label={t("clients.form.province")} error={err("province")}>
-                {(c) => (
-                  <Input
-                    {...c}
-                    value={form.province}
-                    onChange={set("province")}
-                    maxLength={2}
-                    placeholder="RM"
-                    autoCapitalize="characters"
-                  />
-                )}
-              </Field>
-              <Field label={t("clients.form.country")}>
-                {(c) => <Input {...c} value={countryName("IT", i18n.language)} readOnly />}
-              </Field>
-            </>
+            <Field label={t("clients.form.province")} error={err("province")}>
+              {(c) => (
+                <Input
+                  {...c}
+                  value={form.province}
+                  onChange={set("province")}
+                  maxLength={2}
+                  placeholder="RM"
+                  autoCapitalize="characters"
+                />
+              )}
+            </Field>
           ) : null}
         </div>
       </fieldset>
 
       <fieldset className="flex flex-col gap-4">
         <legend className={legend}>{t("clients.form.deliveryTitle")}</legend>
-        {form.type === "it_company" ? (
+        {type === "it_company" ? (
           <>
             <p className="text-sm text-muted-foreground">{t("clients.form.deliveryIntro")}</p>
             <div className={grid}>
@@ -489,7 +487,7 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
         ) : (
           <p className="text-sm text-muted-foreground">
             {t(
-              form.type === "it_private"
+              type === "it_private"
                 ? "clients.form.recipientFixedIt"
                 : "clients.form.recipientFixedForeign",
             )}

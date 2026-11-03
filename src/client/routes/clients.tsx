@@ -1,17 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { Plus, Users } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ClientRecord } from "../../shared/client";
+import { type ClientRecord, clientKind } from "../../shared/client";
 import { ClientSheet } from "../components/client-form";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
 import { clientsQuery } from "../lib/clients-api";
+import { countryName } from "../lib/countries";
+
+/** "Italian company · 12345678903": kind and country, then the tax identifier when there is one. */
+function clientSummary(client: ClientRecord, t: TFunction, language: string): string {
+  const place = client.countryCode === "IT" ? "it" : "foreign";
+  const label = t(`clients.summary.${clientKind(client.type)}_${place}`, {
+    country: countryName(client.countryCode, language),
+  });
+  const id = client.vatNumber ?? client.taxCode ?? client.foreignTaxId;
+  return id ? `${label} · ${id}` : label;
+}
 
 export function ClientsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const query = useQuery(clientsQuery);
   const [editing, setEditing] = useState<ClientRecord | "new" | null>(null);
 
@@ -55,11 +67,7 @@ export function ClientsPage() {
                 >
                   <span className="font-medium">{client.name}</span>
                   <span className="text-sm text-muted-foreground">
-                    {t(`clients.types.${client.type}`)} ·{" "}
-                    {client.vatNumber ??
-                      client.taxCode ??
-                      client.foreignTaxId ??
-                      client.countryCode}
+                    {clientSummary(client, t, i18n.language)}
                   </span>
                 </button>
               </li>

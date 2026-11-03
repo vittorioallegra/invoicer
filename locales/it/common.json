@@ -215,7 +215,8 @@
     "invalid_amount": "Inserisci un importo come 1.040,00.",
     "invalid_quantity": "Inserisci una quantità maggiore di zero (fino a 3 decimali).",
     "invalid_rate": "Inserisci una percentuale come 4 o 22,5.",
-    "invalid_number": "Inserisci un numero intero, 1 o più."
+    "invalid_number": "Inserisci un numero intero, 1 o più.",
+    "invalid_foreign_country": "Inserisci un Paese diverso dall'Italia."
   },
   "profile": {
     "title": "Azienda",
@@ -362,19 +363,12 @@
     "delete": "Elimina cliente",
     "deleteConfirm": "Conferma eliminazione",
     "inUse": "Questo cliente ha fatture o modelli ricorrenti e non può essere eliminato.",
-    "types": {
-      "it_company": "Azienda italiana",
-      "it_private": "Privato italiano",
-      "eu_company": "Azienda UE",
-      "non_eu_company": "Azienda extra UE"
-    },
     "languages": {
       "it": "Italiano",
       "en": "Inglese"
     },
     "form": {
       "identity": "Cliente",
-      "type": "Tipo di cliente",
       "name": "Nome o ragione sociale",
       "vatNumber": "Partita IVA",
       "vatOptional": "Facoltativa.",
@@ -382,7 +376,7 @@
       "taxCodeOptional": "Facoltativo.",
       "countryCode": "Paese (2 lettere)",
       "foreignTaxId": "Partita IVA / identificativo fiscale",
-      "foreignTaxIdOptional": "Facoltativo.",
+      "foreignTaxIdOptional": "Facoltativo. L'identificativo fiscale del cliente, se c'è.",
       "addressTitle": "Indirizzo",
       "address": "Via e numero",
       "postalCode": "CAP",
@@ -412,27 +406,13 @@
       "ritenutaBase": "Base imponibile",
       "ritenutaCausale": "Causale pagamento",
       "save": "Salva",
-      "typeLabels": {
-        "it_company": "Azienda in Italia",
-        "it_private": "Privato in Italia",
-        "eu_company": "Azienda UE",
-        "non_eu_company": "Azienda extra UE"
-      },
-      "typeHints": {
-        "it_company": "Azienda italiana: ha una partita IVA.",
-        "it_private": "Privato in Italia: solo codice fiscale.",
-        "eu_company": "Azienda di un altro Paese UE.",
-        "non_eu_company": "Azienda fuori dall'UE."
-      },
       "companyName": "Ragione sociale",
       "fullName": "Nome e cognome",
       "vatNumberHint": "11 cifre.",
       "separateTaxCode": "Il codice fiscale è diverso dalla partita IVA",
       "taxCodeHint": "16 caratteri.",
       "country": "Paese",
-      "countryPlaceholder": "Seleziona un Paese",
       "foreignTaxIdEu": "Partita IVA UE del cliente, con il prefisso del Paese.",
-      "foreignTaxIdNonEu": "Facoltativo. L'identificativo fiscale del cliente, se c'è.",
       "deliveryIntro": "Inserisci il codice di 7 caratteri dello SdI oppure la PEC del cliente.",
       "pecHint": "Si usa se il cliente non ha un codice.",
       "pensionFund": "Contributo cassa previdenziale",
@@ -440,7 +420,18 @@
       "applyCassa": "Applica la cassa previdenziale",
       "applyRitenuta": "Applica la ritenuta d'acconto",
       "taxNotSet": "non ancora configurata.",
-      "taxOpen": "Configurala in Dati fiscali"
+      "taxOpen": "Configurala in Dati fiscali",
+      "kind": "Tipo di cliente",
+      "kindLabels": {
+        "company": "Azienda",
+        "private": "Privato"
+      }
+    },
+    "summary": {
+      "company_it": "Azienda italiana",
+      "private_it": "Privato italiano",
+      "company_foreign": "Azienda · {{country}}",
+      "private_foreign": "Privato · {{country}}"
     }
   },
   "invoice": {

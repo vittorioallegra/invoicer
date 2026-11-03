@@ -1,6 +1,6 @@
 import { EU_COUNTRY_CODES } from "../../shared/client";
 
-/** Common non-EU countries (ISO 3166-1 alpha-2) offered for non-EU clients. */
+/** Common non-EU countries (ISO 3166-1 alpha-2) offered for clients outside the EU. */
 const NON_EU_COUNTRY_CODES = [
   "AD",
   "AE",
@@ -67,18 +67,15 @@ export interface CountryOption {
   name: string;
 }
 
-/** Countries for the picker, named in the UI language and sorted; keeps `current` selectable. */
-export function countryOptions(
-  kind: "eu" | "non_eu",
-  language: string,
-  current: string,
-): CountryOption[] {
+/** Countries for the picker, named in the UI language: Italy first, then the others sorted; keeps `current` selectable. */
+export function countryOptions(language: string, current: string): CountryOption[] {
   const names = new Intl.DisplayNames([language], { type: "region" });
-  const codes: string[] = [...(kind === "eu" ? EU_COUNTRY_CODES : NON_EU_COUNTRY_CODES)];
-  if (current && !codes.includes(current)) codes.push(current);
-  return codes
+  const codes: string[] = [...EU_COUNTRY_CODES, ...NON_EU_COUNTRY_CODES];
+  if (current && current !== "IT" && !codes.includes(current)) codes.push(current);
+  const others = codes
     .map((code) => ({ code, name: names.of(code) ?? code }))
     .sort((a, b) => a.name.localeCompare(b.name, language));
+  return [{ code: "IT", name: names.of("IT") ?? "IT" }, ...others];
 }
 
 /** Country name in the UI language (the code itself when unknown). */
