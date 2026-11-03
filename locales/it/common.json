@@ -165,7 +165,7 @@
     "sections": {
       "profile": {
         "title": "Azienda",
-        "body": "I tuoi dati, il regime fiscale e i termini di pagamento"
+        "body": "I tuoi dati, il regime fiscale e la sede"
       },
       "email": {
         "title": "Email",
@@ -177,7 +177,7 @@
       },
       "paymentMethods": {
         "title": "Metodi di pagamento",
-        "body": "Conti bancari stampati sulle fatture"
+        "body": "Conti bancari usati sulle fatture"
       },
       "pec": {
         "title": "Casella PEC",
@@ -315,7 +315,7 @@
       },
       "profile": {
         "title": "Compila i dati dell'azienda",
-        "body": "I tuoi dati, il regime fiscale e i termini di pagamento."
+        "body": "I tuoi dati, il regime fiscale e la sede."
       },
       "pec": {
         "title": "Collega la casella PEC",
@@ -846,7 +846,7 @@
   },
   "paymentMethods": {
     "title": "Metodi di pagamento",
-    "intro": "I conti bancari stampati sulle fatture come bonifico (MP05). Il conto predefinito è preselezionato in ogni nuova fattura e si può cambiare nell'editor. Una fattura emessa conserva una propria copia dei dati del conto.",
+    "intro": "I conti bancari usati sulle fatture per il bonifico (MP05). Il conto predefinito è preselezionato in ogni nuova fattura e si può cambiare nell'editor. Una fattura emessa conserva una propria copia dei dati del conto.",
     "add": "Aggiungi conto bancario",
     "newTitle": "Nuovo conto bancario",
     "editTitle": "Modifica conto bancario",

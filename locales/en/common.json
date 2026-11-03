@@ -165,7 +165,7 @@
     "sections": {
       "profile": {
         "title": "Company",
-        "body": "Your details, tax regime and payment terms"
+        "body": "Your details, tax regime and address"
       },
       "email": {
         "title": "Email",
@@ -177,7 +177,7 @@
       },
       "paymentMethods": {
         "title": "Payment methods",
-        "body": "Bank accounts printed on your invoices"
+        "body": "Bank accounts used on your invoices"
       },
       "pec": {
         "title": "PEC mailbox",
@@ -315,7 +315,7 @@
       },
       "profile": {
         "title": "Fill in your company details",
-        "body": "Your details, tax regime and payment terms."
+        "body": "Your details, tax regime and address."
       },
       "pec": {
         "title": "Connect the PEC mailbox",
@@ -846,7 +846,7 @@
   },
   "paymentMethods": {
     "title": "Payment methods",
-    "intro": "Bank accounts printed on your invoices as bank transfer (MP05). The default account is preselected on every new invoice; you can change it in the invoice editor. An issued invoice keeps its own copy of the account details.",
+    "intro": "Bank accounts used on your invoices for bank transfer (MP05). The default account is preselected on every new invoice; you can change it in the invoice editor. An issued invoice keeps its own copy of the account details.",
     "add": "Add bank account",
     "newTitle": "New bank account",
     "editTitle": "Edit bank account",
