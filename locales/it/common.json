@@ -722,7 +722,10 @@
   },
   "send": {
     "title": "Invia fattura",
-    "review": "Fattura {{number}} a {{client}}, {{total}} da pagare. Dopo la conferma viene riservato un numero e la fattura è consegnata al SdI.",
+    "reviewNew": "Nuova fattura a {{client}}, {{total}} da pagare. Dopo la conferma viene riservato un numero e la fattura è consegnata al SdI.",
+    "reviewReserved": "Fattura {{number}} a {{client}}, {{total}} da pagare. Dopo la conferma si usa il numero riservato {{number}} e la fattura è consegnata al SdI.",
+    "reviewNewManual": "Nuova fattura a {{client}}, {{total}} da pagare. Dopo la conferma viene riservato un numero e i file sono preparati per il portale AdE.",
+    "reviewReservedManual": "Fattura {{number}} a {{client}}, {{total}} da pagare. Dopo la conferma si usa il numero riservato {{number}} e i file sono preparati per il portale AdE.",
     "client": "Cliente",
     "amountDue": "Importo dovuto",
     "progress": "Avanzamento invio",

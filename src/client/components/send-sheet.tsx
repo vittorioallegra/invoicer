@@ -78,7 +78,10 @@ export function SendSheet({
         if (!busy) onOpenChange(next);
       }}
       title={t(manual ? "send.manualTitle" : "send.title")}
-      description={t("send.review", summary)}
+      description={t(
+        `send.review${summary.number ? "Reserved" : "New"}${manual ? "Manual" : ""}`,
+        summary,
+      )}
     >
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
         <dt className="text-muted-foreground">{t("send.client")}</dt>

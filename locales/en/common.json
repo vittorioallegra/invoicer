@@ -722,7 +722,10 @@
   },
   "send": {
     "title": "Send invoice",
-    "review": "Invoice {{number}} to {{client}}, {{total}} due. After you confirm, a number is reserved and the invoice is handed to the SdI.",
+    "reviewNew": "New invoice to {{client}}, {{total}} due. After you confirm, a number is reserved and the invoice is handed to the SdI.",
+    "reviewReserved": "Invoice {{number}} to {{client}}, {{total}} due. After you confirm, the reserved number {{number}} is used and the invoice is handed to the SdI.",
+    "reviewNewManual": "New invoice to {{client}}, {{total}} due. After you confirm, a number is reserved and the files are prepared for the AdE portal.",
+    "reviewReservedManual": "Invoice {{number}} to {{client}}, {{total}} due. After you confirm, the reserved number {{number}} is used and the files are prepared for the AdE portal.",
     "client": "Client",
     "amountDue": "Amount due",
     "progress": "Send progress",
