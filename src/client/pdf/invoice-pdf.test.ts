@@ -277,9 +277,17 @@ describe("invoice PDF contribution and ritenuta breakdown", () => {
     expect(text).toContain("1.040,00");
   });
 
-  it("only names the contribution with its percentage when added on top (fixture a)", async () => {
+  it("shows the lines' taxable, the added contribution and their sum (fixture a)", async () => {
     const text = extractText(await renderInvoicePdf(inputFor("a")));
+    // 1,200.00 + 489.75 = 1,689.75; 4% = 67.59; sum 1,757.34.
+    expect(text).toContain("Imponibile senza contributo");
+    expect(text).toContain("1.689,75");
     expect(text).toContain("Rivalsa INPS 4% (aggiunta agli importi sopra)");
-    expect(text).not.toContain("Imponibile senza contributo");
+    expect(text).toContain("Totale imponibile");
+    expect(text).toContain("1.757,34");
+  });
+
+  it("always prints the taxable amount, also without a contribution (fixture b)", async () => {
+    expect(extractText(await renderInvoicePdf(inputFor("b")))).toContain("Totale imponibile");
   });
 });

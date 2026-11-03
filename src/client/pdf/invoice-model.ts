@@ -141,23 +141,22 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
       label,
       rate: number.format(totals.contributionRateBp / 100),
     });
-    if (cassa.mode === "included") {
-      // Prices include the contribution: show the taxable amount without it, the contribution
-      // with its percentage, then their sum.
-      rows.push(
-        {
-          label: t("pdf.taxableWithoutContribution"),
-          value: money(totals.taxableWithoutContributionCents),
-        },
-        { label: contribution, value: money(totals.contributionCents) },
-        { label: t("pdf.taxableTotal"), value: money(totals.taxableCents) },
-      );
-    } else {
-      rows.push({
-        label: `${contribution} (${t("pdf.cassa.excluded")})`,
+    // The taxable amount of the lines, the contribution with its percentage, then their sum
+    // (both modes: with "included" the lines' prices already contained the contribution).
+    rows.push(
+      {
+        label: t("pdf.taxableWithoutContribution"),
+        value: money(totals.taxableWithoutContributionCents),
+      },
+      {
+        label:
+          cassa.mode === "included" ? contribution : `${contribution} (${t("pdf.cassa.excluded")})`,
         value: money(totals.contributionCents),
-      });
-    }
+      },
+      { label: t("pdf.taxableTotal"), value: money(totals.taxableCents) },
+    );
+  } else {
+    rows.push({ label: t("pdf.taxableTotal"), value: money(totals.taxableCents) });
   }
   rows.push({ label: t("pdf.vat"), value: money(totals.vatCents) });
   if (totals.stampCents > 0) {
