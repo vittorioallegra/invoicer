@@ -13,7 +13,10 @@ const mocks = vi.hoisted(() => ({
   signInPasskey: vi.fn(),
   verifyTotp: vi.fn(),
   verifyBackupCode: vi.fn(),
+  api: vi.fn(),
 }));
+
+vi.mock("../lib/api", () => ({ api: mocks.api }));
 
 vi.mock("../lib/auth-client", () => ({
   authClient: {
@@ -39,6 +42,7 @@ async function renderAt(path: string) {
 }
 
 beforeEach(() => {
+  mocks.api.mockResolvedValue({ ownerExists: true });
   mocks.session.data = null;
   mocks.session.isPending = false;
   mocks.session.error = null;
@@ -50,6 +54,21 @@ afterEach(() => {
 
 describe("session gate", () => {
   it("sends an anonymous visitor to the login screen", async () => {
+    const router = await renderAt("/issued");
+    await screen.findByRole("button", { name: "Sign in with passkey" });
+    expect(router.state.location.pathname).toBe("/login");
+  });
+
+  it("sends an anonymous visitor to the setup screen while no owner exists", async () => {
+    mocks.api.mockResolvedValue({ ownerExists: false });
+    const router = await renderAt("/");
+    await screen.findByRole("button", { name: /create owner account/i });
+    expect(router.state.location.pathname).toBe("/setup");
+    expect(mocks.api).toHaveBeenCalledWith("/api/setup/status");
+  });
+
+  it("falls back to the login screen when the setup status cannot be read", async () => {
+    mocks.api.mockRejectedValue(new Error("offline"));
     const router = await renderAt("/issued");
     await screen.findByRole("button", { name: "Sign in with passkey" });
     expect(router.state.location.pathname).toBe("/login");

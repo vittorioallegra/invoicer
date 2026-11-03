@@ -435,6 +435,7 @@ Approved: yes (2026-11-02)
   - send dialog wording for new and reserved numbers — `fix(send): word the send dialog for a new invoice and for a reserved number`
   - rejected-invoice error line had a space before the colon — `fix(invoices): drop the empty code slot from the SdI error line`
   - totals breakdown label wrong in excluded mode — `fix(invoices): label the contribution row after the active cassa mode`
+  - fresh DB: login has no way to reach setup — `fix(auth): send a first-run visitor to the setup screen`
 
 ### Decisions
 - Single-user, self-hosted deployment; generic public code, no owner data in the repo (2026-11-02).

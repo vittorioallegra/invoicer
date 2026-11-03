@@ -125,7 +125,8 @@ Skeleton: this section grows with every step; the complete guide is written in s
   `https://invoicer.vittorioallegra.com/spike`.
 - First run (the deploy is public before onboarding): set `BETTER_AUTH_SECRET` (a long random
   string, `openssl rand -base64 32`) and `SETUP_TOKEN` (another one) with `wrangler secret put`,
-  open the app, and the setup screen creates the owner account (it asks for the token), enrols
+  open the app (on a fresh database it redirects to `/setup`; locally `pnpm dev`
+  serves it on http://localhost:5173), and the setup screen creates the owner account (it asks for the token), enrols
   the authenticator app (TOTP, with recovery codes) and registers a passkey. Without
   `SETUP_TOKEN` the setup is refused, and once the owner exists sign-up is closed for good.
   Set `APP_ORIGIN` to the public origin: the passkeys are bound to its host name.
