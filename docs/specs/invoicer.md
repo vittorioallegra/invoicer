@@ -186,11 +186,14 @@ settle the open ones):
   "RT01 — ritenuta persone fisiche", "TC04 — Inarcassa (ingegneri e architetti)"); the stored
   value is the code. The descriptions follow the official FatturaPA names (Allegato A) and live
   in one module (`src/shared/totals/labels.ts`).
-- Payment terms: two selects, days (0, 30, 60, 90, 120) and basis (invoice date, "data
-  fattura" DF; or end of month of the invoice date, "fine mese data fattura" FM DF).
-  The due date is the invoice date plus the days, moved to the last day of that month for FM
-  (30 gg FM DF: issued 2026-11-10 gives 2026-12-31); 0 days from the invoice date is the
-  invoice date itself. Dates are plain `YYYY-MM-DD` on the Europe/Rome calendar. A client may
+- Payment terms: a free number of days (0 to 365, a plain number input), a basis (invoice date,
+  "data fattura" DF; or end of month of the invoice date, "fine mese data fattura" FM DF) and,
+  only for FM, the days after the end of the month (0 to 31, default 0). The due date is the
+  invoice date plus the days; for FM it is moved to the last day of that month and the days
+  after the end of the month are added (30 gg FM DF: issued 2026-11-10 gives 2026-12-31;
+  "fine mese + 5 gg" is 0 days FM DF + 5: 2026-12-05; 30 gg FM DF + 10 gives 2027-01-10); 0
+  days from the invoice date is the invoice date itself. Dates are plain `YYYY-MM-DD` on the
+  Europe/Rome calendar. A client may
   have default terms (none by default; the Company page has none) that prefill a new invoice.
   The invoice stores its terms in its payment data. While it is a draft or planned the editor
   shows the date computed from today (or the planned date) and the owner may keep "computed
@@ -198,9 +201,10 @@ settle the open ones):
   fixed and the due date is recomputed from the stored terms, unless it was set by hand, so
   the XML and the PDF show the right date. Without terms there is no computed date.
   The XML keeps `DataScadenzaPagamento` and, when the date comes from the terms, adds
-  `GiorniTerminiPagamento` (days) and `DataRiferimentoTerminiPagamento` (the invoice date, or
-  the last day of the invoice month for FM). The PDF prints the terms in words ("30 gg fine
-  mese data fattura" / "30 days end of month") and the due date.
+  `GiorniTerminiPagamento` (days) and `DataRiferimentoTerminiPagamento` (the invoice date) for
+  DF terms only; FM terms write just `DataScadenzaPagamento`. The PDF prints the terms in words
+  ("30 gg data fattura", "30 gg fine mese data fattura", "30 gg fine mese data fattura + 10 gg",
+  "Fine mese data fattura + 5 gg" / "30 days end of month from invoice date") and the due date.
 - Totals (taxable per rate, VAT, contribution, withholding, stamp, amount due) are computed
   live and shown before sending.
 - States:
