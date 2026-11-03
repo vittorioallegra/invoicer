@@ -92,7 +92,7 @@ describe("issuing rules", () => {
   });
   it("needs a VAT rate or a natura on each line, not both", () => {
     expect(issues({ lines: [{ ...line, vatRateBp: null, natura: null }] })).toMatchObject({
-      "lines.0.vat": "required",
+      "lines.0.vat": "vat_required",
     });
     expect(issues({ lines: [{ ...line, vatRateBp: 2200, natura: "N4" }] })).toMatchObject({
       "lines.0.natura": "invalid_vat_default",

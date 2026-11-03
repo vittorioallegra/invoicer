@@ -211,6 +211,7 @@
     "invalid_vat_default": "Choose either a VAT rate or an exemption.",
     "invalid_date": "Enter a valid date.",
     "natura_text_required": "Add the legal reference for this exemption.",
+    "vat_required": "Choose a VAT rate or an exemption for this line.",
     "invalid_amount": "Enter an amount such as 1.040,00.",
     "invalid_quantity": "Enter a quantity above zero (up to 3 decimals).",
     "invalid_rate": "Enter a percentage such as 4 or 22,5.",
@@ -410,7 +411,6 @@
       "ritenutaRate": "Rate",
       "ritenutaBase": "Taxable base",
       "ritenutaCausale": "Payment reason",
-      "bollo": "Apply bollo (virtual stamp)",
       "save": "Save",
       "typeLabels": {
         "it_company": "Company in Italy",
@@ -514,7 +514,8 @@
     },
     "extras": {
       "title": "Contributions and withholding",
-      "cassaSubject": "The contribution is part of the ritenuta base"
+      "cassaSubject": "The contribution is part of the ritenuta base",
+      "bollo": "Apply bollo (virtual stamp)"
     },
     "payment": {
       "title": "Payment",

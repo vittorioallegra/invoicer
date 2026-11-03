@@ -231,6 +231,11 @@ function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
     const server = serverErrors[path];
     const code = server ?? issuing.errors[path];
     if (!code || (!server && REQUIRED_LIKE.has(code) && !submitted)) return undefined;
+    // A missing VAT shows as soon as the line has content, not on an untouched new line.
+    if (code === "vat_required" && !server && !submitted) {
+      const line = form.lines[Number(path.split(".")[1])];
+      if (!line || (line.description.trim() === "" && line.price.trim() === "")) return undefined;
+    }
     return t(`validation.${code}`, { defaultValue: t("validation.invalid") });
   };
 
@@ -933,7 +938,7 @@ function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
               checked={form.bollo}
               onChange={(e) => patch({ bollo: e.target.checked })}
             />
-            {t("clients.form.bollo")}
+            {t("invoice.extras.bollo")}
           </label>
         </section>
 

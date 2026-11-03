@@ -206,7 +206,8 @@ describe("Invoice editor", () => {
     expect((screen.getByLabelText("Ritenuta") as HTMLSelectElement).value).toBe("RT01");
     expect((screen.getByLabelText("Bank account") as HTMLSelectElement).value).toBe("pm1");
     expect((screen.getByLabelText("Payment method") as HTMLSelectElement).value).toBe("MP05");
-    expect((screen.getByLabelText("VAT") as HTMLSelectElement).value).toBe("rate:2200");
+    // VAT is never prefilled, not even from the client: the owner chooses it per line.
+    expect((screen.getByLabelText("VAT") as HTMLSelectElement).value).toBe("");
     // The client's payment terms prefill the select, the custom days and the computed due date.
     expect((screen.getByLabelText("Payment terms") as HTMLSelectElement).value).toBe("custom");
     expect((screen.getByLabelText("Days from invoice date") as HTMLInputElement).value).toBe("30");
@@ -312,6 +313,7 @@ describe("Invoice editor", () => {
     type("Client", "c1");
     type("Description", "Consulting");
     type("Unit price", "1.200,00");
+    type("VAT", "rate:2200");
     // 1,200.00 + 4% rivalsa 48.00 = 1,248.00 taxable; VAT 22% = 274.56; ritenuta 20% of 1,248.00 = 249.60; due 1,272.96.
     const totals = screen.getByRole("region", { name: "Totals" });
     expect(within(totals).getByText(/1,272\.96/)).toBeTruthy();
@@ -324,6 +326,22 @@ describe("Invoice editor", () => {
     type("Applies", "included");
     expect(within(totals).getByText("Contribution (included above)")).toBeTruthy();
     expect(within(totals).queryByText("Contribution (added on top)")).toBeNull();
+  });
+
+  it("starts every line without VAT and flags it once the line has content", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    expect(screen.queryByText("Choose a VAT rate or an exemption for this line.")).toBeNull();
+    type("Description", "Consulting");
+    type("Unit price", "50");
+    expect(screen.getByText("Choose a VAT rate or an exemption for this line.")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add line" }));
+    expect((screen.getAllByLabelText("VAT") as HTMLSelectElement[]).map((s) => s.value)).toEqual([
+      "",
+      "",
+    ]);
   });
 
   it("validates inline: required fields after a save attempt, malformed ones at once", async () => {

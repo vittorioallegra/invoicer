@@ -32,8 +32,6 @@ import {
 } from "../../shared/totals";
 
 export const VAT_RATES = [2200, 1000, 500, 400] as const;
-/** Default VAT rate of a new line when the client has no default. */
-export const FALLBACK_VAT_BP = 2200;
 
 export interface LineForm {
   /** Stable React key; not persisted. */
@@ -42,7 +40,7 @@ export interface LineForm {
   quantity: string;
   unit: string;
   price: string;
-  /** `rate:<bp>` or `natura:<code>`. */
+  /** `rate:<bp>` or `natura:<code>`; empty until chosen (there is no default). */
   vat: string;
 }
 
@@ -89,8 +87,9 @@ export interface InvoiceForm {
 let lineCounter = 0;
 export const newLineKey = () => `line-${++lineCounter}`;
 
-export function emptyLine(vat: string): LineForm {
-  return { key: newLineKey(), description: "", quantity: "1", unit: "", price: "", vat };
+/** A new line has no VAT or exemption chosen: the owner picks one per line. */
+export function emptyLine(): LineForm {
+  return { key: newLineKey(), description: "", quantity: "1", unit: "", price: "", vat: "" };
 }
 
 export function emptyForm(): InvoiceForm {
@@ -107,7 +106,7 @@ export function emptyForm(): InvoiceForm {
     dueDateCustom: false,
     linkedInvoiceId: "",
     notes: "",
-    lines: [emptyLine(`rate:${FALLBACK_VAT_BP}`)],
+    lines: [emptyLine()],
     cassaType: "",
     cassaRate: "",
     cassaMode: "excluded",

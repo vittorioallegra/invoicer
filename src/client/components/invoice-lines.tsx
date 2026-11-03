@@ -3,13 +3,7 @@ import { type ReactNode, useId } from "react";
 import { useTranslation } from "react-i18next";
 import { formatMoney, type UiLocale } from "../../shared/format";
 import { NATURA_CODES, naturaLabel, type Totals, vatRateLabel } from "../../shared/totals";
-import {
-  emptyLine,
-  type InvoiceForm,
-  type LineForm,
-  newLineKey,
-  VAT_RATES,
-} from "../lib/invoice-form";
+import { emptyLine, type InvoiceForm, type LineForm, VAT_RATES } from "../lib/invoice-form";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { MoneyInput } from "./ui/money-input";
@@ -73,7 +67,6 @@ export function InvoiceLines({
 }: InvoiceLinesProps) {
   const { t } = useTranslation();
   const currency = form.currency.toUpperCase();
-  const defaultVat = form.lines[0]?.vat || "rate:2200";
 
   const update = (key: string, patch: Partial<LineForm>) =>
     onChange(form.lines.map((line) => (line.key === key ? { ...line, ...patch } : line)));
@@ -212,7 +205,7 @@ export function InvoiceLines({
         variant="secondary"
         className="w-fit"
         disabled={disabled}
-        onClick={() => onChange([...form.lines, { ...emptyLine(defaultVat), key: newLineKey() }])}
+        onClick={() => onChange([...form.lines, emptyLine()])}
       >
         <Plus aria-hidden />
         {t("invoice.lines.add")}

@@ -211,6 +211,7 @@
     "invalid_vat_default": "Scegli un'aliquota IVA oppure un'esenzione.",
     "invalid_date": "Inserisci una data valida.",
     "natura_text_required": "Aggiungi il riferimento normativo per questa esenzione.",
+    "vat_required": "Scegli un'aliquota IVA o un'esenzione per questa riga.",
     "invalid_amount": "Inserisci un importo come 1.040,00.",
     "invalid_quantity": "Inserisci una quantità maggiore di zero (fino a 3 decimali).",
     "invalid_rate": "Inserisci una percentuale come 4 o 22,5.",
@@ -410,7 +411,6 @@
       "ritenutaRate": "Aliquota",
       "ritenutaBase": "Base imponibile",
       "ritenutaCausale": "Causale pagamento",
-      "bollo": "Applica il bollo virtuale",
       "save": "Salva",
       "typeLabels": {
         "it_company": "Azienda in Italia",
@@ -514,7 +514,8 @@
     },
     "extras": {
       "title": "Contributi e ritenuta",
-      "cassaSubject": "Il contributo fa parte della base della ritenuta"
+      "cassaSubject": "Il contributo fa parte della base della ritenuta",
+      "bollo": "Applica il bollo virtuale"
     },
     "payment": {
       "title": "Pagamento",

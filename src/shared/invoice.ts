@@ -392,7 +392,8 @@ export function issuingProblems(
   if (invoice.lines.length === 0) fail(["lines"], "required");
   invoice.lines.forEach((line, index) => {
     if (line.description.trim() === "") fail(["lines", index, "description"], "required");
-    if (line.vatRateBp === null && line.natura === null) fail(["lines", index, "vat"], "required");
+    if (line.vatRateBp === null && line.natura === null)
+      fail(["lines", index, "vat"], "vat_required");
   });
   const used = new Set(invoice.lines.flatMap((line) => (line.natura ? [line.natura] : [])));
   for (const natura of used) {
