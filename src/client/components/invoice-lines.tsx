@@ -68,6 +68,8 @@ export function InvoiceLines({
 }: InvoiceLinesProps) {
   const { t } = useTranslation();
   const currency = form.currency.toUpperCase();
+  // Move and remove only make sense while editable and with something to reorder or drop.
+  const controls = !disabled && form.lines.length >= 2;
   const listId = useId();
   // After a move the keyed card is re-inserted, which drops focus: put it back on the same
   // control (or its sibling when that one is now disabled at the end of the list).
@@ -119,40 +121,41 @@ export function InvoiceLines({
                 <span className="text-sm font-medium text-muted-foreground">
                   {t("invoice.lines.lineNumber", { n: index + 1 })}
                 </span>
-                <div className="flex items-center">
-                  <Button
-                    id={`${listId}-${line.key}-up`}
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={disabled || index === 0}
-                    aria-label={t("invoice.lines.moveUp", { n: index + 1 })}
-                    onClick={() => move(index, "up")}
-                  >
-                    <ArrowUp aria-hidden />
-                  </Button>
-                  <Button
-                    id={`${listId}-${line.key}-down`}
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={disabled || last}
-                    aria-label={t("invoice.lines.moveDown", { n: index + 1 })}
-                    onClick={() => move(index, "down")}
-                  >
-                    <ArrowDown aria-hidden />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled={disabled || form.lines.length === 1}
-                    aria-label={t("invoice.lines.remove", { n: index + 1 })}
-                    onClick={() => onChange(form.lines.filter((l) => l.key !== line.key))}
-                  >
-                    <Trash2 aria-hidden />
-                  </Button>
-                </div>
+                {controls ? (
+                  <div className="flex items-center">
+                    <Button
+                      id={`${listId}-${line.key}-up`}
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={index === 0}
+                      aria-label={t("invoice.lines.moveUp", { n: index + 1 })}
+                      onClick={() => move(index, "up")}
+                    >
+                      <ArrowUp aria-hidden />
+                    </Button>
+                    <Button
+                      id={`${listId}-${line.key}-down`}
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={last}
+                      aria-label={t("invoice.lines.moveDown", { n: index + 1 })}
+                      onClick={() => move(index, "down")}
+                    >
+                      <ArrowDown aria-hidden />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t("invoice.lines.remove", { n: index + 1 })}
+                      onClick={() => onChange(form.lines.filter((l) => l.key !== line.key))}
+                    >
+                      <Trash2 aria-hidden />
+                    </Button>
+                  </div>
+                ) : null}
               </div>
               <Cell
                 label={t("invoice.lines.description")}

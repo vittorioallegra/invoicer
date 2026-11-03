@@ -938,6 +938,38 @@ describe("Invoice editor", () => {
     expect(within(line).getByLabelText("Note (optional)")).toBeTruthy();
     expect(within(line).getByText("Amount")).toBeTruthy();
   });
+
+  it("shows move and remove controls only with two or more lines", async () => {
+    const two = record().lines.concat(record().lines);
+    serve({ invoice: record() });
+    await renderEditor("/invoices/i1");
+    await screen.findByTestId("invoice-line");
+    expect(screen.queryByRole("button", { name: /^Move (up|down) line/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Remove line/ })).toBeNull();
+    cleanup();
+    serve({ invoice: record({ lines: two }) });
+    await renderEditor("/invoices/i1");
+    await screen.findAllByTestId("invoice-line");
+    expect(screen.getAllByRole("button", { name: /^Move up line/ })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /^Remove line/ })).toHaveLength(2);
+  });
+
+  it("hides the line controls once the invoice is finalised", async () => {
+    const two = record().lines.concat(record().lines);
+    serve({
+      invoice: record({
+        lines: two,
+        state: "delivered",
+        number: "7",
+        year: 2026,
+        issueDate: "2026-03-01",
+      }),
+    });
+    await renderEditor("/invoices/i1");
+    await screen.findAllByTestId("invoice-line");
+    expect(screen.queryByRole("button", { name: /^Move (up|down) line/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Remove line/ })).toBeNull();
+  });
 });
 
 describe("Invoice editor, number on the invoice", () => {
