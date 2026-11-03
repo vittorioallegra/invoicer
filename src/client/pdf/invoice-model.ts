@@ -102,6 +102,7 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
   const money = (cents: number) => formatMoney(cents, language, currency);
   const number = new Intl.NumberFormat(language === "it" ? "it-IT" : "en-IE", {
     maximumFractionDigits: 3,
+    useGrouping: "always",
   });
   const { data } = invoice;
   const credit = invoice.documentType === "TD04";

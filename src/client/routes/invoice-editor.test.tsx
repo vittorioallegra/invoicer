@@ -400,11 +400,6 @@ describe("Invoice editor", () => {
     await renderEditor();
     await loaded();
     type("Client", "c3");
-    console.log(
-      "DBG",
-      (field("Client") as HTMLSelectElement).value,
-      document.body.textContent?.slice(0, 600),
-    );
     expect(
       await screen.findByText("This client's data is not complete enough for an e-invoice:"),
     ).toBeTruthy();

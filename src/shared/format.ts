@@ -4,9 +4,12 @@ const INTL_LOCALE: Record<UiLocale, string> = { en: "en-IE", it: "it-IT" };
 
 /** Formats integer cents for display (domain code stays in cents; this is display only). */
 export function formatMoney(cents: number, locale: UiLocale, currency = "EUR"): string {
-  return new Intl.NumberFormat(INTL_LOCALE[locale], { style: "currency", currency }).format(
-    cents / 100,
-  );
+  // it-IT leaves 4-digit amounts ungrouped ("1040,00 €"); invoices read better as "1.040,00 €".
+  return new Intl.NumberFormat(INTL_LOCALE[locale], {
+    style: "currency",
+    currency,
+    useGrouping: "always",
+  }).format(cents / 100);
 }
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
