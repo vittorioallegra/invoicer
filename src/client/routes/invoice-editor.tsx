@@ -937,7 +937,8 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 <Field
                   label={t("invoice.document.invoiceDate")}
                   error={
-                    dateBeforeLast
+                    // Like the other checks of Finalize, shown once a Finalize was attempted.
+                    submitted && dateBeforeLast
                       ? t("invoice.document.dateBeforeLast", { date: dateBeforeLast })
                       : err("invoiceDate")
                   }

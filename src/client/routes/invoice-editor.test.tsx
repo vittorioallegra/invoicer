@@ -1524,18 +1524,26 @@ describe("Invoice editor, number on the invoice", () => {
 });
 
 describe("Invoice editor, date before the last issued number", () => {
-  it("explains on the date field and in the Finalize checks that the date is too early", async () => {
+  it("explains a date too early in the Finalize checks, then on the date field, never before", async () => {
     lastIssueDate = `${YEAR}-12-31`;
     serve({ invoice: record({ invoiceDate: `${YEAR}-01-02` }) });
     await renderEditor("/invoices/i1");
     await loaded();
     const message = /already issued on 31 Dec .*needs a date from/;
-    expect(await screen.findByText(message)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    // Nothing is said until a Finalize is attempted, not even in edit mode.
+    edit();
+    await waitFor(() =>
+      expect(mocks.api).toHaveBeenCalledWith(expect.stringContaining("next-number")),
+    );
+    expect(screen.queryByText(message)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Finalize" }));
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: /Finalize|Check|Continue/ }));
     expect(await within(dialog).findByText(message)).toBeTruthy();
     expect(mocks.runSend).not.toHaveBeenCalled();
+    // Then the date field says it too.
+    expect(screen.getAllByText(message).length).toBeGreaterThan(1);
   });
 });
 
