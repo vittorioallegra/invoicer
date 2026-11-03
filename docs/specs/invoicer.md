@@ -536,10 +536,19 @@ settle the open ones):
 ### 8. PDF and courtesy email
 
 - PDF of each issued invoice in the invoice's language (IT or EN, set per invoice and prefilled from the client), with all FatturaPA data
-  relevant to the reader: issuer and client data, lines, VAT/natura and its legal
-  reference, contribution, withholding, stamp, totals, currency, payment data (IBAN,
-  BIC/SWIFT, holder, due date), and the note that the legally valid invoice is the
-  electronic one sent to SdI.
+  relevant to the reader: sender ("Mittente" / "From") and recipient ("Destinatario" / "To")
+  data (no tax regime line), lines, natura and its legal reference, the invoice notes, and
+  the note that the legally valid invoice is the electronic one sent to SdI. There is no VAT
+  summary table and the header holds only the title and the number and date. Payment (method,
+  holder, bank, IBAN, BIC/SWIFT, terms in words, due date; no amount line) and the totals recap
+  (contribution, VAT, stamp, document total, withholding, amount due) form one block anchored
+  to the bottom of the last page, payment on the left and totals on the right; it never
+  splits across pages, so a long invoice flows to a second page and the block sits on the
+  last one only.
+- The PDF download is named `invoice-<number>-<client>.pdf` (e.g. `invoice-CH-3-acme-srl.pdf`):
+  the number as printed with `/ \ : * ? " < > |` and spaces replaced by `-`, and a lowercase
+  ASCII slug of the client name (max 40 characters). The XML download keeps the official SdI
+  file name `IT<vat>_<progressive>.xml`, which the AdE portal and the SdI require.
 - Courtesy email with the PDF (and the XML) attached, subject and body template per
   language, sent through Resend from the configured sender with the configured Reply-To
   and optional BCC to the owner:
