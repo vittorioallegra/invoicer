@@ -391,7 +391,7 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
           </Field>
         ) : null}
         {foreign ? (
-          <div className={grid}>
+          <div className="flex flex-col gap-4">
             <Field label={t("clients.form.country")} error={err("countryCode")}>
               {(c) => (
                 <Select {...c} value={form.countryCode} onChange={set("countryCode")}>
