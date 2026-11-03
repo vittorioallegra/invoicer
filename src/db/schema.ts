@@ -219,6 +219,8 @@ export const invoices = sqliteTable(
     /** Invoice settings (cassa, ritenuta, bollo, payment data, note) as JSON. */
     data: text("data", { mode: "json" }),
     totalCents: integer("total_cents"),
+    /** The editor form as typed at the last save (raw text, JSON), so an unsent invoice reopens exactly as left. */
+    editorForm: text("editor_form"),
     linkedInvoiceId: text("linked_invoice_id"),
     /** Rejected invoice this one reissues after `rejected_expired`. */
     reissuesInvoiceId: text("reissues_invoice_id"),

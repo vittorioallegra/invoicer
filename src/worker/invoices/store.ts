@@ -34,13 +34,14 @@ interface InvoiceRow {
   currency: string;
   data: string | null;
   total_cents: number | null;
+  editor_form: string | null;
   linked_invoice_id: string | null;
   reissues_invoice_id: string | null;
 }
 
 const SELECT = `SELECT i.id, i.document_type, i.state, i.payment_flag, i.paid_date, i.client_id,
   c.name AS client_name, i.number_raw, i.number_int, i.requested_number_int, i.series_id, i.year, i.issue_date, i.planned_date,
-  i.due_date, i.currency, i.data, i.total_cents, i.linked_invoice_id,
+  i.due_date, i.currency, i.data, i.total_cents, i.editor_form, i.linked_invoice_id,
   i.reissues_invoice_id
   FROM invoices i LEFT JOIN clients c ON c.id = i.client_id`;
 
@@ -204,6 +205,7 @@ export async function loadInvoice(
       natura: line.natura,
     })),
     data: data.success ? data.data : EMPTY_INVOICE_DATA,
+    editorForm: parseEditorForm(row.editor_form),
     numberReserved: reserved,
     releasable,
     rejection: row.state === "rejected" || row.state === "rejected_expired" ? rejection : null,
@@ -266,7 +268,17 @@ export async function listInvoices(
   }));
 }
 
-type Extra = { reissuesInvoiceId?: string | null };
+/** The stored raw form, or null when there is none or it is not readable. */
+function parseEditorForm(text: string | null): unknown {
+  if (text === null) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+type Extra = { reissuesInvoiceId?: string | null; editorForm?: string | null };
 
 function lineStatements(db: D1Database, id: string, lines: InvoiceBody["lines"]) {
   return lines.map((line, index) =>
@@ -315,8 +327,8 @@ export async function createInvoice(
         `INSERT INTO invoices
            (id, document_type, state, state_rank, payment_flag, source, client_id, planned_date,
             due_date, currency, data, total_cents, linked_invoice_id,
-            reissues_invoice_id, requested_number_int, series_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'unpaid', 'app', ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            reissues_invoice_id, requested_number_int, editor_form, series_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'unpaid', 'app', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                  COALESCE(?, (SELECT id FROM numbering_series WHERE is_default = 1)), ?, ?)`,
       )
       .bind(
@@ -333,6 +345,7 @@ export async function createInvoice(
         body.linkedInvoiceId,
         extra.reissuesInvoiceId ?? null,
         body.requestedNumber,
+        extra.editorForm ?? null,
         body.seriesId,
         now.getTime(),
         now.getTime(),
@@ -352,6 +365,7 @@ export async function updateInvoice(
   id: string,
   body: InvoiceBody,
   now = new Date(),
+  editorForm: string | null = null,
 ): Promise<void> {
   const current = await db
     .prepare("SELECT state, document_type FROM invoices WHERE id = ?")
@@ -381,6 +395,7 @@ export async function updateInvoice(
              state_rank = CASE WHEN state = 'rejected' THEN state_rank ELSE ?4 END,
              client_id = ?5, planned_date = ?6, due_date = ?7, currency = ?8,
              data = ?9, total_cents = ?10, linked_invoice_id = ?11, updated_at = ?12,
+             editor_form = ?15,
              requested_number_int = CASE WHEN number_int IS NULL THEN ?13 ELSE NULL END,
              series_id = CASE WHEN number_int IS NULL
                THEN COALESCE(?14, (SELECT id FROM numbering_series WHERE is_default = 1))
@@ -402,6 +417,7 @@ export async function updateInvoice(
           now.getTime(),
           body.requestedNumber,
           body.seriesId,
+          editorForm,
         ),
       db.prepare("DELETE FROM invoice_lines WHERE invoice_id = ?").bind(id),
       ...lineStatements(db, id, body.lines),

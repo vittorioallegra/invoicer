@@ -10,10 +10,10 @@ import {
   type InvoiceBody,
   type InvoiceListScope,
   type InvoiceRecord,
-  invoiceInputSchema,
   invoiceIssuableSchema,
   invoiceMetaSchema,
   issueMap,
+  parseInvoiceDraft,
 } from "../../shared/invoice";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
@@ -48,37 +48,52 @@ function issueDetail(error: ZodError): string {
     .join("; ");
 }
 
-async function readBody(c: { req: { json: () => Promise<unknown> } }): Promise<InvoiceBody> {
-  const parsed = invoiceInputSchema.safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) throw makeError("bad_request", issueDetail(parsed.error));
-  return parsed.data;
+/** Largest raw editor form stored with an invoice (it is only text the owner typed). */
+const EDITOR_FORM_MAX_CHARS = 200_000;
+
+/**
+ * Reads the body of a save: the invoice as far as it can be stored (saving never validates, see
+ * `parseInvoiceDraft`) and the raw editor form (`editorForm`) that keeps what was typed verbatim.
+ */
+async function readBody(c: {
+  req: { json: () => Promise<unknown> };
+}): Promise<{ body: InvoiceBody; editorForm: string | null }> {
+  const raw = await c.req.json().catch(() => null);
+  const body = parseInvoiceDraft(raw);
+  if (!body) throw makeError("bad_request", "body: invalid");
+  const form = (raw as { editorForm?: unknown }).editorForm;
+  if (form === undefined || form === null) return { body, editorForm: null };
+  const text = typeof form === "object" && !Array.isArray(form) ? JSON.stringify(form) : "";
+  if (text === "" || text.length > EDITOR_FORM_MAX_CHARS) {
+    throw makeError("bad_request", "editorForm: invalid");
+  }
+  return { body, editorForm: text };
 }
 
-/** The client and the linked invoice must exist; a credit note links an invoice that has a number. */
-async function checkReferences(db: D1Database, body: InvoiceBody): Promise<void> {
-  if (body.clientId) {
-    const client = await db
-      .prepare("SELECT 1 AS hit FROM clients WHERE id = ?")
-      .bind(body.clientId)
-      .first();
-    if (!client) throw makeError("bad_request", "clientId: not_found");
-  }
-  if (body.seriesId) {
-    const series = await db
-      .prepare("SELECT 1 AS hit FROM numbering_series WHERE id = ?")
-      .bind(body.seriesId)
-      .first();
-    if (!series) throw makeError("bad_request", "seriesId: not_found");
-  }
-  if (body.linkedInvoiceId) {
-    if (body.documentType !== "TD04") throw makeError("bad_request", "linkedInvoiceId: invalid");
-    const linked = await db
-      .prepare("SELECT document_type FROM invoices WHERE id = ?")
-      .bind(body.linkedInvoiceId)
-      .first<{ document_type: string }>();
-    if (!linked) throw makeError("bad_request", "linkedInvoiceId: not_found");
-    if (linked.document_type !== "TD01") throw makeError("bad_request", "linkedInvoiceId: invalid");
-  }
+/**
+ * A reference to something that no longer exists (a client, series or linked invoice deleted
+ * meanwhile) cannot be stored: it is dropped, and finalising reports what is missing.
+ */
+async function resolveReferences(db: D1Database, body: InvoiceBody): Promise<InvoiceBody> {
+  const exists = async (sql: string, id: string | null) =>
+    id !== null && (await db.prepare(sql).bind(id).first()) !== null;
+  const linked =
+    body.documentType === "TD04" && body.linkedInvoiceId
+      ? await db
+          .prepare("SELECT document_type FROM invoices WHERE id = ?")
+          .bind(body.linkedInvoiceId)
+          .first<{ document_type: string }>()
+      : null;
+  return {
+    ...body,
+    clientId: (await exists("SELECT 1 FROM clients WHERE id = ?", body.clientId))
+      ? body.clientId
+      : null,
+    seriesId: (await exists("SELECT 1 FROM numbering_series WHERE id = ?", body.seriesId))
+      ? body.seriesId
+      : null,
+    linkedInvoiceId: linked?.document_type === "TD01" ? body.linkedInvoiceId : null,
+  };
 }
 
 async function requireInvoice(db: D1Database, id: string): Promise<InvoiceRecord> {
@@ -114,9 +129,8 @@ invoices.get("/next-number", async (c) => {
 });
 
 invoices.post("/", async (c) => {
-  const body = await readBody(c);
-  await checkReferences(c.env.DB, body);
-  const id = await createInvoice(c.env.DB, body);
+  const { body, editorForm } = await readBody(c);
+  const id = await createInvoice(c.env.DB, await resolveReferences(c.env.DB, body), { editorForm });
   return c.json({ invoice: await requireInvoice(c.env.DB, id) }, 201);
 });
 
@@ -126,9 +140,14 @@ invoices.get("/:id", async (c) =>
 
 invoices.put("/:id", async (c) => {
   const id = c.req.param("id");
-  const body = await readBody(c);
-  await checkReferences(c.env.DB, body);
-  await updateInvoice(c.env.DB, id, body);
+  const { body, editorForm } = await readBody(c);
+  await updateInvoice(
+    c.env.DB,
+    id,
+    await resolveReferences(c.env.DB, body),
+    new Date(),
+    editorForm,
+  );
   return c.json({ invoice: await requireInvoice(c.env.DB, id) });
 });
 

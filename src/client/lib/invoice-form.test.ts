@@ -6,6 +6,7 @@ import {
   effectiveDueDate,
   emptyForm,
   formTotals,
+  restoreForm,
   typedNumber,
   validateForm,
   withAccount,
@@ -210,5 +211,39 @@ describe("requested invoice number", () => {
     );
     expect(validateForm(withNumber("3"), client, false, 8).errors.requestedNumber).toBeUndefined();
     expect(validateForm(withNumber("20"), client, true, 8).errors.requestedNumber).toBeUndefined();
+  });
+});
+
+describe("restoreForm", () => {
+  it("brings back the raw text typed, with fresh line keys", () => {
+    const typed = {
+      ...emptyForm(),
+      requestedNumber: "x7",
+      lines: [
+        {
+          key: "old",
+          description: "A",
+          note: "",
+          quantity: "1,,",
+          unit: "",
+          price: "1,2,3",
+          vat: "",
+        },
+      ],
+    };
+    const restored = restoreForm(JSON.parse(JSON.stringify(typed)), emptyForm());
+    expect(restored.requestedNumber).toBe("x7");
+    expect(restored.lines[0]).toMatchObject({ description: "A", quantity: "1,,", price: "1,2,3" });
+    expect(restored.lines[0]?.key).not.toBe("old");
+  });
+
+  it("falls back for anything that is not a saved form", () => {
+    const fallback = emptyForm();
+    expect(restoreForm(null, fallback)).toBe(fallback);
+    expect(restoreForm([1], fallback)).toBe(fallback);
+    const odd = restoreForm({ currency: 5, bollo: "yes", lines: [7] }, fallback);
+    expect(odd.currency).toBe("EUR");
+    expect(odd.bollo).toBe(false);
+    expect(odd.lines).toHaveLength(1);
   });
 });

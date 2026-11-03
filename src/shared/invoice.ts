@@ -168,6 +168,96 @@ export const invoiceInputSchema = z.object({
 export type InvoiceInput = z.input<typeof invoiceInputSchema>;
 export type InvoiceBody = z.output<typeof invoiceInputSchema>;
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** The parsed value, or the fallback when the schema refuses it. */
+function orFallback<T>(schema: z.ZodType<T>, value: unknown, fallback: T): T {
+  const parsed = schema.safeParse(value);
+  return parsed.success ? parsed.data : fallback;
+}
+
+function clampInt(value: unknown, min: number, max: number, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.min(max, Math.max(min, Math.round(value)))
+    : fallback;
+}
+
+const textOf = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
+
+function draftLine(raw: unknown): InvoiceLine {
+  const line = isRecord(raw) ? raw : {};
+  const vatRateBp = orFallback(z.number().int().min(1).max(10000).nullable(), line.vatRateBp, null);
+  const natura = orFallback(z.enum(NATURA_CODES).nullable(), line.natura, null);
+  return {
+    description: textOf(line.description),
+    note: textOf(line.note),
+    quantityMilli: clampInt(line.quantityMilli, 0, 999_999_999_999, 0),
+    unit: textOf(line.unit).slice(0, 10) || null,
+    unitPriceCents: clampInt(line.unitPriceCents, 0, 9_999_999_999_999, 0),
+    vatRateBp,
+    natura: vatRateBp === null ? natura : null,
+  };
+}
+
+function draftData(raw: unknown): InvoiceData {
+  const data = isRecord(raw) ? raw : {};
+  const payment = isRecord(data.payment) ? data.payment : {};
+  const texts = isRecord(data.naturaTexts) ? data.naturaTexts : {};
+  const empty = EMPTY_INVOICE_DATA.payment;
+  return {
+    cassa: orFallback(cassaDefaultsSchema.nullable(), data.cassa, null),
+    ritenuta: orFallback(ritenutaDefaultsSchema.nullable(), data.ritenuta, null),
+    bollo: data.bollo === true,
+    bolloSuggestionDismissed: data.bolloSuggestionDismissed === true,
+    note: textOf(data.note),
+    naturaTexts: Object.fromEntries(
+      NATURA_CODES.flatMap((code) =>
+        typeof texts[code] === "string" ? [[code, texts[code]]] : [],
+      ),
+    ),
+    payment: orFallback(invoicePaymentSchema, payment, {
+      ...empty,
+      method: orFallback(z.enum(PAYMENT_METHODS).nullable(), payment.method, null),
+      terms: orFallback(paymentTermsSchema.nullable(), payment.terms, null),
+      dueDateCustom: payment.dueDateCustom === true,
+    }),
+  };
+}
+
+/**
+ * Reads the body of a save. Saving never judges an invoice: content that satisfies the invoice
+ * schema is taken as is, and anything else is stored as far as it can be (an unreadable amount
+ * becomes 0, an invalid date none), so the invoice may be incomplete or wrong. Every check runs
+ * when the invoice is finalised. Null only when the body is not an invoice at all (not an
+ * object, or more lines than can be stored).
+ */
+export function parseInvoiceDraft(raw: unknown): InvoiceBody | null {
+  const strict = invoiceInputSchema.safeParse(raw);
+  if (strict.success) return strict.data;
+  if (!isRecord(raw) || !Array.isArray(raw.lines) || raw.lines.length > 500) return null;
+  const id = z.string().min(1).nullable();
+  return {
+    documentType: orFallback(z.enum(DOCUMENT_TYPES), raw.documentType, "TD01"),
+    clientId: orFallback(id, raw.clientId, null),
+    currency:
+      typeof raw.currency === "string"
+        ? raw.currency.replaceAll(/\s+/g, "").toUpperCase().slice(0, 3)
+        : "EUR",
+    invoiceDate: orFallback(dateOnly.nullable(), raw.invoiceDate, null),
+    dueDate: orFallback(dateOnly.nullable(), raw.dueDate, null),
+    requestedNumber: orFallback(
+      z.number().int().min(1).max(MAX_INVOICE_NUMBER).nullable(),
+      raw.requestedNumber,
+      null,
+    ),
+    seriesId: orFallback(id, raw.seriesId, null),
+    linkedInvoiceId: orFallback(id, raw.linkedInvoiceId, null),
+    lines: raw.lines.map(draftLine),
+    data: draftData(raw.data),
+  };
+}
+
 /** Payment flag: the only thing that changes once an invoice is out. */
 export const invoiceMetaSchema = z
   .object({
@@ -339,6 +429,8 @@ export interface InvoiceRecord {
   reissuesInvoiceId: string | null;
   lines: InvoiceLine[];
   data: InvoiceData;
+  /** The editor form as typed at the last save (raw text); null when never saved from the editor. */
+  editorForm: unknown;
   /** Number reserved but nothing handed to the PEC yet: it can be sent or released. */
   numberReserved: boolean;
   /** The reserved number is the highest of its year, so it can be released. */

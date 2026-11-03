@@ -51,6 +51,7 @@ import { clientsQuery } from "../lib/clients-api";
 import { buildUnsentXml, downloadUrl, renderUnsentPdf, saveFile } from "../lib/invoice-download";
 import {
   applyDefaults,
+  draftBody,
   effectiveDueDate,
   emptyForm,
   formLineAmounts,
@@ -401,7 +402,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
         return;
       }
       if (!structural.ok) return;
-      await save.mutateAsync(structural.body);
+      await save.mutateAsync(draftBody(form, proposal, today));
       if (kind === "pdf") {
         saveFile(
           await renderUnsentPdf(record.id),
@@ -432,7 +433,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   async function startSend(channel: "pec" | "manual" = "pec") {
     if (!record || !structural.ok) return;
     try {
-      await save.mutateAsync(structural.body);
+      await save.mutateAsync(draftBody(form, proposal, today));
       setSendChannel(channel);
       setSendOpen(true);
     } catch {
@@ -459,9 +460,9 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     if (locked) return;
+    // Saving never validates: whatever is typed is stored, and Finalize runs every check.
     setSubmitted(true);
-    if (!structural.ok) return;
-    save.mutate(structural.body);
+    save.mutate(draftBody(form, proposal, today));
   }
 
   const bolloData = {
@@ -679,9 +680,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               {t("invoice.rejected.openOriginal")}
             </Link>
           </Banner>
-        ) : null}
-        {submitted && !structural.ok ? (
-          <Banner tone="danger">{t("invoice.fixErrors")}</Banner>
         ) : null}
         {lateTransmission ? <Banner tone="warning">{t("invoice.warnings.late")}</Banner> : null}
         {numberEditable && numberGap ? (

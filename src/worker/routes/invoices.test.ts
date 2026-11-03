@@ -101,24 +101,43 @@ describe("invoices API", () => {
   it("stores a line note, and a line without one reads back empty", async () => {
     const saved = await create({ lines: [line({ note: "Phase 1" }), line()] });
     expect(saved.lines.map((l) => l.note)).toEqual(["Phase 1", ""]);
-    const tooLong = await owner.json<{ detail: string }>("/api/invoices", {
+    // Saving never validates: a text over the XML limit is stored as typed.
+    const tooLong = await owner.json<Invoice>("/api/invoices", {
       body: body({ lines: [line({ description: "D".repeat(600), note: "N".repeat(500) })] }),
     });
-    expect(tooLong.status).toBe(400);
-    expect(tooLong.body.detail).toContain("lines.0.note: line_text_too_long");
+    expect(tooLong.status).toBe(201);
+    expect(tooLong.body.invoice.lines[0]?.note).toHaveLength(500);
   });
 
-  it("rejects malformed content with the failing fields", async () => {
-    const bad = await owner.json<{ detail: string }>("/api/invoices", {
-      body: body({ invoiceDate: "2030-02-31", lines: [line({ quantityMilli: 0 })] }),
+  it("stores incomplete or malformed content as far as it can, never rejecting a save", async () => {
+    const bad = await owner.json<Invoice>("/api/invoices", {
+      body: {
+        ...body({ invoiceDate: "2030-02-31", lines: [line({ quantityMilli: null })] }),
+        editorForm: { lines: [{ description: "x", quantity: "abc", price: "1,2,3" }] },
+      },
     });
-    expect(bad.status).toBe(400);
-    expect(bad.body.detail).toContain("invoiceDate: invalid_date");
-    expect(bad.body.detail).toContain("lines.0.quantityMilli");
-    const unknownClient = await owner.json<{ detail: string }>("/api/invoices", {
+    expect(bad.status).toBe(201);
+    expect(bad.body.invoice).toMatchObject({ invoiceDate: null, state: "draft" });
+    expect(bad.body.invoice.lines[0]?.quantityMilli).toBe(0);
+    // The raw text comes back exactly as typed.
+    expect(bad.body.invoice.editorForm).toEqual({
+      lines: [{ description: "x", quantity: "abc", price: "1,2,3" }],
+    });
+    const empty = await owner.json<Invoice>("/api/invoices", {
+      body: body({ clientId: null, lines: [], currency: "" }),
+    });
+    expect(empty.status).toBe(201);
+    // A client that no longer exists cannot be stored: the invoice keeps no client.
+    const unknownClient = await owner.json<Invoice>("/api/invoices", {
       body: body({ clientId: "nope" }),
     });
-    expect(unknownClient.body.detail).toBe("clientId: not_found");
+    expect(unknownClient.body.invoice.clientId).toBeNull();
+    const notAnInvoice = await owner.json("/api/invoices", { body: { lines: "x" } });
+    expect(notAnInvoice.status).toBe(400);
+    const hugeForm = await owner.json("/api/invoices", {
+      body: { ...body(), editorForm: { text: "x".repeat(250_000) } },
+    });
+    expect(hugeForm.status).toBe(400);
   });
 
   it("duplicates into a new unnumbered draft", async () => {
@@ -372,11 +391,11 @@ describe("invoice number on the invoice", () => {
       body: { name: "Svizzera", prefix: "", suffix: "/CH" },
     });
     const seriesId = created.body.series.id;
-    const unknown = await owner.json<{ detail: string }>("/api/invoices", {
+    // A series that does not exist cannot be stored: the invoice falls back to the default one.
+    const unknown = await owner.json<Invoice>("/api/invoices", {
       body: body({ seriesId: "nope" }),
     });
-    expect(unknown.status).toBe(400);
-    expect(unknown.body.detail).toContain("seriesId: not_found");
+    expect(unknown.body.invoice.seriesId).toBe("default");
     expect((await owner.json("/api/invoices/next-number?series=nope")).status).toBe(400);
 
     const swiss = await create({ seriesId });
@@ -403,7 +422,7 @@ describe("invoice number on the invoice", () => {
     expect(moved.status).toBe(409);
   });
 
-  it("stores the requested number on a draft, validates it and clears an empty one", async () => {
+  it("stores the requested number on a draft, drops an unusable one and clears an empty one", async () => {
     const invoice = await create({ requestedNumber: 300 });
     expect(invoice.requestedNumber).toBe(300);
     const cleared = await owner.json<Invoice>(`/api/invoices/${invoice.id}`, {
@@ -412,8 +431,8 @@ describe("invoice number on the invoice", () => {
     });
     expect(cleared.body.invoice.requestedNumber).toBeNull();
     for (const bad of [0, -2, 1.5, 1_000_000_000]) {
-      const refused = await owner.json("/api/invoices", { body: body({ requestedNumber: bad }) });
-      expect(refused.status).toBe(400);
+      // Not storable as a number: kept as none (the typed text stays in the editor form).
+      expect((await create({ requestedNumber: bad })).requestedNumber).toBeNull();
     }
     // A duplicate never inherits the number.
     await owner.json(`/api/invoices/${invoice.id}`, {

@@ -8,6 +8,7 @@ import {
   invoiceInputSchema,
   invoiceIssuableSchema,
   issueMap,
+  parseInvoiceDraft,
   parseQuantityMilli,
   REJECTION_WINDOW_DAYS,
   rejectionDeadline,
@@ -206,5 +207,54 @@ describe("SdI error code fields", () => {
     // 00400/00401 Natura against AliquotaIVA.
     for (const code of ["00400", "00401"]) expect(SDI_ERROR_FIELDS[code], code).toBe("lines");
     expect(SDI_ERROR_FIELDS["00423"]).toBeUndefined();
+  });
+});
+
+describe("parseInvoiceDraft", () => {
+  it("takes a valid invoice exactly as the strict schema reads it", () => {
+    const valid = input();
+    expect(parseInvoiceDraft(valid)).toEqual(invoiceInputSchema.parse(valid));
+  });
+
+  it("stores an incomplete or unreadable invoice as far as it can, without judging it", () => {
+    const draft = parseInvoiceDraft({
+      ...input(),
+      clientId: null,
+      currency: "e",
+      invoiceDate: "2030-02-31",
+      requestedNumber: 0,
+      lines: [
+        {
+          description: "  Work ",
+          quantityMilli: null,
+          unitPriceCents: null,
+          vatRateBp: 99999,
+          natura: "N9.9",
+        },
+      ],
+      data: { cassa: { type: "TC01", rateBp: null }, bollo: "yes", payment: { iban: 5 } },
+    });
+    expect(draft).toMatchObject({
+      clientId: null,
+      currency: "E",
+      invoiceDate: null,
+      requestedNumber: null,
+      data: { cassa: null, bollo: false, payment: { iban: null, terms: null } },
+    });
+    expect(draft?.lines[0]).toEqual({
+      description: "Work",
+      note: "",
+      quantityMilli: 0,
+      unit: null,
+      unitPriceCents: 0,
+      vatRateBp: null,
+      natura: null,
+    });
+  });
+
+  it("refuses only what is not an invoice at all", () => {
+    expect(parseInvoiceDraft(null)).toBeNull();
+    expect(parseInvoiceDraft({ lines: "x" })).toBeNull();
+    expect(parseInvoiceDraft({ lines: Array.from({ length: 501 }, () => ({})) })).toBeNull();
   });
 });

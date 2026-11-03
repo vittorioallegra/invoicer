@@ -152,8 +152,14 @@ const milliToText = (milli: number) => String(milli / 1000).replace(".", ",");
 const lineVat = (line: Pick<InvoiceLine, "natura" | "vatRateBp">) =>
   line.natura ? `natura:${line.natura}` : line.vatRateBp ? `rate:${line.vatRateBp}` : "";
 
-/** The editor state of a stored invoice. */
+/** The editor state of a stored invoice; an unsent one reopens with the raw text as it was typed. */
 export function fromRecord(record: InvoiceRecord): InvoiceForm {
+  const stored = fromStored(record);
+  const unsent = record.state === "draft" || record.state === "planned";
+  return unsent ? restoreForm(record.editorForm, stored) : stored;
+}
+
+function fromStored(record: InvoiceRecord): InvoiceForm {
   const { data } = record;
   return {
     documentType: record.documentType,
@@ -193,6 +199,62 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
     accountHolder: data.payment.accountHolder ?? "",
     bankName: data.payment.bankName ?? "",
   };
+}
+
+/**
+ * The form saved with an unsent invoice (`editorForm`), read defensively: a field of the wrong
+ * type, or any field when the whole value is not an object, takes the fallback's value.
+ */
+export function restoreForm(raw: unknown, fallback: InvoiceForm): InvoiceForm {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return fallback;
+  const saved = raw as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...fallback };
+  for (const key of Object.keys(fallback) as (keyof InvoiceForm)[]) {
+    if (key === "lines" || key === "naturaTexts") continue;
+    if (typeof saved[key] === typeof fallback[key]) out[key] = saved[key];
+  }
+  if (Array.isArray(saved.lines)) {
+    out.lines = saved.lines.map((item) => {
+      const line = (typeof item === "object" && item !== null ? item : {}) as Record<
+        string,
+        unknown
+      >;
+      const base = emptyLine();
+      const text = (key: Exclude<keyof LineForm, "key">) =>
+        typeof line[key] === "string" ? (line[key] as string) : base[key];
+      return {
+        ...base,
+        description: text("description"),
+        note: text("note"),
+        quantity: text("quantity"),
+        unit: text("unit"),
+        price: text("price"),
+        vat: text("vat"),
+      };
+    });
+  }
+  const texts = saved.naturaTexts;
+  if (typeof texts === "object" && texts !== null && !Array.isArray(texts)) {
+    out.naturaTexts = Object.fromEntries(
+      Object.entries(texts).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
+  }
+  return out as unknown as InvoiceForm;
+}
+
+/**
+ * The body of a save: what the form says as far as it can be read, plus the form itself as typed
+ * (`editorForm`). Saving never validates; unreadable amounts are NaN here and the Worker stores
+ * them as 0, while the raw text stays in `editorForm`.
+ */
+export function draftBody(
+  form: InvoiceForm,
+  proposal: number | null = null,
+  today: string = romeDateTime(new Date()).date,
+): InvoiceInput & { editorForm: InvoiceForm } {
+  return { ...buildInvoice(form, proposal, today).input, editorForm: form };
 }
 
 /** The form fields for stored terms (null = no terms). */

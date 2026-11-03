@@ -78,6 +78,13 @@
       "when": 1793711440262,
       "tag": "0010_rename_default_series",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1793715520039,
+      "tag": "0011_sleepy_pete_wisdom",
+      "breakpoints": true
     }
   ]
 }

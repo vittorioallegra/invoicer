@@ -31,6 +31,7 @@ const base: InvoiceRecord = {
   reissuesInvoiceId: null,
   lines: [],
   data: EMPTY_INVOICE_DATA,
+  editorForm: null,
   numberReserved: false,
   releasable: false,
   rejection: null,

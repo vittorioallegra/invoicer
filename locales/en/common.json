@@ -453,7 +453,6 @@
     "issuedOn": "Issued {{date}}",
     "saved": "Saved.",
     "readOnly": "This invoice has been issued and can no longer be edited. You can still set its payment status.",
-    "fixErrors": "Fix the highlighted fields to save.",
     "errors": {
       "locked": "This invoice can no longer be edited."
     },

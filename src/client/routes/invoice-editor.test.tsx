@@ -159,6 +159,7 @@ function record(over: Partial<InvoiceRecord> = {}): InvoiceRecord {
       },
     ],
     data: EMPTY_INVOICE_DATA,
+    editorForm: null,
     numberReserved: false,
     releasable: false,
     rejection: null,
@@ -411,7 +412,7 @@ describe("Invoice editor", () => {
     expect(screen.getByText("€100.00")).toBeTruthy();
   });
 
-  it("validates inline: required fields after a save attempt, malformed ones at once", async () => {
+  it("shows problems as hints but saves whatever was typed, keeping the raw text", async () => {
     serve();
     await renderEditor();
     await loaded();
@@ -420,8 +421,16 @@ describe("Invoice editor", () => {
     expect(screen.getByText(/Enter an amount such as/)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByText("Fix the highlighted fields to save.")).toBeTruthy();
-    expect(mocks.api).not.toHaveBeenCalledWith("/api/invoices", expect.anything());
+    await waitFor(() =>
+      expect(mocks.api).toHaveBeenCalledWith(
+        "/api/invoices",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    const call = mocks.api.mock.calls.find(
+      ([path, init]) => path === "/api/invoices" && init?.method,
+    );
+    expect(JSON.parse(call?.[1].body).editorForm.lines[0].price).toBe("1,2,3");
   });
 
   it("applies the client type rules and points at the client", async () => {
