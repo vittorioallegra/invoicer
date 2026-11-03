@@ -47,6 +47,7 @@ import { Select } from "../components/ui/select";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Textarea } from "../components/ui/textarea";
 import { toast } from "../components/ui/toast";
+import { INVOICE_LIST_BACK } from "../lib/back-links";
 import { clientsQuery } from "../lib/clients-api";
 import { buildUnsentXml, downloadUrl, renderUnsentPdf, saveFile } from "../lib/invoice-download";
 import {
@@ -147,7 +148,10 @@ export function InvoiceEditorPage() {
   }
 
   return (
-    <Page title={t(invoiceId ? "invoice.editTitle" : "invoice.newTitle")}>
+    <Page
+      title={t(invoiceId ? "invoice.editTitle" : "invoice.newTitle")}
+      back={INVOICE_LIST_BACK.unsent}
+    >
       {failed ? (
         <Banner
           tone="danger"
@@ -575,6 +579,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
       title={t(record ? "invoice.editTitle" : "invoice.newTitle")}
       subtitle={printedNumber}
       aside={titleActions}
+      back={unsent || !record ? INVOICE_LIST_BACK.unsent : INVOICE_LIST_BACK.issued}
     >
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
         {record ? (

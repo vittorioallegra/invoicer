@@ -223,6 +223,12 @@ const field = (label: string | RegExp) =>
     : screen.getByLabelText(label);
 const type = (label: string | RegExp, value: string) =>
   fireEvent.change(field(label), { target: { value } });
+/** The link above the title (the app navigation has links of the same name). */
+const backLink = (name: string) => {
+  const link = screen.getAllByRole("link", { name }).find((l) => !l.closest("nav"));
+  if (!link) throw new Error(`no back link ${name}`);
+  return link;
+};
 const loaded = () => screen.findByRole("combobox", { name: "Client" });
 
 beforeEach(() => {
@@ -755,6 +761,18 @@ describe("Invoice editor", () => {
     // Deleting still asks for a confirmation first.
     fireEvent.click(remove);
     expect(screen.getByRole("button", { name: "Confirm delete" })).toBeTruthy();
+  });
+
+  it("starts with a back link to the list the invoice belongs to", async () => {
+    serve({ invoice: record() });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect(backLink("Home").getAttribute("href")).toBe("/");
+    cleanup();
+    serve({ invoice: record({ state: "delivered", number: "7", year: 2026 }) });
+    await renderEditor("/invoices/i1");
+    await screen.findByText("Delivered");
+    expect(backLink("Issued").getAttribute("href")).toBe("/issued");
   });
 
   it("opens the Download menu with PDF, XML and the AdE preparation, closes it with Escape", async () => {

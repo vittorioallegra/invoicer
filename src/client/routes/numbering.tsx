@@ -17,6 +17,7 @@ import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { Sheet } from "../components/ui/sheet";
 import { toast } from "../components/ui/toast";
+import { SETTINGS_BACK } from "../lib/back-links";
 import { useOnline } from "../lib/online";
 import {
   createNumberingSeries,
@@ -225,7 +226,7 @@ export function NumberingPage() {
   );
 
   return (
-    <Page title={t("numbering.title")} backToSettings>
+    <Page title={t("numbering.title")} back={SETTINGS_BACK}>
       <p className="max-w-2xl text-sm text-muted-foreground">{t("numbering.intro")}</p>
       {query.isPending ? (
         <p role="status" className="text-sm text-muted-foreground">

@@ -10,6 +10,7 @@ import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { toast } from "../components/ui/toast";
+import { SETTINGS_BACK } from "../lib/back-links";
 import { useOnline } from "../lib/online";
 import { fieldErrors, fieldErrorsFromDetail, putJson, settingsQuery } from "../lib/settings-api";
 import { useDirty } from "../lib/use-dirty";
@@ -82,7 +83,7 @@ export function EmailSettingsPage() {
   const defaultName = query.data?.email.defaultSenderName ?? undefined;
 
   return (
-    <Page title={t("email.title")} backToSettings>
+    <Page title={t("email.title")} back={SETTINGS_BACK}>
       <p className="text-sm text-muted-foreground">{t("email.intro")}</p>
       {query.isPending ? (
         <p role="status" className="text-sm text-muted-foreground">

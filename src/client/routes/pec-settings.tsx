@@ -9,6 +9,7 @@ import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { toast } from "../components/ui/toast";
 import { api } from "../lib/api";
+import { SETTINGS_BACK } from "../lib/back-links";
 import { useOnline } from "../lib/online";
 import { putJson, settingsQuery } from "../lib/settings-api";
 import { useDirty } from "../lib/use-dirty";
@@ -186,7 +187,7 @@ export function PecSettingsPage() {
     set ? t("settings.configured") : t("settings.notConfigured");
 
   return (
-    <Page title={t("pec.title")} backToSettings>
+    <Page title={t("pec.title")} back={SETTINGS_BACK}>
       <div className="max-w-2xl space-y-6">
         {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
         <section className="space-y-3">

@@ -4,6 +4,7 @@ import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
 import { toast } from "../components/ui/toast";
+import { SETTINGS_BACK } from "../lib/back-links";
 import { useOnline } from "../lib/online";
 import { putJson, settingsQuery } from "../lib/settings-api";
 
@@ -28,7 +29,7 @@ export function AdeGuidePage() {
   const done = query.data?.adeGuideDone ?? false;
 
   return (
-    <Page title={t("ade.title")} backToSettings>
+    <Page title={t("ade.title")} back={SETTINGS_BACK}>
       <p className="max-w-2xl text-sm text-muted-foreground">{t("ade.intro")}</p>
       <ol className="flex max-w-2xl list-decimal flex-col gap-4 pl-5">
         {STEPS.map((step) => (

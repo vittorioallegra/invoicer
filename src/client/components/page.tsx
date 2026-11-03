@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import type { BackLink } from "../lib/back-links";
 import { cn } from "../lib/utils";
 import { buttonVariants } from "./ui/button";
 
@@ -10,7 +11,7 @@ export function Page({
   subtitle,
   aside,
   children,
-  backToSettings = false,
+  back,
 }: {
   title: string;
   /** Under the title (for example a document number). */
@@ -18,19 +19,19 @@ export function Page({
   /** Right-aligned on the title row (for example the page actions). */
   aside?: ReactNode;
   children: ReactNode;
-  /** Settings sub-pages: show a "Settings" link above the title. */
-  backToSettings?: boolean;
+  /** A link above the title that leads back to where the user came from (see `back-links.ts`). */
+  back?: BackLink;
 }) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-6">
-      {backToSettings ? (
+      {back ? (
         <Link
-          to="/settings"
+          to={back.to}
           className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-3 -mb-3 w-fit")}
         >
           <ChevronLeft aria-hidden />
-          {t("pages.settings.title")}
+          {t(back.labelKey)}
         </Link>
       ) : null}
       {aside || subtitle ? (

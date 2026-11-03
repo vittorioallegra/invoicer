@@ -10,6 +10,7 @@ import { Field } from "../components/ui/field";
 import { GroupBox } from "../components/ui/group-box";
 import { Input } from "../components/ui/input";
 import { toast } from "../components/ui/toast";
+import { SETTINGS_BACK } from "../lib/back-links";
 import { useOnline } from "../lib/online";
 import {
   fieldErrors,
@@ -130,7 +131,7 @@ export function ProfilePage() {
   }
 
   return (
-    <Page title={t("profile.title")} backToSettings>
+    <Page title={t("profile.title")} back={SETTINGS_BACK}>
       <p className="text-sm text-muted-foreground">{t("profile.intro")}</p>
       {query.isPending ? (
         <p role="status" className="text-sm text-muted-foreground">

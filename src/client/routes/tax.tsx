@@ -24,6 +24,7 @@ import { GroupBox } from "../components/ui/group-box";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { toast } from "../components/ui/toast";
+import { SETTINGS_BACK } from "../lib/back-links";
 import { bpToText, percentToBp } from "../lib/invoice-form";
 import { useOnline } from "../lib/online";
 import {
@@ -155,7 +156,7 @@ export function TaxPage() {
   const noProfile = query.data !== undefined && query.data.tax.regimeFiscale === null;
 
   return (
-    <Page title={t("tax.title")} backToSettings>
+    <Page title={t("tax.title")} back={SETTINGS_BACK}>
       <p className="text-sm text-muted-foreground">{t("tax.intro")}</p>
       {query.isPending ? (
         <p role="status" className="text-sm text-muted-foreground">
