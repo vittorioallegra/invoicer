@@ -200,8 +200,8 @@ settle the open ones):
   field errors stay as hints and never block. **Finalize runs every check**, then numbers and
   sends (below). The Worker repeats the issuing rules before it reserves the number.
 - Editor actions. Before finalisation the title row has one primary "Finalize" button (no Download
-  yet) and under the form are Delete (left, ghost, red, with a confirmation) and Duplicate and
-  Save (right). "Finalize" opens a confirmation dialog: the invoice will be checked (complete
+  yet) is led by "Duplicate" (first, leftmost button of the group) and under the form are
+  Delete (left, ghost, red, with a confirmation) and Save (right). "Finalize" opens a confirmation dialog: the invoice will be checked (complete
   client, VAT or natura on every line, natura texts, totals, number rules, the built XML against
   the XSD, send readiness) and, if valid, numbered, finalised and sent. Confirming runs the
   checks that need no number first: when any fails, the dialog lists them (each with a link that
@@ -210,9 +210,18 @@ settle the open ones):
   and store XML and PDF, passkey or authenticator code, send). The channel is the PEC when it is
   ready; otherwise the manual AdE channel: the invoice is numbered and finalised, the XML is
   stored for the owner to upload on the AdE portal (the invoice page offers it) and nothing is
-  sent by the app. After finalisation the Finalize button is gone, the title row has "Download"
-  (PDF and XML, the stored files), and the bottom has only "Duplicate" (and "Create credit
-  note" for an issued invoice); the payment status section stays editable. A rejected invoice
+  sent by the app. After finalisation the Finalize button is gone and the title row has, in this
+  order, "Duplicate", "Create credit note" (issued invoices), "Record payment" (not for credit
+  notes) and "Download" (PDF and XML, the stored files); the bottom has no buttons. Payment:
+  next to the state badge a finalised invoice shows a "Paid" chip (with "Paid on <date>" as its
+  tooltip and accessible detail) or an "Unpaid" chip; "Record payment" opens a small dialog with
+  the payment date (default today, Europe/Rome) and Cancel / Save (disabled until the date is
+  valid); for a paid invoice the button is "Undo payment", with a confirmation, and sets it back
+  to unpaid. There is no payment section and no transmission section on the invoice page (the
+  attempts are not listed); only what needs an action stays, such as a send that was not completed
+  or whose outcome is unknown and the manual-channel outcome buttons. In the line cards the move
+  up/down and remove controls show only before finalisation and only with two or more lines;
+  the line amount is right-aligned with its label. A rejected invoice
   stays editable: "Fix & resend" replaces Finalize and Save stays. **Every Save button in the
   app is disabled until the form differs from what was loaded or last saved** (new-item forms:
   until something is entered). An invoice page starts with a back link to its list (always the Invoices
@@ -367,8 +376,8 @@ settle the open ones):
   than one series exists, and the series is fixed once the number is reserved. The proposed
   and requested number rules, the date order check and the release rule all apply per series
   and year.
-- Sent, delivered and not_delivered invoices are read-only (only the payment status
-  changes).
+- Sent, delivered and not_delivered invoices are read-only (only the payment status, recorded
+  from the title row, changes).
 - Duplicate an existing invoice into a new unsent invoice.
 
 ### 3a. Credit notes (TD04)
