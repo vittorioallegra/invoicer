@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CircleCheck, Loader2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../shared/errors";
 import { formatDate } from "../../shared/format";
@@ -109,6 +109,17 @@ export function SendSheet({
     },
     onError: (failure) => onError?.(failure),
   });
+
+  // Each opening starts clean: the error and the problems of an earlier attempt are not shown
+  // again (the owner may have fixed them meanwhile).
+  const { reset } = run;
+  useEffect(() => {
+    if (!open) return;
+    reset();
+    setProblems([]);
+    setTotp("");
+    setUseTotp(false);
+  }, [open, reset]);
 
   const error = run.error;
   const busy = run.isPending;

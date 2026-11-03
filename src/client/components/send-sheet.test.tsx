@@ -85,6 +85,43 @@ describe("SendSheet as the Finalize dialog", () => {
     expect(runSendFlow).not.toHaveBeenCalled();
   });
 
+  it("starts clean when reopened: no error or problem from an earlier attempt", async () => {
+    vi.mocked(runSendFlow).mockClear();
+    vi.mocked(runSendFlow).mockRejectedValueOnce(
+      new ApiError({
+        type: "about:blank",
+        title: "Conflict",
+        status: 409,
+        code: "conflict",
+        anchor: "error-conflict",
+        detail: "date_before_last_issue (2026-11-03)",
+      }),
+    );
+    const i18n = await createI18n("en");
+    const queryClient = new QueryClient();
+    const sheet = (open: boolean) => (
+      <I18nextProvider i18n={i18n}>
+        <QueryClientProvider client={queryClient}>
+          <SendSheet
+            invoiceId="i1"
+            open={open}
+            onOpenChange={() => {}}
+            summary={{ client: "Bianchi", total: "122.00", number: "" }}
+            onSent={() => {}}
+            channel="pec"
+            preflight={async () => ({ ok: true, invoiceId: "i1" })}
+          />
+        </QueryClientProvider>
+      </I18nextProvider>
+    );
+    const { rerender } = render(sheet(true));
+    fireEvent.click(screen.getByRole("button", { name: "Finalize and send with passkey" }));
+    expect(await screen.findByText(/already issued on 3 Nov 2026/)).toBeTruthy();
+    rerender(sheet(false));
+    rerender(sheet(true));
+    await waitFor(() => expect(screen.queryByText(/already issued on/)).toBeNull());
+  });
+
   it("runs the send flow for the invoice the preflight saved when every check passes", async () => {
     vi.mocked(runSendFlow).mockResolvedValue({ messageId: "m1", fileName: "IT1_00001.xml" });
     const onSent = vi.fn();
