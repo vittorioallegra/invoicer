@@ -696,7 +696,7 @@
     "naturaTitle": "Legal reference for transactions without VAT",
     "cassa": {
       "rivalsa_inps": "INPS contribution (rivalsa)",
-      "other": "Pension fund contribution ({{code}})",
+      "other": "Pension fund contribution {{label}}",
       "line": "{{label}} {{rate}}%",
       "included": "included in the amounts above",
       "excluded": "added to the amounts above"

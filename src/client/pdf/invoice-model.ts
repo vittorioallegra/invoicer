@@ -3,7 +3,7 @@ import type { FatturaClient, FatturaInput, FatturaIssuer } from "../../shared/fa
 import { FatturaBuildError, naturaFullText } from "../../shared/fatturapa";
 import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
 import { safeTotals } from "../../shared/invoice";
-import type { Natura, Totals } from "../../shared/totals";
+import { cassaTypeLabel, type Natura, type Totals } from "../../shared/totals";
 
 /** Everything the PDF prints; the same data the XML builder takes, plus the PDF language. */
 export type InvoicePdfInput = Omit<FatturaInput, "fileProgressive"> & { language: UiLocale };
@@ -136,7 +136,7 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
     const label =
       cassa.type === "rivalsa_inps"
         ? t("pdf.cassa.rivalsa_inps")
-        : t("pdf.cassa.other", { code: cassa.type });
+        : t("pdf.cassa.other", { label: cassaTypeLabel(cassa.type, language) });
     rows.push({
       label: `${t("pdf.cassa.line", { label, rate: number.format(cassa.rateBp / 100) })} (${t(
         cassa.mode === "included" ? "pdf.cassa.included" : "pdf.cassa.excluded",

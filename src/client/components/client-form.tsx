@@ -12,11 +12,16 @@ import {
   RITENUTA_TYPES,
 } from "../../shared/client";
 import { ApiError } from "../../shared/errors";
+import type { UiLocale } from "../../shared/format";
 import {
   CASSA_TYPE_CODES,
   type CassaType,
+  cassaTypeLabel,
   defaultCassaSubjectToRitenuta,
   NATURA_CODES,
+  naturaLabel,
+  ritenutaTypeLabel,
+  vatRateLabel,
 } from "../../shared/totals";
 import { createClient, deleteClient, updateClient } from "../lib/clients-api";
 import { countryName, countryOptions } from "../lib/countries";
@@ -200,6 +205,7 @@ export interface ClientFormProps {
 /** Create / edit form for a client; reusable inside a sheet (Clients screen, invoice editor). */
 export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormProps) {
   const { t, i18n } = useTranslation();
+  const locale: UiLocale = i18n.language.startsWith("it") ? "it" : "en";
   const online = useOnline();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<FormState>(client ? fromRecord(client) : EMPTY);
@@ -528,12 +534,12 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
                   <option value="">{t("clients.form.none")}</option>
                   {VAT_RATES.map((bp) => (
                     <option key={bp} value={`rate:${bp}`}>
-                      {t("clients.form.vatRate", { rate: bpToText(bp) })}
+                      {vatRateLabel(bp, locale)}
                     </option>
                   ))}
                   {NATURA_CODES.map((code) => (
                     <option key={code} value={`natura:${code}`}>
-                      {t("clients.form.exempt", { code })}
+                      {naturaLabel(code, locale)}
                     </option>
                   ))}
                 </Select>
@@ -544,10 +550,10 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
               {(c) => (
                 <Select {...c} value={form.cassaType} onChange={set("cassaType")}>
                   <option value="">{t("clients.form.none")}</option>
-                  <option value="rivalsa_inps">{t("clients.form.rivalsaInps")}</option>
+                  <option value="rivalsa_inps">{cassaTypeLabel("rivalsa_inps", locale)}</option>
                   {CASSA_TYPE_CODES.map((code) => (
                     <option key={code} value={code}>
-                      {code}
+                      {cassaTypeLabel(code, locale)}
                     </option>
                   ))}
                 </Select>
@@ -586,7 +592,7 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
                   <option value="">{t("clients.form.none")}</option>
                   {RITENUTA_TYPES.map((code) => (
                     <option key={code} value={code}>
-                      {code}
+                      {ritenutaTypeLabel(code, locale)}
                     </option>
                   ))}
                 </Select>

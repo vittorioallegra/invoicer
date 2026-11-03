@@ -21,7 +21,9 @@ import { maskIban, type PaymentMethodRecord } from "../../shared/payment-method"
 import {
   CASSA_TYPE_CODES,
   type CassaType,
+  cassaTypeLabel,
   defaultCassaSubjectToRitenuta,
+  ritenutaTypeLabel,
 } from "../../shared/totals";
 import { ClientSheet } from "../components/client-form";
 import { InvoiceDetail } from "../components/invoice-detail";
@@ -787,10 +789,10 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
                   }
                 >
                   <option value="">{t("clients.form.none")}</option>
-                  <option value="rivalsa_inps">{t("clients.form.rivalsaInps")}</option>
+                  <option value="rivalsa_inps">{cassaTypeLabel("rivalsa_inps", locale)}</option>
                   {CASSA_TYPE_CODES.map((code) => (
                     <option key={code} value={code}>
-                      {code}
+                      {cassaTypeLabel(code, locale)}
                     </option>
                   ))}
                 </Select>
@@ -839,7 +841,7 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
                   <option value="">{t("clients.form.none")}</option>
                   {RITENUTA_TYPES.map((code) => (
                     <option key={code} value={code}>
-                      {code}
+                      {ritenutaTypeLabel(code, locale)}
                     </option>
                   ))}
                 </Select>

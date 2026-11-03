@@ -696,7 +696,7 @@
     "naturaTitle": "Riferimento normativo per le operazioni senza IVA",
     "cassa": {
       "rivalsa_inps": "Rivalsa INPS",
-      "other": "Contributo cassa previdenziale ({{code}})",
+      "other": "Contributo cassa previdenziale {{label}}",
       "line": "{{label}} {{rate}}%",
       "included": "inclusa negli importi sopra",
       "excluded": "aggiunta agli importi sopra"

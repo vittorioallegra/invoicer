@@ -2,9 +2,8 @@ import { Plus, Trash2 } from "lucide-react";
 import { type ReactNode, useId } from "react";
 import { useTranslation } from "react-i18next";
 import { formatMoney, type UiLocale } from "../../shared/format";
-import { NATURA_CODES, type Totals } from "../../shared/totals";
+import { NATURA_CODES, naturaLabel, type Totals, vatRateLabel } from "../../shared/totals";
 import {
-  bpToText,
   emptyLine,
   type InvoiceForm,
   type LineForm,
@@ -170,17 +169,17 @@ export function InvoiceLines({
                     {line.vat.startsWith("rate:") &&
                     !(VAT_RATES as readonly number[]).includes(Number(line.vat.slice(5))) ? (
                       <option value={line.vat}>
-                        {t("clients.form.vatRate", { rate: bpToText(Number(line.vat.slice(5))) })}
+                        {vatRateLabel(Number(line.vat.slice(5)), locale)}
                       </option>
                     ) : null}
                     {VAT_RATES.map((bp) => (
                       <option key={bp} value={`rate:${bp}`}>
-                        {t("clients.form.vatRate", { rate: bpToText(bp) })}
+                        {vatRateLabel(bp, locale)}
                       </option>
                     ))}
                     {NATURA_CODES.map((code) => (
                       <option key={code} value={`natura:${code}`}>
-                        {t("clients.form.exempt", { code })}
+                        {naturaLabel(code, locale)}
                       </option>
                     ))}
                   </Select>

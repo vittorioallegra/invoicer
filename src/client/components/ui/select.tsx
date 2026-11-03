@@ -12,11 +12,11 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
  */
 export function Select({ className, ref, ...props }: SelectProps) {
   return (
-    <div className="relative w-full">
+    <div className="relative w-full min-w-0">
       <select
         ref={ref}
         className={cn(
-          "block min-h-11 w-full appearance-none rounded-control border border-border bg-surface py-2 pr-9 pl-3 text-foreground disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-danger",
+          "block min-h-11 w-full min-w-0 appearance-none text-ellipsis rounded-control border border-border bg-surface py-2 pr-9 pl-3 text-foreground disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-danger",
           className,
         )}
         {...props}
