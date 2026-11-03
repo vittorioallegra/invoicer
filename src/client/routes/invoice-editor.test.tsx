@@ -78,6 +78,15 @@ const ACCOUNTS = [
     accountHolder: "Mario Rossi",
     isDefault: true,
   },
+  {
+    id: "pm2",
+    label: "Revolut",
+    iban: "DE89370400440532013000",
+    bic: "REVODEB2",
+    bankName: "Revolut Bank",
+    accountHolder: "Mario Rossi",
+    isDefault: false,
+  },
 ];
 
 const ready = { ready: true, reasons: [] };
@@ -167,7 +176,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("Invoice editor", () => {
-  it("prefills a new invoice from the client defaults and the profile payment data", async () => {
+  it("prefills a new invoice from the client defaults and the default bank account", async () => {
     serve();
     await renderEditor();
     await loaded();
@@ -176,9 +185,8 @@ describe("Invoice editor", () => {
       "rivalsa_inps",
     );
     expect((screen.getByLabelText("Ritenuta") as HTMLSelectElement).value).toBe("RT01");
-    expect((screen.getByLabelText("IBAN") as HTMLInputElement).value).toBe(
-      "IT60X0542811101000000123456",
-    );
+    expect((screen.getByLabelText("Bank account") as HTMLSelectElement).value).toBe("pm1");
+    expect((screen.getByLabelText("Payment method") as HTMLSelectElement).value).toBe("MP05");
     expect((screen.getByLabelText("VAT") as HTMLSelectElement).value).toBe("rate:2200");
     // Payment terms of 30 days fill the due date.
     expect((screen.getByLabelText("Due date") as HTMLInputElement).value).toMatch(
@@ -212,8 +220,6 @@ describe("Invoice editor", () => {
     await renderEditor();
     await loaded();
     expect(screen.queryByText("This field is required.")).toBeNull();
-    type("IBAN", "IT00000000000000000000000");
-    expect(await screen.findByText("This IBAN is not valid.")).toBeTruthy();
     type("Unit price", "1,2,3");
     expect(screen.getByText(/Enter an amount such as/)).toBeTruthy();
 
@@ -279,6 +285,63 @@ describe("Invoice editor", () => {
     expect(await screen.findByText(/within 12 days of the operation date/)).toBeTruthy();
     fireEvent.click(screen.getByLabelText(/Deferred invoice/));
     expect(await screen.findByText(/by the 15th of the month after the operation/)).toBeTruthy();
+  });
+
+  it("offers the accounts and saves the chosen one as a copy on the invoice", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    const select = screen.getByLabelText("Bank account") as HTMLSelectElement;
+    expect([...select.options].map((o) => o.textContent)).toEqual([
+      "None",
+      "Fineco · IT60 •••• 3456",
+      "Revolut · DE89 •••• 3000",
+    ]);
+    type("Bank account", "pm2");
+    type("Client", "c1");
+    // Choosing a client does not override the chosen account.
+    expect(select.value).toBe("pm2");
+    type("Description", "Consulting");
+    type("Unit price", "50");
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await waitFor(() =>
+      expect(mocks.api).toHaveBeenCalledWith(
+        "/api/invoices",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    const call = mocks.api.mock.calls.find(([path]) => path === "/api/invoices");
+    const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
+    expect(body.data.payment).toEqual({
+      method: "MP05",
+      iban: "DE89370400440532013000",
+      bic: "REVODEB2",
+      bankName: "Revolut Bank",
+      accountHolder: "Mario Rossi",
+    });
+  });
+
+  it("keeps the details of a deleted account on an existing invoice", async () => {
+    const invoice = record({
+      data: {
+        ...EMPTY_INVOICE_DATA,
+        payment: {
+          method: "MP05",
+          iban: "FR1420041010050500013M02606",
+          bic: null,
+          accountHolder: null,
+          bankName: "Old Bank",
+        },
+      },
+    });
+    serve({ invoice });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    const select = screen.getByLabelText("Bank account") as HTMLSelectElement;
+    expect(select.selectedOptions[0]?.textContent).toBe("Old Bank · FR14 •••• 2606");
+    // Deleting later from Settings never reaches this copy; clearing it is explicit.
+    type("Bank account", "");
+    expect(select.value).toBe("");
   });
 
   it("saves a valid draft and keeps Send disabled with the blocking reasons", async () => {

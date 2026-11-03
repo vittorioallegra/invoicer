@@ -17,7 +17,7 @@ import {
   SDI_ERROR_FIELDS,
 } from "../../shared/invoice";
 import type { SendReadiness } from "../../shared/onboarding";
-import type { PaymentMethodRecord } from "../../shared/payment-method";
+import { maskIban, type PaymentMethodRecord } from "../../shared/payment-method";
 import {
   CASSA_TYPE_CODES,
   type CassaType,
@@ -72,6 +72,8 @@ import {
 } from "../lib/settings-api";
 import { renderInvoicePdfFor } from "../pdf/generate";
 
+/** Select value for payment details that match no current account. */
+const SNAPSHOT = "__snapshot__";
 const REQUIRED_LIKE = new Set(["required", "natura_text_required"]);
 
 export function InvoiceEditorPage() {
@@ -208,6 +210,26 @@ function EditorForm({ record, clients, profile, accounts, send }: EditorFormProp
       // Defaults prefill a new invoice only; an existing one keeps what it has.
       return record ? next : applyDefaults(next, chosen, profile, today);
     });
+  }
+
+  // The account select shows the account whose details the invoice carries; details that match
+  // no account (edited or deleted since) stay as they are under their own entry.
+  const matching = accounts.find(
+    (account) =>
+      account.iban === form.iban &&
+      (account.bic ?? "") === form.bic &&
+      (account.bankName ?? "") === form.bankName &&
+      (account.accountHolder ?? "") === form.accountHolder,
+  );
+  const accountValue = matching?.id ?? (form.iban ? SNAPSHOT : "");
+  function chooseAccount(event: { target: { value: string } }) {
+    const value = event.target.value;
+    if (value === SNAPSHOT) return;
+    setSaved(false);
+    setServerErrors({});
+    setForm((current) =>
+      withAccount(current, accounts.find((account) => account.id === value) ?? null),
+    );
   }
 
   function setLines(lines: LineForm[]) {
@@ -821,20 +843,26 @@ function EditorForm({ record, clients, profile, accounts, send }: EditorFormProp
                 </Select>
               )}
             </Field>
-            <Field label={t("paymentMethods.iban")} error={err("data.payment.iban")}>
-              {(c) => <Input {...c} value={form.iban} onChange={text("iban")} />}
-            </Field>
-            <Field label={t("paymentMethods.bic")} error={err("data.payment.bic")}>
-              {(c) => <Input {...c} value={form.bic} onChange={text("bic")} />}
-            </Field>
             <Field
-              label={t("paymentMethods.accountHolder")}
-              error={err("data.payment.accountHolder")}
+              label={t("invoice.payment.account")}
+              error={err("data.payment.iban") ?? err("data.payment.bic")}
+              {...(accounts.length === 0 ? { hint: t("invoice.payment.noAccounts") } : {})}
             >
-              {(c) => <Input {...c} value={form.accountHolder} onChange={text("accountHolder")} />}
-            </Field>
-            <Field label={t("paymentMethods.bankName")} error={err("data.payment.bankName")}>
-              {(c) => <Input {...c} value={form.bankName} onChange={text("bankName")} />}
+              {(c) => (
+                <Select {...c} value={accountValue} onChange={chooseAccount}>
+                  <option value="">{t("clients.form.none")}</option>
+                  {accountValue === SNAPSHOT ? (
+                    <option value={SNAPSHOT}>
+                      {form.bankName || t("invoice.payment.accountSaved")} · {maskIban(form.iban)}
+                    </option>
+                  ) : null}
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.label} · {maskIban(account.iban)}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </Field>
           </div>
         </section>

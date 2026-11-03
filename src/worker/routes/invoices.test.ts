@@ -128,6 +128,45 @@ describe("invoices API", () => {
     expect(copy.lines).toEqual(original.lines);
   });
 
+  it("keeps its own copy of the bank details when the account is changed or deleted", async () => {
+    const account = (
+      await owner.json<{ paymentMethod: { id: string } }>("/api/payment-methods", {
+        body: {
+          label: "Fineco",
+          iban: "IT60X0542811101000000123456",
+          bic: "",
+          bankName: "Fineco",
+          accountHolder: "",
+        },
+      })
+    ).body.paymentMethod;
+    const payment = {
+      method: "MP05",
+      iban: "IT60X0542811101000000123456",
+      bic: "",
+      bankName: "Fineco",
+      accountHolder: "",
+    };
+    const saved = await create({ data: { ...EMPTY_INVOICE_DATA, payment } });
+    await owner.json(`/api/payment-methods/${account.id}`, {
+      method: "PUT",
+      body: {
+        label: "Other",
+        iban: "DE89370400440532013000",
+        bic: "",
+        bankName: "Other",
+        accountHolder: "",
+      },
+    });
+    await owner.request(`/api/payment-methods/${account.id}`, { method: "DELETE" });
+    const again = (await owner.json<Invoice>(`/api/invoices/${saved.id}`)).body.invoice;
+    expect(again.data.payment).toMatchObject({
+      method: "MP05",
+      iban: "IT60X0542811101000000123456",
+      bankName: "Fineco",
+    });
+  });
+
   it("deletes a draft but never a numbered invoice", async () => {
     const draft = await create();
     expect((await owner.request(`/api/invoices/${draft.id}`, { method: "DELETE" })).status).toBe(

@@ -473,7 +473,10 @@
     },
     "payment": {
       "title": "Payment",
-      "method": "Payment method"
+      "method": "Payment method",
+      "account": "Bank account",
+      "accountSaved": "Saved on this invoice",
+      "noAccounts": "No bank account yet: add one in Settings, Payment methods."
     },
     "paymentMethods": {
       "MP01": "Cash",

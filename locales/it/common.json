@@ -473,7 +473,10 @@
     },
     "payment": {
       "title": "Pagamento",
-      "method": "Modalità di pagamento"
+      "method": "Modalità di pagamento",
+      "account": "Conto bancario",
+      "accountSaved": "Salvato su questa fattura",
+      "noAccounts": "Nessun conto bancario: aggiungine uno in Impostazioni, Metodi di pagamento."
     },
     "paymentMethods": {
       "MP01": "Contanti",

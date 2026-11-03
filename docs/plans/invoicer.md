@@ -465,6 +465,7 @@ Approved: yes (2026-11-02)
 - No notifications for non-SdI PEC messages: the app ignores them and the owner reads them in the Aruba app (2026-11-02).
 
 - Liquid Glass styling after Milestone A, as a dedicated step 14 once the real screens exist (2026-11-02, owner request).
+- Settings feedback (2026-11-03, owner): issuer profile renamed Company; payment data moved to a Payment methods page holding a list of bank accounts (MP05), one default; invoices snapshot the chosen account and start from the default; no per-client account; back link on every Settings page.
 - Step 14 (Liquid Glass) deferred to a later phase; the owner tests the app locally first, then work continues with step 15 (2026-11-03, owner).
 - Scheduling (2026-11-02): one cron trigger `*/10 * * * *` only; every run polls the mailbox and the daily jobs run once per Rome day from 09:00 Europe/Rome, tracked in `job_runs` with catch-up of missed ticks. No weekly job, no automatic backup and no monthly reminder: restore relies on D1 Time Travel and the manual "Download all data" export.
 
