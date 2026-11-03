@@ -38,7 +38,7 @@ export interface LineForm {
   /** Stable React key; not persisted. */
   key: string;
   description: string;
-  /** Optional note, shown behind "Add note" until used. */
+  /** Optional note under the line. */
   note: string;
   quantity: string;
   unit: string;

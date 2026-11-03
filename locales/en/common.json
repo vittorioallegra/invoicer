@@ -503,8 +503,10 @@
       "vat": "VAT",
       "amount": "Amount",
       "chooseVat": "Choose VAT",
-      "note": "Line note",
-      "removeNote": "Remove note",
+      "lineNumber": "Line {{n}}",
+      "moveUp": "Move up line {{n}}",
+      "moveDown": "Move down line {{n}}",
+      "noteOptional": "Note (optional)",
       "add": "Add line",
       "remove": "Remove line {{n}}"
     },

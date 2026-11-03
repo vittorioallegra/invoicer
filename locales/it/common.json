@@ -503,8 +503,10 @@
       "vat": "IVA",
       "amount": "Importo",
       "chooseVat": "Scegli l'IVA",
-      "note": "Nota della riga",
-      "removeNote": "Rimuovi nota",
+      "lineNumber": "Riga {{n}}",
+      "moveUp": "Sposta su riga {{n}}",
+      "moveDown": "Sposta giù riga {{n}}",
+      "noteOptional": "Nota (facoltativa)",
       "add": "Aggiungi riga",
       "remove": "Rimuovi riga {{n}}"
     },

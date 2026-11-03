@@ -1,5 +1,5 @@
-import { Plus, StickyNote, Trash2, X } from "lucide-react";
-import { type ReactNode, useId, useState } from "react";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { type ReactNode, useEffect, useId, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { formatMoney, type UiLocale } from "../../shared/format";
 import { NATURA_CODES, naturaLabel, vatRateLabel } from "../../shared/totals";
@@ -14,8 +14,6 @@ interface CellProps {
   label: string;
   error?: string | undefined;
   className?: string;
-  /** Keep the label visible in the desktop table too (fields outside the table columns). */
-  labelVisible?: boolean;
   children: (control: {
     id: string;
     "aria-invalid": true | undefined;
@@ -23,16 +21,13 @@ interface CellProps {
   }) => ReactNode;
 }
 
-/** Label above the control on a phone (stacked card); visually hidden in the desktop table. */
-function Cell({ label, error, className, labelVisible, children }: CellProps) {
+/** A labelled control with its error under it. */
+function Cell({ label, error, className, children }: CellProps) {
   const id = useId();
   const errorId = `${id}-error`;
   return (
     <div className={className}>
-      <label
-        htmlFor={id}
-        className={`mb-1 block text-sm font-medium ${labelVisible ? "" : "md:sr-only"}`}
-      >
+      <label htmlFor={id} className="mb-1 block text-sm font-medium">
         {label}
       </label>
       {children({
@@ -49,9 +44,6 @@ function Cell({ label, error, className, labelVisible, children }: CellProps) {
   );
 }
 
-const COLUMNS =
-  "md:grid md:grid-cols-[minmax(0,3fr)_5rem_4.5rem_9rem_10rem_7rem_2.75rem] md:items-start md:gap-2";
-
 export interface InvoiceLinesProps {
   form: InvoiceForm;
   /** Amount of each line in cents, by position (see `formLineAmounts`). */
@@ -63,7 +55,7 @@ export interface InvoiceLinesProps {
   disabled: boolean;
 }
 
-/** Lines as stacked cards on a phone and as a table on wider screens. */
+/** Lines as bordered cards: description, a grid of the other fields, then the note. */
 export function InvoiceLines({
   form,
   amounts,
@@ -74,49 +66,92 @@ export function InvoiceLines({
 }: InvoiceLinesProps) {
   const { t } = useTranslation();
   const currency = form.currency.toUpperCase();
-  // The note editor of a line is closed until its icon is used; a note that has text then shows
-  // as compact text under the line.
-  const [noteOpen, setNoteOpen] = useState<ReadonlySet<string>>(new Set());
-  const setNote = (key: string, open: boolean) =>
-    setNoteOpen((current) => {
-      const next = new Set(current);
-      if (open) next.add(key);
-      else next.delete(key);
-      return next;
-    });
+  const listId = useId();
+  // After a move the keyed card is re-inserted, which drops focus: put it back on the same
+  // control (or its sibling when that one is now disabled at the end of the list).
+  const refocus = useRef<{ key: string; direction: "up" | "down" } | null>(null);
+  useEffect(() => {
+    const target = refocus.current;
+    if (!target) return;
+    refocus.current = null;
+    const own = document.getElementById(`${listId}-${target.key}-${target.direction}`);
+    const other = document.getElementById(
+      `${listId}-${target.key}-${target.direction === "up" ? "down" : "up"}`,
+    );
+    const next = own && !(own as HTMLButtonElement).disabled ? own : other;
+    next?.focus();
+  });
 
   const update = (key: string, patch: Partial<LineForm>) =>
     onChange(form.lines.map((line) => (line.key === key ? { ...line, ...patch } : line)));
 
+  function move(index: number, direction: "up" | "down") {
+    const target = direction === "up" ? index - 1 : index + 1;
+    const lines = [...form.lines];
+    const [line] = lines.splice(index, 1);
+    if (!line) return;
+    lines.splice(target, 0, line);
+    refocus.current = { key: line.key, direction };
+    onChange(lines);
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      <div
-        aria-hidden
-        className={`hidden border-b border-border pb-2 text-sm font-medium text-muted-foreground ${COLUMNS}`}
-      >
-        <span>{t("invoice.lines.description")}</span>
-        <span>{t("invoice.lines.quantity")}</span>
-        <span>{t("invoice.lines.unit")}</span>
-        <span>{t("invoice.lines.price")}</span>
-        <span>{t("invoice.lines.vat")}</span>
-        <span className="text-right">{t("invoice.lines.amount")}</span>
-        <span />
-      </div>
       {error("lines") ? (
         <p role="alert" className="text-sm text-danger">
           {error("lines")}
         </p>
       ) : null}
-      <ul className="flex flex-col gap-3 md:gap-0">
+      <ul className="flex flex-col gap-3">
         {form.lines.map((line, index) => {
           const path = (field: string) => `lines.${index}.${field}`;
           const amount = amounts[index];
+          const last = index === form.lines.length - 1;
           return (
             <li
               key={line.key}
               data-testid="invoice-line"
-              className={`flex flex-col gap-3 rounded-card border border-border p-3 md:rounded-none md:border-0 md:border-b md:px-0 md:py-2 ${COLUMNS}`}
+              className="flex flex-col gap-3 rounded-card border border-border p-3"
             >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  {t("invoice.lines.lineNumber", { n: index + 1 })}
+                </span>
+                <div className="flex items-center">
+                  <Button
+                    id={`${listId}-${line.key}-up`}
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={disabled || index === 0}
+                    aria-label={t("invoice.lines.moveUp", { n: index + 1 })}
+                    onClick={() => move(index, "up")}
+                  >
+                    <ArrowUp aria-hidden />
+                  </Button>
+                  <Button
+                    id={`${listId}-${line.key}-down`}
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={disabled || last}
+                    aria-label={t("invoice.lines.moveDown", { n: index + 1 })}
+                    onClick={() => move(index, "down")}
+                  >
+                    <ArrowDown aria-hidden />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={disabled || form.lines.length === 1}
+                    aria-label={t("invoice.lines.remove", { n: index + 1 })}
+                    onClick={() => onChange(form.lines.filter((l) => l.key !== line.key))}
+                  >
+                    <Trash2 aria-hidden />
+                  </Button>
+                </div>
+              </div>
               <Cell label={t("invoice.lines.description")} error={error(path("description"))}>
                 {(c) => (
                   <Input
@@ -127,8 +162,12 @@ export function InvoiceLines({
                   />
                 )}
               </Cell>
-              <div className="grid grid-cols-2 gap-3 md:contents">
-                <Cell label={t("invoice.lines.quantity")} error={error(path("quantityMilli"))}>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-12">
+                <Cell
+                  label={t("invoice.lines.quantity")}
+                  error={error(path("quantityMilli"))}
+                  className="md:col-span-2"
+                >
                   {(c) => (
                     <Input
                       {...c}
@@ -139,7 +178,11 @@ export function InvoiceLines({
                     />
                   )}
                 </Cell>
-                <Cell label={t("invoice.lines.unit")} error={error(path("unit"))}>
+                <Cell
+                  label={t("invoice.lines.unit")}
+                  error={error(path("unit"))}
+                  className="md:col-span-2"
+                >
                   {(c) => (
                     <Input
                       {...c}
@@ -150,134 +193,76 @@ export function InvoiceLines({
                     />
                   )}
                 </Cell>
+                <Cell
+                  label={t("invoice.lines.price")}
+                  error={error(path("unitPriceCents"))}
+                  className="col-span-2 md:col-span-3"
+                >
+                  {(c) => (
+                    <MoneyInput
+                      {...c}
+                      value={line.price}
+                      currency={currency}
+                      disabled={disabled}
+                      onValueChange={(price) => update(line.key, { price })}
+                    />
+                  )}
+                </Cell>
+                <Cell
+                  label={t("invoice.lines.vat")}
+                  error={error(path("vat")) ?? error(path("natura"))}
+                  className="col-span-2 md:col-span-3"
+                >
+                  {(c) => (
+                    <Select
+                      {...c}
+                      value={line.vat}
+                      disabled={disabled}
+                      onChange={(e) => update(line.key, { vat: e.target.value })}
+                    >
+                      {line.vat === "" ? (
+                        <option value="">{t("invoice.lines.chooseVat")}</option>
+                      ) : null}
+                      {line.vat.startsWith("rate:") &&
+                      !(VAT_RATES as readonly number[]).includes(Number(line.vat.slice(5))) ? (
+                        <option value={line.vat}>
+                          {vatRateLabel(Number(line.vat.slice(5)), locale)}
+                        </option>
+                      ) : null}
+                      {VAT_RATES.map((bp) => (
+                        <option key={bp} value={`rate:${bp}`}>
+                          {vatRateLabel(bp, locale)}
+                        </option>
+                      ))}
+                      {NATURA_CODES.map((code) => (
+                        <option key={code} value={`natura:${code}`}>
+                          {naturaLabel(code, locale)}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </Cell>
+                <div className="col-span-2 md:col-span-2">
+                  <span className="mb-1 block text-sm font-medium">
+                    {t("invoice.lines.amount")}
+                  </span>
+                  <p className="flex min-h-11 items-center font-medium tabular-nums md:justify-end">
+                    {amount === undefined ? "–" : formatMoney(amount, locale, currency)}
+                  </p>
+                </div>
               </div>
-              <Cell label={t("invoice.lines.price")} error={error(path("unitPriceCents"))}>
+              <Cell label={t("invoice.lines.noteOptional")} error={error(path("note"))}>
                 {(c) => (
-                  <MoneyInput
+                  <Textarea
                     {...c}
-                    value={line.price}
-                    currency={currency}
+                    rows={2}
+                    value={line.note}
                     disabled={disabled}
-                    onValueChange={(price) => update(line.key, { price })}
+                    className="min-h-16"
+                    onChange={(e) => update(line.key, { note: e.target.value })}
                   />
                 )}
               </Cell>
-              <Cell
-                label={t("invoice.lines.vat")}
-                error={error(path("vat")) ?? error(path("natura"))}
-              >
-                {(c) => (
-                  <Select
-                    {...c}
-                    value={line.vat}
-                    disabled={disabled}
-                    onChange={(e) => update(line.key, { vat: e.target.value })}
-                  >
-                    {line.vat === "" ? (
-                      <option value="">{t("invoice.lines.chooseVat")}</option>
-                    ) : null}
-                    {line.vat.startsWith("rate:") &&
-                    !(VAT_RATES as readonly number[]).includes(Number(line.vat.slice(5))) ? (
-                      <option value={line.vat}>
-                        {vatRateLabel(Number(line.vat.slice(5)), locale)}
-                      </option>
-                    ) : null}
-                    {VAT_RATES.map((bp) => (
-                      <option key={bp} value={`rate:${bp}`}>
-                        {vatRateLabel(bp, locale)}
-                      </option>
-                    ))}
-                    {NATURA_CODES.map((code) => (
-                      <option key={code} value={`natura:${code}`}>
-                        {naturaLabel(code, locale)}
-                      </option>
-                    ))}
-                  </Select>
-                )}
-              </Cell>
-              <div className="flex items-center justify-between gap-3 md:contents">
-                <div className="flex min-w-0 flex-1 items-center justify-between gap-2 md:items-start">
-                  <p className="text-sm md:pt-2.5 md:text-right md:order-2 md:ml-auto">
-                    <span className="text-muted-foreground md:sr-only">
-                      {t("invoice.lines.amount")}{" "}
-                    </span>
-                    <span className="font-medium tabular-nums">
-                      {amount === undefined ? "–" : formatMoney(amount, locale, currency)}
-                    </span>
-                  </p>
-                  {disabled && line.note === "" ? null : (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="md:order-1 md:size-8 md:min-h-0"
-                      disabled={disabled}
-                      aria-label={t("invoice.lines.note")}
-                      aria-pressed={line.note !== ""}
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => setNote(line.key, !noteOpen.has(line.key))}
-                    >
-                      <StickyNote aria-hidden />
-                    </Button>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  disabled={disabled || form.lines.length === 1}
-                  aria-label={t("invoice.lines.remove", { n: index + 1 })}
-                  onClick={() => onChange(form.lines.filter((l) => l.key !== line.key))}
-                >
-                  <Trash2 aria-hidden />
-                </Button>
-              </div>
-              {noteOpen.has(line.key) && !disabled ? (
-                <div className="flex flex-col gap-1 md:col-span-full">
-                  <Cell label={t("invoice.lines.note")} error={error(path("note"))} labelVisible>
-                    {(c) => (
-                      <fieldset
-                        aria-label={t("invoice.lines.note")}
-                        className="flex min-w-0 items-start gap-2"
-                        onBlur={(e) => {
-                          // Leaving the editor closes it; focus moving to its own button does not.
-                          if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-                          setNote(line.key, false);
-                        }}
-                      >
-                        <Textarea
-                          {...c}
-                          autoFocus
-                          value={line.note}
-                          rows={2}
-                          className="min-h-16 flex-1"
-                          onChange={(e) => update(line.key, { note: e.target.value })}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={t("invoice.lines.removeNote")}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            update(line.key, { note: "" });
-                            setNote(line.key, false);
-                          }}
-                        >
-                          <X aria-hidden />
-                        </Button>
-                      </fieldset>
-                    )}
-                  </Cell>
-                </div>
-              ) : line.note !== "" ? (
-                <button
-                  type="button"
-                  disabled={disabled}
-                  title={t("invoice.lines.note")}
-                  className="min-h-9 w-full whitespace-pre-line break-words text-left text-sm text-muted-foreground disabled:cursor-default md:col-span-full"
-                  onClick={() => setNote(line.key, true)}
-                >
-                  {line.note}
-                </button>
-              ) : null}
             </li>
           );
         })}
