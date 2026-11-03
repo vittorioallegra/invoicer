@@ -43,6 +43,13 @@
       "when": 1793693965507,
       "tag": "0005_drop_payment_method_bank_name",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793694634491,
+      "tag": "0006_invoice_requested_number",
+      "breakpoints": true
     }
   ]
 }

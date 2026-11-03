@@ -168,6 +168,12 @@ The resource or route does not exist.
 The change conflicts with the current state (for example a number already used). On the setup
 screen it means the owner account already exists: setup and sign-up are closed, sign in instead.
 
+### error-number-unavailable
+The invoice number you asked for cannot be used: it is not above the highest number already
+issued this year (by Invoicer or imported), for example because another device sent an invoice
+meanwhile. Nothing was reserved. The editor shows the next free number next to the Number field:
+pick it (or a higher one, a gap is allowed) and send again.
+
 ### error-payload-too-large
 The request body exceeds the size limit.
 

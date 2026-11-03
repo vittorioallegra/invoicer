@@ -101,8 +101,3 @@ export const emailSettingsInputSchema = z.object({
 });
 export type EmailSettingsInput = z.input<typeof emailSettingsInputSchema>;
 export type EmailSettings = z.output<typeof emailSettingsInputSchema>;
-
-/** Smallest number the owner may set next: one above the highest number already used. */
-export function minimumNextNumber(highestUsed: number | null): number {
-  return (highestUsed ?? 0) + 1;
-}

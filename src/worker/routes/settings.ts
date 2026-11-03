@@ -3,8 +3,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { Hono } from "hono";
 import { z } from "zod";
 import * as schema from "../../db/schema";
-import { romeDateTime } from "../../shared/cron";
-import { emailSettingsInputSchema, minimumNextNumber } from "../../shared/profile";
+import { emailSettingsInputSchema } from "../../shared/profile";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
 import { pecTestFromRow } from "../onboarding";
@@ -15,8 +14,6 @@ import { validationDetail } from "../validation";
 
 export const settings = new Hono<{ Bindings: Bindings; Variables: SessionVariables }>();
 
-const MAX_NUMBER = 999_999_999;
-
 type SettingsValues = Partial<typeof schema.settings.$inferInsert>;
 
 async function patchSettings(env: Bindings, values: SettingsValues): Promise<void> {
@@ -25,25 +22,6 @@ async function patchSettings(env: Bindings, values: SettingsValues): Promise<voi
     .insert(schema.settings)
     .values({ id: 1, ...set })
     .onConflictDoUpdate({ target: schema.settings.id, set });
-}
-
-/** Invoice numbering for the current Europe/Rome year. */
-async function numbering(env: Bindings) {
-  const year = Number(romeDateTime(new Date()).date.slice(0, 4));
-  const used = await env.DB.prepare(
-    "SELECT MAX(number_int) AS highest FROM invoices WHERE year = ?",
-  )
-    .bind(year)
-    .first<{ highest: number | null }>();
-  const sequence = await env.DB.prepare("SELECT last_number FROM number_sequences WHERE year = ?")
-    .bind(year)
-    .first<{ last_number: number }>();
-  const highestUsed = used?.highest ?? null;
-  return {
-    year,
-    next: Math.max(sequence?.last_number ?? 0, highestUsed ?? 0) + 1,
-    minimum: minimumNextNumber(highestUsed),
-  };
 }
 
 settings.get("/", async (c) => {
@@ -68,7 +46,6 @@ settings.get("/", async (c) => {
       defaultSenderName: profileRow?.name ?? null,
       configured: Boolean(row?.emailConfiguredAt),
     },
-    invoiceNumber: await numbering(c.env),
     pec: {
       servers,
       /** Aruba defaults, for the "use preset" button. */
@@ -92,25 +69,6 @@ settings.put("/email", async (c) => {
     emailConfiguredAt: new Date(),
   });
   return c.json({ ok: true });
-});
-
-const numberBody = z.object({ number: z.number().int().min(1).max(MAX_NUMBER) });
-
-/** Sets the number the next invoice of the current year gets; never below a number in use. */
-settings.put("/invoice-number", async (c) => {
-  const parsed = numberBody.safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) throw makeError("bad_request", validationDetail(parsed.error));
-  const { year, minimum } = await numbering(c.env);
-  if (parsed.data.number < minimum) {
-    throw makeError("conflict", `number: below_used (the lowest allowed number is ${minimum})`);
-  }
-  await c.env.DB.prepare(
-    `INSERT INTO number_sequences (year, last_number) VALUES (?, ?)
-       ON CONFLICT(year) DO UPDATE SET last_number = excluded.last_number`,
-  )
-    .bind(year, parsed.data.number - 1)
-    .run();
-  return c.json(await numbering(c.env));
 });
 
 settings.put("/ade-guide", async (c) => {

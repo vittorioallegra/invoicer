@@ -17,7 +17,7 @@ import {
 } from "../../shared/invoice";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
-import { releaseNumber, reserveNumber } from "../invoices/numbering";
+import { nextFreeNumber, releaseNumber, reserveNumber } from "../invoices/numbering";
 import {
   createInvoice,
   deleteInvoice,
@@ -81,6 +81,16 @@ invoices.get("/", async (c) => {
     throw makeError("bad_request", "scope: invalid");
   }
   return c.json({ invoices: await listInvoices(c.env.DB, scope as InvoiceListScope) });
+});
+
+/** The number proposed for a new invoice of the year: highest issued (app and imported) + 1. */
+invoices.get("/next-number", async (c) => {
+  const raw = c.req.query("year");
+  const year = raw === undefined ? Number(romeDateTime(new Date()).date.slice(0, 4)) : Number(raw);
+  if (!Number.isInteger(year) || year < 2000 || year > 9999) {
+    throw makeError("bad_request", "year: invalid");
+  }
+  return c.json({ year, next: await nextFreeNumber(c.env.DB, year) });
 });
 
 invoices.post("/", async (c) => {

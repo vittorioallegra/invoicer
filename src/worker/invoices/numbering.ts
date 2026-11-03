@@ -8,9 +8,12 @@ import { makeError } from "../problem";
  * roll it back, so the first statement is an INSERT whose NOT NULL column receives NULL when the
  * invoice is not eligible: that constraint failure aborts the whole batch and nothing changes.
  *
- * Next number = max(configured next, highest app number + 1, highest imported number + 1),
- * computed inside SQL so that two concurrent reservations can never read the same value. Year and
- * issue date come from the Europe/Rome calendar (the Worker runs in UTC).
+ * Next number = highest number already issued in the year (app and imported invoices) + 1, or 1,
+ * computed inside SQL so that two concurrent reservations can never read the same value. A draft
+ * may carry a number the owner asked for (`requested_number_int`): it is accepted only when it is
+ * above the highest number issued that year (a gap is allowed), otherwise nothing is reserved and
+ * `number_unavailable` is raised. The partial UNIQUE index on year + number still guards races.
+ * Year and issue date come from the Europe/Rome calendar (the Worker runs in UTC).
  */
 
 const ISSUABLE_STATES = "('draft', 'planned')";
@@ -31,6 +34,15 @@ export interface ReserveInput {
   /** Issuer VAT identification, for the file name `<IdPaese><IdCodice>_<progressive>.xml`. */
   idPaese: string;
   idCodice: string;
+}
+
+/** The number the editor proposes: the highest issued in the year (app and imported) + 1. */
+export async function nextFreeNumber(db: D1Database, year: number): Promise<number> {
+  const row = await db
+    .prepare("SELECT MAX(number_int) AS highest FROM invoices WHERE year = ?")
+    .bind(year)
+    .first<{ highest: number | null }>();
+  return (row?.highest ?? 0) + 1;
 }
 
 interface InvoiceNumberRow {
@@ -100,7 +112,8 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
   try {
     await db.batch([
       // 1. Guard: fails (NOT NULL) unless the invoice is still an unnumbered draft or planned
-      //    invoice and today is not before the date of the highest number issued this year.
+      //    invoice, today is not before the date of the highest number issued this year, and a
+      //    requested number (if any) is a positive integer above that highest number.
       db
         .prepare(
           `INSERT INTO number_sequences (year, last_number)
@@ -110,27 +123,30 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
                 AND ?3 >= COALESCE((SELECT issue_date FROM invoices
                                      WHERE year = ?1 AND number_int IS NOT NULL
                                      ORDER BY number_int DESC LIMIT 1), '')
+                AND (requested_number_int IS NULL OR (
+                  requested_number_int >= 1 AND requested_number_int >
+                    COALESCE((SELECT MAX(number_int) FROM invoices WHERE year = ?1), 0)))
            ) THEN 0 ELSE NULL END
            WHERE true
            ON CONFLICT (year) DO NOTHING`,
         )
         .bind(year, invoiceId, issueDate),
-      // 2. The next number, computed from the sequence and every number already in use.
+      // 2. The number: the requested one (the guard accepted it) or the highest in use + 1.
       db
         .prepare(
-          `UPDATE number_sequences SET last_number = MAX(
-             last_number,
-             COALESCE((SELECT MAX(number_int) FROM invoices WHERE year = ?1 AND source = 'app'), 0),
-             COALESCE((SELECT MAX(number_int) FROM invoices WHERE year = ?1 AND source = 'imported'), 0)
-           ) + 1 WHERE year = ?1`,
+          `UPDATE number_sequences SET last_number = COALESCE(
+             (SELECT requested_number_int FROM invoices WHERE id = ?2),
+             COALESCE((SELECT MAX(number_int) FROM invoices WHERE year = ?1), 0) + 1
+           ) WHERE year = ?1`,
         )
-        .bind(year),
+        .bind(year, invoiceId),
       // 3. Assign it and move the invoice to `sending`.
       db
         .prepare(
           `UPDATE invoices SET
              number_int = (SELECT last_number FROM number_sequences WHERE year = ?1),
              number_raw = CAST((SELECT last_number FROM number_sequences WHERE year = ?1) AS TEXT),
+             requested_number_int = NULL,
              year = ?1, issue_date = ?3, state = 'sending', state_rank = 2, updated_at = ?4
            WHERE id = ?2 AND state IN ${ISSUABLE_STATES} AND number_int IS NULL`,
         )
@@ -165,6 +181,19 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
     }
     if (now_.state !== "draft" && now_.state !== "planned") {
       throw makeError("conflict", "invoice_locked");
+    }
+    const requested = await db
+      .prepare("SELECT requested_number_int AS n FROM invoices WHERE id = ?")
+      .bind(invoiceId)
+      .first<{ n: number | null }>();
+    if (requested?.n !== null && requested?.n !== undefined) {
+      const next = await nextFreeNumber(db, year);
+      if (requested.n < next) {
+        throw makeError(
+          "number_unavailable",
+          `requestedNumber: unavailable (the next free number is ${next})`,
+        );
+      }
     }
     const last = await db
       .prepare(

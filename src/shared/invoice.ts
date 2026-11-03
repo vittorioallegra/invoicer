@@ -108,6 +108,9 @@ export const EMPTY_INVOICE_DATA: InvoiceData = {
   payment: { method: null, iban: null, bic: null, accountHolder: null, bankName: null },
 };
 
+/** Largest number the owner may request (keeps the number a safe, printable integer). */
+export const MAX_INVOICE_NUMBER = 999_999_999;
+
 export const invoiceInputSchema = z.object({
   documentType: z.enum(DOCUMENT_TYPES),
   clientId: z.string().min(1).nullable(),
@@ -118,6 +121,8 @@ export const invoiceInputSchema = z.object({
   plannedDate: dateOnly.nullable(),
   operationDate: dateOnly.nullable(),
   dueDate: dateOnly.nullable(),
+  /** Number the owner asked for; null = automatic (the next free number of the year). */
+  requestedNumber: z.number().int().min(1).max(MAX_INVOICE_NUMBER).nullable().default(null),
   /** TD04 only: the invoice the credit note corrects (DatiFattureCollegate). */
   linkedInvoiceId: z.string().min(1).nullable(),
   notes: z
@@ -295,6 +300,8 @@ export interface InvoiceRecord {
   clientName: string | null;
   /** Number as printed; null while draft or planned. */
   number: string | null;
+  /** Number the owner asked for on a draft or planned invoice; null = automatic. */
+  requestedNumber: number | null;
   year: number | null;
   issueDate: string | null;
   plannedDate: string | null;

@@ -127,60 +127,6 @@ describe("profile", () => {
   });
 });
 
-describe("invoice numbering", () => {
-  const year = Number(
-    new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome", year: "numeric" }).format(
-      new Date(),
-    ),
-  );
-  const numbering = async () =>
-    (
-      await owner.json<{ invoiceNumber: { year: number; next: number; minimum: number } }>(
-        "/api/settings",
-      )
-    ).body.invoiceNumber;
-
-  it("starts at 1 for the current Rome year and continues from a chosen number", async () => {
-    expect(await numbering()).toEqual({ year, next: 1, minimum: 1 });
-    const set = await owner.json("/api/settings/invoice-number", {
-      method: "PUT",
-      body: { number: 18 },
-    });
-    expect(set.status).toBe(200);
-    expect(await numbering()).toEqual({ year, next: 18, minimum: 1 });
-  });
-
-  it("refuses a number at or below one already used, and a non-integer", async () => {
-    await env.DB.prepare(
-      "INSERT INTO invoices (id, year, number_int, created_at) VALUES ('n7', ?, 7, 1)",
-    )
-      .bind(year)
-      .run();
-    // An invoice of another year does not count.
-    await env.DB.prepare(
-      "INSERT INTO invoices (id, year, number_int, created_at) VALUES ('old', ?, 99, 1)",
-    )
-      .bind(year - 1)
-      .run();
-    expect(await numbering()).toMatchObject({ minimum: 8 });
-    const low = await owner.json<{ detail: string }>("/api/settings/invoice-number", {
-      method: "PUT",
-      body: { number: 7 },
-    });
-    expect(low.status).toBe(409);
-    expect(low.body.detail).toContain("8");
-    expect(
-      (await owner.json("/api/settings/invoice-number", { method: "PUT", body: { number: 1.5 } }))
-        .status,
-    ).toBe(400);
-    expect(
-      (await owner.json("/api/settings/invoice-number", { method: "PUT", body: { number: 8 } }))
-        .status,
-    ).toBe(200);
-    expect(await numbering()).toMatchObject({ next: 8 });
-  });
-});
-
 describe("email settings and AdE guide", () => {
   it("saves email settings, marks them configured and validates addresses", async () => {
     const bad = await owner.json("/api/settings/email", {

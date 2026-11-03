@@ -25,6 +25,7 @@ interface InvoiceRow {
   client_name: string | null;
   number_raw: string | null;
   number_int: number | null;
+  requested_number_int: number | null;
   year: number | null;
   issue_date: string | null;
   planned_date: string | null;
@@ -39,7 +40,7 @@ interface InvoiceRow {
 }
 
 const SELECT = `SELECT i.id, i.document_type, i.state, i.payment_flag, i.paid_date, i.client_id,
-  c.name AS client_name, i.number_raw, i.number_int, i.year, i.issue_date, i.planned_date,
+  c.name AS client_name, i.number_raw, i.number_int, i.requested_number_int, i.year, i.issue_date, i.planned_date,
   i.operation_date, i.due_date, i.currency, i.data, i.total_cents, i.linked_invoice_id,
   i.reissues_invoice_id, i.notes
   FROM invoices i LEFT JOIN clients c ON c.id = i.client_id`;
@@ -182,6 +183,7 @@ export async function loadInvoice(
     clientId: row.client_id,
     clientName: row.client_name,
     number: row.number_raw,
+    requestedNumber: row.number_raw === null ? row.requested_number_int : null,
     year: row.year,
     issueDate: row.issue_date,
     plannedDate: row.planned_date,
@@ -307,8 +309,8 @@ export async function createInvoice(
         `INSERT INTO invoices
            (id, document_type, state, state_rank, payment_flag, source, client_id, planned_date,
             operation_date, due_date, currency, data, total_cents, linked_invoice_id,
-            reissues_invoice_id, notes, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'unpaid', 'app', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            reissues_invoice_id, notes, requested_number_int, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'unpaid', 'app', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         id,
@@ -325,6 +327,7 @@ export async function createInvoice(
         body.linkedInvoiceId,
         extra.reissuesInvoiceId ?? null,
         body.notes,
+        body.requestedNumber,
         now.getTime(),
         now.getTime(),
       ),
@@ -371,7 +374,8 @@ export async function updateInvoice(
           `UPDATE invoices SET document_type = ?2, state = CASE WHEN state = 'rejected' THEN state ELSE ?3 END,
              state_rank = CASE WHEN state = 'rejected' THEN state_rank ELSE ?4 END,
              client_id = ?5, planned_date = ?6, operation_date = ?7, due_date = ?8, currency = ?9,
-             data = ?10, total_cents = ?11, linked_invoice_id = ?12, notes = ?13, updated_at = ?14
+             data = ?10, total_cents = ?11, linked_invoice_id = ?12, notes = ?13, updated_at = ?14,
+             requested_number_int = CASE WHEN number_int IS NULL THEN ?15 ELSE NULL END
            WHERE id = ?1`,
         )
         .bind(
@@ -389,6 +393,7 @@ export async function updateInvoice(
           body.linkedInvoiceId,
           body.notes,
           now.getTime(),
+          body.requestedNumber,
         ),
       db.prepare("DELETE FROM invoice_lines WHERE invoice_id = ?").bind(id),
       ...lineStatements(db, id, body.lines),
@@ -411,12 +416,13 @@ export async function deleteInvoice(db: D1Database, id: string): Promise<void> {
   throw exists ? makeError("conflict", "numbered_invoice_undeletable") : makeError("not_found");
 }
 
-/** The body of an existing invoice, ready to become a new one. */
+/** The body of an existing invoice, ready to become a new one (it never inherits a number). */
 export function recordToBody(record: InvoiceRecord): InvoiceBody {
   return {
     documentType: record.documentType,
     clientId: record.clientId,
     currency: record.currency,
+    requestedNumber: null,
     plannedDate: null,
     operationDate: record.operationDate,
     dueDate: null,

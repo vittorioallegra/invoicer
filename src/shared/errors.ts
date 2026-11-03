@@ -12,6 +12,7 @@ export const ERROR_CODES = {
   send_not_authorized: { status: 403, title: "Send not authorized" },
   not_found: { status: 404, title: "Not found" },
   conflict: { status: 409, title: "Conflict" },
+  number_unavailable: { status: 409, title: "Invoice number not available" },
   payload_too_large: { status: 413, title: "Payload too large" },
   rate_limited: { status: 429, title: "Too many requests" },
   internal_error: { status: 500, title: "Internal error" },

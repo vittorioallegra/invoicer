@@ -330,6 +330,101 @@ describe("reserving a number through the API", () => {
   });
 });
 
+describe("invoice number on the invoice", () => {
+  const year = Number(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome", year: "numeric" }).format(
+      new Date(),
+    ),
+  );
+  const nextNumber = async (query = "") =>
+    (await owner.json<{ year: number; next: number }>(`/api/invoices/next-number${query}`)).body;
+  const reserve = (id: string) =>
+    owner.json<{ reservation: { number: number }; invoice: InvoiceRecord; detail?: string }>(
+      `/api/invoices/${id}/reserve-number`,
+      { body: {} },
+    );
+
+  it("proposes the highest issued number of the year plus one, imported ones included", async () => {
+    const first = await nextNumber();
+    expect(first.year).toBe(year);
+    await env.DB.prepare(
+      "INSERT INTO invoices (id, source, state, state_rank, year, number_int, number_raw, created_at) VALUES ('imp-1', 'imported', 'delivered', 4, ?, ?, ?, 1)",
+    )
+      .bind(year, first.next + 40, String(first.next + 40))
+      .run();
+    expect((await nextNumber()).next).toBe(first.next + 41);
+    // Another year does not count, and the year can be asked for.
+    expect(await nextNumber("?year=2001")).toEqual({ year: 2001, next: 1 });
+    expect((await owner.json("/api/invoices/next-number?year=abc")).status).toBe(400);
+    expect((await owner.json("/api/invoices/next-number?year=99999")).status).toBe(400);
+    const anon = new TestClient("10.8.1.9", bindings);
+    expect((await anon.json("/api/invoices/next-number")).status).toBe(401);
+  });
+
+  it("stores the requested number on a draft, validates it and clears an empty one", async () => {
+    const invoice = await create({ requestedNumber: 300 });
+    expect(invoice.requestedNumber).toBe(300);
+    const cleared = await owner.json<Invoice>(`/api/invoices/${invoice.id}`, {
+      method: "PUT",
+      body: body({ requestedNumber: null }),
+    });
+    expect(cleared.body.invoice.requestedNumber).toBeNull();
+    for (const bad of [0, -2, 1.5, 1_000_000_000]) {
+      const refused = await owner.json("/api/invoices", { body: body({ requestedNumber: bad }) });
+      expect(refused.status).toBe(400);
+    }
+    // A duplicate never inherits the number.
+    await owner.json(`/api/invoices/${invoice.id}`, {
+      method: "PUT",
+      body: body({ requestedNumber: 301 }),
+    });
+    const copy = await owner.json<Invoice>(`/api/invoices/${invoice.id}/duplicate`, { body: {} });
+    expect(copy.body.invoice.requestedNumber).toBeNull();
+  });
+
+  it("reserves the requested number (a gap is allowed) and continues from it", async () => {
+    const { next } = await nextNumber();
+    const invoice = await create({ requestedNumber: next + 25 });
+    const done = await reserve(invoice.id);
+    expect(done.status).toBe(200);
+    expect(done.body.reservation.number).toBe(next + 25);
+    expect(done.body.invoice).toMatchObject({ number: String(next + 25), requestedNumber: null });
+    expect((await nextNumber()).next).toBe(next + 26);
+    const auto = await reserve((await create()).id);
+    expect(auto.body.reservation.number).toBe(next + 26);
+  });
+
+  it("refuses a number that is no longer free with number_unavailable and the new proposal", async () => {
+    const { next } = await nextNumber();
+    const invoice = await create({ requestedNumber: next - 1 });
+    const refused = await reserve(invoice.id);
+    expect(refused.status).toBe(409);
+    expect(refused.body).toMatchObject({
+      code: "number_unavailable",
+      anchor: "error-number-unavailable",
+    });
+    expect(refused.body.detail).toContain(`next free number is ${next}`);
+    const after = await owner.json<Invoice>(`/api/invoices/${invoice.id}`);
+    expect(after.body.invoice).toMatchObject({
+      state: "draft",
+      number: null,
+      requestedNumber: next - 1,
+    });
+    expect((await nextNumber()).next).toBe(next);
+  });
+
+  it("lets only one of two invoices with the same requested number through", async () => {
+    const { next } = await nextNumber();
+    const a = await create({ requestedNumber: next + 5 });
+    const b = await create({ requestedNumber: next + 5 });
+    const results = await Promise.all([reserve(a.id), reserve(b.id)]);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+    expect(results.find((r) => r.status === 409)?.body).toMatchObject({
+      code: "number_unavailable",
+    });
+  });
+});
+
 describe("rejected invoices", () => {
   let rejectedCount = 0;
   const reject = async (ageDays: number) => {

@@ -177,6 +177,8 @@ export const invoices = sqliteTable(
     numberRaw: text("number_raw"),
     /** Parsed integer part of the number, used for uniqueness within the year. */
     numberInt: integer("number_int"),
+    /** Number the owner asked for on a draft (null = automatic); cleared once a number is reserved. */
+    requestedNumberInt: integer("requested_number_int"),
     year: integer("year"),
     /** Calendar dates as `YYYY-MM-DD`. */
     issueDate: text("issue_date"),
@@ -237,7 +239,10 @@ export const fileSequence = sqliteTable(
   (t) => [check("file_sequence_single_row", sql`${t.id} = 1`)],
 );
 
-/** One counter row per calendar year for invoice numbers. */
+/**
+ * One scratch row per calendar year used by the numbering batch (guard and last allocated number).
+ * It is not a setting: the next number always comes from the invoices themselves.
+ */
 export const numberSequences = sqliteTable("number_sequences", {
   year: integer("year").primaryKey(),
   lastNumber: integer("last_number").notNull().default(0),

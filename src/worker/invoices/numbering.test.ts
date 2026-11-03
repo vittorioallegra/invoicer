@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { encodeFileProgressive } from "../../shared/fatturapa/file-name";
 import { applyMigrations } from "../auth/test-helpers";
-import { addTransmissionAttempt, releaseNumber, reserveNumber } from "./numbering";
+import { addTransmissionAttempt, nextFreeNumber, releaseNumber, reserveNumber } from "./numbering";
 
 const db = env.DB;
 const ISSUER = { idPaese: "IT", idCodice: "12345678903" };
@@ -19,6 +19,7 @@ async function insertInvoice(
     number?: number;
     issueDate?: string;
     plannedDate?: string;
+    requested?: number;
   } = {},
 ): Promise<string> {
   const id = `inv-${++counter}`;
@@ -36,7 +37,7 @@ async function insertInvoice(
   await db
     .prepare(
       `INSERT INTO invoices (id, state, state_rank, source, year, number_int, number_raw, issue_date,
-         planned_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         planned_date, requested_number_int, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       id,
@@ -48,6 +49,7 @@ async function insertInvoice(
       fields.number === undefined ? null : String(fields.number),
       fields.issueDate ?? null,
       fields.plannedDate ?? null,
+      fields.requested ?? null,
       Date.now(),
     )
     .run();
@@ -132,19 +134,20 @@ describe("number reservation", () => {
     expect(result.number).toBe(42);
   });
 
-  it("uses the configured next number when it is above everything in use", async () => {
+  it("ignores a value left in the year's sequence row: only issued numbers count", async () => {
     await db.prepare("INSERT INTO number_sequences (year, last_number) VALUES (2034, 99)").run();
     await insertInvoice({ state: "delivered", source: "imported", year: 2034, number: 3 });
     const result = await reserve(await insertInvoice(), "2034-06-01T10:00:00Z");
-    expect(result.number).toBe(100);
+    expect(result.number).toBe(4);
   });
 
-  it("ignores a configured next number below the highest imported one", async () => {
-    await db.prepare("INSERT INTO number_sequences (year, last_number) VALUES (2035, 2)").run();
+  it("counts app and imported numbers of the year, and only that year", async () => {
     await insertInvoice({ state: "delivered", source: "imported", year: 2035, number: 10 });
     await insertInvoice({ state: "delivered", source: "app", year: 2035, number: 7 });
-    const result = await reserve(await insertInvoice(), "2035-06-01T10:00:00Z");
-    expect(result.number).toBe(11);
+    await insertInvoice({ state: "delivered", source: "imported", year: 2034, number: 500 });
+    expect(await nextFreeNumber(db, 2035)).toBe(11);
+    expect(await nextFreeNumber(db, 2099)).toBe(1);
+    expect((await reserve(await insertInvoice(), "2035-06-01T10:00:00Z")).number).toBe(11);
   });
 
   it("leaves every sequence unchanged when the guard fails", async () => {
@@ -194,6 +197,100 @@ describe("number reservation", () => {
     });
     expect(await sequenceOf(2040)).toBeNull();
     expect((await reserve(late, "2040-05-10T10:00:00Z")).number).toBe(6);
+  });
+});
+
+describe("requested numbers", () => {
+  it("accepts a requested number above the highest, also leaving a gap", async () => {
+    await insertInvoice({ state: "delivered", source: "imported", year: 2060, number: 3 });
+    const id = await insertInvoice({ requested: 120 });
+    const result = await reserve(id, "2060-04-01T10:00:00Z");
+    expect(result.number).toBe(120);
+    const row = await db
+      .prepare("SELECT number_raw, requested_number_int FROM invoices WHERE id = ?")
+      .bind(id)
+      .first();
+    expect(row).toEqual({ number_raw: "120", requested_number_int: null });
+    expect(await nextFreeNumber(db, 2060)).toBe(121);
+    // Later invoices continue automatically from the highest issued number.
+    expect((await reserve(await insertInvoice(), "2060-04-02T10:00:00Z")).number).toBe(121);
+  });
+
+  it("accepts the number that equals the proposal", async () => {
+    await insertInvoice({ state: "delivered", source: "app", year: 2061, number: 4 });
+    const result = await reserve(await insertInvoice({ requested: 5 }), "2061-04-01T10:00:00Z");
+    expect(result.number).toBe(5);
+  });
+
+  it("refuses a number equal to or below the highest, counting imported ones, and changes nothing", async () => {
+    await insertInvoice({ state: "delivered", source: "imported", year: 2062, number: 10 });
+    await db.prepare("INSERT INTO number_sequences (year, last_number) VALUES (2062, 10)").run();
+    const progressive = await fileSequence();
+    for (const requested of [10, 3, 1]) {
+      const id = await insertInvoice({ requested });
+      expect(await failure(reserve(id, "2062-04-01T10:00:00Z"))).toMatchObject({
+        code: "number_unavailable",
+        detail: expect.stringContaining("next free number is 11"),
+      });
+      const row = await db
+        .prepare("SELECT state, number_int, year, requested_number_int FROM invoices WHERE id = ?")
+        .bind(id)
+        .first();
+      expect(row).toEqual({
+        state: "draft",
+        number_int: null,
+        year: null,
+        requested_number_int: requested,
+      });
+    }
+    expect(await sequenceOf(2062)).toBe(10);
+    expect(await fileSequence()).toBe(progressive);
+  });
+
+  it("refuses a requested number below 1", async () => {
+    const id = await insertInvoice({ requested: 0 });
+    expect(await failure(reserve(id, "2063-04-01T10:00:00Z"))).toMatchObject({
+      code: "number_unavailable",
+    });
+    expect(await sequenceOf(2063)).toBeNull();
+  });
+
+  it("lets exactly one of two devices win a requested number", async () => {
+    const a = await insertInvoice({ requested: 7 });
+    const b = await insertInvoice({ requested: 7 });
+    const outcomes = await Promise.allSettled([
+      reserve(a, "2064-04-01T10:00:00Z"),
+      reserve(b, "2064-04-01T10:00:00Z"),
+    ]);
+    expect(outcomes.filter((o) => o.status === "fulfilled")).toHaveLength(1);
+    const lost = outcomes.find((o) => o.status === "rejected");
+    expect(lost).toMatchObject({ reason: { code: "number_unavailable" } });
+    const count = await db
+      .prepare("SELECT COUNT(*) AS n FROM invoices WHERE year = 2064 AND number_int = 7")
+      .first<{ n: number }>();
+    expect(count?.n).toBe(1);
+  });
+
+  it("checks the requested number against the Europe/Rome year", async () => {
+    await insertInvoice({ state: "sent", year: 2065, number: 9, issueDate: "2065-12-30" });
+    // 22:30 UTC on 31 December is still 2065 in Rome: 5 is not above 9.
+    const old = await insertInvoice({ requested: 5 });
+    expect(await failure(reserve(old, "2065-12-31T22:30:00Z"))).toMatchObject({
+      code: "number_unavailable",
+    });
+    // 23:30 UTC is already 1 January 2066 in Rome: a new year starts empty.
+    const fresh = await reserve(old, "2065-12-31T23:30:00Z");
+    expect([fresh.year, fresh.number]).toEqual([2066, 5]);
+  });
+
+  it("keeps the date rule for a requested number", async () => {
+    await insertInvoice({ state: "sent", year: 2067, number: 5, issueDate: "2067-05-10" });
+    const id = await insertInvoice({ requested: 50 });
+    expect(await failure(reserve(id, "2067-05-09T10:00:00Z"))).toMatchObject({
+      code: "conflict",
+      detail: expect.stringContaining("date_before_last_issue"),
+    });
+    expect((await reserve(id, "2067-05-10T10:00:00Z")).number).toBe(50);
   });
 });
 

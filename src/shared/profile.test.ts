@@ -3,7 +3,6 @@ import {
   emailSettingsInputSchema,
   isValidTaxCode,
   isValidVatNumber,
-  minimumNextNumber,
   profileInputSchema,
 } from "./profile";
 
@@ -79,10 +78,5 @@ describe("email settings and numbering", () => {
         bcc: "",
       }).success,
     ).toBe(false);
-  });
-
-  it("allows numbers from one above the highest used", () => {
-    expect(minimumNextNumber(null)).toBe(1);
-    expect(minimumNextNumber(41)).toBe(42);
   });
 });
