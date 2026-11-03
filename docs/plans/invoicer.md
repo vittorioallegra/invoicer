@@ -447,6 +447,7 @@ Approved: yes (2026-11-02)
   - Preview PDF appeared to do nothing — `fix(pdf): make the PDF preview reliable with a download fallback`
 
 ### Decisions
+- Custom Radix Select and react-day-picker DatePicker on desktop, native controls on phones (owner's choice, 2026-11-03); `@radix-ui/react-select`, `@radix-ui/react-popover` and `react-day-picker` pinned. The Radix Select omits `Select.Viewport` because it injects an inline `<style>` the CSP blocks.
 - Bollo charged to the client = a 2.00 line following the no-VAT lines' natura (largest total, first on a tie), in the taxable base, like any line; or borne by the issuer (no line, totals unchanged); `DatiBollo` BolloVirtuale=SI in both cases. Not an N1 line: AdE Circ. 5/E 2021 and Interpello 428/2022 exclude art. 15 for the rebilled stamp. Stored invoices read as `legacy` (2.00 in the total, no line) so their totals do not change. Sources in docs/notes/bollo.md (owner's choice, 2026-11-03).
 - Finalised invoices (2026-11-03, owner): no disabled controls (no add-line, no client new/edit buttons); the extras disclosure toggles and shows its fields read-only, so the form is split into fieldsets around it instead of one disabled fieldset.
 - Invoices list (2026-11-03, owner): each finalised payable row shows the payment chip (Paid/Unpaid) next to the state badge, with the editor's rule (no chip on unsent, rejected or credit notes); the free-text search filter is removed (URL param, API param, SQL and locale keys).

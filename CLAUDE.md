@@ -37,6 +37,7 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
 ## Conventions
 
 - Everything in the repo is in English; user-facing text only through i18n (`en` base, `it`).
+- Selects and dates: use `Select` and `DatePicker` from `components/ui` (never a bare `<select>` or `<Input type="date">`). Pointer devices get Radix Select / a react-day-picker popover; coarse-pointer phones and jsdom get the native control (`lib/use-native-controls.ts`); tests for the rich path call `setPointer(false)` from `lib/pointer-test-support.ts`. Do not use `Select.Viewport` (inline `<style>`, blocked by the CSP). Date values are `YYYY-MM-DD` strings.
 - Money is integer cents in domain code; dates for numbering use Europe/Rome. Numbers are per numbering series (`numbering_series`, prefix + progressive + suffix, see docs/notes/invoice-numbering.md); `number_int` is the progressive, `number_raw` the printed number.
 - Unit/integration tests live next to the code as `*.test.ts(x)`; Vitest projects: `shared` (node),
   `worker` (workerd via `@cloudflare/vitest-pool-workers`), `client` (jsdom).
