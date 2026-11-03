@@ -43,7 +43,14 @@ export function InvoiceTotals({ totals, form, locale, actions }: InvoiceTotalsPr
             />
           ))}
           {totals.contributionCents > 0 ? (
-            <Row label={t("invoice.totals.contribution")} value={money(totals.contributionCents)} />
+            <Row
+              label={t(
+                form.cassaMode === "included"
+                  ? "invoice.totals.contributionIncluded"
+                  : "invoice.totals.contributionExcluded",
+              )}
+              value={money(totals.contributionCents)}
+            />
           ) : null}
           <Row label={t("invoice.totals.vat")} value={money(totals.vatCents)} />
           {totals.stampCents > 0 ? (
