@@ -446,8 +446,8 @@ Approved: yes (2026-11-02)
   - Preview PDF appeared to do nothing — `fix(pdf): make the PDF preview reliable with a download fallback`
 
 ### Decisions
-- Options show code + description; payment terms are days (0/30/60/90/120) + basis (invoice date / end of month of the invoice date), due date computed at reservation unless set by hand (2026-11-03, owner).
-- Payment terms: free days 0–365 + basis (DF / FM DF) + days after end of month (0–31), the owner's 'fine mese + 5' case (2026-11-03, owner).
+- Options show code + description; due date computed at reservation unless set by hand (2026-11-03, owner).
+- Payment terms: select of invoice date, 15/30/60 gg FM DF (30/60 = last day of the 1st/2nd month after), custom days from invoice date; owner's choice (2026-11-03).
 - Client form (2026-11-03, owner): type as a segmented choice, only the fields the type needs, fixed codici destinatario not shown as inputs, invoice defaults (VAT/natura, cassa, ritenuta, bollo, terms, PDF language, currency) in a collapsed optional section with descriptive labels.
 - Invoice number on the invoice (2026-11-03, owner): the editor prefills the next free number of the year (highest issued app/imported + 1) and the owner may change it before sending; the Worker accepts a requested number only if it is above the highest issued that year and unique; the Settings 'next number' was removed.
 - Transient confirmations are toasts (@radix-ui/react-toast 1.3.1, CSP-safe; sonner rejected because it injects a runtime style element blocked by style-src 'self'); persistent page messages stay inline (2026-11-03, owner).

@@ -152,7 +152,7 @@ settle the open ones):
   company), name, partita IVA and/or codice fiscale, foreign VAT/tax ID with country code,
   address, codice destinatario (7 chars) and/or PEC, email for courtesy copies,
   language (IT or EN, used for the invoice PDF and the courtesy email), default currency, default VAT/exemption, default rivalsa / cassa /
-  ritenuta / bollo settings, default payment terms (days + basis, see Payment terms below).
+  ritenuta / bollo settings, default payment terms (see Payment terms below).
 - Field rules derived from type: Italian company needs partita IVA and codice
   destinatario or PEC (default "0000000"); Italian private person needs codice fiscale and
   gets codice destinatario "0000000"; foreign clients get codice destinatario "XXXXXXX".
@@ -186,13 +186,16 @@ settle the open ones):
   "RT01 — ritenuta persone fisiche", "TC04 — Inarcassa (ingegneri e architetti)"); the stored
   value is the code. The descriptions follow the official FatturaPA names (Allegato A) and live
   in one module (`src/shared/totals/labels.ts`).
-- Payment terms: a free number of days (0 to 365, a plain number input), a basis (invoice date,
-  "data fattura" DF; or end of month of the invoice date, "fine mese data fattura" FM DF) and,
-  only for FM, the days after the end of the month (0 to 31, default 0). The due date is the
-  invoice date plus the days; for FM it is moved to the last day of that month and the days
-  after the end of the month are added (30 gg FM DF: issued 2026-11-10 gives 2026-12-31;
-  "fine mese + 5 gg" is 0 days FM DF + 5: 2026-12-05; 30 gg FM DF + 10 gives 2027-01-10); 0
-  days from the invoice date is the invoice date itself. Dates are plain `YYYY-MM-DD` on the
+- Payment terms: one choice from a select. "Data fattura" (DF): due on the invoice date.
+  "15 gg fine mese data fattura": the end of the invoice month plus 15 days (issued 2026-11-10
+  gives 2026-12-15; 2026-01-31 gives 2026-02-15). "30 gg fine mese data fattura": the last day
+  of the month after the invoice month, month-based and not day-based (2026-11-10 gives
+  2026-12-31; 2026-01-31 gives 2026-02-28; 2028-01-15 gives 2028-02-29). "60 gg fine mese data
+  fattura": the last day of the second month after (2026-11-10 gives 2027-01-31; 2026-12-31
+  gives 2027-02-28). "Personalizzato" (custom): a number input (0 to 365) of days added to the
+  invoice date (2026-11-10 and 30 days gives 2026-12-10). No terms is also possible. Older
+  stored terms (days + basis + days after the end of month) are read into these choices. Dates
+  are plain `YYYY-MM-DD` on the
   Europe/Rome calendar. A client may
   have default terms (none by default; the Company page has none) that prefill a new invoice.
   The invoice stores its terms in its payment data. While it is a draft or planned the editor
@@ -202,9 +205,10 @@ settle the open ones):
   the XML and the PDF show the right date. Without terms there is no computed date.
   The XML keeps `DataScadenzaPagamento` and, when the date comes from the terms, adds
   `GiorniTerminiPagamento` (days) and `DataRiferimentoTerminiPagamento` (the invoice date) for
-  DF terms only; FM terms write just `DataScadenzaPagamento`. The PDF prints the terms in words
-  ("30 gg data fattura", "30 gg fine mese data fattura", "30 gg fine mese data fattura + 10 gg",
-  "Fine mese data fattura + 5 gg" / "30 days end of month from invoice date") and the due date.
+  custom terms only; the other choices write just `DataScadenzaPagamento`. The PDF prints the
+  terms in words ("Data fattura", "15 gg fine mese data fattura", "30 gg fine mese data
+  fattura", "60 gg fine mese data fattura", "30 gg data fattura" / "Invoice date", "30 days
+  from invoice date") and the due date.
 - Totals (taxable per rate, VAT, contribution, withholding, stamp, amount due) are computed
   live and shown before sending.
 - States:
