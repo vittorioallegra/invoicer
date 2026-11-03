@@ -7,10 +7,13 @@ import { buttonVariants } from "./ui/button";
 
 export function Page({
   title,
+  aside,
   children,
   backToSettings = false,
 }: {
   title: string;
+  /** Right-aligned on the title row (for example a document number). */
+  aside?: ReactNode;
   children: ReactNode;
   /** Settings sub-pages: show a "Settings" link above the title. */
   backToSettings?: boolean;
@@ -27,7 +30,14 @@ export function Page({
           {t("pages.settings.title")}
         </Link>
       ) : null}
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+      {aside ? (
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <div className="text-lg font-medium tabular-nums">{aside}</div>
+        </div>
+      ) : (
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+      )}
       {children}
     </div>
   );

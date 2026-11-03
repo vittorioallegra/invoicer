@@ -121,6 +121,28 @@ export function InvoiceEditorPage() {
     (invoiceId === undefined || record.data) &&
     onboarding.data;
 
+  if (
+    ready &&
+    clients.data &&
+    profile.data &&
+    accounts.data &&
+    numbering.data &&
+    tax.data &&
+    onboarding.data
+  ) {
+    return (
+      <EditorForm
+        key={record.data?.invoice.id ?? "new"}
+        record={record.data?.invoice ?? null}
+        clients={clients.data.clients}
+        accounts={accounts.data.paymentMethods}
+        series={numbering.data.series}
+        tax={tax.data.tax}
+        send={onboarding.data.send}
+      />
+    );
+  }
+
   return (
     <Page title={t(invoiceId ? "invoice.editTitle" : "invoice.newTitle")}>
       {failed ? (
@@ -150,27 +172,10 @@ export function InvoiceEditorPage() {
             : t("common.error")}
         </Banner>
       ) : null}
-      {!failed && !ready ? (
+      {!failed ? (
         <p role="status" className="text-sm text-muted-foreground">
           {t("common.loading")}
         </p>
-      ) : null}
-      {ready &&
-      clients.data &&
-      profile.data &&
-      accounts.data &&
-      numbering.data &&
-      tax.data &&
-      onboarding.data ? (
-        <EditorForm
-          key={record.data?.invoice.id ?? "new"}
-          record={record.data?.invoice ?? null}
-          clients={clients.data.clients}
-          accounts={accounts.data.paymentMethods}
-          series={numbering.data.series}
-          tax={tax.data.tax}
-          send={onboarding.data.send}
-        />
       ) : null}
     </Page>
   );
@@ -463,779 +468,789 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const clientProblems = Object.keys(issuing.errors).filter((path) => path.startsWith("client."));
   const credit = form.documentType === "TD04";
 
+  // The number as it will be printed: the assigned one, else the proposal or the typed number.
+  let printedNumber: string | null = null;
+  if (record?.number) {
+    printedNumber = t("invoice.numberYear", { number: record.number, year: record.year });
+  } else if (numberEditable && typed !== null && !Number.isNaN(typed)) {
+    printedNumber = t("invoice.numberYear", {
+      number: activeSeries ? formatInvoiceNumber(activeSeries, typed) : typed,
+      year,
+    });
+  }
+
   return (
-    <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
-      {record ? (
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <StatusBadge status={record.state} />
-          {record.number ? (
-            <span className="font-medium">
-              {t("invoice.numberYear", { number: record.number, year: record.year })}
-            </span>
-          ) : null}
-          {record.issueDate ? (
-            <span className="text-muted-foreground">
-              {t("invoice.issuedOn", { date: formatDate(record.issueDate, locale) })}
-            </span>
-          ) : null}
-          {record.number ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              type="button"
-              disabled={!online || preview.isPending}
-              onClick={() => preview.mutate(record.id)}
-            >
-              {t("invoice.pdf.preview")}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-
-      {record?.number && record.state !== "draft" && record.state !== "planned" ? (
-        <InvoiceDetail
-          record={record}
-          clientName={client?.name ?? record.clientName ?? ""}
-          totalLabel={formatMoney(record.totalCents ?? 0, locale, record.currency)}
-        />
-      ) : null}
-
-      {previewUrl ? (
-        <Banner tone="info">
-          {t("invoice.pdf.ready")}{" "}
-          <a
-            className="font-medium underline"
-            href={previewUrl}
-            download={`invoice-${record?.number ?? "preview"}.pdf`}
-          >
-            {t("invoice.pdf.download")}
-          </a>
-        </Banner>
-      ) : null}
-      {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
-      {locked ? <Banner tone="info">{t("invoice.readOnly")}</Banner> : null}
-      {record?.numberReserved ? (
-        <Banner
-          tone="warning"
-          action={
-            record.releasable ? (
+    <Page title={t(record ? "invoice.editTitle" : "invoice.newTitle")} aside={printedNumber}>
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
+        {record ? (
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <StatusBadge status={record.state} />
+            {record.issueDate ? (
+              <span className="text-muted-foreground">
+                {t("invoice.issuedOn", { date: formatDate(record.issueDate, locale) })}
+              </span>
+            ) : null}
+            {record.number ? (
               <Button
                 size="sm"
                 variant="secondary"
-                disabled={!online || release.isPending}
-                onClick={() => release.mutate(record.id)}
+                type="button"
+                disabled={!online || preview.isPending}
+                onClick={() => preview.mutate(record.id)}
               >
-                {t("invoice.reserved.release")}
-              </Button>
-            ) : null
-          }
-        >
-          <p>{t("invoice.reserved.info")}</p>
-          {record.releasable ? null : <p>{t("invoice.reserved.mustSend")}</p>}
-        </Banner>
-      ) : null}
-      {record?.state === "rejected" && record.rejection ? (
-        <Banner tone="danger">
-          <p className="font-medium">
-            {t("invoice.rejected.deadline", {
-              date: new Intl.DateTimeFormat(i18n.language, {
-                dateStyle: "medium",
-                timeStyle: "short",
-              }).format(new Date(record.rejection.deadline)),
-            })}
-          </p>
-          <p>{t("invoice.rejected.locked")}</p>
-          <ul className="mt-1 list-disc pl-5">
-            {record.rejection.errors.map((error) => (
-              <li key={`${error.code}-${error.description}`}>{sdiErrorLine(t, error)}</li>
-            ))}
-          </ul>
-        </Banner>
-      ) : null}
-      {record?.state === "rejected" && !record.rejection ? (
-        <Banner tone="danger">{t("invoice.rejected.noDetails")}</Banner>
-      ) : null}
-      {record?.state === "rejected_expired" ? (
-        <Banner
-          tone="danger"
-          action={
-            record.reissuedById ? (
-              <Link
-                to="/invoices/$invoiceId"
-                params={{ invoiceId: record.reissuedById }}
-                className="text-sm font-medium underline"
-              >
-                {t("invoice.rejected.openReissue")}
-              </Link>
-            ) : (
-              <Button
-                size="sm"
-                disabled={!online || reissue.isPending}
-                onClick={() => reissue.mutate(record.id)}
-              >
-                {t("invoice.rejected.reissue")}
-              </Button>
-            )
-          }
-        >
-          <p className="font-medium">{t("invoice.rejected.expired")}</p>
-          <p>{t("invoice.rejected.expiredBody")}</p>
-          {record.rejection?.errors.map((error) => (
-            <p key={`${error.code}-${error.description}`}>{sdiErrorLine(t, error)}</p>
-          ))}
-        </Banner>
-      ) : null}
-      {record?.reissuesInvoiceId ? (
-        <Banner tone="info">
-          {t("invoice.rejected.reissues")}{" "}
-          <Link
-            to="/invoices/$invoiceId"
-            params={{ invoiceId: record.reissuesInvoiceId }}
-            className="font-medium underline"
-          >
-            {t("invoice.rejected.openOriginal")}
-          </Link>
-        </Banner>
-      ) : null}
-      {submitted && !structural.ok ? <Banner tone="danger">{t("invoice.fixErrors")}</Banner> : null}
-      {lateTransmission ? <Banner tone="warning">{t("invoice.warnings.late")}</Banner> : null}
-      {numberEditable && numberGap ? (
-        <Banner tone="warning">
-          {t(
-            numberGap.from === numberGap.to
-              ? "invoice.document.numberGapOne"
-              : "invoice.document.numberGap",
-            { ...numberGap, year },
-          )}
-        </Banner>
-      ) : null}
-      {suggestBollo ? (
-        <Banner
-          tone="info"
-          action={
-            <div className="flex gap-2">
-              <Button size="sm" onClick={() => patch({ bollo: true })}>
-                {t("invoice.bollo.add")}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => patch({ bolloDismissed: true })}>
-                {t("invoice.bollo.dismiss")}
-              </Button>
-            </div>
-          }
-        >
-          {t("invoice.bollo.suggestion")}
-        </Banner>
-      ) : null}
-
-      <fieldset disabled={locked} className="flex min-w-0 flex-col gap-6">
-        <section className="flex flex-col gap-4" aria-label={t("invoice.client.label")}>
-          <div className="flex flex-wrap items-end gap-3">
-            <Field
-              label={t("invoice.client.label")}
-              error={err("clientId")}
-              className="min-w-56 flex-1"
-            >
-              {(c) => (
-                <Select
-                  {...c}
-                  value={form.clientId}
-                  onChange={(e) =>
-                    selectClient(clients.find((x) => x.id === e.target.value) ?? null)
-                  }
-                >
-                  <option value="">{t("invoice.client.choose")}</option>
-                  {clients.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.name}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-            <Button variant="secondary" onClick={() => setClientSheet("new")}>
-              {t("invoice.client.new")}
-            </Button>
-            {client ? (
-              <Button variant="ghost" onClick={() => setClientSheet("edit")}>
-                <Pencil aria-hidden />
-                {t("invoice.client.edit")}
+                {t("invoice.pdf.preview")}
               </Button>
             ) : null}
           </div>
-          <SdiNotes record={record} field="client" />
-          {client && clientProblems.length > 0 ? (
-            <Banner tone="warning">
-              <p className="font-medium">{t("invoice.client.incomplete")}</p>
-              <ul className="list-disc pl-5">
-                {clientProblems.map((path) => (
-                  <li key={path}>
-                    {t(`clients.form.${path.slice("client.".length).split(".")[0]}`, {
-                      defaultValue: path,
-                    })}
-                    :{" "}
-                    {t(`validation.${issuing.errors[path]}`, {
-                      defaultValue: t("validation.invalid"),
-                    })}
-                  </li>
-                ))}
-              </ul>
-            </Banner>
-          ) : null}
-        </section>
+        ) : null}
 
-        <section className="flex flex-col gap-4" aria-labelledby="inv-document">
-          <h2 id="inv-document" className="text-base font-medium">
-            {t("invoice.document.title")}
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={t("invoice.document.type")}>
-              {(c) => (
-                <Select
-                  {...c}
-                  value={form.documentType}
-                  disabled={locked || record !== null}
-                  onChange={(e) =>
-                    patch({
-                      documentType: e.target.value as "TD01" | "TD04",
-                      linkedInvoiceId: "",
-                    })
-                  }
+        {record?.number && record.state !== "draft" && record.state !== "planned" ? (
+          <InvoiceDetail
+            record={record}
+            clientName={client?.name ?? record.clientName ?? ""}
+            totalLabel={formatMoney(record.totalCents ?? 0, locale, record.currency)}
+          />
+        ) : null}
+
+        {previewUrl ? (
+          <Banner tone="info">
+            {t("invoice.pdf.ready")}{" "}
+            <a
+              className="font-medium underline"
+              href={previewUrl}
+              download={`invoice-${record?.number ?? "preview"}.pdf`}
+            >
+              {t("invoice.pdf.download")}
+            </a>
+          </Banner>
+        ) : null}
+        {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
+        {locked ? <Banner tone="info">{t("invoice.readOnly")}</Banner> : null}
+        {record?.numberReserved ? (
+          <Banner
+            tone="warning"
+            action={
+              record.releasable ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={!online || release.isPending}
+                  onClick={() => release.mutate(record.id)}
                 >
-                  <option value="TD01">{t("invoice.document.td01")}</option>
-                  <option value="TD04">{t("invoice.document.td04")}</option>
-                </Select>
-              )}
-            </Field>
-            <Field label={t("invoice.document.currency")} error={err("currency")}>
-              {(c) => (
-                <Input
-                  {...c}
-                  value={form.currency}
-                  maxLength={3}
-                  autoCapitalize="characters"
-                  onChange={text("currency")}
-                />
-              )}
-            </Field>
-            {series.length > 0 ? (
-              <Field label={t("invoice.document.series")}>
+                  {t("invoice.reserved.release")}
+                </Button>
+              ) : null
+            }
+          >
+            <p>{t("invoice.reserved.info")}</p>
+            {record.releasable ? null : <p>{t("invoice.reserved.mustSend")}</p>}
+          </Banner>
+        ) : null}
+        {record?.state === "rejected" && record.rejection ? (
+          <Banner tone="danger">
+            <p className="font-medium">
+              {t("invoice.rejected.deadline", {
+                date: new Intl.DateTimeFormat(i18n.language, {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                }).format(new Date(record.rejection.deadline)),
+              })}
+            </p>
+            <p>{t("invoice.rejected.locked")}</p>
+            <ul className="mt-1 list-disc pl-5">
+              {record.rejection.errors.map((error) => (
+                <li key={`${error.code}-${error.description}`}>{sdiErrorLine(t, error)}</li>
+              ))}
+            </ul>
+          </Banner>
+        ) : null}
+        {record?.state === "rejected" && !record.rejection ? (
+          <Banner tone="danger">{t("invoice.rejected.noDetails")}</Banner>
+        ) : null}
+        {record?.state === "rejected_expired" ? (
+          <Banner
+            tone="danger"
+            action={
+              record.reissuedById ? (
+                <Link
+                  to="/invoices/$invoiceId"
+                  params={{ invoiceId: record.reissuedById }}
+                  className="text-sm font-medium underline"
+                >
+                  {t("invoice.rejected.openReissue")}
+                </Link>
+              ) : (
+                <Button
+                  size="sm"
+                  disabled={!online || reissue.isPending}
+                  onClick={() => reissue.mutate(record.id)}
+                >
+                  {t("invoice.rejected.reissue")}
+                </Button>
+              )
+            }
+          >
+            <p className="font-medium">{t("invoice.rejected.expired")}</p>
+            <p>{t("invoice.rejected.expiredBody")}</p>
+            {record.rejection?.errors.map((error) => (
+              <p key={`${error.code}-${error.description}`}>{sdiErrorLine(t, error)}</p>
+            ))}
+          </Banner>
+        ) : null}
+        {record?.reissuesInvoiceId ? (
+          <Banner tone="info">
+            {t("invoice.rejected.reissues")}{" "}
+            <Link
+              to="/invoices/$invoiceId"
+              params={{ invoiceId: record.reissuesInvoiceId }}
+              className="font-medium underline"
+            >
+              {t("invoice.rejected.openOriginal")}
+            </Link>
+          </Banner>
+        ) : null}
+        {submitted && !structural.ok ? (
+          <Banner tone="danger">{t("invoice.fixErrors")}</Banner>
+        ) : null}
+        {lateTransmission ? <Banner tone="warning">{t("invoice.warnings.late")}</Banner> : null}
+        {numberEditable && numberGap ? (
+          <Banner tone="warning">
+            {t(
+              numberGap.from === numberGap.to
+                ? "invoice.document.numberGapOne"
+                : "invoice.document.numberGap",
+              { ...numberGap, year },
+            )}
+          </Banner>
+        ) : null}
+        {suggestBollo ? (
+          <Banner
+            tone="info"
+            action={
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => patch({ bollo: true })}>
+                  {t("invoice.bollo.add")}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => patch({ bolloDismissed: true })}>
+                  {t("invoice.bollo.dismiss")}
+                </Button>
+              </div>
+            }
+          >
+            {t("invoice.bollo.suggestion")}
+          </Banner>
+        ) : null}
+
+        <fieldset disabled={locked} className="flex min-w-0 flex-col gap-6">
+          <section className="flex flex-col gap-4" aria-label={t("invoice.client.label")}>
+            <div className="flex flex-wrap items-end gap-3">
+              <Field
+                label={t("invoice.client.label")}
+                error={err("clientId")}
+                className="min-w-56 flex-1"
+              >
                 {(c) => (
                   <Select
                     {...c}
-                    value={activeSeries?.id ?? ""}
-                    disabled={!numberEditable}
-                    onChange={(event) => {
-                      setNumberTouched(false);
-                      setNumberTaken(false);
-                      patch({ seriesId: event.target.value, requestedNumber: "" });
-                    }}
+                    value={form.clientId}
+                    onChange={(e) =>
+                      selectClient(clients.find((x) => x.id === e.target.value) ?? null)
+                    }
                   >
-                    {series.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
+                    <option value="">{t("invoice.client.choose")}</option>
+                    {clients.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}
                       </option>
                     ))}
                   </Select>
                 )}
               </Field>
+              <Button variant="secondary" onClick={() => setClientSheet("new")}>
+                {t("invoice.client.new")}
+              </Button>
+              {client ? (
+                <Button variant="ghost" onClick={() => setClientSheet("edit")}>
+                  <Pencil aria-hidden />
+                  {t("invoice.client.edit")}
+                </Button>
+              ) : null}
+            </div>
+            <SdiNotes record={record} field="client" />
+            {client && clientProblems.length > 0 ? (
+              <Banner tone="warning">
+                <p className="font-medium">{t("invoice.client.incomplete")}</p>
+                <ul className="list-disc pl-5">
+                  {clientProblems.map((path) => (
+                    <li key={path}>
+                      {t(`clients.form.${path.slice("client.".length).split(".")[0]}`, {
+                        defaultValue: path,
+                      })}
+                      :{" "}
+                      {t(`validation.${issuing.errors[path]}`, {
+                        defaultValue: t("validation.invalid"),
+                      })}
+                    </li>
+                  ))}
+                </ul>
+              </Banner>
             ) : null}
-            <Field
-              label={t("invoice.document.number")}
-              hint={
-                numberEditable
-                  ? activeSeries &&
-                    (activeSeries.prefix || activeSeries.suffix) &&
-                    typed !== null &&
-                    !Number.isNaN(typed)
-                    ? formatInvoiceNumber(activeSeries, typed)
-                    : undefined
-                  : t("invoice.document.numberAssigned")
-              }
-              error={numberEditable ? numberError : undefined}
-            >
-              {(c) => (
-                <Input
-                  {...c}
-                  inputMode="numeric"
-                  value={numberEditable ? numberText : (record?.number ?? "")}
-                  disabled={!numberEditable}
-                  onChange={(event) => {
-                    setNumberTouched(true);
-                    setNumberTaken(false);
-                    patch({ requestedNumber: event.target.value });
-                  }}
-                />
-              )}
-            </Field>
-            <Field
-              label={t("invoice.document.invoiceDate")}
-              hint={t("invoice.document.invoiceDateHint")}
-              error={err("invoiceDate")}
-            >
-              {(c) => (
-                <Input
-                  {...c}
-                  type="date"
-                  value={form.invoiceDate}
-                  disabled={locked || editability === "rejected"}
-                  onChange={text("invoiceDate")}
-                />
-              )}
-            </Field>
-            {credit ? (
-              <Field label={t("invoice.document.linked")} error={err("linkedInvoiceId")}>
-                {(c) => (
-                  <Select {...c} value={form.linkedInvoiceId} onChange={text("linkedInvoiceId")}>
-                    <option value="">{t("invoice.document.noLinked")}</option>
-                    {record?.linkedInvoiceId &&
-                    !linkable.some((i) => i.id === record.linkedInvoiceId) ? (
-                      <option value={record.linkedInvoiceId}>
-                        {record.linked?.number ?? record.linkedInvoiceId}
-                      </option>
-                    ) : null}
-                    {linkable.map((invoice) => (
-                      <option key={invoice.id} value={invoice.id}>
-                        {invoice.number} · {invoice.clientName ?? ""}
-                        {invoice.issueDate ? ` · ${formatDate(invoice.issueDate, locale)}` : ""}
-                      </option>
-                    ))}
-                  </Select>
-                )}
-              </Field>
-            ) : null}
-          </div>
-        </section>
+          </section>
 
-        <Disclosure
-          id="inv-extras"
-          title={t("invoice.extras.title")}
-          summary={extrasSummaryText}
-          open={extrasOpen}
-          onToggle={() => setExtrasChoice(!extrasOpen)}
-        >
-          <GroupBox title={t("clients.form.pensionFund")}>
-            <Field label={t("clients.form.cassa")} error={err("data.cassa.type")}>
-              {(c) => (
-                <Select
-                  {...c}
-                  value={form.cassaType}
-                  onChange={(e) =>
-                    patch({
-                      cassaType: e.target.value,
-                      cassaSubjectToRitenuta: e.target.value
-                        ? defaultCassaSubjectToRitenuta(e.target.value as CassaType)
-                        : false,
-                    })
-                  }
-                >
-                  <option value="">{t("clients.form.none")}</option>
-                  <option value="rivalsa_inps">{cassaTypeLabel("rivalsa_inps", locale)}</option>
-                  {CASSA_TYPE_CODES.map((code) => (
-                    <option key={code} value={code}>
-                      {cassaTypeLabel(code, locale)}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-            {form.cassaType ? (
-              <div className="flex flex-col gap-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label={t("clients.form.cassaRate")} error={err("data.cassa.rateBp")}>
-                    {(c) => (
-                      <Input
-                        {...c}
-                        value={form.cassaRate}
-                        suffix="%"
-                        inputMode="decimal"
-                        disabled={locked}
-                        onChange={text("cassaRate")}
-                      />
-                    )}
-                  </Field>
-                  <Field label={t("clients.form.cassaMode")}>
-                    {(c) => (
-                      <Select
-                        {...c}
-                        value={form.cassaMode}
-                        disabled={locked}
-                        onChange={text("cassaMode")}
-                      >
-                        <option value="excluded">{t("clients.form.modeExcluded")}</option>
-                        <option value="included">{t("clients.form.modeIncluded")}</option>
-                      </Select>
-                    )}
-                  </Field>
-                </div>
-                {form.ritenutaType ? (
-                  <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-                    <input
-                      type="checkbox"
-                      className="size-5"
-                      checked={form.cassaSubjectToRitenuta}
-                      onChange={(e) => patch({ cassaSubjectToRitenuta: e.target.checked })}
-                    />
-                    {t("invoice.extras.cassaSubject")}
-                  </label>
-                ) : null}
-              </div>
-            ) : null}
-          </GroupBox>
-          <GroupBox title={t("clients.form.withholding")}>
-            <Field label={t("clients.form.ritenuta")} error={err("data.ritenuta.type")}>
-              {(c) => (
-                <Select {...c} value={form.ritenutaType} onChange={text("ritenutaType")}>
-                  <option value="">{t("clients.form.none")}</option>
-                  {RITENUTA_TYPES.map((code) => (
-                    <option key={code} value={code}>
-                      {ritenutaTypeLabel(code, locale)}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-            {form.ritenutaType ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={t("clients.form.ritenutaRate")} error={err("data.ritenuta.rateBp")}>
-                  {(c) => (
-                    <Input
-                      {...c}
-                      value={form.ritenutaRate}
-                      suffix="%"
-                      inputMode="decimal"
-                      disabled={locked}
-                      onChange={text("ritenutaRate")}
-                    />
-                  )}
-                </Field>
-                <Field label={t("clients.form.ritenutaBase")} error={err("data.ritenuta.baseBp")}>
-                  {(c) => (
-                    <Input
-                      {...c}
-                      value={form.ritenutaBase}
-                      suffix="%"
-                      inputMode="decimal"
-                      disabled={locked}
-                      onChange={text("ritenutaBase")}
-                    />
-                  )}
-                </Field>
-                <Field
-                  label={t("clients.form.ritenutaCausale")}
-                  error={err("data.ritenuta.causale")}
-                  className="sm:col-span-2"
-                >
+          <section className="flex flex-col gap-4" aria-labelledby="inv-document">
+            <h2 id="inv-document" className="text-base font-medium">
+              {t("invoice.document.title")}
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={t("invoice.document.type")}>
+                {(c) => (
+                  <Select
+                    {...c}
+                    value={form.documentType}
+                    disabled={locked || record !== null}
+                    onChange={(e) =>
+                      patch({
+                        documentType: e.target.value as "TD01" | "TD04",
+                        linkedInvoiceId: "",
+                      })
+                    }
+                  >
+                    <option value="TD01">{t("invoice.document.td01")}</option>
+                    <option value="TD04">{t("invoice.document.td04")}</option>
+                  </Select>
+                )}
+              </Field>
+              <Field label={t("invoice.document.currency")} error={err("currency")}>
+                {(c) => (
+                  <Input
+                    {...c}
+                    value={form.currency}
+                    maxLength={3}
+                    autoCapitalize="characters"
+                    onChange={text("currency")}
+                  />
+                )}
+              </Field>
+              {series.length > 0 ? (
+                <Field label={t("invoice.document.series")}>
                   {(c) => (
                     <Select
                       {...c}
-                      value={form.ritenutaCausale}
-                      disabled={locked}
-                      onChange={text("ritenutaCausale")}
+                      value={activeSeries?.id ?? ""}
+                      disabled={!numberEditable}
+                      onChange={(event) => {
+                        setNumberTouched(false);
+                        setNumberTaken(false);
+                        patch({ seriesId: event.target.value, requestedNumber: "" });
+                      }}
                     >
-                      {CAUSALE_PAGAMENTO_CODES.map((code) => (
-                        <option key={code} value={code}>
-                          {causalePagamentoLabel(code, locale)}
+                      {series.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
                         </option>
                       ))}
                     </Select>
                   )}
                 </Field>
-              </div>
-            ) : null}
-          </GroupBox>
-          <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-            <input
-              type="checkbox"
-              className="size-5"
-              checked={form.bollo}
-              onChange={(e) => patch({ bollo: e.target.checked })}
-            />
-            {t("invoice.extras.bollo")}
-          </label>
-        </Disclosure>
-
-        <section className="flex flex-col gap-4" aria-labelledby="inv-lines">
-          <h2 id="inv-lines" className="text-base font-medium">
-            {t("invoice.lines.title")}
-          </h2>
-          <SdiNotes record={record} field="lines" />
-          <InvoiceLines
-            form={form}
-            totals={totals}
-            locale={locale}
-            error={err}
-            onChange={setLines}
-            disabled={locked}
-          />
-          {Object.keys(form.naturaTexts).length > 0 ? (
-            <div className="flex flex-col gap-3">
-              <h3 className="text-sm font-medium">{t("invoice.natura.title")}</h3>
-              <p className="text-sm text-muted-foreground">{t("invoice.natura.intro")}</p>
-              {Object.entries(form.naturaTexts).map(([code, value]) => (
-                <Field
-                  key={code}
-                  label={t("invoice.natura.label", { code })}
-                  error={err(`data.naturaTexts.${code}`)}
-                >
+              ) : null}
+              <Field
+                label={t("invoice.document.number")}
+                hint={
+                  numberEditable
+                    ? activeSeries &&
+                      (activeSeries.prefix || activeSeries.suffix) &&
+                      typed !== null &&
+                      !Number.isNaN(typed)
+                      ? formatInvoiceNumber(activeSeries, typed)
+                      : undefined
+                    : t("invoice.document.numberAssigned")
+                }
+                error={numberEditable ? numberError : undefined}
+              >
+                {(c) => (
+                  <Input
+                    {...c}
+                    inputMode="numeric"
+                    value={numberEditable ? numberText : (record?.number ?? "")}
+                    disabled={!numberEditable}
+                    onChange={(event) => {
+                      setNumberTouched(true);
+                      setNumberTaken(false);
+                      patch({ requestedNumber: event.target.value });
+                    }}
+                  />
+                )}
+              </Field>
+              <Field
+                label={t("invoice.document.invoiceDate")}
+                hint={t("invoice.document.invoiceDateHint")}
+                error={err("invoiceDate")}
+              >
+                {(c) => (
+                  <Input
+                    {...c}
+                    type="date"
+                    value={form.invoiceDate}
+                    disabled={locked || editability === "rejected"}
+                    onChange={text("invoiceDate")}
+                  />
+                )}
+              </Field>
+              {credit ? (
+                <Field label={t("invoice.document.linked")} error={err("linkedInvoiceId")}>
                   {(c) => (
-                    <Textarea
-                      {...c}
-                      rows={2}
-                      value={value}
-                      onChange={(e) =>
-                        patch({ naturaTexts: { ...form.naturaTexts, [code]: e.target.value } })
-                      }
-                    />
+                    <Select {...c} value={form.linkedInvoiceId} onChange={text("linkedInvoiceId")}>
+                      <option value="">{t("invoice.document.noLinked")}</option>
+                      {record?.linkedInvoiceId &&
+                      !linkable.some((i) => i.id === record.linkedInvoiceId) ? (
+                        <option value={record.linkedInvoiceId}>
+                          {record.linked?.number ?? record.linkedInvoiceId}
+                        </option>
+                      ) : null}
+                      {linkable.map((invoice) => (
+                        <option key={invoice.id} value={invoice.id}>
+                          {invoice.number} · {invoice.clientName ?? ""}
+                          {invoice.issueDate ? ` · ${formatDate(invoice.issueDate, locale)}` : ""}
+                        </option>
+                      ))}
+                    </Select>
                   )}
                 </Field>
-              ))}
+              ) : null}
             </div>
-          ) : null}
-          <Field
-            label={t("invoice.document.note")}
-            hint={t("invoice.document.noteHint")}
-            error={err("data.note")}
-          >
-            {(c) => (
-              <Textarea
-                {...c}
-                value={form.invoiceNote}
-                disabled={locked}
-                onChange={text("invoiceNote")}
-              />
-            )}
-          </Field>
-        </section>
+          </section>
 
-        <section className="flex flex-col gap-4" aria-labelledby="inv-payment">
-          <h2 id="inv-payment" className="text-base font-medium">
-            {t("invoice.payment.title")}
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={t("invoice.payment.method")} error={err("data.payment.method")}>
-              {(c) => (
-                <Select {...c} value={form.paymentMethod} onChange={text("paymentMethod")}>
-                  <option value="">{t("clients.form.none")}</option>
-                  {PAYMENT_METHODS.map((code) => (
-                    <option key={code} value={code}>
-                      {t(`invoice.paymentMethods.${code}`)}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-            <Field
-              label={t("invoice.payment.account")}
-              error={err("data.payment.iban") ?? err("data.payment.bic")}
-              {...(accounts.length === 0 ? { hint: t("invoice.payment.noAccounts") } : {})}
-            >
-              {(c) => (
-                <Select {...c} value={accountValue} onChange={chooseAccount}>
-                  <option value="">{t("clients.form.none")}</option>
-                  {accountValue === SNAPSHOT ? (
-                    <option value={SNAPSHOT}>
-                      {t("invoice.payment.accountSaved")} · {maskIban(form.iban)}
-                    </option>
-                  ) : null}
-                  {accounts.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.label} · {maskIban(account.iban)}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <PaymentTermsFields
-              kind={form.termsKind}
-              days={form.termsDays}
-              onChange={changeTerms}
-              kindError={err("data.payment.terms.kind")}
-              daysError={err("data.payment.terms.days")}
-            />
-            {terms ? (
-              <Field label={t("paymentTerms.dueMode")}>
+          <Disclosure
+            id="inv-extras"
+            title={t("invoice.extras.title")}
+            summary={extrasSummaryText}
+            open={extrasOpen}
+            onToggle={() => setExtrasChoice(!extrasOpen)}
+          >
+            <GroupBox title={t("clients.form.pensionFund")}>
+              <Field label={t("clients.form.cassa")} error={err("data.cassa.type")}>
                 {(c) => (
                   <Select
                     {...c}
-                    value={form.dueDateCustom ? "custom" : "terms"}
+                    value={form.cassaType}
                     onChange={(e) =>
-                      patch(
-                        e.target.value === "custom"
-                          ? { dueDateCustom: true, dueDate: computedDueDate }
-                          : { dueDateCustom: false },
-                      )
+                      patch({
+                        cassaType: e.target.value,
+                        cassaSubjectToRitenuta: e.target.value
+                          ? defaultCassaSubjectToRitenuta(e.target.value as CassaType)
+                          : false,
+                      })
                     }
                   >
-                    <option value="terms">{t("paymentTerms.mode_terms")}</option>
-                    <option value="custom">{t("paymentTerms.mode_custom")}</option>
+                    <option value="">{t("clients.form.none")}</option>
+                    <option value="rivalsa_inps">{cassaTypeLabel("rivalsa_inps", locale)}</option>
+                    {CASSA_TYPE_CODES.map((code) => (
+                      <option key={code} value={code}>
+                        {cassaTypeLabel(code, locale)}
+                      </option>
+                    ))}
                   </Select>
                 )}
               </Field>
+              {form.cassaType ? (
+                <div className="flex flex-col gap-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label={t("clients.form.cassaRate")} error={err("data.cassa.rateBp")}>
+                      {(c) => (
+                        <Input
+                          {...c}
+                          value={form.cassaRate}
+                          suffix="%"
+                          inputMode="decimal"
+                          disabled={locked}
+                          onChange={text("cassaRate")}
+                        />
+                      )}
+                    </Field>
+                    <Field label={t("clients.form.cassaMode")}>
+                      {(c) => (
+                        <Select
+                          {...c}
+                          value={form.cassaMode}
+                          disabled={locked}
+                          onChange={text("cassaMode")}
+                        >
+                          <option value="excluded">{t("clients.form.modeExcluded")}</option>
+                          <option value="included">{t("clients.form.modeIncluded")}</option>
+                        </Select>
+                      )}
+                    </Field>
+                  </div>
+                  {form.ritenutaType ? (
+                    <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+                      <input
+                        type="checkbox"
+                        className="size-5"
+                        checked={form.cassaSubjectToRitenuta}
+                        onChange={(e) => patch({ cassaSubjectToRitenuta: e.target.checked })}
+                      />
+                      {t("invoice.extras.cassaSubject")}
+                    </label>
+                  ) : null}
+                </div>
+              ) : null}
+            </GroupBox>
+            <GroupBox title={t("clients.form.withholding")}>
+              <Field label={t("clients.form.ritenuta")} error={err("data.ritenuta.type")}>
+                {(c) => (
+                  <Select {...c} value={form.ritenutaType} onChange={text("ritenutaType")}>
+                    <option value="">{t("clients.form.none")}</option>
+                    {RITENUTA_TYPES.map((code) => (
+                      <option key={code} value={code}>
+                        {ritenutaTypeLabel(code, locale)}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+              {form.ritenutaType ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label={t("clients.form.ritenutaRate")} error={err("data.ritenuta.rateBp")}>
+                    {(c) => (
+                      <Input
+                        {...c}
+                        value={form.ritenutaRate}
+                        suffix="%"
+                        inputMode="decimal"
+                        disabled={locked}
+                        onChange={text("ritenutaRate")}
+                      />
+                    )}
+                  </Field>
+                  <Field label={t("clients.form.ritenutaBase")} error={err("data.ritenuta.baseBp")}>
+                    {(c) => (
+                      <Input
+                        {...c}
+                        value={form.ritenutaBase}
+                        suffix="%"
+                        inputMode="decimal"
+                        disabled={locked}
+                        onChange={text("ritenutaBase")}
+                      />
+                    )}
+                  </Field>
+                  <Field
+                    label={t("clients.form.ritenutaCausale")}
+                    error={err("data.ritenuta.causale")}
+                    className="sm:col-span-2"
+                  >
+                    {(c) => (
+                      <Select
+                        {...c}
+                        value={form.ritenutaCausale}
+                        disabled={locked}
+                        onChange={text("ritenutaCausale")}
+                      >
+                        {CAUSALE_PAGAMENTO_CODES.map((code) => (
+                          <option key={code} value={code}>
+                            {causalePagamentoLabel(code, locale)}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                  </Field>
+                </div>
+              ) : null}
+            </GroupBox>
+            <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+              <input
+                type="checkbox"
+                className="size-5"
+                checked={form.bollo}
+                onChange={(e) => patch({ bollo: e.target.checked })}
+              />
+              {t("invoice.extras.bollo")}
+            </label>
+          </Disclosure>
+
+          <section className="flex flex-col gap-4" aria-labelledby="inv-lines">
+            <h2 id="inv-lines" className="text-base font-medium">
+              {t("invoice.lines.title")}
+            </h2>
+            <SdiNotes record={record} field="lines" />
+            <InvoiceLines
+              form={form}
+              totals={totals}
+              locale={locale}
+              error={err}
+              onChange={setLines}
+              disabled={locked}
+            />
+            {Object.keys(form.naturaTexts).length > 0 ? (
+              <div className="flex flex-col gap-3">
+                <h3 className="text-sm font-medium">{t("invoice.natura.title")}</h3>
+                <p className="text-sm text-muted-foreground">{t("invoice.natura.intro")}</p>
+                {Object.entries(form.naturaTexts).map(([code, value]) => (
+                  <Field
+                    key={code}
+                    label={t("invoice.natura.label", { code })}
+                    error={err(`data.naturaTexts.${code}`)}
+                  >
+                    {(c) => (
+                      <Textarea
+                        {...c}
+                        rows={2}
+                        value={value}
+                        onChange={(e) =>
+                          patch({ naturaTexts: { ...form.naturaTexts, [code]: e.target.value } })
+                        }
+                      />
+                    )}
+                  </Field>
+                ))}
+              </div>
             ) : null}
             <Field
-              label={t("invoice.document.dueDate")}
-              error={err("dueDate")}
-              {...(terms && !form.dueDateCustom ? { hint: t("paymentTerms.computed") } : {})}
+              label={t("invoice.document.note")}
+              hint={t("invoice.document.noteHint")}
+              error={err("data.note")}
             >
-              {(c) =>
-                terms && !form.dueDateCustom ? (
-                  <Input {...c} type="date" value={computedDueDate} readOnly />
-                ) : (
-                  <Input {...c} type="date" value={form.dueDate} onChange={text("dueDate")} />
-                )
-              }
+              {(c) => (
+                <Textarea
+                  {...c}
+                  value={form.invoiceNote}
+                  disabled={locked}
+                  onChange={text("invoiceNote")}
+                />
+              )}
             </Field>
-          </div>
-        </section>
-      </fieldset>
+          </section>
 
-      {record && (locked || record.state === "rejected") ? (
-        <PaymentSection key={record.paymentFlag + record.paidDate} record={record} />
-      ) : null}
-
-      {!locked && !send.ready ? (
-        <Banner tone="warning">
-          <p className="font-medium">{t("onboarding.sendBlocked")}</p>
-          <ul className="list-disc pl-5">
-            {send.reasons.map((reason) => (
-              <li key={reason}>{t(`onboarding.reasons.${reason}`)}</li>
-            ))}
-          </ul>
-        </Banner>
-      ) : null}
-
-      <div className="flex flex-wrap gap-3">
-        {record ? (
-          <Button
-            variant="secondary"
-            disabled={!online || duplicate.isPending}
-            onClick={() => duplicate.mutate(record.id)}
-          >
-            <Copy aria-hidden />
-            {t("invoice.actions.duplicate")}
-          </Button>
-        ) : null}
-        {record &&
-        record.documentType === "TD01" &&
-        (record.state === "delivered" || record.state === "not_delivered") ? (
-          <Button
-            variant="secondary"
-            disabled={!online || creditNote.isPending}
-            onClick={() => creditNote.mutate(record.id)}
-          >
-            <FileMinus aria-hidden />
-            {t("invoice.actions.creditNote")}
-          </Button>
-        ) : null}
-        {record && (record.state === "draft" || record.state === "planned") && !confirmDelete ? (
-          <Button variant="ghost" onClick={() => setConfirmDelete(true)}>
-            <Trash2 aria-hidden />
-            {t("invoice.actions.delete")}
-          </Button>
-        ) : null}
-        {record && confirmDelete ? (
-          <Button
-            variant="destructive"
-            disabled={!online || remove.isPending}
-            onClick={() => remove.mutate(record.id)}
-          >
-            {t("invoice.actions.deleteConfirm")}
-          </Button>
-        ) : null}
-      </div>
-
-      <InvoiceTotals
-        totals={totals}
-        form={form}
-        locale={locale}
-        actions={
-          locked ? null : (
-            <>
-              <Button type="submit" disabled={!online || save.isPending}>
-                {t(record ? "invoice.actions.save" : "invoice.actions.saveDraft")}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={!online || !record || !send.ready || !issuing.ok || save.isPending}
-                title={record ? undefined : t("send.saveFirst")}
-                onClick={() => void startSend("pec")}
-              >
-                <Send aria-hidden />
-                {t(
-                  record?.state === "rejected"
-                    ? "invoice.actions.fixResend"
-                    : "invoice.actions.send",
+          <section className="flex flex-col gap-4" aria-labelledby="inv-payment">
+            <h2 id="inv-payment" className="text-base font-medium">
+              {t("invoice.payment.title")}
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={t("invoice.payment.method")} error={err("data.payment.method")}>
+                {(c) => (
+                  <Select {...c} value={form.paymentMethod} onChange={text("paymentMethod")}>
+                    <option value="">{t("clients.form.none")}</option>
+                    {PAYMENT_METHODS.map((code) => (
+                      <option key={code} value={code}>
+                        {t(`invoice.paymentMethods.${code}`)}
+                      </option>
+                    ))}
+                  </Select>
                 )}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={
-                  !online ||
-                  !record ||
-                  send.reasons.includes("profile_incomplete") ||
-                  !issuing.ok ||
-                  save.isPending
-                }
-                title={record ? undefined : t("send.saveFirst")}
-                onClick={() => void startSend("manual")}
+              </Field>
+              <Field
+                label={t("invoice.payment.account")}
+                error={err("data.payment.iban") ?? err("data.payment.bic")}
+                {...(accounts.length === 0 ? { hint: t("invoice.payment.noAccounts") } : {})}
               >
-                <Upload aria-hidden />
-                {t("invoice.actions.prepareManual")}
-              </Button>
-            </>
-          )
-        }
-      />
+                {(c) => (
+                  <Select {...c} value={accountValue} onChange={chooseAccount}>
+                    <option value="">{t("clients.form.none")}</option>
+                    {accountValue === SNAPSHOT ? (
+                      <option value={SNAPSHOT}>
+                        {t("invoice.payment.accountSaved")} · {maskIban(form.iban)}
+                      </option>
+                    ) : null}
+                    {accounts.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.label} · {maskIban(account.iban)}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <PaymentTermsFields
+                kind={form.termsKind}
+                days={form.termsDays}
+                onChange={changeTerms}
+                kindError={err("data.payment.terms.kind")}
+                daysError={err("data.payment.terms.days")}
+              />
+              {terms ? (
+                <Field label={t("paymentTerms.dueMode")}>
+                  {(c) => (
+                    <Select
+                      {...c}
+                      value={form.dueDateCustom ? "custom" : "terms"}
+                      onChange={(e) =>
+                        patch(
+                          e.target.value === "custom"
+                            ? { dueDateCustom: true, dueDate: computedDueDate }
+                            : { dueDateCustom: false },
+                        )
+                      }
+                    >
+                      <option value="terms">{t("paymentTerms.mode_terms")}</option>
+                      <option value="custom">{t("paymentTerms.mode_custom")}</option>
+                    </Select>
+                  )}
+                </Field>
+              ) : null}
+              <Field
+                label={t("invoice.document.dueDate")}
+                error={err("dueDate")}
+                {...(terms && !form.dueDateCustom ? { hint: t("paymentTerms.computed") } : {})}
+              >
+                {(c) =>
+                  terms && !form.dueDateCustom ? (
+                    <Input {...c} type="date" value={computedDueDate} readOnly />
+                  ) : (
+                    <Input {...c} type="date" value={form.dueDate} onChange={text("dueDate")} />
+                  )
+                }
+              </Field>
+            </div>
+          </section>
+        </fieldset>
 
-      {record ? (
-        <SendSheet
-          invoiceId={record.id}
-          open={sendOpen}
-          onOpenChange={setSendOpen}
-          channel={sendChannel}
-          onError={(error) => {
-            if (error instanceof ApiError && error.code === "number_unavailable") {
-              // Nothing was reserved: show it next to the Number field with the new proposal.
-              setNumberTaken(true);
+        {record && (locked || record.state === "rejected") ? (
+          <PaymentSection key={record.paymentFlag + record.paidDate} record={record} />
+        ) : null}
+
+        {!locked && !send.ready ? (
+          <Banner tone="warning">
+            <p className="font-medium">{t("onboarding.sendBlocked")}</p>
+            <ul className="list-disc pl-5">
+              {send.reasons.map((reason) => (
+                <li key={reason}>{t(`onboarding.reasons.${reason}`)}</li>
+              ))}
+            </ul>
+          </Banner>
+        ) : null}
+
+        <div className="flex flex-wrap gap-3">
+          {record ? (
+            <Button
+              variant="secondary"
+              disabled={!online || duplicate.isPending}
+              onClick={() => duplicate.mutate(record.id)}
+            >
+              <Copy aria-hidden />
+              {t("invoice.actions.duplicate")}
+            </Button>
+          ) : null}
+          {record &&
+          record.documentType === "TD01" &&
+          (record.state === "delivered" || record.state === "not_delivered") ? (
+            <Button
+              variant="secondary"
+              disabled={!online || creditNote.isPending}
+              onClick={() => creditNote.mutate(record.id)}
+            >
+              <FileMinus aria-hidden />
+              {t("invoice.actions.creditNote")}
+            </Button>
+          ) : null}
+          {record && (record.state === "draft" || record.state === "planned") && !confirmDelete ? (
+            <Button variant="ghost" onClick={() => setConfirmDelete(true)}>
+              <Trash2 aria-hidden />
+              {t("invoice.actions.delete")}
+            </Button>
+          ) : null}
+          {record && confirmDelete ? (
+            <Button
+              variant="destructive"
+              disabled={!online || remove.isPending}
+              onClick={() => remove.mutate(record.id)}
+            >
+              {t("invoice.actions.deleteConfirm")}
+            </Button>
+          ) : null}
+        </div>
+
+        <InvoiceTotals
+          totals={totals}
+          form={form}
+          locale={locale}
+          actions={
+            locked ? null : (
+              <>
+                <Button type="submit" disabled={!online || save.isPending}>
+                  {t(record ? "invoice.actions.save" : "invoice.actions.saveDraft")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={!online || !record || !send.ready || !issuing.ok || save.isPending}
+                  title={record ? undefined : t("send.saveFirst")}
+                  onClick={() => void startSend("pec")}
+                >
+                  <Send aria-hidden />
+                  {t(
+                    record?.state === "rejected"
+                      ? "invoice.actions.fixResend"
+                      : "invoice.actions.send",
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={
+                    !online ||
+                    !record ||
+                    send.reasons.includes("profile_incomplete") ||
+                    !issuing.ok ||
+                    save.isPending
+                  }
+                  title={record ? undefined : t("send.saveFirst")}
+                  onClick={() => void startSend("manual")}
+                >
+                  <Upload aria-hidden />
+                  {t("invoice.actions.prepareManual")}
+                </Button>
+              </>
+            )
+          }
+        />
+
+        {record ? (
+          <SendSheet
+            invoiceId={record.id}
+            open={sendOpen}
+            onOpenChange={setSendOpen}
+            channel={sendChannel}
+            onError={(error) => {
+              if (error instanceof ApiError && error.code === "number_unavailable") {
+                // Nothing was reserved: show it next to the Number field with the new proposal.
+                setNumberTaken(true);
+                setSendOpen(false);
+                void queryClient.invalidateQueries({ queryKey: ["next-number"] });
+              }
+            }}
+            summary={{
+              client: client?.name ?? "",
+              number: record.number ?? "",
+              total: formatMoney(
+                totals?.amountDueCents ?? 0,
+                locale,
+                form.currency.toUpperCase() || "EUR",
+              ),
+            }}
+            onSent={() => {
               setSendOpen(false);
-              void queryClient.invalidateQueries({ queryKey: ["next-number"] });
-            }
+              void navigate({ to: "/invoices/$invoiceId", params: { invoiceId: record.id } });
+            }}
+          />
+        ) : null}
+
+        <ClientSheet
+          open={clientSheet !== null}
+          onOpenChange={(open) => setClientSheet(open ? (clientSheet ?? "new") : null)}
+          client={clientSheet === "edit" ? (client ?? undefined) : undefined}
+          onSaved={(saved) => {
+            setClientSheet(null);
+            // Select a client created inline; an edited one stays selected.
+            if (saved.id !== form.clientId) selectClient(saved);
           }}
-          summary={{
-            client: client?.name ?? "",
-            number: record.number ?? "",
-            total: formatMoney(
-              totals?.amountDueCents ?? 0,
-              locale,
-              form.currency.toUpperCase() || "EUR",
-            ),
-          }}
-          onSent={() => {
-            setSendOpen(false);
-            void navigate({ to: "/invoices/$invoiceId", params: { invoiceId: record.id } });
+          onDeleted={() => {
+            setClientSheet(null);
+            selectClient(null);
           }}
         />
-      ) : null}
-
-      <ClientSheet
-        open={clientSheet !== null}
-        onOpenChange={(open) => setClientSheet(open ? (clientSheet ?? "new") : null)}
-        client={clientSheet === "edit" ? (client ?? undefined) : undefined}
-        onSaved={(saved) => {
-          setClientSheet(null);
-          // Select a client created inline; an edited one stays selected.
-          if (saved.id !== form.clientId) selectClient(saved);
-        }}
-        onDeleted={() => {
-          setClientSheet(null);
-          selectClient(null);
-        }}
-      />
-    </form>
+      </form>
+    </Page>
   );
 }
 

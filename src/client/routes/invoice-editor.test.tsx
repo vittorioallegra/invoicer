@@ -776,6 +776,33 @@ describe("Invoice editor, number on the invoice", () => {
     expect(body.requestedNumber).toBeNull();
   });
 
+  it("shows the number as it will be printed on the title row, and nothing while it is unknown", async () => {
+    serve({ series: [DEFAULT_SERIES, CH_SERIES] });
+    await renderEditor();
+    await loaded();
+    expect(await screen.findByText(`No. 8/${YEAR}`)).toBeTruthy();
+    const heading = screen.getByRole("heading", { level: 1, name: "New invoice" });
+    expect(heading.parentElement?.textContent).toContain(`No. 8/${YEAR}`);
+    type("Series", "ch");
+    expect(await screen.findByText(`No. CH-3/${YEAR}`)).toBeTruthy();
+    fireEvent.change(numberInput(), { target: { value: "" } });
+    fireEvent.change(numberInput(), { target: { value: "12" } });
+    expect(screen.getByText(`No. CH-12/${YEAR}`)).toBeTruthy();
+    // Text that is not a number cannot be printed.
+    fireEvent.change(numberInput(), { target: { value: "x" } });
+    expect(screen.queryByText(/^No\. /)).toBeNull();
+  });
+
+  it("shows the assigned number of a stored invoice on the title row", async () => {
+    serve({
+      series: [DEFAULT_SERIES, CH_SERIES],
+      invoice: record({ state: "sending", number: "CH-7", seriesId: "ch", year: 2026 }),
+    });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect(screen.getAllByText("No. CH-7/2026")).toHaveLength(1);
+  });
+
   it("switching the series proposes that series' next number", async () => {
     serve({ series: [DEFAULT_SERIES, CH_SERIES] });
     await renderEditor();
