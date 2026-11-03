@@ -432,14 +432,15 @@ describe("Invoice editor", () => {
     expect(screen.queryByText(/Exempt amounts exceed/)).toBeNull();
   });
 
-  it("warns, without blocking, about a late immediate invoice", async () => {
+  it("warns, without blocking, about an invoice dated more than 12 days back", async () => {
     serve();
     await renderEditor();
     await loaded();
     type("Invoice date", "2020-03-01");
     expect(await screen.findByText(/within 12 days of its date/)).toBeTruthy();
-    fireEvent.click(screen.getByLabelText(/Deferred invoice/));
-    expect(await screen.findByText(/by the 15th of the month after its date/)).toBeTruthy();
+    expect(screen.queryByLabelText(/Deferred invoice/)).toBeNull();
+    type("Invoice date", "");
+    expect(screen.queryByText(/within 12 days of its date/)).toBeNull();
   });
 
   it("offers the accounts and saves the chosen one as a copy on the invoice", async () => {

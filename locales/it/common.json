@@ -456,8 +456,7 @@
       "locked": "Questa fattura non si può più modificare."
     },
     "warnings": {
-      "immediate_late": "Una fattura immediata va emessa entro 12 giorni dalla sua data (art. 21 DPR 633/72). Questa sarà in ritardo.",
-      "deferred_late": "Una fattura differita va emessa entro il 15 del mese successivo alla sua data (art. 21 DPR 633/72). Questa sarà in ritardo."
+      "late": "Una fattura con data passata va trasmessa al SdI entro 12 giorni dalla sua data (art. 21 DPR 633/72). Questa sarà in ritardo."
     },
     "bollo": {
       "suggestion": "Gli importi esenti superano 77,47 EUR: di solito è dovuto il bollo virtuale da 2,00 EUR.",
@@ -483,7 +482,6 @@
       "invoiceDate": "Data fattura",
       "invoiceDateHint": "Se vuota è il giorno dell'invio. Con una data compare tra le fatture da emettere.",
       "dueDate": "Scadenza",
-      "deferred": "Fattura differita (emessa entro il 15 del mese successivo)",
       "number": "Numero",
       "numberAssigned": "Fisso dopo l'invio.",
       "numberGap": "Così si crea un salto: i numeri da {{from}} a {{to}} del {{year}} resteranno inutilizzati.",

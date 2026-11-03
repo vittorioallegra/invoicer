@@ -12,9 +12,9 @@ import {
   EMPTY_INVOICE_DATA,
   type InvoiceRecord,
   invoiceEditability,
-  issuanceTermWarning,
   PAYMENT_METHODS,
   SDI_ERROR_FIELDS,
+  transmissionTermWarning,
 } from "../../shared/invoice";
 import { formatInvoiceNumber, type NumberingSeriesRecord } from "../../shared/numbering";
 import type { SendReadiness } from "../../shared/onboarding";
@@ -411,10 +411,9 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     currency: form.currency.toUpperCase(),
     data: bolloData,
   });
-  const warning = issuanceTermWarning({
-    invoiceDate: record?.issueDate ?? (form.invoiceDate || null),
+  const lateTransmission = transmissionTermWarning({
+    invoiceDate: record?.issueDate ? null : form.invoiceDate || null,
     sendDate: today,
-    deferred: form.deferred,
   });
   const typed = typedNumber(numberText);
   const gapFrom = proposal ?? 0;
@@ -568,7 +567,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
         </Banner>
       ) : null}
       {submitted && !structural.ok ? <Banner tone="danger">{t("invoice.fixErrors")}</Banner> : null}
-      {warning ? <Banner tone="warning">{t(`invoice.warnings.${warning}`)}</Banner> : null}
+      {lateTransmission ? <Banner tone="warning">{t("invoice.warnings.late")}</Banner> : null}
       {numberEditable && numberGap ? (
         <Banner tone="warning">
           {t(
@@ -779,15 +778,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               )}
             </Field>
           </div>
-          <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-            <input
-              type="checkbox"
-              className="size-5"
-              checked={form.deferred}
-              onChange={(e) => patch({ deferred: e.target.checked })}
-            />
-            {t("invoice.document.deferred")}
-          </label>
         </section>
 
         <section className="flex flex-col gap-4" aria-labelledby="inv-lines">

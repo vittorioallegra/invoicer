@@ -92,8 +92,6 @@ export const invoiceDataSchema = z.object({
   bollo: z.boolean(),
   /** The owner dismissed the "add bollo" suggestion for this invoice. */
   bolloSuggestionDismissed: z.boolean(),
-  /** Deferred invoice (art. 21, comma 4, DPR 633/72): issued by the 15th of the next month. */
-  deferred: z.boolean(),
   /** Legal text per natura code used by the lines (prefilled from `NATURA_TEXTS`, editable). */
   naturaTexts: z.partialRecord(z.enum(NATURA_CODES), z.string().trim().max(1000)),
   payment: invoicePaymentSchema,
@@ -105,7 +103,6 @@ export const EMPTY_INVOICE_DATA: InvoiceData = {
   ritenuta: null,
   bollo: false,
   bolloSuggestionDismissed: false,
-  deferred: false,
   naturaTexts: {},
   payment: {
     method: null,
@@ -237,28 +234,25 @@ export function defaultNaturaText(natura: Natura): string {
   return NATURA_TEXTS[natura].text;
 }
 
-export type IssuanceWarning = "immediate_late" | "deferred_late";
+/** Days after the invoice date within which an invoice must be transmitted (art. 21 DPR 633/72). */
+export const TRANSMISSION_TERM_DAYS = 12;
 
 const daysBetween = (from: string, to: string) =>
   Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS);
 
 /**
- * Non-blocking warning for a late transmission (art. 21 DPR 633/72): an immediate invoice sent
- * more than 12 days after its date, or a deferred one after the 15th of the month that follows
- * its date.
+ * Non-blocking warning for a late transmission: an invoice dated in the past must reach the SdI
+ * within 12 days of its date (art. 21 DPR 633/72, as amended by DL 119/2018). There is no
+ * deferred-invoice mode: the owner issues such an invoice with the date of the operation, within
+ * this term.
  */
-export function issuanceTermWarning(input: {
+export function transmissionTermWarning(input: {
   invoiceDate: string | null;
   sendDate: string;
-  deferred: boolean;
-}): IssuanceWarning | null {
-  const { invoiceDate, sendDate, deferred } = input;
-  if (!invoiceDate || !isValidDate(invoiceDate) || !isValidDate(sendDate)) return null;
-  if (!deferred) return daysBetween(invoiceDate, sendDate) > 12 ? "immediate_late" : null;
-  const year = Number(invoiceDate.slice(0, 4));
-  const month = Number(invoiceDate.slice(5, 7));
-  const limit = new Date(Date.UTC(year, month, 15)).toISOString().slice(0, 10);
-  return sendDate > limit ? "deferred_late" : null;
+}): boolean {
+  const { invoiceDate, sendDate } = input;
+  if (!invoiceDate || !isValidDate(invoiceDate) || !isValidDate(sendDate)) return false;
+  return daysBetween(invoiceDate, sendDate) > TRANSMISSION_TERM_DAYS;
 }
 
 /** How much of an invoice the owner may change in each state. */

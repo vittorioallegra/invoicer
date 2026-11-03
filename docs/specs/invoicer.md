@@ -263,8 +263,14 @@ settle the open ones):
   Europe/Rome). It is the XML `Data`, the PDF date, the numbering year and the base of the
   payment terms. When the number is reserved the issue date is that date if it is not in the
   future, else today; the date-order rule (not before the highest number of the series and
-  year) applies to it. There is no separate operation date. The existing issuance-term warning
-  compares it with the day of sending (see below).
+  year) applies to it. There is no separate operation date.
+- Past-dated invoices and the transmission term: all invoices are TD01 (or TD04 for credit
+  notes); there is no deferred-invoice (fattura differita) flag and no TD24. The owner who
+  invoices a month's work the next month saves a draft and issues it with the earlier date. The
+  editor shows a non-blocking warning when the invoice date is more than 12 days before the day
+  of sending: an invoice dated in the past must be transmitted to the SdI within 12 days of its
+  date (art. 21 DPR 633/72, DL 119/2018). Stored invoice data that still carries `deferred` is
+  read without it.
   - Payment flag, independent of the above: `unpaid` / `paid` (with paid date), set by hand.
     `overdue` is derived: unpaid and due date passed.
 - Numbering: progressive per calendar year and per numbering series, assigned when the invoice
