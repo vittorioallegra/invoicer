@@ -735,30 +735,35 @@ describe("Invoice editor", () => {
     expect(screen.getByRole("region", { name: "Client" })).toBeTruthy();
   });
 
-  it("puts Finalize on the title row and Delete, Duplicate and Save under the form", async () => {
+  it("puts Duplicate then Finalize on the title row and Delete and Save under the form", async () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
     await loaded();
     expect(screen.queryByRole("toolbar")).toBeNull();
     const title = screen.getByRole("heading", { level: 1 });
     const finalize = screen.getByRole("button", { name: "Finalize" });
-    expect(finalize.className).toContain("bg-primary");
-    // Nothing to download before finalising.
-    expect(screen.queryByRole("button", { name: "Download" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
-    expect(title.compareDocumentPosition(finalize) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    const remove = screen.getByRole("button", { name: "Delete" });
     const duplicate = screen.getByRole("button", { name: "Duplicate" });
+    expect(finalize.className).toContain("bg-primary");
+    // Nothing to download or pay before finalising.
+    expect(screen.queryByRole("button", { name: "Download" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Record payment" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+    expect(
+      title.compareDocumentPosition(duplicate) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      duplicate.compareDocumentPosition(finalize) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    const remove = screen.getByRole("button", { name: "Delete" });
     const save = screen.getByRole("button", { name: "Save" });
     expect(remove.className).toContain("mr-auto");
     expect(remove.className).toContain("text-danger");
-    expect(
-      remove.compareDocumentPosition(duplicate) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(duplicate.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(remove.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
       finalize.compareDocumentPosition(remove) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    // Duplicate is on the title row only, not repeated at the bottom.
+    expect(screen.getAllByRole("button", { name: "Duplicate" })).toHaveLength(1);
     // The sticky bar shows totals only.
     const totals = screen.getByRole("region", { name: "Totals" });
     expect(within(totals).getAllByRole("button")).toHaveLength(1);
@@ -827,10 +832,21 @@ describe("Invoice editor", () => {
     expect(items).toEqual(["PDF", "XML"]);
     fireEvent.click(screen.getByRole("menuitem", { name: "XML" }));
     expect(mocks.downloadUrl).toHaveBeenCalledWith("/api/invoices/i1/xml");
-    // Only Duplicate (and the credit note) remain at the bottom: no Delete, no Save.
+    // The title row has Duplicate, credit note, payment and Download, in that order.
+    const order = ["Duplicate", "Create credit note", "Record payment", "Download"].map((name) =>
+      screen.getByRole("button", { name }),
+    );
+    for (let i = 1; i < order.length; i++) {
+      expect(
+        order[i - 1]?.compareDocumentPosition(order[i] as Element) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+    // Nothing is left at the bottom: no Delete, no Save, no buttons row.
     expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Duplicate" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Duplicate" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Create credit note" })).toHaveLength(1);
   });
 
   it("closes the Download menu with Escape", async () => {
@@ -910,7 +926,7 @@ describe("Invoice editor", () => {
     expect(await screen.findByRole("heading", { name: "New client" })).toBeTruthy();
   });
 
-  it("shows an issued invoice read-only, with payment status and no save", async () => {
+  it("shows an issued invoice read-only, with a payment chip and no save", async () => {
     serve({
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
@@ -919,15 +935,80 @@ describe("Invoice editor", () => {
     expect(screen.getByText(/can no longer be edited/)).toBeTruthy();
     expect((screen.getByLabelText("Description") as HTMLInputElement).disabled).toBe(true);
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Create credit note" })).toBeTruthy();
-    expect(screen.getByLabelText("Paid")).toBeTruthy();
-    // The payment status Save waits for a change too.
-    const savePaid = screen.getByRole("button", {
-      name: "Save payment status",
-    }) as HTMLButtonElement;
-    expect(savePaid.disabled).toBe(true);
-    fireEvent.click(screen.getByLabelText("Paid"));
-    expect(savePaid.disabled).toBe(false);
+    expect(screen.getByText("Unpaid")).toBeTruthy();
+    // The old payment status section and the transmission section are gone.
+    expect(screen.queryByText("Payment status")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Transmission" })).toBeNull();
+  });
+
+  it("records a payment from the title row with the date, then updates", async () => {
+    serve({
+      invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
+    });
+    await renderEditor("/invoices/i1");
+    fireEvent.click(await screen.findByRole("button", { name: "Record payment" }));
+    const dialog = await screen.findByRole("dialog");
+    const date = within(dialog).getByLabelText("Payment date") as HTMLInputElement;
+    expect(date.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const save = within(dialog).getByRole("button", { name: "Save" }) as HTMLButtonElement;
+    fireEvent.change(date, { target: { value: "" } });
+    expect(save.disabled).toBe(true);
+    fireEvent.change(date, { target: { value: "2026-12-12" } });
+    expect(save.disabled).toBe(false);
+    fireEvent.click(save);
+    await waitFor(() => {
+      const call = mocks.api.mock.calls.find(
+        ([path, init]) =>
+          path === "/api/invoices/i1" && (init as { method?: string })?.method === "PATCH",
+      );
+      expect(JSON.parse((call?.[1] as { body: string }).body)).toEqual({
+        paymentFlag: "paid",
+        paidDate: "2026-12-12",
+      });
+    });
+  });
+
+  it("shows a Paid chip with the date and offers Undo payment after a confirmation", async () => {
+    serve({
+      invoice: record({
+        state: "delivered",
+        number: "7",
+        year: 2026,
+        issueDate: "2026-03-01",
+        paymentFlag: "paid",
+        paidDate: "2026-12-12",
+      }),
+    });
+    await renderEditor("/invoices/i1");
+    const chip = await screen.findByTitle("Paid on 12 Dec 2026");
+    expect(chip.textContent).toContain("Paid");
+    expect(screen.queryByRole("button", { name: "Record payment" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Undo payment" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Undo payment" }));
+    await waitFor(() => {
+      const call = mocks.api.mock.calls.find(
+        ([path, init]) =>
+          path === "/api/invoices/i1" && (init as { method?: string })?.method === "PATCH",
+      );
+      expect(JSON.parse((call?.[1] as { body: string }).body)).toEqual({ paymentFlag: "unpaid" });
+    });
+  });
+
+  it("offers no payment action or chip on a credit note", async () => {
+    serve({
+      invoice: record({
+        documentType: "TD04",
+        state: "delivered",
+        number: "8",
+        year: 2026,
+        issueDate: "2026-03-01",
+      }),
+    });
+    await renderEditor("/invoices/i1");
+    await screen.findByText("Delivered");
+    expect(screen.queryByRole("button", { name: "Record payment" })).toBeNull();
+    expect(screen.queryByText("Unpaid")).toBeNull();
   });
 
   it("lays each line out as a bordered card with the note and the read-only amount", async () => {

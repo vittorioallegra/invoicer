@@ -558,10 +558,17 @@
       "documentTotal": "Document total"
     },
     "paid": {
-      "title": "Payment status",
-      "markPaid": "Paid",
-      "date": "Paid on",
-      "save": "Save payment status"
+      "paidOn": "Paid on {{date}}",
+      "record": "Record payment",
+      "recordTitle": "Record payment",
+      "date": "Payment date",
+      "save": "Save",
+      "undo": "Undo payment",
+      "undoTitle": "Undo payment",
+      "undoBody": "The invoice goes back to unpaid and its payment date is cleared.",
+      "undoConfirm": "Undo payment",
+      "recorded": "Payment recorded",
+      "undone": "Payment undone"
     },
     "actions": {
       "download": "Download",

@@ -34,6 +34,7 @@ import { InvoiceDetail } from "../components/invoice-detail";
 import { InvoiceLines } from "../components/invoice-lines";
 import { InvoiceTotals } from "../components/invoice-totals";
 import { Page } from "../components/page";
+import { PaymentAction } from "../components/payment-action";
 import { PaymentTermsFields } from "../components/payment-terms-fields";
 import { type Preflight, SendSheet } from "../components/send-sheet";
 import { Banner } from "../components/ui/banner";
@@ -501,8 +502,36 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     onSelect: () => record && downloadUrl(`/api/invoices/${record.id}/${kind}`),
   }));
   const finalizable = !locked;
+  const issuedCreditable =
+    record?.documentType === "TD01" &&
+    (record.state === "delivered" || record.state === "not_delivered");
   const titleActions = (
     <>
+      {record ? (
+        <Button
+          variant="secondary"
+          disabled={!online || duplicate.isPending}
+          title={online ? undefined : t("offline.reason")}
+          onClick={() => duplicate.mutate(record.id)}
+        >
+          <Copy aria-hidden />
+          {t("invoice.actions.duplicate")}
+        </Button>
+      ) : null}
+      {record && issuedCreditable ? (
+        <Button
+          variant="secondary"
+          disabled={!online || creditNote.isPending}
+          title={online ? undefined : t("offline.reason")}
+          onClick={() => creditNote.mutate(record.id)}
+        >
+          <FileMinus aria-hidden />
+          {t("invoice.actions.creditNote")}
+        </Button>
+      ) : null}
+      {record && !unsent && record.documentType !== "TD04" ? (
+        <PaymentAction key={record.paymentFlag} record={record} today={today} />
+      ) : null}
       {record && !unsent ? (
         <MenuButton
           label={t("invoice.actions.download")}
@@ -537,6 +566,16 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
         {record ? (
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <StatusBadge status={record.state} />
+            {!unsent && record.documentType !== "TD04" ? (
+              <StatusBadge
+                status={record.paymentFlag}
+                detail={
+                  record.paymentFlag === "paid" && record.paidDate
+                    ? t("invoice.paid.paidOn", { date: formatDate(record.paidDate, locale) })
+                    : undefined
+                }
+              />
+            ) : null}
             {record.issueDate ? (
               <span className="text-muted-foreground">
                 {t("invoice.issuedOn", { date: formatDate(record.issueDate, locale) })}
@@ -1167,10 +1206,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           </section>
         </fieldset>
 
-        {record && (locked || record.state === "rejected") ? (
-          <PaymentSection key={record.paymentFlag + record.paidDate} record={record} />
-        ) : null}
-
         {!locked && !send.ready ? (
           <Banner tone="warning">
             <p className="font-medium">{t("onboarding.sendBlocked")}</p>
@@ -1185,55 +1220,33 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           </Banner>
         ) : null}
 
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {record && unsent && !confirmDelete ? (
-            <Button
-              variant="ghost"
-              className="mr-auto text-danger"
-              onClick={() => setConfirmDelete(true)}
-            >
-              <Trash2 aria-hidden />
-              {t("invoice.actions.delete")}
-            </Button>
-          ) : null}
-          {record && unsent && confirmDelete ? (
-            <Button
-              variant="destructive"
-              className="mr-auto"
-              disabled={!online || remove.isPending}
-              onClick={() => remove.mutate(record.id)}
-            >
-              {t("invoice.actions.deleteConfirm")}
-            </Button>
-          ) : null}
-          {record ? (
-            <Button
-              variant="secondary"
-              disabled={!online || duplicate.isPending}
-              onClick={() => duplicate.mutate(record.id)}
-            >
-              <Copy aria-hidden />
-              {t("invoice.actions.duplicate")}
-            </Button>
-          ) : null}
-          {record &&
-          record.documentType === "TD01" &&
-          (record.state === "delivered" || record.state === "not_delivered") ? (
-            <Button
-              variant="secondary"
-              disabled={!online || creditNote.isPending}
-              onClick={() => creditNote.mutate(record.id)}
-            >
-              <FileMinus aria-hidden />
-              {t("invoice.actions.creditNote")}
-            </Button>
-          ) : null}
-          {locked ? null : (
+        {locked ? null : (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {record && unsent && !confirmDelete ? (
+              <Button
+                variant="ghost"
+                className="mr-auto text-danger"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 aria-hidden />
+                {t("invoice.actions.delete")}
+              </Button>
+            ) : null}
+            {record && unsent && confirmDelete ? (
+              <Button
+                variant="destructive"
+                className="mr-auto"
+                disabled={!online || remove.isPending}
+                onClick={() => remove.mutate(record.id)}
+              >
+                {t("invoice.actions.deleteConfirm")}
+              </Button>
+            ) : null}
             <Button type="submit" disabled={!online || !dirty || save.isPending}>
               {t("invoice.actions.save")}
             </Button>
-          )}
-        </div>
+          </div>
+        )}
 
         <InvoiceTotals totals={totals} form={form} locale={locale} />
 
@@ -1283,74 +1296,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
         />
       </form>
     </Page>
-  );
-}
-
-/** Payment flag: what still changes once an invoice is out. */
-function PaymentSection({ record }: { record: InvoiceRecord }) {
-  const { t } = useTranslation();
-  const online = useOnline();
-  const queryClient = useQueryClient();
-  const [paid, setPaid] = useState(record.paymentFlag === "paid");
-  const [paidDate, setPaidDate] = useState(record.paidDate ?? "");
-  const { dirty, markSaved } = useDirty(
-    { paid: record.paymentFlag === "paid", paidDate: record.paidDate ?? "" },
-    { paid, paidDate: paid ? paidDate : "" },
-  );
-
-  const save = useMutation({
-    mutationFn: () =>
-      patchInvoice(record.id, {
-        paymentFlag: paid ? "paid" : "unpaid",
-        paidDate: paid && paidDate ? paidDate : null,
-      }),
-    onSuccess: async () => {
-      markSaved({ paid, paidDate: paid ? paidDate : "" });
-      await queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      await queryClient.invalidateQueries({ queryKey: ["invoice", record.id] });
-      toast.success(t("invoice.saved"));
-    },
-    onError: () => toast.error(t("common.error")),
-  });
-
-  return (
-    <section className="flex flex-col gap-4" aria-labelledby="inv-paid">
-      <h2 id="inv-paid" className="text-base font-medium">
-        {t("invoice.paid.title")}
-      </h2>
-      <div className="flex flex-wrap items-center gap-3">
-        <StatusBadge status={record.paymentFlag} />
-        <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-          <input
-            type="checkbox"
-            className="size-5"
-            checked={paid}
-            onChange={(e) => setPaid(e.target.checked)}
-          />
-          {t("invoice.paid.markPaid")}
-        </label>
-      </div>
-      {paid ? (
-        <Field label={t("invoice.paid.date")} className="max-w-xs">
-          {(c) => (
-            <Input
-              {...c}
-              type="date"
-              value={paidDate}
-              onChange={(e) => setPaidDate(e.target.value)}
-            />
-          )}
-        </Field>
-      ) : null}
-      <Button
-        className="w-fit"
-        variant="secondary"
-        disabled={!online || !dirty || save.isPending}
-        onClick={() => save.mutate()}
-      >
-        {t("invoice.paid.save")}
-      </Button>
-    </section>
   );
 }
 

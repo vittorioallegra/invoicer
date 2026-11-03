@@ -6,9 +6,12 @@ import { cn } from "../../lib/utils";
 /** State pill: icon + text label + colour, so colour is never the only signal. */
 export function StatusBadge({
   status,
+  detail,
   className,
 }: {
   status: InvoiceState | PaymentState;
+  /** Extra context (for example the paid date): a tooltip, and read after the label. */
+  detail?: string | undefined;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -16,6 +19,7 @@ export function StatusBadge({
   const Icon = entry.icon;
   return (
     <span
+      title={detail}
       className={cn(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
         TONE_CLASSES[entry.tone],
@@ -24,6 +28,7 @@ export function StatusBadge({
     >
       <Icon aria-hidden className="size-3.5" />
       {t(`status.${entry.label}`)}
+      {detail ? <span className="sr-only">{`, ${detail}`}</span> : null}
     </span>
   );
 }

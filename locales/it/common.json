@@ -24,7 +24,7 @@
     "rejected": "Scartata",
     "rejected_expired": "Scartata, scaduta",
     "paid": "Pagata",
-    "unpaid": "Da pagare",
+    "unpaid": "Non pagata",
     "overdue": "Scaduta"
   },
   "pages": {
@@ -558,10 +558,17 @@
       "documentTotal": "Totale documento"
     },
     "paid": {
-      "title": "Stato di pagamento",
-      "markPaid": "Pagata",
-      "date": "Pagata il",
-      "save": "Salva stato di pagamento"
+      "paidOn": "Pagata il {{date}}",
+      "record": "Registra pagamento",
+      "recordTitle": "Registra pagamento",
+      "date": "Data del pagamento",
+      "save": "Salva",
+      "undo": "Annulla pagamento",
+      "undoTitle": "Annulla pagamento",
+      "undoBody": "La fattura torna non pagata e la data di pagamento viene cancellata.",
+      "undoConfirm": "Annulla pagamento",
+      "recorded": "Pagamento registrato",
+      "undone": "Pagamento annullato"
     },
     "actions": {
       "download": "Scarica",
