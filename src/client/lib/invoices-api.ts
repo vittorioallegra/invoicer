@@ -11,6 +11,12 @@ export const invoiceQuery = (id: string) => ({
   queryFn: () => api<{ invoice: InvoiceRecord }>(`/api/invoices/${id}`),
 });
 
+/** The number proposed for a new invoice of the year: highest issued (app and imported) + 1. */
+export const nextNumberQuery = (year: number) => ({
+  queryKey: ["next-number", year],
+  queryFn: () => api<{ year: number; next: number }>(`/api/invoices/next-number?year=${year}`),
+});
+
 const send = <T>(method: string, path: string, body?: unknown) =>
   api<T>(path, {
     method,

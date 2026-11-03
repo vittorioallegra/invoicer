@@ -49,7 +49,6 @@ const settings = {
     defaultSenderName: null,
     configured: false,
   },
-  invoiceNumber: { year: 2026, next: 1, minimum: 5 },
   pec: {
     servers: {
       imapHost: "imaps.pec.aruba.it",
@@ -210,14 +209,13 @@ describe("Settings", () => {
     expect(back?.getAttribute("href")).toBe("/settings");
   });
 
-  it("refuses a next number below the ones already used, before calling the server", async () => {
+  it("has no invoice numbering section: the number is set on the invoice", async () => {
     respond({ "/api/features": features, "/api/settings": settings });
     await renderAt("/settings");
-    const input = await screen.findByLabelText("Next invoice number");
-    fireEvent.change(input, { target: { value: "3" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByText(/lowest allowed number is 5/)).toBeTruthy();
-    expect(mocks.api).not.toHaveBeenCalledWith("/api/settings/invoice-number", expect.anything());
+    await screen.findByRole("heading", { level: 1, name: "Settings" });
+    expect(screen.queryByLabelText("Next invoice number")).toBeNull();
+    expect(screen.queryByText(/Invoice numbering/)).toBeNull();
+    expect(mocks.api).not.toHaveBeenCalledWith("/api/settings", expect.anything());
   });
 
   it("disables the connection test while the credentials are not set", async () => {

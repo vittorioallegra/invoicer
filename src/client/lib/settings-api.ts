@@ -26,7 +26,6 @@ export interface SettingsResponse {
     defaultSenderName: string | null;
     configured: boolean;
   };
-  invoiceNumber: { year: number; next: number; minimum: number };
   pec: {
     servers: { imapHost: string; imapPort: number; smtpHost: string; smtpPort: number };
     preset: { imapHost: string; imapPort: number; smtpHost: string; smtpPort: number };

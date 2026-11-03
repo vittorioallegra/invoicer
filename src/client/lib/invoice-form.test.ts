@@ -5,6 +5,7 @@ import {
   buildInvoice,
   emptyForm,
   formTotals,
+  typedNumber,
   validateForm,
   withAccount,
 } from "./invoice-form";
@@ -96,5 +97,32 @@ describe("invoice form", () => {
     expect(buildInvoice(form).problems).toEqual({ "lines.0.unitPriceCents": "invalid_amount" });
     expect(formTotals(form)?.taxableCents).toBe(1000);
     expect(validateForm(form, client, false).ok).toBe(false);
+  });
+});
+
+describe("requested invoice number", () => {
+  const withNumber = (requestedNumber: string) => ({ ...emptyForm(), requestedNumber });
+
+  it("reads whole numbers from 1, blank as automatic and anything else as invalid", () => {
+    expect(typedNumber("")).toBeNull();
+    expect(typedNumber(" 12 ")).toBe(12);
+    for (const bad of ["0", "-3", "1.5", "ab", "1000000000"]) {
+      expect(typedNumber(bad)).toBeNaN();
+    }
+  });
+
+  it("sends null for blank or for the proposal, and the number otherwise", () => {
+    expect(buildInvoice(withNumber(""), 8).input.requestedNumber).toBeNull();
+    expect(buildInvoice(withNumber("8"), 8).input.requestedNumber).toBeNull();
+    expect(buildInvoice(withNumber("9"), 8).input.requestedNumber).toBe(9);
+    expect(buildInvoice(withNumber("ab"), 8).problems.requestedNumber).toBe("invalid_number");
+  });
+
+  it("blocks issuing a number below the proposal, but still allows saving the draft", () => {
+    expect(validateForm(withNumber("3"), client, true, 8).errors.requestedNumber).toBe(
+      "number_too_low",
+    );
+    expect(validateForm(withNumber("3"), client, false, 8).errors.requestedNumber).toBeUndefined();
+    expect(validateForm(withNumber("20"), client, true, 8).errors.requestedNumber).toBeUndefined();
   });
 });

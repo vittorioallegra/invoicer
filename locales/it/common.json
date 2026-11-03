@@ -133,13 +133,6 @@
     "language": "Lingua",
     "languageLabel": "Lingua dell'interfaccia",
     "languageHint": "Vale per questo dispositivo. PDF ed email seguono la lingua del cliente.",
-    "numberingTitle": "Numerazione fatture {{year}}",
-    "numberingIntro": "Il numero che avrà la prossima fattura di quest'anno. Impostalo per continuare dal tuo programma precedente. Non può essere inferiore a un numero già usato.",
-    "nextNumber": "Prossimo numero fattura",
-    "saveNumber": "Salva",
-    "numberSaved": "Numero salvato.",
-    "numberInvalid": "Inserisci un numero intero, 1 o più.",
-    "numberBelowUsed": "Il numero minimo consentito è {{minimum}}: uno in più del più alto già usato.",
     "pecTitle": "Casella PEC",
     "pecIntro": "Le credenziali PEC sono segreti del Worker e non vengono mai mostrate qui. Danno accesso completo alla casella, quindi ogni invio richiede la tua passkey o un codice dell'app di autenticazione. Impostale con wrangler secret put PEC_USERNAME e PEC_PASSWORD.",
     "pecUsername": "Utente PEC",
@@ -217,7 +210,8 @@
     "natura_text_required": "Aggiungi il riferimento normativo per questa esenzione.",
     "invalid_amount": "Inserisci un importo come 1.040,00.",
     "invalid_quantity": "Inserisci una quantità maggiore di zero (fino a 3 decimali).",
-    "invalid_rate": "Inserisci una percentuale come 4 o 22,5."
+    "invalid_rate": "Inserisci una percentuale come 4 o 22,5.",
+    "invalid_number": "Inserisci un numero intero, 1 o più."
   },
   "profile": {
     "title": "Azienda",
@@ -444,7 +438,14 @@
       "plannedDate": "Data di emissione prevista",
       "plannedHint": "Mette la fattura tra quelle da emettere.",
       "dueDate": "Scadenza",
-      "deferred": "Fattura differita (emessa entro il 15 del mese successivo)"
+      "deferred": "Fattura differita (emessa entro il 15 del mese successivo)",
+      "number": "Numero",
+      "numberHint": "Prossimo numero libero del {{year}}. Modificalo per continuare dal tuo programma precedente; le fatture successive proseguono dal numero più alto.",
+      "numberAssigned": "Assegnato all'invio della fattura; non si può modificare.",
+      "numberGap": "Così si crea un salto: i numeri da {{from}} a {{to}} del {{year}} resteranno inutilizzati.",
+      "numberGapOne": "Così si crea un salto: il numero {{from}} del {{year}} resterà inutilizzato.",
+      "numberTooLow": "Il numero deve essere {{next}} o più: i numeri inferiori sono già stati emessi.",
+      "numberUnavailable": "Quel numero non è più libero. Il prossimo numero libero è {{next}}."
     },
     "lines": {
       "title": "Righe",
@@ -768,7 +769,8 @@
       "pec_rejected": "Il server PEC ha rifiutato il messaggio. Non è stato inviato nulla; riprova o usa il canale manuale AdE.",
       "send_outcome_unknown": "La connessione si è interrotta durante l'invio, quindi il messaggio potrebbe essere arrivato al SdI.",
       "unknownNote": "Non reinviarla ancora: la casella viene controllata automaticamente. Se non compare nulla, puoi reinviare 15 minuti dopo il tentativo.",
-      "conflict": "Questa fattura non può essere inviata nel suo stato attuale. Ricarica la pagina."
+      "conflict": "Questa fattura non può essere inviata nel suo stato attuale. Ricarica la pagina.",
+      "number_unavailable": "Il numero della fattura non è più libero. Non è stato riservato né inviato nulla: controlla il campo Numero e invia di nuovo."
     }
   },
   "detail": {

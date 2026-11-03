@@ -46,6 +46,7 @@ import {
   type InvoiceForm,
   type LineForm,
   naturaTextsFor,
+  typedNumber,
   validateForm,
   withAccount,
 } from "../lib/invoice-form";
@@ -56,6 +57,7 @@ import {
   duplicateInvoice,
   invoiceQuery,
   invoicesQuery,
+  nextNumberQuery,
   patchInvoice,
   reissueInvoice,
   releaseNumber,
@@ -176,9 +178,27 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
   const editability = record ? invoiceEditability(record.state) : "full";
   const locked = editability === "locked";
   const client = clients.find((c) => c.id === form.clientId) ?? null;
+
+  // The number is chosen here until it is reserved; from then on it is shown read-only.
+  const numberEditable = editability === "full" && !record?.number;
+  const year = Number(today.slice(0, 4));
+  const nextNumber = useQuery({ ...nextNumberQuery(year), enabled: numberEditable });
+  const proposal = nextNumber.data?.next ?? null;
+  const [numberTouched, setNumberTouched] = useState(false);
+  const [numberTaken, setNumberTaken] = useState(false);
+  const numberText = numberTouched
+    ? form.requestedNumber
+    : form.requestedNumber || (proposal === null ? "" : String(proposal));
+
   const totals = useMemo(() => formTotals(form), [form]);
-  const issuing = useMemo(() => validateForm(form, client, true), [form, client]);
-  const structural = useMemo(() => validateForm(form, client, false), [form, client]);
+  const issuing = useMemo(
+    () => validateForm(form, client, true, proposal),
+    [form, client, proposal],
+  );
+  const structural = useMemo(
+    () => validateForm(form, client, false, proposal),
+    [form, client, proposal],
+  );
 
   const issued = useQuery({ ...invoicesQuery("issued"), enabled: form.documentType === "TD04" });
   const linkable = (issued.data?.invoices ?? []).filter(
@@ -230,6 +250,7 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
   }
 
   const refresh = async (id: string) => {
+    await queryClient.invalidateQueries({ queryKey: ["next-number"] });
     await queryClient.invalidateQueries({ queryKey: ["invoices"] });
     await queryClient.invalidateQueries({ queryKey: ["invoice", id] });
   };
@@ -343,6 +364,20 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
     issueDate: record?.issueDate ?? (form.plannedDate || today),
     deferred: form.deferred,
   });
+  const typed = typedNumber(numberText);
+  const gapFrom = proposal ?? 0;
+  const numberGap =
+    typed !== null && proposal !== null && typed > proposal
+      ? { from: gapFrom, to: typed - 1 }
+      : null;
+  let numberError: string | undefined;
+  if (numberTaken) {
+    numberError = t("invoice.document.numberUnavailable", { next: proposal ?? "" });
+  } else if (issuing.errors.requestedNumber === "number_too_low") {
+    numberError = t("invoice.document.numberTooLow", { next: proposal ?? "" });
+  } else {
+    numberError = err("requestedNumber");
+  }
   const clientProblems = Object.keys(issuing.errors).filter((path) => path.startsWith("client."));
   const credit = form.documentType === "TD04";
 
@@ -482,6 +517,16 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
       ) : null}
       {submitted && !structural.ok ? <Banner tone="danger">{t("invoice.fixErrors")}</Banner> : null}
       {warning ? <Banner tone="warning">{t(`invoice.warnings.${warning}`)}</Banner> : null}
+      {numberEditable && numberGap ? (
+        <Banner tone="warning">
+          {t(
+            numberGap.from === numberGap.to
+              ? "invoice.document.numberGapOne"
+              : "invoice.document.numberGap",
+            { ...numberGap, year },
+          )}
+        </Banner>
+      ) : null}
       {suggestBollo ? (
         <Banner
           tone="info"
@@ -590,6 +635,29 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
                   maxLength={3}
                   autoCapitalize="characters"
                   onChange={text("currency")}
+                />
+              )}
+            </Field>
+            <Field
+              label={t("invoice.document.number")}
+              hint={
+                numberEditable
+                  ? t("invoice.document.numberHint", { year })
+                  : t("invoice.document.numberAssigned")
+              }
+              error={numberEditable ? numberError : undefined}
+            >
+              {(c) => (
+                <Input
+                  {...c}
+                  inputMode="numeric"
+                  value={numberEditable ? numberText : (record?.number ?? "")}
+                  disabled={!numberEditable}
+                  onChange={(event) => {
+                    setNumberTouched(true);
+                    setNumberTaken(false);
+                    patch({ requestedNumber: event.target.value });
+                  }}
                 />
               )}
             </Field>
@@ -970,6 +1038,14 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
           open={sendOpen}
           onOpenChange={setSendOpen}
           channel={sendChannel}
+          onError={(error) => {
+            if (error instanceof ApiError && error.code === "number_unavailable") {
+              // Nothing was reserved: show it next to the Number field with the new proposal.
+              setNumberTaken(true);
+              setSendOpen(false);
+              void queryClient.invalidateQueries({ queryKey: ["next-number"] });
+            }
+          }}
           summary={{
             client: client?.name ?? "",
             number: record.number ?? "",

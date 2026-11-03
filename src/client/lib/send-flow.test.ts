@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   reserve: vi.fn(),
   release: vi.fn(),
   newAttempt: vi.fn(),
+  nextNumber: vi.fn(),
   upload: vi.fn(),
   challenge: vi.fn(),
   send: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock("./invoices-api", () => ({
   reserveNumber: mocks.reserve,
   releaseNumber: mocks.release,
   newAttempt: mocks.newAttempt,
+  nextNumberQuery: () => ({ queryFn: mocks.nextNumber }),
   uploadXml: mocks.upload,
   requestSendChallenge: mocks.challenge,
   sendInvoice: mocks.send,
@@ -62,9 +64,9 @@ beforeEach(() => {
     if (path.startsWith("/api/invoices/")) return { invoice };
     if (path === "/api/clients") return { clients: [client] };
     if (path === "/api/profile") return { profile };
-    if (path === "/api/settings") return { invoiceNumber: { year: 2026, next: 2, minimum: 1 } };
     throw new Error(`unexpected ${path}`);
   });
+  mocks.nextNumber.mockResolvedValue({ year: 2026, next: 2 });
   mocks.check.mockResolvedValue(valid);
   mocks.reserve.mockImplementation(async () => {
     mocks.calls.push("reserve");
@@ -136,6 +138,20 @@ describe("browser send flow", () => {
     });
   });
 
+  it("validates the provisional XML with the number the owner asked for", async () => {
+    mocks.api.mockImplementation(async (path: string) => {
+      if (path.startsWith("/api/invoices/"))
+        return { invoice: { ...invoice, requestedNumber: 120 } };
+      if (path === "/api/clients") return { clients: [client] };
+      if (path === "/api/profile") return { profile };
+      throw new Error(`unexpected ${path}`);
+    });
+    await runSendFlow("inv-1", hooks);
+    const [provisional] = mocks.check.mock.calls.map((c) => c[0] as string);
+    expect(provisional).toContain("<Numero>120</Numero>");
+    expect(mocks.nextNumber).not.toHaveBeenCalled();
+  });
+
   it("manual channel reserves, builds and stores the files, then stops before any authorization", async () => {
     const steps: string[] = [];
     const result = await runSendFlow("inv-1", { onStep: (s) => steps.push(s) }, "manual");
@@ -190,7 +206,6 @@ describe("browser send flow", () => {
       if (path.startsWith("/api/invoices/")) return { invoice: numbered };
       if (path === "/api/clients") return { clients: [client] };
       if (path === "/api/profile") return { profile };
-      if (path === "/api/settings") return { invoiceNumber: { year: 2026, next: 3, minimum: 1 } };
       throw new Error(`unexpected ${path}`);
     });
     mocks.newAttempt.mockResolvedValue({

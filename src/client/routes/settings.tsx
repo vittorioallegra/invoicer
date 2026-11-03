@@ -1,23 +1,17 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
-import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ApiError } from "../../shared/errors";
 import type { UiLocale } from "../../shared/format";
 import { DataExport } from "../components/data-export";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
-import { Button } from "../components/ui/button";
 import { Field } from "../components/ui/field";
-import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
-import { toast } from "../components/ui/toast";
 import { UnmatchedMessages } from "../components/unmatched-messages";
 import { persistLocale } from "../i18n";
 import { api } from "../lib/api";
 import { useOnline } from "../lib/online";
-import { putJson, settingsQuery } from "../lib/settings-api";
 
 interface Features {
   email: boolean;
@@ -60,76 +54,6 @@ function LanguageSection() {
           </Select>
         )}
       </Field>
-    </section>
-  );
-}
-
-function NumberingSection({ online }: { online: boolean }) {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const query = useQuery(settingsQuery);
-  const numbering = query.data?.invoiceNumber;
-  const [value, setValue] = useState("");
-  const [error, setError] = useState<string | undefined>();
-
-  useEffect(() => {
-    if (numbering) setValue(String(numbering.next));
-  }, [numbering]);
-
-  const save = useMutation({
-    mutationFn: (number: number) => putJson("/api/settings/invoice-number", { number }),
-    onSuccess: async () => {
-      toast.success(t("settings.numberSaved"));
-      await queryClient.invalidateQueries({ queryKey: ["settings"] });
-    },
-    onError: (failure) => {
-      setError(
-        failure instanceof ApiError && failure.status === 409
-          ? t("settings.numberBelowUsed", { minimum: numbering?.minimum })
-          : t("common.error"),
-      );
-    },
-  });
-
-  function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    const number = Number(value);
-    if (!/^\d+$/.test(value.trim()) || number < 1) {
-      setError(t("settings.numberInvalid"));
-      return;
-    }
-    if (numbering && number < numbering.minimum) {
-      setError(t("settings.numberBelowUsed", { minimum: numbering.minimum }));
-      return;
-    }
-    setError(undefined);
-    save.mutate(number);
-  }
-
-  if (!numbering) return null;
-  return (
-    <section className="space-y-2" aria-labelledby="numbering">
-      <h2 id="numbering" className="text-base font-medium">
-        {t("settings.numberingTitle", { year: numbering.year })}
-      </h2>
-      <p className="text-sm text-muted-foreground">{t("settings.numberingIntro")}</p>
-      <form onSubmit={onSubmit} noValidate className="flex max-w-xs flex-col gap-3">
-        <Field label={t("settings.nextNumber")} error={error}>
-          {(c) => (
-            <Input
-              {...c}
-              value={value}
-              inputMode="numeric"
-              onChange={(event) => {
-                setValue(event.target.value);
-              }}
-            />
-          )}
-        </Field>
-        <Button type="submit" disabled={!online || save.isPending} className="w-fit">
-          {t("settings.saveNumber")}
-        </Button>
-      </form>
     </section>
   );
 }
@@ -179,7 +103,6 @@ export function SettingsPage() {
         ))}
       </nav>
       <LanguageSection />
-      <NumberingSection online={online} />
       <UnmatchedMessages />
       <DataExport online={online} />
       {/* Temporary: removed together with the spike page (plan step 21). A plain anchor, not

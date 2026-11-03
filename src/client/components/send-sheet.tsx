@@ -25,6 +25,8 @@ export interface SendSheetProps {
   /** One line for the review: who it goes to and the amount due. */
   summary: { client: string; total: string; number: string };
   onSent: () => void;
+  /** Called with the failure of a send, so the page can react (for example a taken number). */
+  onError?: (error: unknown) => void;
   /** `manual` prepares the files for the AdE portal instead of sending by PEC. */
   channel?: SendChannel;
 }
@@ -36,6 +38,7 @@ export function SendSheet({
   onOpenChange,
   summary,
   onSent,
+  onError,
   channel = "pec",
 }: SendSheetProps) {
   const { t } = useTranslation();
@@ -64,6 +67,7 @@ export function SendSheet({
       ]);
     },
     onSuccess: () => onSent(),
+    onError: (failure) => onError?.(failure),
   });
 
   const error = run.error;

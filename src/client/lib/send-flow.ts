@@ -13,13 +13,14 @@ import { generateAndStoreInvoicePdf } from "../pdf/generate";
 import { api } from "./api";
 import {
   newAttempt,
+  nextNumberQuery,
   releaseNumber,
   requestSendChallenge,
   reserveNumber,
   sendInvoice,
   uploadXml,
 } from "./invoices-api";
-import { type ProfileResponse, settingsQuery } from "./settings-api";
+import type { ProfileResponse } from "./settings-api";
 import { checkFatturaXml } from "./xsd";
 
 /** The ordered steps of a send, in the order the review sheet shows them. */
@@ -147,27 +148,23 @@ export async function runSendFlow(
   const step = (s: SendStep) => hooks.onStep?.(s);
 
   step("validate");
-  const [{ invoice }, { clients }, { profile }, settings] = await Promise.all([
+  const [{ invoice }, { clients }, { profile }] = await Promise.all([
     api<{ invoice: InvoiceRecord }>(`/api/invoices/${invoiceId}`),
     api<{ clients: ClientRecord[] }>("/api/clients"),
     api<{ profile: ProfileResponse | null }>("/api/profile"),
-    settingsQuery.queryFn(),
   ]);
   const client = clients.find((c) => c.id === invoice.clientId);
   if (!client || !profile) throw new SendFlowError("missing_data");
 
   const fresh = invoice.state === "draft" || invoice.state === "planned";
   if (fresh) {
-    // Provisional number and today's date: catches what the XSD would refuse before a number is used.
+    // Provisional number (the one the owner asked for, else the next free one) and today's date:
+    // catches what the XSD would refuse before a number is used.
+    const today = romeDateTime(new Date()).date;
+    const provisionalNumber =
+      invoice.requestedNumber ?? (await nextNumberQuery(Number(today.slice(0, 4))).queryFn()).next;
     const provisional = buildFatturaXml(
-      fatturaInput(
-        invoice,
-        client,
-        profile,
-        String(settings.invoiceNumber.next),
-        romeDateTime(new Date()).date,
-        0,
-      ),
+      fatturaInput(invoice, client, profile, String(provisionalNumber), today, 0),
     );
     await validateOrThrow(provisional.xml, "validate");
   }

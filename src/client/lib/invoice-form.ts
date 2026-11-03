@@ -9,6 +9,7 @@ import {
   invoiceInputSchema,
   issueMap,
   issuingProblems,
+  MAX_INVOICE_NUMBER,
   parseQuantityMilli,
   safeTotals,
 } from "../../shared/invoice";
@@ -40,6 +41,8 @@ export interface InvoiceForm {
   documentType: "TD01" | "TD04";
   clientId: string;
   currency: string;
+  /** Number typed by the owner; empty = automatic (the proposed next number). */
+  requestedNumber: string;
   plannedDate: string;
   operationDate: string;
   dueDate: string;
@@ -76,6 +79,7 @@ export function emptyForm(): InvoiceForm {
     documentType: "TD01",
     clientId: "",
     currency: "EUR",
+    requestedNumber: "",
     plannedDate: "",
     operationDate: "",
     dueDate: "",
@@ -122,6 +126,7 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
     documentType: record.documentType,
     clientId: record.clientId ?? "",
     currency: record.currency,
+    requestedNumber: record.requestedNumber === null ? "" : String(record.requestedNumber),
     plannedDate: record.plannedDate ?? "",
     operationDate: record.operationDate ?? "",
     dueDate: record.dueDate ?? "",
@@ -231,9 +236,22 @@ export interface BuiltInvoice {
 
 const blank = (value: string) => (value.trim() === "" ? null : value.trim());
 
-/** Reads the form into the API shape; unreadable numbers become NaN and are reported. */
-export function buildInvoice(form: InvoiceForm): BuiltInvoice {
+/** The number typed in the Number field: null when empty, NaN when it is not a whole number. */
+export function typedNumber(text: string): number | null {
+  const trimmed = text.trim();
+  if (trimmed === "") return null;
+  const value = /^\d+$/.test(trimmed) ? Number(trimmed) : Number.NaN;
+  return value >= 1 && value <= MAX_INVOICE_NUMBER ? value : Number.NaN;
+}
+
+/**
+ * Reads the form into the API shape; unreadable numbers become NaN and are reported. `proposal`
+ * is the next free number of the year: a typed number equal to it means "automatic" (null).
+ */
+export function buildInvoice(form: InvoiceForm, proposal: number | null = null): BuiltInvoice {
   const problems: Record<string, string> = {};
+  const requested = typedNumber(form.requestedNumber);
+  if (Number.isNaN(requested)) problems.requestedNumber = "invalid_number";
   const lines = form.lines.map((line, index) => {
     const price = parseMoney(line.price);
     const quantity = parseQuantityMilli(line.quantity);
@@ -290,6 +308,7 @@ export function buildInvoice(form: InvoiceForm): BuiltInvoice {
       documentType: form.documentType,
       clientId: form.clientId || null,
       currency: form.currency,
+      requestedNumber: requested === null || requested === proposal ? null : requested,
       plannedDate: blank(form.plannedDate),
       operationDate: blank(form.operationDate),
       dueDate: blank(form.dueDate),
@@ -309,10 +328,11 @@ export function validateForm(
   form: InvoiceForm,
   client: ClientRecord | null,
   issuing: boolean,
+  proposal: number | null = null,
 ): { errors: Record<string, string>; ok: boolean; body: InvoiceInput } {
-  const { input, problems } = buildInvoice(form);
+  const { input, problems } = buildInvoice(form, proposal);
   const parsed = invoiceInputSchema.safeParse(input);
-  const rules = issuing
+  const rules: Record<string, string> = issuing
     ? Object.fromEntries(
         issuingProblems(
           {
@@ -324,6 +344,11 @@ export function validateForm(
         ).map((problem) => [problem.path.join("."), problem.code]),
       )
     : {};
+  // A number below the proposal is already taken: the Worker would refuse it at send time.
+  const requested = typedNumber(form.requestedNumber);
+  if (issuing && proposal !== null && requested !== null && requested < proposal) {
+    rules.requestedNumber = "number_too_low";
+  }
   const errors = { ...(parsed.success ? {} : issueMap(parsed.error)), ...rules, ...problems };
   // Unreadable numbers were NaN: the typed-text problem is the useful message.
   return { errors, ok: Object.keys(errors).length === 0, body: input };

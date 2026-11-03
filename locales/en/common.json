@@ -133,13 +133,6 @@
     "language": "Language",
     "languageLabel": "Interface language",
     "languageHint": "Applies to this device. PDFs and emails follow the client's language.",
-    "numberingTitle": "Invoice numbering {{year}}",
-    "numberingIntro": "The number the next invoice of this year gets. Set it to continue from your previous invoicing tool. It cannot be lower than a number already used.",
-    "nextNumber": "Next invoice number",
-    "saveNumber": "Save",
-    "numberSaved": "Number saved.",
-    "numberInvalid": "Enter a whole number, 1 or more.",
-    "numberBelowUsed": "The lowest allowed number is {{minimum}}: one above the highest number already used.",
     "pecTitle": "PEC mailbox",
     "pecIntro": "The PEC login is stored as Worker secrets and is never shown here. It gives full access to the mailbox, so each send needs your passkey or an authenticator code. Set it with wrangler secret put PEC_USERNAME and PEC_PASSWORD.",
     "pecUsername": "PEC username",
@@ -217,7 +210,8 @@
     "natura_text_required": "Add the legal reference for this exemption.",
     "invalid_amount": "Enter an amount such as 1.040,00.",
     "invalid_quantity": "Enter a quantity above zero (up to 3 decimals).",
-    "invalid_rate": "Enter a percentage such as 4 or 22,5."
+    "invalid_rate": "Enter a percentage such as 4 or 22,5.",
+    "invalid_number": "Enter a whole number, 1 or more."
   },
   "profile": {
     "title": "Company",
@@ -444,7 +438,14 @@
       "plannedDate": "Planned issue date",
       "plannedHint": "Lists the invoice under To issue.",
       "dueDate": "Due date",
-      "deferred": "Deferred invoice (issued by the 15th of the next month)"
+      "deferred": "Deferred invoice (issued by the 15th of the next month)",
+      "number": "Number",
+      "numberHint": "Next free number of {{year}}. Change it to continue from another tool; later invoices continue from the highest number.",
+      "numberAssigned": "Assigned when the invoice was sent; it cannot be changed.",
+      "numberGap": "This leaves a gap: the numbers {{from}} to {{to}} of {{year}} will stay unused.",
+      "numberGapOne": "This leaves a gap: the number {{from}} of {{year}} will stay unused.",
+      "numberTooLow": "The number must be {{next}} or higher: lower numbers are already issued.",
+      "numberUnavailable": "That number is no longer free. The next free number is {{next}}."
     },
     "lines": {
       "title": "Lines",
@@ -768,7 +769,8 @@
       "pec_rejected": "The PEC server refused the message. Nothing was sent; try again or use the manual AdE channel.",
       "send_outcome_unknown": "The connection broke while sending, so the message may have reached the SdI.",
       "unknownNote": "Do not send it again yet: the mailbox is checked automatically. If nothing shows up, you can resend 15 minutes after the attempt.",
-      "conflict": "This invoice cannot be sent in its current state. Reload the page."
+      "conflict": "This invoice cannot be sent in its current state. Reload the page.",
+      "number_unavailable": "The invoice number is no longer free. Nothing was reserved or sent: check the Number field and send again."
     }
   },
   "detail": {

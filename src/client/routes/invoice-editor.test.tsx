@@ -4,11 +4,12 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type ClientRecord, EMPTY_CLIENT_DEFAULTS } from "../../shared/client";
+import { ApiError } from "../../shared/errors";
 import { EMPTY_INVOICE_DATA, type InvoiceRecord } from "../../shared/invoice";
 import { createI18n } from "../i18n";
 import { createAppRouter } from "../router";
 
-const mocks = vi.hoisted(() => ({ api: vi.fn() }));
+const mocks = vi.hoisted(() => ({ api: vi.fn(), runSend: vi.fn() }));
 
 vi.mock("../lib/auth-client", () => ({
   authClient: {
@@ -21,6 +22,16 @@ vi.mock("../lib/auth-client", () => ({
   },
 }));
 vi.mock("../lib/api", () => ({ api: mocks.api }));
+vi.mock("../lib/send-flow", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../lib/send-flow")>()),
+  runSendFlow: mocks.runSend,
+}));
+
+/** What GET /api/invoices/next-number answers; tests change it to simulate another device. */
+let proposal = 8;
+const YEAR = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome", year: "numeric" }).format(
+  new Date(),
+);
 
 const acme: ClientRecord = {
   id: "c1",
@@ -139,6 +150,7 @@ function serve(opts: { send?: object; invoice?: InvoiceRecord; clients?: ClientR
       return { checklist: [], complete: true, send: opts.send ?? ready, pecTest: null };
     }
     if (path === "/api/invoices?scope=issued") return { invoices: [] };
+    if (path.startsWith("/api/invoices/next-number")) return { year: Number(YEAR), next: proposal };
     if (path === "/api/invoices" && init?.method === "POST")
       return { invoice: record({ id: "new1" }) };
     if (path.startsWith("/api/invoices/") && opts.invoice) return { invoice: opts.invoice };
@@ -170,6 +182,8 @@ const loaded = () => screen.findByRole("combobox", { name: "Client" });
 
 beforeEach(() => {
   mocks.api.mockReset();
+  mocks.runSend.mockReset();
+  proposal = 8;
 });
 afterEach(cleanup);
 
@@ -407,6 +421,119 @@ describe("Invoice editor", () => {
     const line = await screen.findByTestId("invoice-line");
     expect(line.className).toContain("md:grid");
     expect(line.className).toContain("rounded-card");
+  });
+});
+
+describe("Invoice editor, number on the invoice", () => {
+  const numberInput = () => screen.getByLabelText("Number") as HTMLInputElement;
+  const postedBody = () => {
+    const call = mocks.api.mock.calls.find(
+      ([path, init]) =>
+        path === "/api/invoices" && (init as { method?: string } | undefined)?.method === "POST",
+    );
+    return JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
+  };
+  const fillAndSave = async () => {
+    type("Client", "c1");
+    type("Description", "Consulting");
+    type("Unit price", "50");
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await waitFor(() => expect(postedBody().documentType).toBe("TD01"));
+    return postedBody();
+  };
+
+  it("prefills the next free number of the year and leaves it automatic when untouched", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    await waitFor(() => expect(numberInput().value).toBe("8"));
+    expect(numberInput().disabled).toBe(false);
+    expect(screen.queryByText(/leaves a gap/)).toBeNull();
+    expect((await fillAndSave()).requestedNumber).toBeNull();
+  });
+
+  it("sends the edited number and warns, without blocking, when it leaves a gap", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    await waitFor(() => expect(numberInput().value).toBe("8"));
+    fireEvent.change(numberInput(), { target: { value: "12" } });
+    expect(
+      screen.getByText(new RegExp(`the numbers 8 to 11 of ${YEAR} will stay unused`)),
+    ).toBeTruthy();
+    fireEvent.change(numberInput(), { target: { value: "9" } });
+    expect(screen.getByText(new RegExp(`the number 8 of ${YEAR} will stay unused`))).toBeTruthy();
+    fireEvent.change(numberInput(), { target: { value: "120" } });
+    expect((await fillAndSave()).requestedNumber).toBe(120);
+  });
+
+  it("treats a number equal to the proposal as automatic and rejects text", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    await waitFor(() => expect(numberInput().value).toBe("8"));
+    fireEvent.change(numberInput(), { target: { value: "ab" } });
+    expect(screen.getByText("Enter a whole number, 1 or more.")).toBeTruthy();
+    fireEvent.change(numberInput(), { target: { value: "8" } });
+    expect(screen.queryByText("Enter a whole number, 1 or more.")).toBeNull();
+    expect((await fillAndSave()).requestedNumber).toBeNull();
+  });
+
+  it("points out a number below the next free one", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    await waitFor(() => expect(numberInput().value).toBe("8"));
+    fireEvent.change(numberInput(), { target: { value: "3" } });
+    expect(
+      screen.getByText("The number must be 8 or higher: lower numbers are already issued."),
+    ).toBeTruthy();
+  });
+
+  it("shows the number requested on a stored draft, editable", async () => {
+    serve({ invoice: record({ requestedNumber: 120 }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    await waitFor(() => expect(numberInput().value).toBe("120"));
+    expect(numberInput().disabled).toBe(false);
+    expect(
+      screen.getByText(new RegExp(`the numbers 8 to 119 of ${YEAR} will stay unused`)),
+    ).toBeTruthy();
+  });
+
+  it("shows the assigned number read-only from reservation on", async () => {
+    serve({
+      invoice: record({ state: "sending", number: "7", year: 2026, issueDate: "2026-03-01" }),
+    });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect(numberInput().value).toBe("7");
+    expect(numberInput().disabled).toBe(true);
+    expect(mocks.api).not.toHaveBeenCalledWith(expect.stringContaining("next-number"));
+  });
+
+  it("shows a number taken meanwhile next to the field with the new proposal", async () => {
+    serve({ invoice: record({ requestedNumber: 9 }) });
+    mocks.runSend.mockRejectedValue(
+      new ApiError({
+        type: "urn:invoicer:error:number_unavailable",
+        title: "Invoice number not available",
+        status: 409,
+        code: "number_unavailable",
+        anchor: "error-number-unavailable",
+        detail: "requestedNumber: unavailable (the next free number is 10)",
+      }),
+    );
+    await renderEditor("/invoices/i1");
+    await loaded();
+    await waitFor(() => expect(numberInput().value).toBe("9"));
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Send with passkey" }));
+    proposal = 10;
+    expect(
+      await screen.findByText("That number is no longer free. The next free number is 10."),
+    ).toBeTruthy();
+    expect(numberInput().value).toBe("9");
   });
 });
 
