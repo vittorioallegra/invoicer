@@ -352,6 +352,23 @@ describe("reserving a number through the API", () => {
       body: {},
     });
     expect(released.body.invoice).toMatchObject({ state: "draft", number: null });
+
+    // The PEC setup gates the PEC send, not the numbering: without a passing test the invoice
+    // can still be finalised for the manual AdE channel.
+    await env.DB.prepare("UPDATE settings SET pec_test_ok = 0 WHERE id = 1").run();
+    const manual = await create();
+    const reservedManual = await owner.json(`/api/invoices/${manual.id}/reserve-number`, {
+      body: {},
+    });
+    expect(reservedManual.status).toBe(200);
+    // The company details gate both.
+    await env.DB.prepare("UPDATE profile SET vat_number = '' WHERE id = 1").run();
+    const noProfile = await owner.json(`/api/invoices/${(await create()).id}/reserve-number`, {
+      body: {},
+    });
+    expect(noProfile.status).toBe(409);
+    await env.DB.prepare("UPDATE profile SET vat_number = '12345678903' WHERE id = 1").run();
+    await env.DB.prepare("UPDATE settings SET pec_test_ok = 1 WHERE id = 1").run();
   });
 });
 

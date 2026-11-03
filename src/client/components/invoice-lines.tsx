@@ -14,6 +14,8 @@ interface CellProps {
   label: string;
   error?: string | undefined;
   className?: string;
+  /** Data path of the field (see `Field`). */
+  name?: string;
   children: (control: {
     id: string;
     "aria-invalid": true | undefined;
@@ -22,11 +24,11 @@ interface CellProps {
 }
 
 /** A labelled control with its error under it. */
-function Cell({ label, error, className, children }: CellProps) {
+function Cell({ label, error, className, name, children }: CellProps) {
   const id = useId();
   const errorId = `${id}-error`;
   return (
-    <div className={className}>
+    <div className={className} data-field={name}>
       <label htmlFor={id} className="mb-1 block text-sm font-medium">
         {label}
       </label>
@@ -152,7 +154,11 @@ export function InvoiceLines({
                   </Button>
                 </div>
               </div>
-              <Cell label={t("invoice.lines.description")} error={error(path("description"))}>
+              <Cell
+                label={t("invoice.lines.description")}
+                error={error(path("description"))}
+                name={path("description")}
+              >
                 {(c) => (
                   <Input
                     {...c}
@@ -166,6 +172,7 @@ export function InvoiceLines({
                 <Cell
                   label={t("invoice.lines.quantity")}
                   error={error(path("quantityMilli"))}
+                  name={path("quantityMilli")}
                   className="md:col-span-2"
                 >
                   {(c) => (
@@ -181,6 +188,7 @@ export function InvoiceLines({
                 <Cell
                   label={t("invoice.lines.unit")}
                   error={error(path("unit"))}
+                  name={path("unit")}
                   className="md:col-span-2"
                 >
                   {(c) => (
@@ -196,6 +204,7 @@ export function InvoiceLines({
                 <Cell
                   label={t("invoice.lines.price")}
                   error={error(path("unitPriceCents"))}
+                  name={path("unitPriceCents")}
                   className="col-span-2 md:col-span-3"
                 >
                   {(c) => (
@@ -211,6 +220,7 @@ export function InvoiceLines({
                 <Cell
                   label={t("invoice.lines.vat")}
                   error={error(path("vat")) ?? error(path("natura"))}
+                  name={path("vat")}
                   className="col-span-2 md:col-span-3"
                 >
                   {(c) => (
@@ -251,7 +261,11 @@ export function InvoiceLines({
                   </p>
                 </div>
               </div>
-              <Cell label={t("invoice.lines.noteOptional")} error={error(path("note"))}>
+              <Cell
+                label={t("invoice.lines.noteOptional")}
+                error={error(path("note"))}
+                name={path("note")}
+              >
                 {(c) => (
                   <Textarea
                     {...c}
@@ -267,15 +281,16 @@ export function InvoiceLines({
           );
         })}
       </ul>
-      <Button
-        variant="secondary"
-        className="w-fit"
-        disabled={disabled}
-        onClick={() => onChange([...form.lines, emptyLine()])}
-      >
-        <Plus aria-hidden />
-        {t("invoice.lines.add")}
-      </Button>
+      <div data-field="lines" className="w-fit">
+        <Button
+          variant="secondary"
+          disabled={disabled}
+          onClick={() => onChange([...form.lines, emptyLine()])}
+        >
+          <Plus aria-hidden />
+          {t("invoice.lines.add")}
+        </Button>
+      </div>
     </div>
   );
 }

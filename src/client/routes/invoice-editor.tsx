@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Copy, Download, FileMinus, Pencil, Send, Trash2, Upload } from "lucide-react";
+import { Copy, Download, FileMinus, Pencil, Send, Trash2 } from "lucide-react";
 import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ClientRecord } from "../../shared/client";
@@ -35,7 +35,7 @@ import { InvoiceLines } from "../components/invoice-lines";
 import { InvoiceTotals } from "../components/invoice-totals";
 import { Page } from "../components/page";
 import { PaymentTermsFields } from "../components/payment-terms-fields";
-import { SendSheet } from "../components/send-sheet";
+import { type Preflight, SendSheet } from "../components/send-sheet";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
 import { Disclosure } from "../components/ui/disclosure";
@@ -49,7 +49,8 @@ import { Textarea } from "../components/ui/textarea";
 import { toast } from "../components/ui/toast";
 import { INVOICE_LIST_BACK } from "../lib/back-links";
 import { clientsQuery } from "../lib/clients-api";
-import { buildUnsentXml, downloadUrl, renderUnsentPdf, saveFile } from "../lib/invoice-download";
+import { type FinalizeProblem, finalizeProblems, focusField } from "../lib/finalize-checks";
+import { downloadUrl } from "../lib/invoice-download";
 import {
   applyDefaults,
   draftBody,
@@ -81,7 +82,6 @@ import {
 } from "../lib/invoices-api";
 import { useOnline } from "../lib/online";
 import { sdiErrorLine } from "../lib/sdi-error";
-import { SendFlowError } from "../lib/send-flow";
 import {
   fieldErrorsFromDetail,
   numberingSeriesQuery,
@@ -220,6 +220,8 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
 
   const editability = record ? invoiceEditability(record.state) : "full";
   const locked = editability === "locked";
+  // Not finalised yet: no number, freely editable and deletable.
+  const unsent = record?.state === "draft" || record?.state === "planned";
   const client = clients.find((c) => c.id === form.clientId) ?? null;
 
   // The number is chosen here until it is reserved; from then on it is shown read-only.
@@ -244,10 +246,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const lineAmounts = useMemo(() => formLineAmounts(form), [form]);
   const issuing = useMemo(
     () => validateForm(form, client, true, proposal, today),
-    [form, client, proposal, today],
-  );
-  const structural = useMemo(
-    () => validateForm(form, client, false, proposal, today),
     [form, client, proposal, today],
   );
 
@@ -351,11 +349,16 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     await queryClient.invalidateQueries({ queryKey: ["invoice", id] });
   };
 
+  // A new invoice created by Finalize stays on this page until the flow ends; later saves update it.
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const savedId = record?.id ?? createdId;
   const save = useMutation({
-    mutationFn: (body: unknown) => (record ? updateInvoice(record.id, body) : createInvoice(body)),
-    onSuccess: async ({ invoice }) => {
+    mutationFn: ({ body }: { body: unknown; quiet?: boolean }) =>
+      savedId ? updateInvoice(savedId, body) : createInvoice(body),
+    onSuccess: async ({ invoice }, { quiet }) => {
       await refresh(invoice.id);
-      if (record) toast.success(t("invoice.saved"));
+      if (quiet) setCreatedId(invoice.id);
+      else if (record) toast.success(t("invoice.saved"));
       else void navigate({ to: "/invoices/$invoiceId", params: { invoiceId: invoice.id } });
     },
     onError: (error) => {
@@ -395,54 +398,30 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     onError: () => toast.error(t("invoice.reserved.releaseFailed")),
   });
 
-  // Files of an invoice that is not sent yet are built in the browser from what is on screen
-  // (saved first); the stored files of a sent invoice come from the Worker.
-  const unsent = record?.state === "draft" || record?.state === "planned";
-  const download = useMutation({
-    mutationFn: async (kind: "pdf" | "xml") => {
-      if (!record) return;
-      if (!unsent) {
-        downloadUrl(`/api/invoices/${record.id}/${kind}`);
-        return;
-      }
-      if (!structural.ok) return;
-      await save.mutateAsync(draftBody(form, proposal, today));
-      if (kind === "pdf") {
-        saveFile(
-          await renderUnsentPdf(record.id),
-          `invoice-${record.number ?? record.id}.pdf`,
-          "application/pdf",
-        );
-      } else {
-        const built = await buildUnsentXml(record.id);
-        saveFile(built.xml, built.fileName, "application/xml");
-      }
-    },
-    onError: (error) => {
-      // A failed save already showed its own toast.
-      if (error instanceof ApiError) return;
-      toast.error(
-        t(
-          error instanceof SendFlowError && error.code === "invalid_xml"
-            ? "invoice.download.xmlInvalid"
-            : "invoice.download.failed",
-        ),
-      );
-    },
-  });
-
-  const [sendOpen, setSendOpen] = useState(false);
-  const [sendChannel, setSendChannel] = useState<"pec" | "manual">("pec");
-  // Saves what is on screen first, so the number is reserved for exactly what the owner reviewed.
-  async function startSend(channel: "pec" | "manual" = "pec") {
-    if (!record || !structural.ok) return;
-    try {
-      await save.mutateAsync(draftBody(form, proposal, today));
-      setSendChannel(channel);
-      setSendOpen(true);
-    } catch {
-      // The save banner already shows why.
-    }
+  // Finalize: the checks run first (nothing is saved, numbered or sent when one fails), then what
+  // is on screen is saved and the send flow goes on. Without a ready PEC the invoice is finalised
+  // for the manual AdE channel (the XML is stored for the portal) instead of being sent.
+  const [finalizeOpen, setFinalizeOpen] = useState(false);
+  const channel = send.ready ? "pec" : "manual";
+  async function preflight(): Promise<Preflight> {
+    setSubmitted(true);
+    const problems = finalizeProblems(t, {
+      errors: issuing.errors,
+      nextNumber: proposal,
+      online,
+      profileIncomplete: send.reasons.includes("profile_incomplete"),
+    });
+    if (problems.length > 0) return { ok: false, problems };
+    const { invoice } = await save.mutateAsync({
+      body: draftBody(form, proposal, today),
+      quiet: true,
+    });
+    return { ok: true, invoiceId: invoice.id };
+  }
+  function showProblem(problem: FinalizeProblem) {
+    setFinalizeOpen(false);
+    // The dialog closes first (it restores the focus), then the field takes it.
+    window.setTimeout(() => focusField(document, problem.field ?? ""), 0);
   }
 
   const reissue = useMutation({
@@ -466,7 +445,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     if (locked) return;
     // Saving never validates: whatever is typed is stored, and Finalize runs every check.
     setSubmitted(true);
-    save.mutate(draftBody(form, proposal, today));
+    save.mutate({ body: draftBody(form, proposal, today) });
   }
 
   const bolloData = {
@@ -510,69 +489,39 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     });
   }
 
-  const offlineReason = online ? undefined : t("offline.reason");
-  const downloadBusy = download.isPending || save.isPending;
-  const unsentReason = (kind: "pdf" | "xml"): string | undefined => {
-    if (offlineReason) return offlineReason;
-    if (!record) return t("send.saveFirst");
-    if (!unsent) return undefined;
-    if (kind === "pdf") return structural.ok ? undefined : t("invoice.download.fixFirst");
-    return issuing.ok ? undefined : t("invoice.download.completeFirst");
-  };
-  const downloadItems = (["pdf", "xml"] as const).map((kind) => {
-    const reason = unsentReason(kind);
-    return {
-      key: kind,
-      label: kind.toUpperCase(),
-      disabled: reason !== undefined || downloadBusy,
-      reason,
-      onSelect: () => download.mutate(kind),
-    };
-  });
-  const manualReason = (() => {
-    if (offlineReason) return offlineReason;
-    if (!record) return t("send.saveFirst");
-    if (send.reasons.includes("profile_incomplete"))
-      return t("onboarding.reasons.profile_incomplete");
-    if (!issuing.ok) return t("invoice.download.completeFirst");
-    return undefined;
-  })();
-  const titleActions =
-    record || !locked ? (
-      <>
+  // An unsent invoice has one action, Finalize; once finalised the stored files are offered.
+  const downloadItems = (["pdf", "xml"] as const).map((kind) => ({
+    key: kind,
+    label: kind.toUpperCase(),
+    disabled: !online,
+    reason: online ? undefined : t("offline.reason"),
+    onSelect: () => record && downloadUrl(`/api/invoices/${record.id}/${kind}`),
+  }));
+  const finalizable = !locked;
+  const titleActions = (
+    <>
+      {record && !unsent ? (
         <MenuButton
           label={t("invoice.actions.download")}
           icon={<Download aria-hidden />}
-          items={[
-            ...downloadItems,
-            ...(locked
-              ? []
-              : [
-                  {
-                    key: "manual",
-                    label: t("invoice.actions.prepareManual"),
-                    icon: <Upload aria-hidden />,
-                    separated: true,
-                    disabled: manualReason !== undefined || save.isPending,
-                    reason: manualReason,
-                    onSelect: () => void startSend("manual"),
-                  },
-                ]),
-          ]}
+          items={downloadItems}
         />
-        {locked ? null : (
-          <Button
-            type="button"
-            disabled={!online || !record || !send.ready || !issuing.ok || save.isPending}
-            title={record ? undefined : t("send.saveFirst")}
-            onClick={() => void startSend("pec")}
-          >
-            <Send aria-hidden />
-            {t(record?.state === "rejected" ? "invoice.actions.fixResend" : "invoice.actions.send")}
-          </Button>
-        )}
-      </>
-    ) : null;
+      ) : null}
+      {finalizable ? (
+        <Button
+          type="button"
+          disabled={!online || save.isPending}
+          title={online ? undefined : t("offline.reason")}
+          onClick={() => setFinalizeOpen(true)}
+        >
+          <Send aria-hidden />
+          {t(
+            record?.state === "rejected" ? "invoice.actions.fixResend" : "invoice.actions.finalize",
+          )}
+        </Button>
+      ) : null}
+    </>
+  );
 
   return (
     <Page
@@ -721,6 +670,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               <Field
                 label={t("invoice.client.label")}
                 error={err("clientId")}
+                name="clientId"
                 className="min-w-56 flex-1"
               >
                 {(c) => (
@@ -794,7 +744,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                   </Select>
                 )}
               </Field>
-              <Field label={t("invoice.document.currency")} error={err("currency")}>
+              <Field label={t("invoice.document.currency")} error={err("currency")} name="currency">
                 {(c) => (
                   <Input
                     {...c}
@@ -840,6 +790,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                     : t("invoice.document.numberAssigned")
                 }
                 error={numberEditable ? numberError : undefined}
+                name="requestedNumber"
               >
                 {(c) => (
                   <Input
@@ -859,6 +810,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 label={t("invoice.document.invoiceDate")}
                 hint={t("invoice.document.invoiceDateHint")}
                 error={err("invoiceDate")}
+                name="invoiceDate"
               >
                 {(c) => (
                   <Input
@@ -871,7 +823,11 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 )}
               </Field>
               {credit ? (
-                <Field label={t("invoice.document.linked")} error={err("linkedInvoiceId")}>
+                <Field
+                  label={t("invoice.document.linked")}
+                  error={err("linkedInvoiceId")}
+                  name="linkedInvoiceId"
+                >
                   {(c) => (
                     <Select {...c} value={form.linkedInvoiceId} onChange={text("linkedInvoiceId")}>
                       <option value="">{t("invoice.document.noLinked")}</option>
@@ -902,7 +858,11 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             onToggle={() => setExtrasChoice(!extrasOpen)}
           >
             <GroupBox title={t("clients.form.pensionFund")}>
-              <Field label={t("clients.form.cassa")} error={err("data.cassa.type")}>
+              <Field
+                label={t("clients.form.cassa")}
+                error={err("data.cassa.type")}
+                name="data.cassa.type"
+              >
                 {(c) => (
                   <Select
                     {...c}
@@ -929,7 +889,11 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               {form.cassaType ? (
                 <div className="flex flex-col gap-4">
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label={t("clients.form.cassaRate")} error={err("data.cassa.rateBp")}>
+                    <Field
+                      label={t("clients.form.cassaRate")}
+                      error={err("data.cassa.rateBp")}
+                      name="data.cassa.rateBp"
+                    >
                       {(c) => (
                         <Input
                           {...c}
@@ -970,7 +934,11 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               ) : null}
             </GroupBox>
             <GroupBox title={t("clients.form.withholding")}>
-              <Field label={t("clients.form.ritenuta")} error={err("data.ritenuta.type")}>
+              <Field
+                label={t("clients.form.ritenuta")}
+                error={err("data.ritenuta.type")}
+                name="data.ritenuta.type"
+              >
                 {(c) => (
                   <Select {...c} value={form.ritenutaType} onChange={text("ritenutaType")}>
                     <option value="">{t("clients.form.none")}</option>
@@ -984,7 +952,11 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               </Field>
               {form.ritenutaType ? (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label={t("clients.form.ritenutaRate")} error={err("data.ritenuta.rateBp")}>
+                  <Field
+                    label={t("clients.form.ritenutaRate")}
+                    error={err("data.ritenuta.rateBp")}
+                    name="data.ritenuta.rateBp"
+                  >
                     {(c) => (
                       <Input
                         {...c}
@@ -996,7 +968,11 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                       />
                     )}
                   </Field>
-                  <Field label={t("clients.form.ritenutaBase")} error={err("data.ritenuta.baseBp")}>
+                  <Field
+                    label={t("clients.form.ritenutaBase")}
+                    error={err("data.ritenuta.baseBp")}
+                    name="data.ritenuta.baseBp"
+                  >
                     {(c) => (
                       <Input
                         {...c}
@@ -1011,6 +987,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                   <Field
                     label={t("clients.form.ritenutaCausale")}
                     error={err("data.ritenuta.causale")}
+                    name="data.ritenuta.causale"
                     className="sm:col-span-2"
                   >
                     {(c) => (
@@ -1064,6 +1041,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                     key={code}
                     label={t("invoice.natura.label", { code })}
                     error={err(`data.naturaTexts.${code}`)}
+                    name={`data.naturaTexts.${code}`}
                   >
                     {(c) => (
                       <Textarea
@@ -1083,6 +1061,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               label={t("invoice.document.note")}
               hint={t("invoice.document.noteHint")}
               error={err("data.note")}
+              name="data.note"
             >
               {(c) => (
                 <Textarea
@@ -1100,7 +1079,11 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               {t("invoice.payment.title")}
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t("invoice.payment.method")} error={err("data.payment.method")}>
+              <Field
+                label={t("invoice.payment.method")}
+                error={err("data.payment.method")}
+                name="data.payment.method"
+              >
                 {(c) => (
                   <Select {...c} value={form.paymentMethod} onChange={text("paymentMethod")}>
                     <option value="">{t("clients.form.none")}</option>
@@ -1115,6 +1098,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               <Field
                 label={t("invoice.payment.account")}
                 error={err("data.payment.iban") ?? err("data.payment.bic")}
+                name="data.payment.iban"
                 {...(accounts.length === 0 ? { hint: t("invoice.payment.noAccounts") } : {})}
               >
                 {(c) => (
@@ -1165,6 +1149,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               <Field
                 label={t("invoice.document.dueDate")}
                 error={err("dueDate")}
+                name="dueDate"
                 {...(terms && !form.dueDateCustom ? { hint: t("paymentTerms.computed") } : {})}
               >
                 {(c) =>
@@ -1191,6 +1176,9 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 <li key={reason}>{t(`onboarding.reasons.${reason}`)}</li>
               ))}
             </ul>
+            {send.reasons.includes("profile_incomplete") ? null : (
+              <p>{t("finalize.manualInstead")}</p>
+            )}
           </Banner>
         ) : null}
 
@@ -1246,35 +1234,35 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
 
         <InvoiceTotals totals={totals} form={form} locale={locale} />
 
-        {record ? (
-          <SendSheet
-            invoiceId={record.id}
-            open={sendOpen}
-            onOpenChange={setSendOpen}
-            channel={sendChannel}
-            onError={(error) => {
-              if (error instanceof ApiError && error.code === "number_unavailable") {
-                // Nothing was reserved: show it next to the Number field with the new proposal.
-                setNumberTaken(true);
-                setSendOpen(false);
-                void queryClient.invalidateQueries({ queryKey: ["next-number"] });
-              }
-            }}
-            summary={{
-              client: client?.name ?? "",
-              number: record.number ?? "",
-              total: formatMoney(
-                totals?.amountDueCents ?? 0,
-                locale,
-                form.currency.toUpperCase() || "EUR",
-              ),
-            }}
-            onSent={() => {
-              setSendOpen(false);
-              void navigate({ to: "/invoices/$invoiceId", params: { invoiceId: record.id } });
-            }}
-          />
-        ) : null}
+        <SendSheet
+          invoiceId={record?.id ?? null}
+          open={finalizeOpen}
+          onOpenChange={setFinalizeOpen}
+          channel={channel}
+          preflight={preflight}
+          onProblem={showProblem}
+          onError={(error) => {
+            if (error instanceof ApiError && error.code === "number_unavailable") {
+              // Nothing was reserved: show it next to the Number field with the new proposal.
+              setNumberTaken(true);
+              setFinalizeOpen(false);
+              void queryClient.invalidateQueries({ queryKey: ["next-number"] });
+            }
+          }}
+          summary={{
+            client: client?.name ?? "",
+            number: record?.number ?? "",
+            total: formatMoney(
+              totals?.amountDueCents ?? 0,
+              locale,
+              form.currency.toUpperCase() || "EUR",
+            ),
+          }}
+          onSent={(id) => {
+            setFinalizeOpen(false);
+            void navigate({ to: "/invoices/$invoiceId", params: { invoiceId: id } });
+          }}
+        />
 
         <ClientSheet
           open={clientSheet !== null}

@@ -12,10 +12,7 @@ import { createAppRouter } from "../router";
 const mocks = vi.hoisted(() => ({
   api: vi.fn(),
   runSend: vi.fn(),
-  saveFile: vi.fn(),
   downloadUrl: vi.fn(),
-  buildXml: vi.fn(),
-  renderPdf: vi.fn(),
 }));
 
 vi.mock("../lib/auth-client", () => ({
@@ -29,12 +26,7 @@ vi.mock("../lib/auth-client", () => ({
   },
 }));
 vi.mock("../lib/api", () => ({ api: mocks.api }));
-vi.mock("../lib/invoice-download", () => ({
-  saveFile: mocks.saveFile,
-  downloadUrl: mocks.downloadUrl,
-  buildUnsentXml: mocks.buildXml,
-  renderUnsentPdf: mocks.renderPdf,
-}));
+vi.mock("../lib/invoice-download", () => ({ downloadUrl: mocks.downloadUrl }));
 vi.mock("../lib/send-flow", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../lib/send-flow")>()),
   runSendFlow: mocks.runSend,
@@ -234,10 +226,7 @@ const loaded = () => screen.findByRole("combobox", { name: "Client" });
 beforeEach(() => {
   mocks.api.mockReset();
   mocks.runSend.mockReset();
-  mocks.saveFile.mockReset();
   mocks.downloadUrl.mockReset();
-  mocks.buildXml.mockReset();
-  mocks.renderPdf.mockReset();
   proposal = 8;
 });
 afterEach(cleanup);
@@ -683,14 +672,13 @@ describe("Invoice editor", () => {
     expect(select.value).toBe("");
   });
 
-  it("saves a valid draft and keeps Send disabled with the blocking reasons", async () => {
+  it("saves a draft whatever the send readiness, and lists the blocking reasons", async () => {
     serve({ send: { ready: false, reasons: ["profile_incomplete", "pec_test_missing"] } });
     await renderEditor();
     await loaded();
     type("Client", "c1");
     type("Description", "Consulting");
     type("Unit price", "50");
-    expect((screen.getByRole("button", { name: "Send" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("You cannot send invoices yet:")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
@@ -708,19 +696,34 @@ describe("Invoice editor", () => {
     });
   });
 
-  it("offers the manual AdE channel when only the PEC setup is missing, but not without a profile", async () => {
-    serve({ send: { ready: false, reasons: ["pec_credentials_missing"] } });
-    await renderEditor();
+  it("finalises for the manual AdE channel when only the PEC setup is missing", async () => {
+    serve({ invoice: record(), send: { ready: false, reasons: ["pec_credentials_missing"] } });
+    mocks.runSend.mockResolvedValue({ messageId: null, fileName: "IT1_00001.xml" });
+    await renderEditor("/invoices/i1");
     await loaded();
-    type("Client", "c1");
-    type("Description", "Consulting");
-    type("Unit price", "50");
-    expect((screen.getByRole("button", { name: "Send" }) as HTMLButtonElement).disabled).toBe(true);
-    // No saved record yet, so the item is present but waits for the first save.
-    fireEvent.click(screen.getByRole("button", { name: "Download" }));
-    const manual = screen.getByRole("menuitem", { name: /Prepare for the AdE portal/ });
-    expect(manual.getAttribute("aria-disabled")).toBe("true");
-    expect(within(manual).getByText("Save the invoice first.")).toBeTruthy();
+    expect(screen.getByText(/instead of sending it by PEC/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    expect((await screen.findByText(/nothing is sent by the app/)).textContent).toContain(
+      "AdE portal",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    await waitFor(() => expect(mocks.runSend).toHaveBeenCalled());
+    expect(mocks.runSend.mock.calls[0]?.[0]).toBe("i1");
+    expect(mocks.runSend.mock.calls[0]?.[2]).toBe("manual");
+  });
+
+  it("does not finalise without the company details: it points to them", async () => {
+    serve({
+      invoice: record(),
+      send: { ready: false, reasons: ["profile_incomplete", "pec_credentials_missing"] },
+    });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Finalize" }));
+    const link = await screen.findByRole("link", { name: "The company details are not complete." });
+    expect(link.getAttribute("href")).toBe("/settings/profile");
+    expect(mocks.runSend).not.toHaveBeenCalled();
   });
 
   it("shows the client title once: as the select label, with no repeated heading", async () => {
@@ -732,19 +735,18 @@ describe("Invoice editor", () => {
     expect(screen.getByRole("region", { name: "Client" })).toBeTruthy();
   });
 
-  it("puts Download and Send on the title row and Delete, Duplicate and Save under the form", async () => {
+  it("puts Finalize on the title row and Delete, Duplicate and Save under the form", async () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
     await loaded();
     expect(screen.queryByRole("toolbar")).toBeNull();
     const title = screen.getByRole("heading", { level: 1 });
-    const download = screen.getByRole("button", { name: "Download" });
-    const send = screen.getByRole("button", { name: "Send" });
-    expect(send.className).toContain("bg-primary");
-    // Both follow the title; the footer actions come after the form fields.
-    for (const button of [download, send]) {
-      expect(title.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    }
+    const finalize = screen.getByRole("button", { name: "Finalize" });
+    expect(finalize.className).toContain("bg-primary");
+    // Nothing to download before finalising.
+    expect(screen.queryByRole("button", { name: "Download" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+    expect(title.compareDocumentPosition(finalize) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const remove = screen.getByRole("button", { name: "Delete" });
     const duplicate = screen.getByRole("button", { name: "Duplicate" });
     const save = screen.getByRole("button", { name: "Save" });
@@ -754,7 +756,9 @@ describe("Invoice editor", () => {
       remove.compareDocumentPosition(duplicate) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(duplicate.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(send.compareDocumentPosition(remove) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      finalize.compareDocumentPosition(remove) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     // The sticky bar shows totals only.
     const totals = screen.getByRole("region", { name: "Totals" });
     expect(within(totals).getAllByRole("button")).toHaveLength(1);
@@ -775,52 +779,94 @@ describe("Invoice editor", () => {
     expect(backLink("Issued").getAttribute("href")).toBe("/issued");
   });
 
-  it("opens the Download menu with PDF, XML and the AdE preparation, closes it with Escape", async () => {
-    serve({ invoice: record() });
+  it("offers the stored PDF and XML of a finalised invoice in the Download menu and nothing else", async () => {
+    serve({
+      invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
+    });
     await renderEditor("/invoices/i1");
-    await loaded();
+    await screen.findByText("No. 7/2026");
+    expect(screen.queryByRole("button", { name: "Finalize" })).toBeNull();
     const trigger = screen.getByRole("button", { name: "Download" });
     expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
-    expect(trigger.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(trigger);
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     const items = screen.getAllByRole("menuitem").map((item) => item.textContent);
-    expect(items).toEqual(["PDF", "XML", "Prepare for the AdE portal"]);
+    expect(items).toEqual(["PDF", "XML"]);
+    fireEvent.click(screen.getByRole("menuitem", { name: "XML" }));
+    expect(mocks.downloadUrl).toHaveBeenCalledWith("/api/invoices/i1/xml");
+    // Only Duplicate (and the credit note) remain at the bottom: no Delete, no Save.
+    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Duplicate" })).toBeTruthy();
+  });
+
+  it("closes the Download menu with Escape", async () => {
+    serve({
+      invoice: record({ state: "sent", number: "7", year: 2026, issueDate: "2026-03-01" }),
+    });
+    await renderEditor("/invoices/i1");
+    await screen.findByText("No. 7/2026");
+    const trigger = screen.getByRole("button", { name: "Download" });
+    fireEvent.click(trigger);
     fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
     expect(screen.queryByRole("menu")).toBeNull();
     expect(document.activeElement).toBe(trigger);
   });
 
-  it("downloads the XML of an unsent invoice after saving it, and explains a disabled item", async () => {
-    mocks.buildXml.mockResolvedValue({ fileName: "IT123_00000.xml", xml: "<xml/>" });
-    serve({ invoice: record() });
+  it("checks the invoice on Finalize, lists what fails with links to the fields and does nothing else", async () => {
+    serve({ invoice: record({ clientId: null, clientName: null }) });
     await renderEditor("/invoices/i1");
     await loaded();
-    fireEvent.click(screen.getByRole("button", { name: "Download" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "XML" }));
-    await waitFor(() =>
-      expect(mocks.saveFile).toHaveBeenCalledWith("<xml/>", "IT123_00000.xml", "application/xml"),
-    );
-    expect(mocks.api).toHaveBeenCalledWith(
+    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    // The dialog says what is checked and what happens next.
+    expect(await screen.findByText(/numbered, finalised and sent to the SdI/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Finalize and send with passkey" }));
+    const problem = await screen.findByRole("button", { name: "Client" });
+    expect(screen.getByText(/cannot be finalised yet/)).toBeTruthy();
+    expect(mocks.runSend).not.toHaveBeenCalled();
+    expect(mocks.api).not.toHaveBeenCalledWith(
       "/api/invoices/i1",
       expect.objectContaining({ method: "PUT" }),
     );
-    // Clearing the client makes the form incomplete: the XML item is disabled with the reason.
-    type("Client", "");
-    fireEvent.click(screen.getByRole("button", { name: "Download" }));
-    const xml = screen.getByRole("menuitem", { name: /XML/ });
-    expect(xml.getAttribute("aria-disabled")).toBe("true");
-    expect(within(xml).getByText("Complete the invoice first.")).toBeTruthy();
+    // Choosing the problem closes the dialog and moves the focus to the field.
+    fireEvent.click(problem);
+    await waitFor(() => expect(document.activeElement).toBe(field("Client")));
   });
 
-  it("keeps Send disabled while the PEC setup blocks it, with Prepare still in the menu", async () => {
-    serve({ invoice: record(), send: { ready: false, reasons: ["pec_credentials_missing"] } });
+  it("saves what is on screen and then runs the send flow when every check passes", async () => {
+    serve({ invoice: record() });
+    mocks.runSend.mockResolvedValue({ messageId: "m1", fileName: "IT1_00001.xml" });
     await renderEditor("/invoices/i1");
     await loaded();
-    expect((screen.getByRole("button", { name: "Send" }) as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "Download" }));
-    const prepare = screen.getByRole("menuitem", { name: /Prepare for the AdE portal/ });
-    expect(prepare.getAttribute("aria-disabled")).toBeNull();
+    type("Description", "Consulting, edited");
+    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Finalize and send with passkey" }));
+    await waitFor(() => expect(mocks.runSend).toHaveBeenCalled());
+    const put = mocks.api.mock.calls.find(
+      ([path, init]) => path === "/api/invoices/i1" && init?.method === "PUT",
+    );
+    expect(JSON.parse(put?.[1].body).lines[0].description).toBe("Consulting, edited");
+    expect(mocks.runSend.mock.calls[0]?.[0]).toBe("i1");
+    expect(mocks.runSend.mock.calls[0]?.[2]).toBe("pec");
+  });
+
+  it("finalises a new invoice: it is created first and the flow runs on the new one", async () => {
+    serve();
+    mocks.runSend.mockResolvedValue({ messageId: "m1", fileName: "IT1_00001.xml" });
+    await renderEditor();
+    await loaded();
+    type("Client", "c1");
+    type("Description", "Consulting");
+    type("Unit price", "50");
+    type("VAT", "rate:2200");
+    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Finalize and send with passkey" }));
+    await waitFor(() => expect(mocks.runSend).toHaveBeenCalled());
+    expect(mocks.api).toHaveBeenCalledWith(
+      "/api/invoices",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(mocks.runSend.mock.calls[0]?.[0]).toBe("new1");
   });
 
   it("opens the inline client creation sheet", async () => {
@@ -1050,8 +1096,8 @@ describe("Invoice editor, number on the invoice", () => {
     await renderEditor("/invoices/i1");
     await loaded();
     await waitFor(() => expect(numberInput().value).toBe("9"));
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Send with passkey" }));
+    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Finalize and send with passkey" }));
     proposal = 10;
     expect(
       await screen.findByText("That number is no longer free. The next free number is 10."),

@@ -571,7 +571,7 @@
       "delete": "Delete",
       "deleteConfirm": "Confirm delete",
       "fixResend": "Fix & resend",
-      "prepareManual": "Prepare for the AdE portal"
+      "finalize": "Finalize"
     },
     "list": {
       "invoice": "Invoice",
@@ -607,12 +607,6 @@
       "openReissue": "Open the reissued invoice",
       "reissues": "This invoice reissues a rejected one.",
       "openOriginal": "View the rejected invoice"
-    },
-    "download": {
-      "fixFirst": "Fix the errors in the form first.",
-      "completeFirst": "Complete the invoice first.",
-      "xmlInvalid": "The invoice file is not valid yet. Complete the invoice and try again.",
-      "failed": "The file could not be generated. Try again."
     }
   },
   "fatturapa": {
@@ -792,12 +786,22 @@
     },
     "quota": "Mailbox use: {{used}} MB of {{limit}} MB."
   },
+  "finalize": {
+    "title": "Finalize invoice",
+    "reviewPec": "The invoice is checked first: complete client, a VAT rate or exemption on every line, totals, number rules, the invoice file against the official XSD schema and your setup for sending. If it is valid, it is numbered, finalised and sent to the SdI through your PEC, and it can no longer be edited. If something is wrong, you see what to fix and nothing else happens.",
+    "reviewManual": "The invoice is checked first: complete client, a VAT rate or exemption on every line, totals, number rules and the invoice file against the official XSD schema. If it is valid, it is numbered and finalised, and the XML is stored for you to upload on the AdE portal: nothing is sent by the app, because the PEC is not ready. If something is wrong, you see what to fix and nothing else happens.",
+    "confirm": "Finalize and send with passkey",
+    "confirmTotp": "Finalize and send with code",
+    "confirmManual": "Finalize",
+    "confirmNote": "Your passkey (or code) is checked by the server for this exact invoice file before anything is sent.",
+    "manualNote": "After this, download the XML from the invoice page, upload it on the AdE portal and confirm there.",
+    "problems": "The invoice cannot be finalised yet. Fix these points; nothing was numbered or sent:",
+    "manualInstead": "Finalize will prepare the invoice for the AdE portal instead of sending it by PEC."
+  },
   "send": {
     "title": "Send invoice",
     "reviewNew": "New invoice to {{client}}, {{total}} due. After you confirm, a number is reserved and the invoice is handed to the SdI.",
     "reviewReserved": "Invoice {{number}} to {{client}}, {{total}} due. After you confirm, the reserved number {{number}} is used and the invoice is handed to the SdI.",
-    "reviewNewManual": "New invoice to {{client}}, {{total}} due. After you confirm, a number is reserved and the files are prepared for the AdE portal.",
-    "reviewReservedManual": "Invoice {{number}} to {{client}}, {{total}} due. After you confirm, the reserved number {{number}} is used and the files are prepared for the AdE portal.",
     "client": "Client",
     "amountDue": "Amount due",
     "progress": "Send progress",
@@ -816,10 +820,6 @@
     "totp": "Authenticator code",
     "totpHint": "The 6-digit code from your authenticator app.",
     "confirmNote": "Your passkey (or code) is checked by the server for this exact invoice file before anything is sent.",
-    "manualTitle": "Prepare for the AdE portal",
-    "manualConfirm": "Prepare the files",
-    "manualNote": "This reserves the number and stores the final XML and PDF. Nothing is sent: download the files from the invoice page, upload them on the AdE portal, then confirm there.",
-    "saveFirst": "Save the invoice first.",
     "errors": {
       "invalid_xml": "The invoice file is not valid yet. Fix these points and send again:",
       "numberReleased": "The reserved number was given back; nothing was sent.",

@@ -230,14 +230,16 @@ async function loadClient(db: D1Database, id: string | null): Promise<ClientReco
 }
 
 /**
- * Reserves the number for an invoice about to be sent (called by the send flow, step 12). Needs
- * the send gate open and an invoice that passes the issuing rules; an invoice that already holds
+ * Reserves the number for an invoice about to be finalised (called by the send flow, step 12).
+ * Needs the company details and an invoice that passes the issuing rules; an invoice that already holds
  * its number gets it back.
  */
 invoices.post("/:id/reserve-number", async (c) => {
   const id = c.req.param("id");
+  // Finalizing needs the company details; the PEC setup gates only the PEC send itself (the
+  // send route), so an invoice can still be finalised for the manual AdE channel.
   const readiness = await loadSendReadiness(c.env);
-  if (!readiness.ready) {
+  if (readiness.reasons.includes("profile_incomplete")) {
     throw makeError("conflict", `send: not_ready (${readiness.reasons.join(", ")})`);
   }
   const record = await requireInvoice(c.env.DB, id);

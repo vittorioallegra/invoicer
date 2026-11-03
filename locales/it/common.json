@@ -571,7 +571,7 @@
       "delete": "Elimina",
       "deleteConfirm": "Conferma eliminazione",
       "fixResend": "Correggi e reinvia",
-      "prepareManual": "Prepara per il portale AdE"
+      "finalize": "Finalizza"
     },
     "list": {
       "invoice": "Fattura",
@@ -607,12 +607,6 @@
       "openReissue": "Apri la fattura riemessa",
       "reissues": "Questa fattura riemette una fattura scartata.",
       "openOriginal": "Vedi la fattura scartata"
-    },
-    "download": {
-      "fixFirst": "Correggi prima gli errori nel modulo.",
-      "completeFirst": "Completa prima la fattura.",
-      "xmlInvalid": "Il file della fattura non è ancora valido. Completa la fattura e riprova.",
-      "failed": "Impossibile generare il file. Riprova."
     }
   },
   "fatturapa": {
@@ -792,12 +786,22 @@
     },
     "quota": "Spazio usato: {{used}} MB su {{limit}} MB."
   },
+  "finalize": {
+    "title": "Finalizza la fattura",
+    "reviewPec": "Prima la fattura viene controllata: cliente completo, aliquota IVA o esenzione su ogni riga, totali, regole sul numero, il file della fattura rispetto allo schema XSD ufficiale e la tua configurazione per l'invio. Se è valida viene numerata, finalizzata e inviata allo SdI tramite la tua PEC, e non si potrà più modificare. Se qualcosa non va, vedi cosa correggere e non succede altro.",
+    "reviewManual": "Prima la fattura viene controllata: cliente completo, aliquota IVA o esenzione su ogni riga, totali, regole sul numero e il file della fattura rispetto allo schema XSD ufficiale. Se è valida viene numerata e finalizzata, e l'XML viene salvato così lo carichi sul portale AdE: l'app non invia nulla, perché la PEC non è pronta. Se qualcosa non va, vedi cosa correggere e non succede altro.",
+    "confirm": "Finalizza e invia con passkey",
+    "confirmTotp": "Finalizza e invia con codice",
+    "confirmManual": "Finalizza",
+    "confirmNote": "Il server verifica la tua passkey (o il codice) per questo esatto file di fattura prima di inviare qualsiasi cosa.",
+    "manualNote": "Poi scarica l'XML dalla pagina della fattura, caricalo sul portale AdE e conferma lì.",
+    "problems": "La fattura non può ancora essere finalizzata. Correggi questi punti; nulla è stato numerato o inviato:",
+    "manualInstead": "Finalizza prepara la fattura per il portale AdE invece di inviarla via PEC."
+  },
   "send": {
     "title": "Invia fattura",
     "reviewNew": "Nuova fattura a {{client}}, {{total}} da pagare. Dopo la conferma viene riservato un numero e la fattura è consegnata al SdI.",
     "reviewReserved": "Fattura {{number}} a {{client}}, {{total}} da pagare. Dopo la conferma si usa il numero riservato {{number}} e la fattura è consegnata al SdI.",
-    "reviewNewManual": "Nuova fattura a {{client}}, {{total}} da pagare. Dopo la conferma viene riservato un numero e i file sono preparati per il portale AdE.",
-    "reviewReservedManual": "Fattura {{number}} a {{client}}, {{total}} da pagare. Dopo la conferma si usa il numero riservato {{number}} e i file sono preparati per il portale AdE.",
     "client": "Cliente",
     "amountDue": "Importo dovuto",
     "progress": "Avanzamento invio",
@@ -816,10 +820,6 @@
     "totp": "Codice di autenticazione",
     "totpHint": "Il codice a 6 cifre della tua app di autenticazione.",
     "confirmNote": "Il server verifica la tua passkey (o il codice) per questo preciso file prima di inviare qualsiasi cosa.",
-    "manualTitle": "Prepara per il portale AdE",
-    "manualConfirm": "Prepara i file",
-    "manualNote": "Riserva il numero e salva l'XML e il PDF definitivi. Non viene inviato nulla: scarica i file dalla pagina della fattura, caricali sul portale AdE e conferma lì.",
-    "saveFirst": "Salva prima la fattura.",
     "errors": {
       "invalid_xml": "Il file della fattura non è ancora valido. Correggi questi punti e invia di nuovo:",
       "numberReleased": "Il numero riservato è stato restituito; non è stato inviato nulla.",
