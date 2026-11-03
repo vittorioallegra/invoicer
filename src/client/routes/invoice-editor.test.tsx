@@ -113,6 +113,7 @@ function record(over: Partial<InvoiceRecord> = {}): InvoiceRecord {
     clientId: "c1",
     clientName: "Acme S.r.l.",
     number: null,
+    seriesId: "default",
     requestedNumber: null,
     year: null,
     issueDate: null,

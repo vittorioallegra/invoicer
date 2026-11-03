@@ -1,4 +1,5 @@
 import type { ZodError } from "zod";
+import type { NumberingSeriesRecord } from "../../shared/numbering";
 import type { OnboardingStatus, PecTestResult } from "../../shared/onboarding";
 import type { PaymentMethodRecord } from "../../shared/payment-method";
 import type { CourtesyEmailMode } from "../../shared/profile";
@@ -53,6 +54,10 @@ export const taxQuery = {
 export const paymentMethodsQuery = {
   queryKey: ["payment-methods"],
   queryFn: () => api<{ paymentMethods: PaymentMethodRecord[] }>("/api/payment-methods"),
+};
+export const numberingSeriesQuery = {
+  queryKey: ["numbering-series"],
+  queryFn: () => api<{ series: NumberingSeriesRecord[] }>("/api/numbering-series"),
 };
 export const settingsQuery = {
   queryKey: ["settings"],
@@ -112,3 +117,12 @@ export const setDefaultPaymentMethod = (id: string) =>
     `/api/payment-methods/${id}/default`,
     {},
   );
+
+export const createNumberingSeries = (body: unknown) =>
+  sendJson<{ series: NumberingSeriesRecord }>("POST", "/api/numbering-series", body);
+export const updateNumberingSeries = (id: string, body: unknown) =>
+  sendJson<{ series: NumberingSeriesRecord }>("PUT", `/api/numbering-series/${id}`, body);
+export const deleteNumberingSeries = (id: string) =>
+  sendJson<null>("DELETE", `/api/numbering-series/${id}`);
+export const setDefaultNumberingSeries = (id: string) =>
+  sendJson<{ series: NumberingSeriesRecord[] }>("POST", `/api/numbering-series/${id}/default`, {});

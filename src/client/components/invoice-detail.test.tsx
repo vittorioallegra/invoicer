@@ -18,6 +18,7 @@ const base: InvoiceRecord = {
   clientId: "c1",
   clientName: "Acme",
   number: "7",
+  seriesId: "default",
   requestedNumber: null,
   year: 2026,
   issueDate: "2026-03-01",

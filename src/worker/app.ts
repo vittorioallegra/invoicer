@@ -11,6 +11,7 @@ import { exportData } from "./routes/export";
 import { health } from "./routes/health";
 import { invoices } from "./routes/invoices";
 import { mailbox } from "./routes/mailbox";
+import { numberingSeries } from "./routes/numbering-series";
 import { onboarding } from "./routes/onboarding";
 import { paymentMethods } from "./routes/payment-methods";
 import { profile } from "./routes/profile";
@@ -35,6 +36,7 @@ export function createApp() {
   app.route("/api/profile", profile);
   app.route("/api/clients", clients);
   app.route("/api/payment-methods", paymentMethods);
+  app.route("/api/numbering-series", numberingSeries);
   app.route("/api/settings", settings);
   app.route("/api/tax", tax);
   app.route("/api/mailbox", mailbox);

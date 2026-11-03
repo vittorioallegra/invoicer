@@ -133,6 +133,8 @@ export const invoiceInputSchema = z.object({
   dueDate: dateOnly.nullable(),
   /** Number the owner asked for; null = automatic (the next free number of the year). */
   requestedNumber: z.number().int().min(1).max(MAX_INVOICE_NUMBER).nullable().default(null),
+  /** Numbering series; null = the default series. Fixed once the number is reserved. */
+  seriesId: z.string().min(1).nullable().default(null),
   /** TD04 only: the invoice the credit note corrects (DatiFattureCollegate). */
   linkedInvoiceId: z.string().min(1).nullable(),
   notes: z
@@ -312,6 +314,8 @@ export interface InvoiceRecord {
   number: string | null;
   /** Number the owner asked for on a draft or planned invoice; null = automatic. */
   requestedNumber: number | null;
+  /** Numbering series of the invoice (always set: the default series when none was chosen). */
+  seriesId: string;
   year: number | null;
   issueDate: string | null;
   plannedDate: string | null;

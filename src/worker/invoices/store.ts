@@ -26,6 +26,7 @@ interface InvoiceRow {
   number_raw: string | null;
   number_int: number | null;
   requested_number_int: number | null;
+  series_id: string;
   year: number | null;
   issue_date: string | null;
   planned_date: string | null;
@@ -40,7 +41,7 @@ interface InvoiceRow {
 }
 
 const SELECT = `SELECT i.id, i.document_type, i.state, i.payment_flag, i.paid_date, i.client_id,
-  c.name AS client_name, i.number_raw, i.number_int, i.requested_number_int, i.year, i.issue_date, i.planned_date,
+  c.name AS client_name, i.number_raw, i.number_int, i.requested_number_int, i.series_id, i.year, i.issue_date, i.planned_date,
   i.operation_date, i.due_date, i.currency, i.data, i.total_cents, i.linked_invoice_id,
   i.reissues_invoice_id, i.notes
   FROM invoices i LEFT JOIN clients c ON c.id = i.client_id`;
@@ -168,8 +169,8 @@ export async function loadInvoice(
   let releasable = false;
   if (reserved && row.year !== null && row.number_int !== null) {
     const higher = await db
-      .prepare("SELECT 1 AS hit FROM invoices WHERE year = ? AND number_int > ?")
-      .bind(row.year, row.number_int)
+      .prepare("SELECT 1 AS hit FROM invoices WHERE year = ? AND series_id = ? AND number_int > ?")
+      .bind(row.year, row.series_id, row.number_int)
       .first();
     releasable = !higher;
   }
@@ -184,6 +185,7 @@ export async function loadInvoice(
     clientName: row.client_name,
     number: row.number_raw,
     requestedNumber: row.number_raw === null ? row.requested_number_int : null,
+    seriesId: row.series_id,
     year: row.year,
     issueDate: row.issue_date,
     plannedDate: row.planned_date,
@@ -226,7 +228,7 @@ export async function listInvoices(
   const order =
     scope === "to_issue"
       ? "i.planned_date IS NULL, i.planned_date ASC, i.created_at DESC"
-      : "i.year DESC, i.number_int DESC, i.created_at DESC";
+      : "i.year DESC, i.issue_date DESC, i.number_int DESC, i.created_at DESC";
   const { results } = await db
     .prepare(`${SELECT} WHERE i.state IN ${SCOPE_STATES[scope]} ORDER BY ${order}`)
     .all<InvoiceRow>();
@@ -237,13 +239,13 @@ export async function listInvoices(
   );
   const today = romeDateTime(now).date;
   const shown = results.filter((row) => scope !== "reserved" || reserved.has(row.id));
-  // A reserved number can be released only while it is the highest of its year.
+  // A reserved number can be released only while it is the highest of its series and year.
   const releasable = new Set<string>();
   for (const row of shown) {
     if (!reserved.has(row.id) || row.year === null || row.number_int === null) continue;
     const higher = await db
-      .prepare("SELECT 1 AS hit FROM invoices WHERE year = ? AND number_int > ?")
-      .bind(row.year, row.number_int)
+      .prepare("SELECT 1 AS hit FROM invoices WHERE year = ? AND series_id = ? AND number_int > ?")
+      .bind(row.year, row.series_id, row.number_int)
       .first();
     if (!higher) releasable.add(row.id);
   }
@@ -309,8 +311,9 @@ export async function createInvoice(
         `INSERT INTO invoices
            (id, document_type, state, state_rank, payment_flag, source, client_id, planned_date,
             operation_date, due_date, currency, data, total_cents, linked_invoice_id,
-            reissues_invoice_id, notes, requested_number_int, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'unpaid', 'app', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            reissues_invoice_id, notes, requested_number_int, series_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'unpaid', 'app', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                 COALESCE(?, (SELECT id FROM numbering_series WHERE is_default = 1)), ?, ?)`,
       )
       .bind(
         id,
@@ -328,6 +331,7 @@ export async function createInvoice(
         extra.reissuesInvoiceId ?? null,
         body.notes,
         body.requestedNumber,
+        body.seriesId,
         now.getTime(),
         now.getTime(),
       ),
@@ -375,7 +379,10 @@ export async function updateInvoice(
              state_rank = CASE WHEN state = 'rejected' THEN state_rank ELSE ?4 END,
              client_id = ?5, planned_date = ?6, operation_date = ?7, due_date = ?8, currency = ?9,
              data = ?10, total_cents = ?11, linked_invoice_id = ?12, notes = ?13, updated_at = ?14,
-             requested_number_int = CASE WHEN number_int IS NULL THEN ?15 ELSE NULL END
+             requested_number_int = CASE WHEN number_int IS NULL THEN ?15 ELSE NULL END,
+             series_id = CASE WHEN number_int IS NULL
+               THEN COALESCE(?16, (SELECT id FROM numbering_series WHERE is_default = 1))
+               ELSE series_id END
            WHERE id = ?1`,
         )
         .bind(
@@ -394,6 +401,7 @@ export async function updateInvoice(
           body.notes,
           now.getTime(),
           body.requestedNumber,
+          body.seriesId,
         ),
       db.prepare("DELETE FROM invoice_lines WHERE invoice_id = ?").bind(id),
       ...lineStatements(db, id, body.lines),
@@ -423,6 +431,7 @@ export function recordToBody(record: InvoiceRecord): InvoiceBody {
     clientId: record.clientId,
     currency: record.currency,
     requestedNumber: null,
+    seriesId: record.seriesId,
     plannedDate: null,
     operationDate: record.operationDate,
     dueDate: null,

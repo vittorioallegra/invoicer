@@ -354,11 +354,47 @@ describe("invoice number on the invoice", () => {
       .run();
     expect((await nextNumber()).next).toBe(first.next + 41);
     // Another year does not count, and the year can be asked for.
-    expect(await nextNumber("?year=2001")).toEqual({ year: 2001, next: 1 });
+    expect(await nextNumber("?year=2001")).toEqual({ year: 2001, series: "default", next: 1 });
     expect((await owner.json("/api/invoices/next-number?year=abc")).status).toBe(400);
     expect((await owner.json("/api/invoices/next-number?year=99999")).status).toBe(400);
     const anon = new TestClient("10.8.1.9", bindings);
     expect((await anon.json("/api/invoices/next-number")).status).toBe(401);
+  });
+
+  it("numbers an invoice in its series: own progressive, printed with prefix and suffix", async () => {
+    const created = await owner.json<{ series: { id: string } }>("/api/numbering-series", {
+      body: { name: "Svizzera", prefix: "", suffix: "/CH" },
+    });
+    const seriesId = created.body.series.id;
+    const unknown = await owner.json<{ detail: string }>("/api/invoices", {
+      body: body({ seriesId: "nope" }),
+    });
+    expect(unknown.status).toBe(400);
+    expect(unknown.body.detail).toContain("seriesId: not_found");
+    expect((await owner.json("/api/invoices/next-number?series=nope")).status).toBe(400);
+
+    const swiss = await create({ seriesId });
+    const italian = await create();
+    expect(swiss.seriesId).toBe(seriesId);
+    expect(italian.seriesId).toBe("default");
+    const fromChain = await nextNumber(`?year=${year}&series=${seriesId}`);
+    expect(fromChain).toMatchObject({ series: seriesId, next: 1 });
+
+    const reservedSwiss = await reserve(swiss.id);
+    expect(reservedSwiss.body.invoice.number).toBe("1/CH");
+    expect(reservedSwiss.body.reservation.number).toBe(1);
+    const reservedItalian = await reserve(italian.id);
+    expect(reservedItalian.body.invoice.number).toBe(
+      String(reservedItalian.body.reservation.number),
+    );
+    expect((await nextNumber(`?year=${year}&series=${seriesId}`)).next).toBe(2);
+
+    // The series is fixed once the number is reserved.
+    const moved = await owner.json<Invoice>(`/api/invoices/${swiss.id}`, {
+      method: "PUT",
+      body: body({ seriesId: "default" }),
+    });
+    expect(moved.status).toBe(409);
   });
 
   it("stores the requested number on a draft, validates it and clears an empty one", async () => {

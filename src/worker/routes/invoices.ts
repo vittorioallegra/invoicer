@@ -17,7 +17,12 @@ import {
 } from "../../shared/invoice";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
-import { nextFreeNumber, releaseNumber, reserveNumber } from "../invoices/numbering";
+import {
+  defaultSeriesId,
+  nextFreeNumber,
+  releaseNumber,
+  reserveNumber,
+} from "../invoices/numbering";
 import {
   createInvoice,
   deleteInvoice,
@@ -58,6 +63,13 @@ async function checkReferences(db: D1Database, body: InvoiceBody): Promise<void>
       .first();
     if (!client) throw makeError("bad_request", "clientId: not_found");
   }
+  if (body.seriesId) {
+    const series = await db
+      .prepare("SELECT 1 AS hit FROM numbering_series WHERE id = ?")
+      .bind(body.seriesId)
+      .first();
+    if (!series) throw makeError("bad_request", "seriesId: not_found");
+  }
   if (body.linkedInvoiceId) {
     if (body.documentType !== "TD04") throw makeError("bad_request", "linkedInvoiceId: invalid");
     const linked = await db
@@ -83,14 +95,22 @@ invoices.get("/", async (c) => {
   return c.json({ invoices: await listInvoices(c.env.DB, scope as InvoiceListScope) });
 });
 
-/** The number proposed for a new invoice of the year: highest issued (app and imported) + 1. */
+/**
+ * The number proposed for a new invoice of the year in a series (`series` query, default series
+ * when absent): highest issued in that series (app and imported) + 1.
+ */
 invoices.get("/next-number", async (c) => {
   const raw = c.req.query("year");
   const year = raw === undefined ? Number(romeDateTime(new Date()).date.slice(0, 4)) : Number(raw);
   if (!Number.isInteger(year) || year < 2000 || year > 9999) {
     throw makeError("bad_request", "year: invalid");
   }
-  return c.json({ year, next: await nextFreeNumber(c.env.DB, year) });
+  const series = c.req.query("series") || (await defaultSeriesId(c.env.DB));
+  const exists = await c.env.DB.prepare("SELECT 1 AS hit FROM numbering_series WHERE id = ?")
+    .bind(series)
+    .first();
+  if (!exists) throw makeError("bad_request", "series: not_found");
+  return c.json({ year, series, next: await nextFreeNumber(c.env.DB, year, series) });
 });
 
 invoices.post("/", async (c) => {

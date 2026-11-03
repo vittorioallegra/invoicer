@@ -42,6 +42,7 @@ const invoice = {
   state: "draft",
   clientId: "c-1",
   number: null,
+  seriesId: "default",
   issueDate: null,
   linked: null,
 };
@@ -64,6 +65,7 @@ beforeEach(() => {
     if (path.startsWith("/api/invoices/")) return { invoice };
     if (path === "/api/clients") return { clients: [client] };
     if (path === "/api/profile") return { profile };
+    if (path === "/api/numbering-series") return { series: [] };
     throw new Error(`unexpected ${path}`);
   });
   mocks.nextNumber.mockResolvedValue({ year: 2026, next: 2 });
@@ -73,6 +75,7 @@ beforeEach(() => {
     return {
       reservation: {
         number: 2,
+        numberText: "2",
         year: 2026,
         issueDate: "2026-11-02",
         reused: false,
@@ -148,12 +151,46 @@ describe("browser send flow", () => {
         return { invoice: { ...invoice, requestedNumber: 120 } };
       if (path === "/api/clients") return { clients: [client] };
       if (path === "/api/profile") return { profile };
+      if (path === "/api/numbering-series") return { series: [] };
       throw new Error(`unexpected ${path}`);
     });
     await runSendFlow("inv-1", hooks);
     const [provisional] = mocks.check.mock.calls.map((c) => c[0] as string);
     expect(provisional).toContain("<Numero>120</Numero>");
     expect(mocks.nextNumber).not.toHaveBeenCalled();
+  });
+
+  it("validates the provisional XML with the series prefix and suffix around the number", async () => {
+    mocks.api.mockImplementation(async (path: string) => {
+      if (path.startsWith("/api/invoices/")) return { invoice: { ...invoice, seriesId: "ch" } };
+      if (path === "/api/clients") return { clients: [client] };
+      if (path === "/api/profile") return { profile };
+      if (path === "/api/numbering-series")
+        return {
+          series: [{ id: "ch", name: "CH", prefix: "CH-", suffix: "/A", isDefault: false }],
+        };
+      throw new Error(`unexpected ${path}`);
+    });
+    mocks.reserve.mockImplementationOnce(async () => ({
+      reservation: {
+        number: 2,
+        numberText: "CH-2/A",
+        year: 2026,
+        issueDate: "2026-11-02",
+        reused: false,
+        transmission: {
+          id: "t1",
+          attempt: 1,
+          fileProgressive: 7,
+          fileName: "IT12345678903_00007.xml",
+        },
+      },
+      invoice: { ...invoice, seriesId: "ch", number: "CH-2/A", issueDate: "2026-11-02" },
+    }));
+    await runSendFlow("inv-1", hooks);
+    const [provisional, final] = mocks.check.mock.calls.map((c) => c[0] as string);
+    expect(provisional).toContain("<Numero>CH-2/A</Numero>");
+    expect(final).toContain("<Numero>CH-2/A</Numero>");
   });
 
   it("manual channel reserves, builds and stores the files, then stops before any authorization", async () => {

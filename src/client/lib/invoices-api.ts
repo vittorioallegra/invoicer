@@ -11,10 +11,16 @@ export const invoiceQuery = (id: string) => ({
   queryFn: () => api<{ invoice: InvoiceRecord }>(`/api/invoices/${id}`),
 });
 
-/** The number proposed for a new invoice of the year: highest issued (app and imported) + 1. */
-export const nextNumberQuery = (year: number) => ({
-  queryKey: ["next-number", year],
-  queryFn: () => api<{ year: number; next: number }>(`/api/invoices/next-number?year=${year}`),
+/**
+ * The number proposed for a new invoice of the year in a series (the default series when none is
+ * given): highest issued in that series (app and imported) + 1.
+ */
+export const nextNumberQuery = (year: number, seriesId: string | null = null) => ({
+  queryKey: ["next-number", year, seriesId],
+  queryFn: () =>
+    api<{ year: number; series: string; next: number }>(
+      `/api/invoices/next-number?year=${year}${seriesId ? `&series=${encodeURIComponent(seriesId)}` : ""}`,
+    ),
 });
 
 const send = <T>(method: string, path: string, body?: unknown) =>
@@ -65,6 +71,8 @@ export const transmissionsQuery = (id: string) => ({
 
 export interface Reservation {
   number: number;
+  /** The printed number: series prefix + progressive + suffix. */
+  numberText: string;
   year: number;
   issueDate: string;
   reused: boolean;

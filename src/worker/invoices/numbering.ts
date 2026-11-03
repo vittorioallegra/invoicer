@@ -10,12 +10,15 @@ import { makeError } from "../problem";
  * roll it back, so the first statement is an INSERT whose NOT NULL column receives NULL when the
  * invoice is not eligible: that constraint failure aborts the whole batch and nothing changes.
  *
- * Next number = highest number already issued in the year (app and imported invoices) + 1, or 1,
- * computed inside SQL so that two concurrent reservations can never read the same value. A draft
- * may carry a number the owner asked for (`requested_number_int`): it is accepted only when it is
- * above the highest number issued that year (a gap is allowed), otherwise nothing is reserved and
- * `number_unavailable` is raised. The partial UNIQUE index on year + number still guards races.
- * Year and issue date come from the Europe/Rome calendar (the Worker runs in UTC).
+ * Each invoice belongs to a numbering series (`series_id`) with its own yearly progressive. Next
+ * number = highest number already issued in the series and year (app and imported invoices) + 1,
+ * or 1, computed inside SQL so that two concurrent reservations can never read the same value. A
+ * draft may carry a number the owner asked for (`requested_number_int`): it is accepted only when
+ * it is above the highest number issued in that series and year (a gap is allowed), otherwise
+ * nothing is reserved and `number_unavailable` is raised. The partial UNIQUE index on series +
+ * year + number still guards races. The printed number (`number_raw`) is the series prefix +
+ * progressive + suffix, frozen on the invoice. Year and issue date come from the Europe/Rome
+ * calendar (the Worker runs in UTC).
  */
 
 const ISSUABLE_STATES = "('draft', 'planned')";
@@ -23,6 +26,8 @@ const ISSUABLE_STATES = "('draft', 'planned')";
 export interface Reservation {
   invoiceId: string;
   number: number;
+  /** The printed number: series prefix + progressive + suffix. */
+  numberText: string;
   year: number;
   issueDate: string;
   transmission: { id: string; attempt: number; fileProgressive: number; fileName: string };
@@ -38,11 +43,27 @@ export interface ReserveInput {
   idCodice: string;
 }
 
-/** The number the editor proposes: the highest issued in the year (app and imported) + 1. */
-export async function nextFreeNumber(db: D1Database, year: number): Promise<number> {
+/** The id of the default numbering series. */
+export async function defaultSeriesId(db: D1Database): Promise<string> {
   const row = await db
-    .prepare("SELECT MAX(number_int) AS highest FROM invoices WHERE year = ?")
-    .bind(year)
+    .prepare("SELECT id FROM numbering_series WHERE is_default = 1")
+    .first<{ id: string }>();
+  if (!row) throw makeError("internal_error");
+  return row.id;
+}
+
+/**
+ * The number the editor proposes: the highest issued in the series and year (app and imported)
+ * + 1.
+ */
+export async function nextFreeNumber(
+  db: D1Database,
+  year: number,
+  seriesId: string,
+): Promise<number> {
+  const row = await db
+    .prepare("SELECT MAX(number_int) AS highest FROM invoices WHERE year = ? AND series_id = ?")
+    .bind(year, seriesId)
     .first<{ highest: number | null }>();
   return (row?.highest ?? 0) + 1;
 }
@@ -50,6 +71,8 @@ export async function nextFreeNumber(db: D1Database, year: number): Promise<numb
 interface InvoiceNumberRow {
   state: string;
   number_int: number | null;
+  number_raw: string | null;
+  series_id: string;
   year: number | null;
   issue_date: string | null;
 }
@@ -60,7 +83,9 @@ async function loadReservation(
   reused: boolean,
 ): Promise<Reservation | null> {
   const invoice = await db
-    .prepare("SELECT state, number_int, year, issue_date FROM invoices WHERE id = ?")
+    .prepare(
+      "SELECT state, number_int, number_raw, series_id, year, issue_date FROM invoices WHERE id = ?",
+    )
     .bind(invoiceId)
     .first<InvoiceNumberRow>();
   if (!invoice || invoice.number_int === null || invoice.year === null || !invoice.issue_date) {
@@ -77,6 +102,7 @@ async function loadReservation(
   return {
     invoiceId,
     number: invoice.number_int,
+    numberText: invoice.number_raw ?? String(invoice.number_int),
     year: invoice.year,
     issueDate: invoice.issue_date,
     transmission: {
@@ -125,7 +151,9 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
   const stamp = now.getTime();
 
   const existing = await db
-    .prepare("SELECT state, number_int, year, issue_date FROM invoices WHERE id = ?")
+    .prepare(
+      "SELECT state, number_int, number_raw, series_id, year, issue_date FROM invoices WHERE id = ?",
+    )
     .bind(invoiceId)
     .first<InvoiceNumberRow>();
   if (!existing) throw makeError("not_found");
@@ -134,51 +162,58 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
     if (held) return held;
     throw makeError("conflict", "already_numbered");
   }
+  const seriesId = existing.series_id;
   const termsDueDate = await dueDateFromTerms(db, invoiceId, issueDate);
 
   try {
     await db.batch([
       // 1. Guard: fails (NOT NULL) unless the invoice is still an unnumbered draft or planned
-      //    invoice, today is not before the date of the highest number issued this year, and a
-      //    requested number (if any) is a positive integer above that highest number.
+      //    invoice of an existing series, today is not before the date of the highest number
+      //    issued this year in the series, and a requested number (if any) is a positive integer
+      //    above that highest number.
       db
         .prepare(
-          `INSERT INTO number_sequences (year, last_number)
-           SELECT ?1, CASE WHEN EXISTS (
+          `INSERT INTO number_sequences (series_id, year, last_number)
+           SELECT ?4, ?1, CASE WHEN EXISTS (
              SELECT 1 FROM invoices
               WHERE id = ?2 AND state IN ${ISSUABLE_STATES} AND number_int IS NULL
+                AND EXISTS (SELECT 1 FROM numbering_series WHERE id = ?4)
                 AND ?3 >= COALESCE((SELECT issue_date FROM invoices
-                                     WHERE year = ?1 AND number_int IS NOT NULL
+                                     WHERE year = ?1 AND series_id = ?4 AND number_int IS NOT NULL
                                      ORDER BY number_int DESC LIMIT 1), '')
                 AND (requested_number_int IS NULL OR (
                   requested_number_int >= 1 AND requested_number_int >
-                    COALESCE((SELECT MAX(number_int) FROM invoices WHERE year = ?1), 0)))
+                    COALESCE((SELECT MAX(number_int) FROM invoices
+                               WHERE year = ?1 AND series_id = ?4), 0)))
            ) THEN 0 ELSE NULL END
            WHERE true
-           ON CONFLICT (year) DO NOTHING`,
+           ON CONFLICT (series_id, year) DO NOTHING`,
         )
-        .bind(year, invoiceId, issueDate),
+        .bind(year, invoiceId, issueDate, seriesId),
       // 2. The number: the requested one (the guard accepted it) or the highest in use + 1.
       db
         .prepare(
           `UPDATE number_sequences SET last_number = COALESCE(
              (SELECT requested_number_int FROM invoices WHERE id = ?2),
-             COALESCE((SELECT MAX(number_int) FROM invoices WHERE year = ?1), 0) + 1
-           ) WHERE year = ?1`,
+             COALESCE((SELECT MAX(number_int) FROM invoices
+                        WHERE year = ?1 AND series_id = ?3), 0) + 1
+           ) WHERE year = ?1 AND series_id = ?3`,
         )
-        .bind(year, invoiceId),
-      // 3. Assign it and move the invoice to `sending`.
+        .bind(year, invoiceId, seriesId),
+      // 3. Assign it (progressive and printed number) and move the invoice to `sending`.
       db
         .prepare(
           `UPDATE invoices SET
-             number_int = (SELECT last_number FROM number_sequences WHERE year = ?1),
-             number_raw = CAST((SELECT last_number FROM number_sequences WHERE year = ?1) AS TEXT),
+             number_int = (SELECT last_number FROM number_sequences WHERE year = ?1 AND series_id = ?6),
+             number_raw = COALESCE((SELECT prefix FROM numbering_series WHERE id = ?6), '')
+               || CAST((SELECT last_number FROM number_sequences WHERE year = ?1 AND series_id = ?6) AS TEXT)
+               || COALESCE((SELECT suffix FROM numbering_series WHERE id = ?6), ''),
              requested_number_int = NULL,
              year = ?1, issue_date = ?3, state = 'sending', state_rank = 2, updated_at = ?4,
              due_date = COALESCE(?5, due_date)
            WHERE id = ?2 AND state IN ${ISSUABLE_STATES} AND number_int IS NULL`,
         )
-        .bind(year, invoiceId, issueDate, stamp, termsDueDate),
+        .bind(year, invoiceId, issueDate, stamp, termsDueDate, seriesId),
       // 4. The global file progressive.
       db.prepare(
         `INSERT INTO file_sequence (id, last_value) VALUES (1, 1)
@@ -198,7 +233,9 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
   } catch (error) {
     // The guard failed or a concurrent request won: explain which, never leave a half state.
     const now_ = await db
-      .prepare("SELECT state, number_int, year, issue_date FROM invoices WHERE id = ?")
+      .prepare(
+        "SELECT state, number_int, number_raw, series_id, year, issue_date FROM invoices WHERE id = ?",
+      )
       .bind(invoiceId)
       .first<InvoiceNumberRow>();
     if (!now_) throw makeError("not_found");
@@ -210,12 +247,17 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
     if (now_.state !== "draft" && now_.state !== "planned") {
       throw makeError("conflict", "invoice_locked");
     }
+    const seriesExists = await db
+      .prepare("SELECT 1 AS hit FROM numbering_series WHERE id = ?")
+      .bind(seriesId)
+      .first();
+    if (!seriesExists) throw makeError("conflict", "series_missing");
     const requested = await db
       .prepare("SELECT requested_number_int AS n FROM invoices WHERE id = ?")
       .bind(invoiceId)
       .first<{ n: number | null }>();
     if (requested?.n !== null && requested?.n !== undefined) {
-      const next = await nextFreeNumber(db, year);
+      const next = await nextFreeNumber(db, year, seriesId);
       if (requested.n < next) {
         throw makeError(
           "number_unavailable",
@@ -225,10 +267,10 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
     }
     const last = await db
       .prepare(
-        `SELECT issue_date FROM invoices WHERE year = ? AND number_int IS NOT NULL
+        `SELECT issue_date FROM invoices WHERE year = ? AND series_id = ? AND number_int IS NOT NULL
          ORDER BY number_int DESC LIMIT 1`,
       )
-      .bind(year)
+      .bind(year, seriesId)
       .first<{ issue_date: string | null }>();
     if (last?.issue_date && last.issue_date > issueDate) {
       throw makeError("conflict", `date_before_last_issue (${last.issue_date})`);
@@ -255,11 +297,12 @@ export interface ReleaseResult {
  */
 export async function releaseNumber(db: D1Database, invoiceId: string): Promise<ReleaseResult> {
   const invoice = await db
-    .prepare("SELECT state, number_int, year, planned_date FROM invoices WHERE id = ?")
+    .prepare("SELECT state, number_int, series_id, year, planned_date FROM invoices WHERE id = ?")
     .bind(invoiceId)
     .first<{
       state: string;
       number_int: number | null;
+      series_id: string;
       year: number | null;
       planned_date: string | null;
     }>();
@@ -267,7 +310,7 @@ export async function releaseNumber(db: D1Database, invoiceId: string): Promise<
   if (invoice.number_int === null || invoice.year === null) {
     throw makeError("conflict", "not_numbered");
   }
-  const { number_int: number, year } = invoice;
+  const { number_int: number, year, series_id: seriesId } = invoice;
 
   try {
     await db.batch([
@@ -277,11 +320,11 @@ export async function releaseNumber(db: D1Database, invoiceId: string): Promise<
           `UPDATE number_sequences SET last_number = CASE WHEN
              EXISTS (SELECT 1 FROM invoices WHERE id = ?1 AND state = 'sending' AND number_int = ?2 AND year = ?3)
              AND NOT EXISTS (SELECT 1 FROM transmissions WHERE invoice_id = ?1 AND send_outcome <> 'none')
-             AND NOT EXISTS (SELECT 1 FROM invoices WHERE year = ?3 AND number_int > ?2)
+             AND NOT EXISTS (SELECT 1 FROM invoices WHERE year = ?3 AND series_id = ?4 AND number_int > ?2)
            THEN ?2 - 1 ELSE NULL END
-           WHERE year = ?3`,
+           WHERE year = ?3 AND series_id = ?4`,
         )
-        .bind(invoiceId, number, year),
+        .bind(invoiceId, number, year, seriesId),
       db.prepare("DELETE FROM transmissions WHERE invoice_id = ?").bind(invoiceId),
       db
         .prepare("DELETE FROM files WHERE invoice_id = ? AND kind IN ('xml', 'pdf')")

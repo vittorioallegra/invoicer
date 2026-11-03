@@ -9,6 +9,7 @@ import {
   type MappedXsdErrors,
 } from "../../shared/fatturapa";
 import type { InvoiceRecord } from "../../shared/invoice";
+import { formatInvoiceNumber } from "../../shared/numbering";
 import { generateAndStoreInvoicePdf } from "../pdf/generate";
 import { api } from "./api";
 import {
@@ -20,7 +21,7 @@ import {
   sendInvoice,
   uploadXml,
 } from "./invoices-api";
-import type { ProfileResponse } from "./settings-api";
+import { numberingSeriesQuery, type ProfileResponse } from "./settings-api";
 import { checkFatturaXml } from "./xsd";
 
 /** The ordered steps of a send, in the order the review sheet shows them. */
@@ -161,10 +162,20 @@ export async function runSendFlow(
     // Provisional number (the one the owner asked for, else the next free one) and today's date:
     // catches what the XSD would refuse before a number is used.
     const today = romeDateTime(new Date()).date;
-    const provisionalNumber =
-      invoice.requestedNumber ?? (await nextNumberQuery(Number(today.slice(0, 4))).queryFn()).next;
+    const [next, { series }] = await Promise.all([
+      invoice.requestedNumber
+        ? Promise.resolve(invoice.requestedNumber)
+        : nextNumberQuery(Number(today.slice(0, 4)), invoice.seriesId)
+            .queryFn()
+            .then((proposal) => proposal.next),
+      numberingSeriesQuery.queryFn(),
+    ]);
+    const provisionalNumber = formatInvoiceNumber(
+      series.find((s) => s.id === invoice.seriesId) ?? { prefix: null, suffix: null },
+      next,
+    );
     const provisional = buildFatturaXml(
-      fatturaInput(invoice, client, profile, String(provisionalNumber), today, 0),
+      fatturaInput(invoice, client, profile, provisionalNumber, today, 0),
     );
     await validateOrThrow(provisional.xml, "validate");
   }
@@ -179,7 +190,7 @@ export async function runSendFlow(
   if (fresh) {
     const { reservation, invoice: reserved } = await reserveNumber(invoiceId);
     issued = reserved;
-    number = String(reservation.number);
+    number = reservation.numberText;
     issueDate = reservation.issueDate;
     fileName = reservation.transmission.fileName;
   } else {

@@ -4,6 +4,7 @@ import {
   check,
   index,
   integer,
+  primaryKey,
   sqliteTable,
   text,
   uniqueIndex,
@@ -79,6 +80,28 @@ export const paymentMethods = sqliteTable(
   },
   (t) => [
     uniqueIndex("payment_methods_single_default").on(t.isDefault).where(sql`${t.isDefault} = 1`),
+  ],
+);
+
+/**
+ * Numbering series (sezionali). Each series has its own yearly progressive; the printed number is
+ * prefix + progressive + suffix. Exactly one series is the default (partial unique index; the
+ * Worker keeps it so). The migration creates the default series (`id = 'default'`) for the
+ * invoices that existed before series.
+ */
+export const numberingSeries = sqliteTable(
+  "numbering_series",
+  {
+    id: id(),
+    name: text("name").notNull(),
+    prefix: text("prefix"),
+    suffix: text("suffix"),
+    isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+    createdAt: createdAt(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [
+    uniqueIndex("numbering_series_single_default").on(t.isDefault).where(sql`${t.isDefault} = 1`),
   ],
 );
 
@@ -178,10 +201,12 @@ export const invoices = sqliteTable(
     clientId: text("client_id").references(() => clients.id),
     /** Number as printed (imported invoices may carry any string); null while draft. */
     numberRaw: text("number_raw"),
-    /** Parsed integer part of the number, used for uniqueness within the year. */
+    /** Parsed integer part of the number, used for uniqueness within the series and year. */
     numberInt: integer("number_int"),
     /** Number the owner asked for on a draft (null = automatic); cleared once a number is reserved. */
     requestedNumberInt: integer("requested_number_int"),
+    /** Numbering series (plain reference to `numbering_series`, no foreign key: see the delete guard). */
+    seriesId: text("series_id").notNull().default("default"),
     year: integer("year"),
     /** Calendar dates as `YYYY-MM-DD`. */
     issueDate: text("issue_date"),
@@ -201,8 +226,8 @@ export const invoices = sqliteTable(
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
   },
   (t) => [
-    uniqueIndex("invoices_year_number_unique")
-      .on(t.year, t.numberInt)
+    uniqueIndex("invoices_series_year_number_unique")
+      .on(t.seriesId, t.year, t.numberInt)
       .where(sql`${t.numberInt} IS NOT NULL`),
     index("invoices_state_idx").on(t.state),
     index("invoices_client_idx").on(t.clientId),
@@ -243,13 +268,18 @@ export const fileSequence = sqliteTable(
 );
 
 /**
- * One scratch row per calendar year used by the numbering batch (guard and last allocated number).
- * It is not a setting: the next number always comes from the invoices themselves.
+ * One scratch row per series and calendar year used by the numbering batch (guard and last
+ * allocated number). It is not a setting: the next number always comes from the invoices themselves.
  */
-export const numberSequences = sqliteTable("number_sequences", {
-  year: integer("year").primaryKey(),
-  lastNumber: integer("last_number").notNull().default(0),
-});
+export const numberSequences = sqliteTable(
+  "number_sequences",
+  {
+    seriesId: text("series_id").notNull(),
+    year: integer("year").notNull(),
+    lastNumber: integer("last_number").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.seriesId, t.year] })],
+);
 
 /**
  * Stored files. Owner columns are plain references (no foreign keys) so that rows can point at
