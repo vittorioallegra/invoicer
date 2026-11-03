@@ -31,7 +31,7 @@ export function InvoiceTotals({ totals, form, locale }: InvoiceTotalsProps) {
   return (
     <section
       aria-label={t("invoice.totals.title")}
-      className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 border-t border-border bg-surface px-4 py-3 shadow-[0_-4px_12px_rgb(0_0_0/0.06)] md:bottom-0 md:mx-0 md:rounded-card md:border"
+      className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 border-t border-border bg-surface px-4 py-3 shadow-[0_-4px_12px_rgb(0_0_0/0.06)] md:bottom-8 md:mx-0 md:rounded-card md:border"
     >
       {open && totals ? (
         <dl
