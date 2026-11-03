@@ -65,7 +65,6 @@ const profile = {
   province: "MI",
   country: "IT",
   regimeFiscale: "RF01",
-  defaultPaymentTermsDays: null,
 };
 
 const ACCOUNTS = [

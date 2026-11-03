@@ -463,6 +463,7 @@ Approved: yes (2026-11-02)
 - Step 12 send handler must compute the SHA-256 of the stored final XML itself and pass it to `verifySendAuthorization`; that check is what binds the authorization to the XML (2026-11-02).
 - Totals rules (2026-11-02, owner): VAT on the contribution at the lines' rate; ritenuta on taxable + rivalsa INPS, not on cassa contributo integrativo TC01-TC21 (per-cassa flag; TC22 = INPS, subject); bollo 2.00 when natura lines exceed 77.47; `included` split per line; half-up rounding to the cent; fixture amounts chosen in step 6 and recorded in the spec; natura legal texts as Italian constants in src/shared; totals in document currency, EUR conversion verified in step 10.
 - No notifications for non-SdI PEC messages: the app ignores them and the owner reads them in the Aruba app (2026-11-02).
+- Company page (2026-11-03, owner): no default payment terms on the profile (set per invoice; client defaults unchanged); no 'Issuer' heading.
 
 - Liquid Glass styling after Milestone A, as a dedicated step 14 once the real screens exist (2026-11-02, owner request).
 - Settings feedback (2026-11-03, owner): issuer profile renamed Company; payment data moved to a Payment methods page holding a list of bank accounts (MP05), one default; invoices snapshot the chosen account and start from the default; no per-client account; back link on every Settings page.

@@ -35,24 +35,8 @@ const client: ClientRecord = {
 };
 
 describe("invoice form", () => {
-  it("prefills from the client defaults and the profile payment terms", () => {
-    const form = applyDefaults(
-      emptyForm(),
-      client,
-      {
-        name: "X",
-        vatNumber: "12345678903",
-        taxCode: null,
-        address: null,
-        postalCode: null,
-        city: null,
-        province: null,
-        country: "IT",
-        regimeFiscale: "RF01",
-        defaultPaymentTermsDays: 15,
-      },
-      "2026-01-20",
-    );
+  it("prefills from the client defaults", () => {
+    const form = applyDefaults(emptyForm(), client, "2026-01-20");
     expect(form).toMatchObject({
       currency: "USD",
       cassaType: "TC04",

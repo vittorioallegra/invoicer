@@ -17,7 +17,6 @@ const profile = {
   province: "rm",
   country: "it",
   regimeFiscale: "RF19",
-  defaultPaymentTermsDays: 30,
 };
 
 describe("identifier checks", () => {

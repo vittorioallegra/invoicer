@@ -21,7 +21,6 @@ function toResponse(row: typeof schema.profile.$inferSelect) {
     province: row.province,
     country: row.country,
     regimeFiscale: row.regimeFiscale,
-    defaultPaymentTermsDays: row.defaultPaymentTermsDays,
   };
 }
 

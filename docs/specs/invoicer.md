@@ -118,8 +118,9 @@ settle the open ones):
    the passkey; set the fallback password + TOTP.
 3. **Company (the issuer profile):** name or company name, partita IVA, codice fiscale,
    address, regime fiscale (RF01 ordinario, RF19 forfettario, and the other RF codes in a
-   list), default payment terms, next invoice number for the current year (to continue from
-   FiC). It holds no bank data: see Payment methods below.
+   list), next invoice number for the current year (to continue from
+   FiC). It holds no bank data (see Payment methods below) and no default payment terms:
+   those are set on each invoice (clients keep their own defaults).
 3a. **Payment methods:** a list of bank accounts, each with a short name (for example
    "Fineco"), IBAN (mod-97 checked), BIC/SWIFT, bank name and account holder. Bank
    transfer only (MP05). Exactly one account is the default while any exist: the first one

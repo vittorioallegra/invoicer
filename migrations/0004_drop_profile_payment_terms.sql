@@ -1,0 +1,1 @@
+ALTER TABLE `profile` DROP COLUMN `default_payment_terms_days`;

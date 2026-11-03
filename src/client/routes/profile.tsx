@@ -28,7 +28,6 @@ interface FormState {
   province: string;
   country: string;
   regimeFiscale: string;
-  termsDays: string;
 }
 
 const EMPTY: FormState = {
@@ -41,7 +40,6 @@ const EMPTY: FormState = {
   province: "",
   country: "IT",
   regimeFiscale: "RF01",
-  termsDays: "",
 };
 
 function fromProfile(p: ProfileResponse): FormState {
@@ -55,12 +53,10 @@ function fromProfile(p: ProfileResponse): FormState {
     province: p.province ?? "",
     country: p.country,
     regimeFiscale: p.regimeFiscale,
-    termsDays: p.defaultPaymentTermsDays === null ? "" : String(p.defaultPaymentTermsDays),
   };
 }
 
 function toBody(f: FormState) {
-  const days = f.termsDays.trim();
   return {
     name: f.name,
     vatNumber: f.vatNumber,
@@ -71,7 +67,6 @@ function toBody(f: FormState) {
     province: f.province,
     country: f.country,
     regimeFiscale: f.regimeFiscale,
-    defaultPaymentTermsDays: days === "" ? null : Number(days),
   };
 }
 
@@ -148,7 +143,6 @@ export function ProfilePage() {
       {query.data ? (
         <form onSubmit={onSubmit} noValidate className="flex max-w-2xl flex-col gap-6">
           <fieldset className="flex flex-col gap-4">
-            <legend className="mb-2 text-base font-medium">{t("profile.issuer")}</legend>
             <Field label={t("profile.name")} hint={t("profile.nameHint")} error={err("name")}>
               {(c) => (
                 <Input
@@ -257,24 +251,6 @@ export function ProfilePage() {
                 )}
               </Field>
             </div>
-          </fieldset>
-
-          <fieldset className="flex flex-col gap-4">
-            <legend className="mb-2 text-base font-medium">{t("profile.paymentTitle")}</legend>
-            <Field
-              label={t("profile.termsDays")}
-              hint={t("profile.termsDaysHint")}
-              error={err("defaultPaymentTermsDays")}
-            >
-              {(c) => (
-                <Input
-                  {...c}
-                  value={form.termsDays}
-                  onChange={set("termsDays")}
-                  inputMode="numeric"
-                />
-              )}
-            </Field>
           </fieldset>
 
           <Button type="submit" disabled={!online || save.isPending} className="w-fit">

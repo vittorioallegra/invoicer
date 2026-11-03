@@ -38,7 +38,6 @@ const profile = {
   province: "RM",
   country: "IT",
   regimeFiscale: "RF19",
-  defaultPaymentTermsDays: 30,
 };
 
 const goodSession = () =>

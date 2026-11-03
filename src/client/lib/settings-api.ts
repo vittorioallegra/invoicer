@@ -14,7 +14,6 @@ export interface ProfileResponse {
   province: string | null;
   country: string;
   regimeFiscale: string;
-  defaultPaymentTermsDays: number | null;
 }
 
 export interface SettingsResponse {

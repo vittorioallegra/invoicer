@@ -224,7 +224,6 @@
     "intro": "These details appear on every invoice you issue.",
     "saved": "Company details saved.",
     "save": "Save company",
-    "issuer": "Issuer",
     "name": "Name or company name",
     "nameHint": "As registered with the tax office.",
     "vatNumber": "Partita IVA",
@@ -237,9 +236,6 @@
     "city": "City",
     "province": "Province",
     "country": "Country",
-    "paymentTitle": "Payment terms",
-    "termsDays": "Default payment terms (days)",
-    "termsDaysHint": "Used to suggest the due date. Leave empty for none.",
     "regimes": {
       "RF01": "Ordinary",
       "RF02": "Minimum taxpayers (obsolete)",

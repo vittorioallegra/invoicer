@@ -66,7 +66,6 @@ import { sdiErrorLine } from "../lib/sdi-error";
 import {
   fieldErrorsFromDetail,
   onboardingQuery,
-  type ProfileResponse,
   paymentMethodsQuery,
   profileQuery,
 } from "../lib/settings-api";
@@ -137,7 +136,6 @@ export function InvoiceEditorPage() {
           key={record.data?.invoice.id ?? "new"}
           record={record.data?.invoice ?? null}
           clients={clients.data.clients}
-          profile={profile.data.profile}
           accounts={accounts.data.paymentMethods}
           send={onboarding.data.send}
         />
@@ -149,12 +147,11 @@ export function InvoiceEditorPage() {
 interface EditorFormProps {
   record: InvoiceRecord | null;
   clients: ClientRecord[];
-  profile: ProfileResponse | null;
   accounts: PaymentMethodRecord[];
   send: SendReadiness;
 }
 
-function EditorForm({ record, clients, profile, accounts, send }: EditorFormProps) {
+function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
   const { t, i18n } = useTranslation();
   const locale: UiLocale = i18n.language.startsWith("it") ? "it" : "en";
   const online = useOnline();
@@ -166,7 +163,7 @@ function EditorForm({ record, clients, profile, accounts, send }: EditorFormProp
     record
       ? fromRecord(record)
       : withAccount(
-          applyDefaults(emptyForm(), null, profile, today),
+          applyDefaults(emptyForm(), null, today),
           accounts.find((account) => account.isDefault) ?? null,
         ),
   );
@@ -208,7 +205,7 @@ function EditorForm({ record, clients, profile, accounts, send }: EditorFormProp
     setForm((current) => {
       const next = { ...current, clientId: chosen?.id ?? "" };
       // Defaults prefill a new invoice only; an existing one keeps what it has.
-      return record ? next : applyDefaults(next, chosen, profile, today);
+      return record ? next : applyDefaults(next, chosen, today);
     });
   }
 

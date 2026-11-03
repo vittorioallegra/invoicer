@@ -20,7 +20,6 @@ import {
   parseMoney,
   type Totals,
 } from "../../shared/totals";
-import type { ProfileResponse } from "./settings-api";
 
 export const VAT_RATES = [2200, 1000, 500, 400] as const;
 /** Default VAT rate of a new line when the client has no default. */
@@ -159,14 +158,13 @@ const addDays = (date: string, days: number) =>
   new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 
 /**
- * Prefills a new invoice from the client's defaults and the profile's payment terms: VAT or
+ * Prefills a new invoice from the client's defaults: VAT or
  * exemption on the lines, cassa/rivalsa, ritenuta, bollo, currency and due date. The bank
  * account is chosen separately (`withAccount`), so picking a client never overrides it.
  */
 export function applyDefaults(
   form: InvoiceForm,
   client: ClientRecord | null,
-  profile: ProfileResponse | null,
   today: string,
 ): InvoiceForm {
   const next: InvoiceForm = { ...form };
@@ -188,7 +186,7 @@ export function applyDefaults(
     next.ritenutaCausale = defaults.ritenuta?.causale ?? "A";
     next.bollo = defaults.bollo;
   }
-  const days = defaults?.paymentTermsDays ?? profile?.defaultPaymentTermsDays ?? null;
+  const days = defaults?.paymentTermsDays ?? null;
   if (days !== null) next.dueDate = addDays(today, days);
   // Natura legal texts follow the lines.
   next.naturaTexts = naturaTextsFor(next.lines, next.naturaTexts);

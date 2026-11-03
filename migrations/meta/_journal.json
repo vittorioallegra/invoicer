@@ -29,6 +29,13 @@
       "when": 1793692117424,
       "tag": "0003_payment_methods",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793692898811,
+      "tag": "0004_drop_profile_payment_terms",
+      "breakpoints": true
     }
   ]
 }

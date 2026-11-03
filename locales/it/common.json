@@ -224,7 +224,6 @@
     "intro": "Questi dati compaiono su ogni fattura che emetti.",
     "saved": "Dati azienda salvati.",
     "save": "Salva azienda",
-    "issuer": "Emittente",
     "name": "Nome o ragione sociale",
     "nameHint": "Come risulta all'Agenzia delle Entrate.",
     "vatNumber": "Partita IVA",
@@ -237,9 +236,6 @@
     "city": "Città",
     "province": "Provincia",
     "country": "Paese",
-    "paymentTitle": "Termini di pagamento",
-    "termsDays": "Termini di pagamento predefiniti (giorni)",
-    "termsDaysHint": "Usati per proporre la scadenza. Lascia vuoto per nessuno.",
     "regimes": {
       "RF01": "Ordinario",
       "RF02": "Contribuenti minimi (obsoleto)",

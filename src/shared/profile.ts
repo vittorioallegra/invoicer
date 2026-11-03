@@ -81,7 +81,6 @@ export const profileInputSchema = z.object({
     .transform(upper)
     .refine((value) => /^[A-Z]{2}$/.test(value), "invalid_country"),
   regimeFiscale: z.enum(REGIME_FISCALE_CODES),
-  defaultPaymentTermsDays: z.number().int().min(0).max(365).nullable(),
 });
 export type ProfileInput = z.input<typeof profileInputSchema>;
 export type ProfileData = z.output<typeof profileInputSchema>;
