@@ -241,7 +241,7 @@ settle the open ones):
   stored for the owner to upload on the AdE portal (the invoice page offers it) and nothing is
   sent by the app. After finalisation the Finalize button is gone and the "⋯" menu has, in this
   order, "Duplicate", "Create credit note" (issued invoices), "Record payment" (not for credit
-  notes), "Download PDF" and "Download XML" (the stored files); the bottom has no buttons. Payment:
+  notes), "Download PDF" and "Download XML"; the bottom has no buttons. Payment:
   next to the state badge a finalised invoice shows a "Paid" chip (with "Paid on <date>" as its
   tooltip and accessible detail) or an "Unpaid" chip; "Record payment" opens a small dialog with
   the payment date (default today, Europe/Rome) and Cancel / Save (disabled until the date is
@@ -545,6 +545,12 @@ settle the open ones):
   to the bottom of the last page, payment on the left and totals on the right; it never
   splits across pages, so a long invoice flows to a second page and the block sits on the
   last one only.
+- "Download PDF" renders a fresh PDF in the browser from the sent content, with the current layout;
+  the stored PDF stays for the courtesy email. The content is the invoice record (lines, payment,
+  notes, number, date) plus the parties read from the stored XML, so a client or company edited
+  later does not change it. The XML is rebuilt from that content and must equal the stored file;
+  an invoice edited since its last attempt does not, and then the stored PDF is downloaded. The
+  menu item is disabled offline and shows a busy label while rendering.
 - The PDF download is named `invoice-<number>-<client>.pdf` (e.g. `invoice-CH-3-acme-srl.pdf`):
   the number as printed with `/ \ : * ? " < > |` and spaces replaced by `-`, and a lowercase
   ASCII slug of the client name (max 40 characters). The XML download keeps the official SdI
