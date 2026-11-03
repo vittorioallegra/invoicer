@@ -124,7 +124,9 @@
     "loading": "Loading",
     "retry": "Try again",
     "error": "Something went wrong.",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "today": "Today",
+    "clear": "Clear"
   },
   "money": {
     "amount": "Amount"

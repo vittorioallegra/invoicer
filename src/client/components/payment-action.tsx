@@ -6,8 +6,8 @@ import type { InvoiceRecord } from "../../shared/invoice";
 import { patchInvoice } from "../lib/invoices-api";
 import { useOnline } from "../lib/online";
 import { Button } from "./ui/button";
+import { DatePicker } from "./ui/date-picker";
 import { Field } from "./ui/field";
-import { Input } from "./ui/input";
 import { Sheet, SheetFooter } from "./ui/sheet";
 import { toast } from "./ui/toast";
 
@@ -72,9 +72,7 @@ export function PaymentAction({ record, today }: { record: InvoiceRecord; today:
         >
           {paid ? null : (
             <Field label={t("invoice.paid.date")} className="max-w-xs">
-              {(c) => (
-                <Input {...c} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-              )}
+              {(c) => <DatePicker {...c} value={date} onChange={(e) => setDate(e.target.value)} />}
             </Field>
           )}
           <SheetFooter>

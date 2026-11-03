@@ -124,7 +124,9 @@
     "loading": "Caricamento",
     "retry": "Riprova",
     "error": "Qualcosa è andato storto.",
-    "cancel": "Annulla"
+    "cancel": "Annulla",
+    "today": "Oggi",
+    "clear": "Cancella"
   },
   "money": {
     "amount": "Importo"

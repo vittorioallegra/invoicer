@@ -39,6 +39,7 @@ import { PaymentTermsFields } from "../components/payment-terms-fields";
 import { type Preflight, SendSheet } from "../components/send-sheet";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
+import { DatePicker } from "../components/ui/date-picker";
 import { Disclosure } from "../components/ui/disclosure";
 import { Field } from "../components/ui/field";
 import { GroupBox } from "../components/ui/group-box";
@@ -805,9 +806,8 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                   name="invoiceDate"
                 >
                   {(c) => (
-                    <Input
+                    <DatePicker
                       {...c}
-                      type="date"
                       value={form.invoiceDate}
                       disabled={locked || editability === "rejected"}
                       onChange={text("invoiceDate")}
@@ -1200,7 +1200,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 />
                 {terms ? (
                   <Field label={t("invoice.document.dueDate")} className="w-44">
-                    {(c) => <Input {...c} type="date" value={computedDueDate} readOnly />}
+                    {(c) => <DatePicker {...c} value={computedDueDate} readOnly />}
                   </Field>
                 ) : null}
               </div>
