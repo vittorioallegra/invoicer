@@ -178,6 +178,10 @@
       "pec": {
         "title": "Casella PEC",
         "body": "Server, segreti e test di connessione"
+      },
+      "numbering": {
+        "title": "Numerazioni",
+        "body": "Numeri di fattura separati, ad esempio per i clienti svizzeri"
       }
     },
     "unmatched": {
@@ -216,7 +220,9 @@
     "invalid_quantity": "Inserisci una quantità maggiore di zero (fino a 3 decimali).",
     "invalid_rate": "Inserisci una percentuale come 4 o 22,5.",
     "invalid_number": "Inserisci un numero intero, 1 o più.",
-    "invalid_foreign_country": "Inserisci un Paese diverso dall'Italia."
+    "invalid_foreign_country": "Inserisci un Paese diverso dall'Italia.",
+    "invalid_affix": "Usa solo lettere, cifre, - / e .",
+    "affix_too_long": "Prefisso e suffisso insieme possono avere al massimo {{max}} caratteri."
   },
   "profile": {
     "title": "Azienda",
@@ -425,7 +431,9 @@
       "kindLabels": {
         "company": "Azienda",
         "private": "Privato"
-      }
+      },
+      "series": "Numerazione",
+      "seriesDefault": "Numerazione predefinita"
     },
     "summary": {
       "company_it": "Azienda italiana",
@@ -479,12 +487,12 @@
       "dueDate": "Scadenza",
       "deferred": "Fattura differita (emessa entro il 15 del mese successivo)",
       "number": "Numero",
-      "numberHint": "Prossimo numero libero del {{year}}. Modificalo per continuare dal tuo programma precedente; le fatture successive proseguono dal numero più alto.",
-      "numberAssigned": "Assegnato all'invio della fattura; non si può modificare.",
+      "numberAssigned": "Fisso dopo l'invio.",
       "numberGap": "Così si crea un salto: i numeri da {{from}} a {{to}} del {{year}} resteranno inutilizzati.",
       "numberGapOne": "Così si crea un salto: il numero {{from}} del {{year}} resterà inutilizzato.",
       "numberTooLow": "Il numero deve essere {{next}} o più: i numeri inferiori sono già stati emessi.",
-      "numberUnavailable": "Quel numero non è più libero. Il prossimo numero libero è {{next}}."
+      "numberUnavailable": "Quel numero non è più libero. Il prossimo numero libero è {{next}}.",
+      "series": "Numerazione"
     },
     "lines": {
       "title": "Righe",
@@ -933,5 +941,29 @@
     "mode_terms": "Calcolata dai termini",
     "mode_custom": "Data personalizzata",
     "computed": "Calcolata dalla data fattura, o da oggi finché non scegli una data prevista."
+  },
+  "numbering": {
+    "title": "Numerazioni",
+    "intro": "Usa numerazioni separate per tenere distinte le fatture, ad esempio una per i clienti italiani e una per i clienti svizzeri con CH nel numero. Ogni numerazione ha un proprio progressivo che riparte ogni anno. La numerazione predefinita si usa se il cliente o la fattura non ne indicano un'altra.",
+    "add": "Aggiungi numerazione",
+    "newTitle": "Nuova numerazione",
+    "editTitle": "Modifica numerazione",
+    "name": "Nome",
+    "nameHint": "Come riconosci la numerazione, ad esempio Svizzera.",
+    "prefix": "Prefisso",
+    "suffix": "Suffisso",
+    "example": "Esempio: {{example}}",
+    "makeDefault": "Usa come numerazione predefinita",
+    "save": "Salva",
+    "delete": "Elimina numerazione",
+    "deleteConfirm": "Conferma eliminazione",
+    "deleteNote": "Le bozze e i clienti di questa numerazione passano alla numerazione predefinita.",
+    "defaultNote": "La numerazione predefinita non si può eliminare. Prima rendine predefinita un'altra.",
+    "defaultBadge": "Predefinita",
+    "emptyTitle": "Nessuna numerazione",
+    "emptyBody": "Aggiungi una numerazione per numerare le fatture.",
+    "conflict_series_in_use": "Questa numerazione ha già numerato una fattura e non si può eliminare. Puoi rinominarla.",
+    "conflict_series_default": "La numerazione predefinita non si può eliminare.",
+    "conflict_series_affixes_taken": "Un'altra numerazione usa già questo prefisso e suffisso."
   }
 }

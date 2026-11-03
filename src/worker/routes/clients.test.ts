@@ -117,6 +117,7 @@ describe("clients API", () => {
       applyCassa: false,
       applyRitenuta: true,
       terms: null,
+      seriesId: null,
     });
     await owner.json(`/api/clients/${id}`, { method: "DELETE" });
   });

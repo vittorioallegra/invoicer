@@ -50,6 +50,8 @@ export interface InvoiceForm {
   currency: string;
   /** Number typed by the owner; empty = automatic (the proposed next number). */
   requestedNumber: string;
+  /** Numbering series; `""` = the default series. */
+  seriesId: string;
   plannedDate: string;
   operationDate: string;
   /** Due date typed by the owner; used when there are no terms or `dueDateCustom` is on. */
@@ -98,6 +100,7 @@ export function emptyForm(): InvoiceForm {
     clientId: "",
     currency: "EUR",
     requestedNumber: "",
+    seriesId: "",
     plannedDate: "",
     operationDate: "",
     dueDate: "",
@@ -149,6 +152,7 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
     clientId: record.clientId ?? "",
     currency: record.currency,
     requestedNumber: record.requestedNumber === null ? "" : String(record.requestedNumber),
+    seriesId: record.seriesId,
     plannedDate: record.plannedDate ?? "",
     operationDate: record.operationDate ?? "",
     dueDate: record.dueDate ?? "",
@@ -230,6 +234,8 @@ export function applyDefaults(
   const next: InvoiceForm = { ...form };
   const defaults = client?.defaults;
   if (client) next.currency = client.currency;
+  // The client's series starts a new invoice; none means the default series.
+  next.seriesId = defaults?.seriesId ?? "";
   if (defaults) {
     const cassa = defaults.applyCassa ? tax.cassa : null;
     next.cassaType = cassa?.type ?? "";
@@ -375,6 +381,7 @@ export function buildInvoice(
       clientId: form.clientId || null,
       currency: form.currency,
       requestedNumber: requested === null || requested === proposal ? null : requested,
+      seriesId: form.seriesId || null,
       plannedDate: blank(form.plannedDate),
       operationDate: blank(form.operationDate),
       dueDate: blank(effectiveDueDate(form, today)),

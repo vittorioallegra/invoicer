@@ -17,4 +17,16 @@ describe("browser XSD loader", () => {
     expect(check.valid).toBe(false);
     expect(check.mapped.problems.length + check.mapped.technical.length).toBeGreaterThan(0);
   });
+
+  it("accepts a series number with a prefix or suffix, up to 20 basic Latin characters", async () => {
+    const fixture = INVOICE_FIXTURES[0];
+    if (!fixture) throw new Error("no fixture");
+    const base = fixtureToFatturaInput(fixture, 3);
+    for (const number of ["CH-3", "3/CH", "AB.12/2026-X", "ABCDEF123456789/GHIJ"]) {
+      expect(number.length).toBeLessThanOrEqual(20);
+      const { xml } = buildFatturaXml({ ...base, number });
+      expect(xml).toContain(`<Numero>${number}</Numero>`);
+      expect((await checkFatturaXml(xml)).valid, number).toBe(true);
+    }
+  });
 });

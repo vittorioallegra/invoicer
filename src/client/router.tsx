@@ -14,6 +14,7 @@ import { EmailSettingsPage } from "./routes/email-settings";
 import { HomePage } from "./routes/home";
 import { InvoiceEditorPage } from "./routes/invoice-editor";
 import { LoginPage } from "./routes/login";
+import { NumberingPage } from "./routes/numbering";
 import { IssuedPage, NotFoundPage, ReceivedPage } from "./routes/pages";
 import { PaymentMethodsPage } from "./routes/payment-methods";
 import { PecSettingsPage } from "./routes/pec-settings";
@@ -64,6 +65,11 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/settings/payment-methods",
     component: PaymentMethodsPage,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/settings/numbering",
+    component: NumberingPage,
   }),
   createRoute({
     getParentRoute: () => rootRoute,

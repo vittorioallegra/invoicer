@@ -132,21 +132,26 @@ export const clientDefaultsSchema = z
     applyCassa: z.boolean().optional(),
     applyRitenuta: z.boolean().optional(),
     terms: paymentTermsSchema.nullable().optional(),
+    /** Numbering series a new invoice for this client starts in; null = the default series. */
+    seriesId: z.string().min(1).nullable().optional(),
     /** Legacy input only: replaced by `applyCassa` / `applyRitenuta`. */
     cassa: z.unknown().optional(),
     ritenuta: z.unknown().optional(),
     /** Legacy input only: replaced by `terms`. */
     paymentTermsDays: z.number().int().min(0).max(365).nullable().optional(),
   })
-  .transform(({ applyCassa, applyRitenuta, cassa, ritenuta, paymentTermsDays, terms }) => ({
-    applyCassa: applyCassa ?? Boolean(cassa),
-    applyRitenuta: applyRitenuta ?? Boolean(ritenuta),
-    terms:
-      terms ??
-      (paymentTermsDays !== null && paymentTermsDays !== undefined
-        ? legacyTerms(paymentTermsDays)
-        : null),
-  }));
+  .transform(
+    ({ applyCassa, applyRitenuta, cassa, ritenuta, paymentTermsDays, terms, seriesId }) => ({
+      applyCassa: applyCassa ?? Boolean(cassa),
+      applyRitenuta: applyRitenuta ?? Boolean(ritenuta),
+      terms:
+        terms ??
+        (paymentTermsDays !== null && paymentTermsDays !== undefined
+          ? legacyTerms(paymentTermsDays)
+          : null),
+      seriesId: seriesId ?? null,
+    }),
+  );
 
 export type ClientDefaults = z.output<typeof clientDefaultsSchema>;
 
@@ -154,11 +159,12 @@ export const EMPTY_CLIENT_DEFAULTS: ClientDefaults = {
   applyCassa: false,
   applyRitenuta: false,
   terms: null,
+  seriesId: null,
 };
 
 /** Defaults of a new client: the cassa applies; the ritenuta only for Italian companies (withholding agents). */
 export function newClientDefaults(type: ClientType): ClientDefaults {
-  return { applyCassa: true, applyRitenuta: type === "it_company", terms: null };
+  return { applyCassa: true, applyRitenuta: type === "it_company", terms: null, seriesId: null };
 }
 
 /** Rules per type, applied after the field checks: required fields and fixed values. */

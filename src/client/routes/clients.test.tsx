@@ -225,8 +225,45 @@ describe("Clients screen", () => {
       applyCassa: true,
       applyRitenuta: true,
       terms: { kind: "custom", days: 60 },
+      seriesId: null,
     });
     expect(body.defaults).not.toHaveProperty("paymentTermsDays");
+  });
+
+  it("offers the numbering series only when there are several, and saves the choice", async () => {
+    const series = [
+      { id: "default", name: "Italia", prefix: null, suffix: null, isDefault: true },
+      { id: "ch", name: "Svizzera", prefix: "CH-", suffix: null, isDefault: false },
+    ];
+    mocks.api.mockImplementation(async (path: string) =>
+      path === "/api/numbering-series" ? { series } : { clients: [] },
+    );
+    await renderClients();
+    fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
+    const select = (await screen.findByLabelText("Numbering series")) as HTMLSelectElement;
+    expect([...select.options].map((o) => o.value)).toEqual(["", "default", "ch"]);
+    type("Numbering series", "ch");
+    type("Company name", "Acme S.r.l.");
+    type("Partita IVA", "12345678903");
+    type("Street and number", "Via Roma 1");
+    type("Postal code", "00100");
+    type("City", "Roma");
+    type("Province", "RM");
+    mocks.api.mockImplementation(async (path: string) =>
+      path === "/api/numbering-series" ? { series } : { client: saved, clients: [saved] },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(mocks.api).toHaveBeenCalledWith(
+        "/api/clients",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    const call = mocks.api.mock.calls.find(
+      ([path, init]) => path === "/api/clients" && init?.method === "POST",
+    );
+    const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
+    expect(body.defaults.seriesId).toBe("ch");
   });
 
   it("sends the fixed delivery code and country for each client type", async () => {

@@ -16,6 +16,7 @@ import {
   PAYMENT_METHODS,
   SDI_ERROR_FIELDS,
 } from "../../shared/invoice";
+import { formatInvoiceNumber, type NumberingSeriesRecord } from "../../shared/numbering";
 import type { SendReadiness } from "../../shared/onboarding";
 import { maskIban, type PaymentMethodRecord } from "../../shared/payment-method";
 import { RITENUTA_TYPES, type TaxOptions } from "../../shared/tax";
@@ -77,6 +78,7 @@ import { previewPdf } from "../lib/pdf-preview";
 import { sdiErrorLine } from "../lib/sdi-error";
 import {
   fieldErrorsFromDetail,
+  numberingSeriesQuery,
   onboardingQuery,
   paymentMethodsQuery,
   profileQuery,
@@ -94,6 +96,7 @@ export function InvoiceEditorPage() {
   const clients = useQuery(clientsQuery);
   const profile = useQuery(profileQuery);
   const accounts = useQuery(paymentMethodsQuery);
+  const numbering = useQuery(numberingSeriesQuery);
   const onboarding = useQuery(onboardingQuery);
   const tax = useQuery(taxQuery);
   const record = useQuery({
@@ -105,12 +108,14 @@ export function InvoiceEditorPage() {
     clients.isError ||
     profile.isError ||
     accounts.isError ||
+    numbering.isError ||
     tax.isError ||
     (invoiceId !== undefined && record.isError);
   const ready =
     clients.data &&
     profile.data &&
     accounts.data &&
+    numbering.data &&
     tax.data &&
     (invoiceId === undefined || record.data) &&
     onboarding.data;
@@ -128,6 +133,7 @@ export function InvoiceEditorPage() {
                 void clients.refetch();
                 void profile.refetch();
                 void accounts.refetch();
+                void numbering.refetch();
                 void tax.refetch();
                 void record.refetch();
               }}
@@ -148,12 +154,19 @@ export function InvoiceEditorPage() {
           {t("common.loading")}
         </p>
       ) : null}
-      {ready && clients.data && profile.data && accounts.data && tax.data && onboarding.data ? (
+      {ready &&
+      clients.data &&
+      profile.data &&
+      accounts.data &&
+      numbering.data &&
+      tax.data &&
+      onboarding.data ? (
         <EditorForm
           key={record.data?.invoice.id ?? "new"}
           record={record.data?.invoice ?? null}
           clients={clients.data.clients}
           accounts={accounts.data.paymentMethods}
+          series={numbering.data.series}
           tax={tax.data.tax}
           send={onboarding.data.send}
         />
@@ -166,11 +179,12 @@ interface EditorFormProps {
   record: InvoiceRecord | null;
   clients: ClientRecord[];
   accounts: PaymentMethodRecord[];
+  series: NumberingSeriesRecord[];
   tax: TaxOptions;
   send: SendReadiness;
 }
 
-function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
+function EditorForm({ record, clients, accounts, series, tax, send }: EditorFormProps) {
   const { t, i18n } = useTranslation();
   const locale: UiLocale = i18n.language.startsWith("it") ? "it" : "en";
   const online = useOnline();
@@ -198,7 +212,13 @@ function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
   // The number is chosen here until it is reserved; from then on it is shown read-only.
   const numberEditable = editability === "full" && !record?.number;
   const year = Number(today.slice(0, 4));
-  const nextNumber = useQuery({ ...nextNumberQuery(year), enabled: numberEditable });
+  // The invoice's series; a series that no longer exists falls back to the default one.
+  const defaultSeries = series.find((s) => s.isDefault) ?? series[0] ?? null;
+  const activeSeries = series.find((s) => s.id === form.seriesId) ?? defaultSeries;
+  const nextNumber = useQuery({
+    ...nextNumberQuery(year, activeSeries?.id ?? null),
+    enabled: numberEditable,
+  });
   const proposal = nextNumber.data?.next ?? null;
   const [numberTouched, setNumberTouched] = useState(false);
   const [numberTaken, setNumberTaken] = useState(false);
@@ -670,11 +690,38 @@ function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
                 />
               )}
             </Field>
+            {series.length > 1 ? (
+              <Field label={t("invoice.document.series")}>
+                {(c) => (
+                  <Select
+                    {...c}
+                    value={activeSeries?.id ?? ""}
+                    disabled={!numberEditable}
+                    onChange={(event) => {
+                      setNumberTouched(false);
+                      setNumberTaken(false);
+                      patch({ seriesId: event.target.value, requestedNumber: "" });
+                    }}
+                  >
+                    {series.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+            ) : null}
             <Field
               label={t("invoice.document.number")}
               hint={
                 numberEditable
-                  ? t("invoice.document.numberHint", { year })
+                  ? activeSeries &&
+                    (activeSeries.prefix || activeSeries.suffix) &&
+                    typed !== null &&
+                    !Number.isNaN(typed)
+                    ? formatInvoiceNumber(activeSeries, typed)
+                    : undefined
                   : t("invoice.document.numberAssigned")
               }
               error={numberEditable ? numberError : undefined}

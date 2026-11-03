@@ -198,7 +198,12 @@ describe("defaults", () => {
       bollo: true,
       terms: { kind: "eom_30" },
     });
-    expect(parsed).toEqual({ applyCassa: true, applyRitenuta: false, terms: { kind: "eom_30" } });
+    expect(parsed).toEqual({
+      applyCassa: true,
+      applyRitenuta: false,
+      terms: { kind: "eom_30" },
+      seriesId: null,
+    });
     const bare = clientDefaultsSchema.parse({
       vatRateBp: null,
       natura: "N2.2",
@@ -206,7 +211,11 @@ describe("defaults", () => {
       ritenuta: { type: "RT01", rateBp: 2000, causale: "A" },
       bollo: false,
     });
-    expect(bare).toEqual({ applyCassa: false, applyRitenuta: true, terms: null });
+    expect(bare).toEqual({ applyCassa: false, applyRitenuta: true, terms: null, seriesId: null });
+  });
+  it("keeps the default numbering series of a client", () => {
+    expect(clientDefaultsSchema.parse({ seriesId: "ch" }).seriesId).toBe("ch");
+    expect(clientDefaultsSchema.parse({}).seriesId).toBeNull();
   });
   it("keeps the new flags over any older value", () => {
     const parsed = clientDefaultsSchema.parse({

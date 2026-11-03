@@ -54,6 +54,7 @@ const acme: ClientRecord = {
     applyCassa: true,
     applyRitenuta: true,
     terms: { kind: "custom", days: 30 },
+    seriesId: null,
   },
 };
 /** The owner's Tax details: what a client's cassa and ritenuta flags copy onto a new invoice. */
@@ -81,6 +82,15 @@ const profile = {
   country: "IT",
   regimeFiscale: "RF01",
 };
+
+const DEFAULT_SERIES = {
+  id: "default",
+  name: "Italia",
+  prefix: null,
+  suffix: null,
+  isDefault: true,
+};
+const CH_SERIES = { id: "ch", name: "Svizzera", prefix: "CH-", suffix: null, isDefault: false };
 
 const ACCOUNTS = [
   {
@@ -146,7 +156,13 @@ function record(over: Partial<InvoiceRecord> = {}): InvoiceRecord {
 }
 
 function serve(
-  opts: { send?: object; invoice?: InvoiceRecord; clients?: ClientRecord[]; tax?: object } = {},
+  opts: {
+    send?: object;
+    invoice?: InvoiceRecord;
+    clients?: ClientRecord[];
+    tax?: object;
+    series?: object[];
+  } = {},
 ) {
   mocks.api.mockImplementation(async (path: string, init?: { method?: string }) => {
     if (path === "/api/clients")
@@ -154,11 +170,19 @@ function serve(
     if (path === "/api/profile") return { profile };
     if (path === "/api/tax") return { tax: opts.tax ?? TAX };
     if (path === "/api/payment-methods") return { paymentMethods: ACCOUNTS };
+    if (path === "/api/numbering-series") return { series: opts.series ?? [DEFAULT_SERIES] };
     if (path === "/api/onboarding") {
       return { checklist: [], complete: true, send: opts.send ?? ready, pecTest: null };
     }
     if (path === "/api/invoices?scope=issued") return { invoices: [] };
-    if (path.startsWith("/api/invoices/next-number")) return { year: Number(YEAR), next: proposal };
+    if (path.startsWith("/api/invoices/next-number")) {
+      const series = new URLSearchParams(path.split("?")[1]).get("series");
+      return {
+        year: Number(YEAR),
+        series: series ?? "default",
+        next: series === "ch" ? 3 : proposal,
+      };
+    }
     if (path === "/api/invoices" && init?.method === "POST")
       return { invoice: record({ id: "new1" }) };
     if (path.startsWith("/api/invoices/") && opts.invoice) return { invoice: opts.invoice };
@@ -613,6 +637,57 @@ describe("Invoice editor, number on the invoice", () => {
     expect(
       screen.getByText("The number must be 8 or higher: lower numbers are already issued."),
     ).toBeTruthy();
+  });
+
+  it("offers no series select with a single series", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    expect(screen.queryByLabelText("Series")).toBeNull();
+  });
+
+  it("starts in the client's series, proposes its number and sends the series", async () => {
+    const swiss = { ...acme, defaults: { ...acme.defaults, seriesId: "ch" } };
+    serve({ series: [DEFAULT_SERIES, CH_SERIES], clients: [swiss] });
+    await renderEditor();
+    await loaded();
+    expect((screen.getByLabelText("Series") as HTMLSelectElement).value).toBe("default");
+    type("Client", "c1");
+    await waitFor(() =>
+      expect((screen.getByLabelText("Series") as HTMLSelectElement).value).toBe("ch"),
+    );
+    await waitFor(() => expect(numberInput().value).toBe("3"));
+    expect(screen.getByText("CH-3")).toBeTruthy();
+    expect(mocks.api).toHaveBeenCalledWith(expect.stringContaining("series=ch"));
+    const body = await fillAndSave();
+    expect(body.seriesId).toBe("ch");
+    expect(body.requestedNumber).toBeNull();
+  });
+
+  it("switching the series proposes that series' next number", async () => {
+    serve({ series: [DEFAULT_SERIES, CH_SERIES] });
+    await renderEditor();
+    await loaded();
+    await waitFor(() => expect(numberInput().value).toBe("8"));
+    type("Series", "ch");
+    await waitFor(() => expect(numberInput().value).toBe("3"));
+  });
+
+  it("shows the series of an issued invoice read-only", async () => {
+    serve({
+      series: [DEFAULT_SERIES, CH_SERIES],
+      invoice: record({
+        state: "sending",
+        number: "CH-7",
+        seriesId: "ch",
+        year: 2026,
+        issueDate: "2026-03-01",
+      }),
+    });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect((screen.getByLabelText("Series") as HTMLSelectElement).disabled).toBe(true);
+    expect(numberInput().value).toBe("CH-7");
   });
 
   it("shows the number requested on a stored draft, editable", async () => {

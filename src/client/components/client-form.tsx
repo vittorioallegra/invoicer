@@ -17,7 +17,12 @@ import { createClient, deleteClient, updateClient } from "../lib/clients-api";
 import { countryOptions } from "../lib/countries";
 import { formTerms, type InvoiceForm, termsToForm } from "../lib/invoice-form";
 import { useOnline } from "../lib/online";
-import { fieldErrors, fieldErrorsFromDetail, taxQuery } from "../lib/settings-api";
+import {
+  fieldErrors,
+  fieldErrorsFromDetail,
+  numberingSeriesQuery,
+  taxQuery,
+} from "../lib/settings-api";
 import { PaymentTermsFields } from "./payment-terms-fields";
 import { Banner } from "./ui/banner";
 import { Button } from "./ui/button";
@@ -49,6 +54,8 @@ interface FormState {
   applyRitenuta: boolean;
   termsKind: string;
   termsDays: string;
+  /** Numbering series a new invoice starts in; `""` = the default series. */
+  seriesId: string;
 }
 
 const EMPTY: FormState = {
@@ -70,6 +77,7 @@ const EMPTY: FormState = {
   ...flagsOf(newClientDefaults("it_company")),
   termsKind: "",
   termsDays: "",
+  seriesId: "",
 };
 
 /** The two apply flags of a defaults object, as form state. */
@@ -99,6 +107,7 @@ function fromRecord(c: ClientRecord): FormState {
     applyCassa: d.applyCassa,
     applyRitenuta: d.applyRitenuta,
     ...termsToForm(d.terms),
+    seriesId: d.seriesId ?? "",
   };
 }
 
@@ -110,6 +119,7 @@ function toDefaults(f: FormState): ClientDefaults {
       termsKind: f.termsKind as InvoiceForm["termsKind"],
       termsDays: f.termsDays,
     }),
+    seriesId: f.seriesId || null,
   };
 }
 
@@ -189,6 +199,8 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
   const online = useOnline();
   const queryClient = useQueryClient();
   const taxSettings = useQuery(taxQuery);
+  const numbering = useQuery(numberingSeriesQuery);
+  const allSeries = numbering.data?.series ?? [];
   const tax = taxSettings.data?.tax;
   const [form, setForm] = useState<FormState>(client ? fromRecord(client) : EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -505,6 +517,22 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
             daysError={err("defaults.terms.days")}
           />
         </div>
+        {allSeries.length > 1 ? (
+          <div className={grid}>
+            <Field label={t("clients.form.series")} error={err("defaults.seriesId")}>
+              {(c) => (
+                <Select {...c} value={form.seriesId} onChange={set("seriesId")}>
+                  <option value="">{t("clients.form.seriesDefault")}</option>
+                  {allSeries.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+          </div>
+        ) : null}
         <div className={grid}>
           <Field
             label={t("clients.form.pdfLanguage")}

@@ -28,7 +28,12 @@ const client: ClientRecord = {
   email: null,
   pdfLanguage: "it",
   currency: "USD",
-  defaults: { applyCassa: true, applyRitenuta: false, terms: { kind: "custom", days: 30 } },
+  defaults: {
+    applyCassa: true,
+    applyRitenuta: false,
+    terms: { kind: "custom", days: 30 },
+    seriesId: "ch",
+  },
 };
 
 const tax = {
