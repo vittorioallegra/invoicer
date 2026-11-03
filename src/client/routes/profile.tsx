@@ -7,6 +7,7 @@ import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
 import { Field } from "../components/ui/field";
+import { GroupBox } from "../components/ui/group-box";
 import { Input } from "../components/ui/input";
 import { toast } from "../components/ui/toast";
 import { useOnline } from "../lib/online";
@@ -173,10 +174,7 @@ export function ProfilePage() {
             </div>
           </fieldset>
 
-          <fieldset className="flex flex-col gap-3 rounded-card border border-border p-4">
-            <legend className="float-start w-full text-sm font-semibold">
-              {t("profile.addressTitle")}
-            </legend>
+          <GroupBox title={t("profile.addressTitle")}>
             <Field label={t("profile.address")} error={err("address")}>
               {(c) => (
                 <Input
@@ -234,7 +232,7 @@ export function ProfilePage() {
                 )}
               </Field>
             </div>
-          </fieldset>
+          </GroupBox>
 
           <div className="flex justify-end">
             <Button type="submit" disabled={!online || save.isPending}>

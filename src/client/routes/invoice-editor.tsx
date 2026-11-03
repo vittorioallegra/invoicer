@@ -38,6 +38,7 @@ import { SendSheet } from "../components/send-sheet";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
 import { Field } from "../components/ui/field";
+import { GroupBox } from "../components/ui/group-box";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { StatusBadge } from "../components/ui/status-badge";
@@ -799,10 +800,7 @@ function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
           <h2 id="inv-extras" className="text-base font-medium">
             {t("invoice.extras.title")}
           </h2>
-          <fieldset className="flex flex-col gap-3 rounded-card border border-border p-4">
-            <legend className="float-start w-full text-sm font-semibold">
-              {t("clients.form.pensionFund")}
-            </legend>
+          <GroupBox title={t("clients.form.pensionFund")}>
             <Field label={t("clients.form.cassa")} error={err("data.cassa.type")}>
               {(c) => (
                 <Select
@@ -869,11 +867,8 @@ function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
                 ) : null}
               </div>
             ) : null}
-          </fieldset>
-          <fieldset className="flex flex-col gap-3 rounded-card border border-border p-4">
-            <legend className="float-start w-full text-sm font-semibold">
-              {t("clients.form.withholding")}
-            </legend>
+          </GroupBox>
+          <GroupBox title={t("clients.form.withholding")}>
             <Field label={t("clients.form.ritenuta")} error={err("data.ritenuta.type")}>
               {(c) => (
                 <Select {...c} value={form.ritenutaType} onChange={text("ritenutaType")}>
@@ -934,7 +929,7 @@ function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
                 </Field>
               </div>
             ) : null}
-          </fieldset>
+          </GroupBox>
           <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
             <input
               type="checkbox"
