@@ -150,8 +150,8 @@ settle the open ones):
 
 - CRUD for clients: type (Italian company, Italian private person, EU company, non-EU
   company), name, partita IVA and/or codice fiscale, foreign VAT/tax ID with country code,
-  address, codice destinatario (7 chars) and/or PEC, email for courtesy copies, PDF
-  language (IT or EN), default currency, default VAT/exemption, default rivalsa / cassa /
+  address, codice destinatario (7 chars) and/or PEC, email for courtesy copies,
+  language (IT or EN, used for the invoice PDF and the courtesy email), default currency, default VAT/exemption, default rivalsa / cassa /
   ritenuta / bollo settings, default payment terms.
 - Field rules derived from type: Italian company needs partita IVA and codice
   destinatario or PEC (default "0000000"); Italian private person needs codice fiscale and

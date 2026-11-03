@@ -652,7 +652,11 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
               </Field>
             </div>
             <div className={grid}>
-              <Field label={t("clients.form.pdfLanguage")} error={err("pdfLanguage")}>
+              <Field
+                label={t("clients.form.pdfLanguage")}
+                hint={t("clients.form.pdfLanguageHint")}
+                error={err("pdfLanguage")}
+              >
                 {(c) => (
                   <Select {...c} value={form.pdfLanguage} onChange={set("pdfLanguage")}>
                     <option value="it">{t("clients.languages.it")}</option>
