@@ -751,8 +751,7 @@
     "cassa": {
       "rivalsa_inps": "Rivalsa INPS",
       "other": "Contributo cassa previdenziale {{label}}",
-      "line": "{{label}} {{rate}}%",
-      "excluded": "aggiunta agli importi sopra"
+      "line": "{{label}} {{rate}}%"
     },
     "ritenuta": "Ritenuta d'acconto {{type}} (causale {{causale}})",
     "taxableWithoutContribution": "Imponibile senza contributo",

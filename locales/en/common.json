@@ -751,8 +751,7 @@
     "cassa": {
       "rivalsa_inps": "INPS contribution (rivalsa)",
       "other": "Pension fund contribution {{label}}",
-      "line": "{{label}} {{rate}}%",
-      "excluded": "added to the amounts above"
+      "line": "{{label}} {{rate}}%"
     },
     "ritenuta": "Withholding tax {{type}} (reason {{causale}})",
     "taxableWithoutContribution": "Taxable without contribution",

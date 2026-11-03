@@ -8,7 +8,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontFamily: "Helvetica-Bold" },
   muted: { color: "#555" },
   bold: { fontFamily: "Helvetica-Bold" },
-  parties: { flexDirection: "row", gap: 24, marginBottom: 14 },
+  parties: { flexDirection: "row", gap: 24, marginBottom: 28 },
   party: { flex: 1 },
   partyLabel: { fontSize: 8, color: "#555", marginBottom: 2, textTransform: "uppercase" },
   tableHead: {

@@ -282,7 +282,8 @@ describe("invoice PDF contribution and ritenuta breakdown", () => {
     // 1,200.00 + 489.75 = 1,689.75; 4% = 67.59; sum 1,757.34.
     expect(text).toContain("Imponibile senza contributo");
     expect(text).toContain("1.689,75");
-    expect(text).toContain("Rivalsa INPS 4% (aggiunta agli importi sopra)");
+    expect(text).toContain("Rivalsa INPS 4%");
+    expect(text).not.toContain("aggiunta agli importi");
     expect(text).toContain("Totale imponibile");
     expect(text).toContain("1.757,34");
   });

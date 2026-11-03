@@ -148,11 +148,7 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
         label: t("pdf.taxableWithoutContribution"),
         value: money(totals.taxableWithoutContributionCents),
       },
-      {
-        label:
-          cassa.mode === "included" ? contribution : `${contribution} (${t("pdf.cassa.excluded")})`,
-        value: money(totals.contributionCents),
-      },
+      { label: contribution, value: money(totals.contributionCents) },
       { label: t("pdf.taxableTotal"), value: money(totals.taxableCents) },
     );
   } else {
