@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   CASSA_TYPE_CODES,
+  CAUSALE_PAGAMENTO_CODES,
   cassaTypeLabel,
+  causalePagamentoLabel,
   NATURA_CODES,
   naturaLabel,
   ritenutaTypeLabel,
@@ -33,5 +35,16 @@ describe("option labels", () => {
     expect(cassaTypeLabel("rivalsa_inps", "it")).toBe("Rivalsa INPS 4%");
     expect(ritenutaTypeLabel("RT04", "it")).toBe("RT04 — contributo ENASARCO");
     expect(ritenutaTypeLabel("RT01", "en")).toBe("RT01 — withholding, individuals");
+  });
+
+  it("describes every ritenuta payment cause in both languages", () => {
+    for (const code of CAUSALE_PAGAMENTO_CODES) {
+      for (const locale of ["it", "en"] as const) {
+        expect(causalePagamentoLabel(code, locale)).toMatch(new RegExp(`^${code} — .{5,}`));
+      }
+    }
+    expect(causalePagamentoLabel("A", "it")).toBe(
+      "A — lavoro autonomo, arte o professione abituale",
+    );
   });
 });

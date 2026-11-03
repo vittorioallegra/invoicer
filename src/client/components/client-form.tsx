@@ -15,8 +15,11 @@ import { ApiError } from "../../shared/errors";
 import type { UiLocale } from "../../shared/format";
 import {
   CASSA_TYPE_CODES,
+  CAUSALE_PAGAMENTO_CODES,
   type CassaType,
+  type CausalePagamento,
   cassaTypeLabel,
+  causalePagamentoLabel,
   defaultCassaSubjectToRitenuta,
   NATURA_CODES,
   naturaLabel,
@@ -152,7 +155,7 @@ function toDefaults(f: FormState): ClientDefaults {
       ? {
           type: f.ritenutaType as (typeof RITENUTA_TYPES)[number],
           rateBp: percentToBp(f.ritenutaRate),
-          causale: f.ritenutaCausale,
+          causale: f.ritenutaCausale as CausalePagamento,
         }
       : null,
     bollo: f.bollo,
@@ -622,17 +625,16 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
                 </Field>
                 <Field
                   label={t("clients.form.withholdingReason")}
-                  hint={t("clients.form.withholdingReasonHint")}
                   error={err("defaults.ritenuta.causale")}
                 >
                   {(c) => (
-                    <Input
-                      {...c}
-                      value={form.ritenutaCausale}
-                      onChange={set("ritenutaCausale")}
-                      maxLength={2}
-                      autoCapitalize="characters"
-                    />
+                    <Select {...c} value={form.ritenutaCausale} onChange={set("ritenutaCausale")}>
+                      {CAUSALE_PAGAMENTO_CODES.map((code) => (
+                        <option key={code} value={code}>
+                          {causalePagamentoLabel(code, locale)}
+                        </option>
+                      ))}
+                    </Select>
                   )}
                 </Field>
               </div>

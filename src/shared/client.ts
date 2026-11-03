@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { legacyTerms, paymentTermsSchema } from "./payment-terms";
 import { isValidVatNumber } from "./profile";
-import { CASSA_TYPE_CODES, NATURA_CODES } from "./totals/types";
+import { CASSA_TYPE_CODES, CAUSALE_PAGAMENTO_CODES, NATURA_CODES } from "./totals/types";
 
 export const CLIENT_TYPES = ["it_company", "it_private", "eu_company", "non_eu_company"] as const;
 export type ClientType = (typeof CLIENT_TYPES)[number];
@@ -109,7 +109,7 @@ export const cassaDefaultsSchema = z.object({
 export const ritenutaDefaultsSchema = z.object({
   type: z.enum(RITENUTA_TYPES),
   rateBp: rateBp.min(1),
-  causale: z.string().trim().min(1).max(2),
+  causale: z.enum(CAUSALE_PAGAMENTO_CODES),
 });
 
 /**

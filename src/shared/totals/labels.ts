@@ -109,6 +109,110 @@ const RITENUTA_LABELS: Readonly<Record<string, Described>> = {
   RT06: pair("altro contributo previdenziale", "other social security contribution"),
 };
 
+/**
+ * Payment causes for the ritenuta (CU / modello 770 codes), shortened from the official wording.
+ * Keys are the `CausalePagamentoType` codes of the vendored XSD, without the retired Z.
+ */
+const CAUSALE_LABELS: Readonly<Record<string, Described>> = {
+  A: pair(
+    "lavoro autonomo, arte o professione abituale",
+    "self-employed work, habitual art or profession",
+  ),
+  B: pair(
+    "diritti d'autore e invenzioni (autore o inventore)",
+    "royalties and inventions (author or inventor)",
+  ),
+  C: pair(
+    "utili da associazione in partecipazione (solo lavoro)",
+    "profits from profit-sharing partnerships (labour only)",
+  ),
+  D: pair(
+    "utili ai soci promotori e fondatori di società di capitali",
+    "profits to promoter and founder shareholders of companies",
+  ),
+  E: pair("levata di protesti cambiari", "protest of bills of exchange"),
+  G: pair(
+    "indennità per cessazione di attività sportiva professionale",
+    "indemnities for ending a professional sports career",
+  ),
+  H: pair(
+    "indennità per cessazione di rapporti di agenzia",
+    "indemnities for ending an agency relationship",
+  ),
+  I: pair(
+    "indennità per cessazione da funzioni notarili",
+    "indemnities for ending notarial functions",
+  ),
+  L: pair(
+    "diritti d'autore e invenzioni (soggetto diverso dall'autore)",
+    "royalties and inventions (party other than the author)",
+  ),
+  M: pair(
+    "lavoro autonomo occasionale, obblighi di fare, non fare, permettere",
+    "occasional self-employed work, obligations to do, not do or permit",
+  ),
+  N: pair(
+    "sport dilettantistico: indennità di trasferta e premi",
+    "amateur sport: travel allowances and prizes",
+  ),
+  O: pair(
+    "lavoro autonomo occasionale, senza obbligo di iscrizione alla gestione separata INPS",
+    "occasional self-employed work, no INPS separate management registration",
+  ),
+  P: pair(
+    "compensi a non residenti per uso di attrezzature industriali, commerciali o scientifiche",
+    "fees to non-residents for use of industrial, commercial or scientific equipment",
+  ),
+  Q: pair(
+    "provvigioni ad agente o rappresentante monomandatario",
+    "commissions to a single-principal agent or representative",
+  ),
+  R: pair(
+    "provvigioni ad agente o rappresentante plurimandatario",
+    "commissions to a multi-principal agent or representative",
+  ),
+  S: pair("provvigioni a commissionario", "commissions to a commission agent"),
+  T: pair("provvigioni a mediatore", "commissions to a broker"),
+  U: pair("provvigioni a procacciatore d'affari", "commissions to a business finder"),
+  V: pair(
+    "provvigioni a incaricato per le vendite a domicilio",
+    "commissions to a door-to-door sales agent",
+  ),
+  W: pair(
+    "corrispettivi 2013 per contratti d'appalto (art. 25-ter DPR 600/1973)",
+    "2013 fees under contracting agreements (art. 25-ter DPR 600/1973)",
+  ),
+  X: pair(
+    "canoni 2004 tra società UE (art. 26-quater DPR 600/1973)",
+    "2004 royalties between EU companies (art. 26-quater DPR 600/1973)",
+  ),
+  Y: pair(
+    "canoni dopo il 2004 tra società UE (art. 26-quater DPR 600/1973)",
+    "royalties after 2004 between EU companies (art. 26-quater DPR 600/1973)",
+  ),
+  L1: pair(
+    "diritti d'autore e invenzioni, diritti acquistati a titolo oneroso",
+    "royalties and inventions, rights bought for consideration",
+  ),
+  M1: pair(
+    "redditi da obblighi di fare, non fare o permettere",
+    "income from obligations to do, not do or permit",
+  ),
+  M2: pair(
+    "lavoro autonomo occasionale, con obbligo di iscrizione alla gestione separata",
+    "occasional self-employed work, with separate management registration",
+  ),
+  O1: pair(
+    "obblighi di fare, non fare o permettere, senza iscrizione alla gestione separata",
+    "obligations to do, not do or permit, no separate management registration",
+  ),
+  V1: pair(
+    "attività commerciali non esercitate abitualmente",
+    "commercial activities not carried out habitually",
+  ),
+  ZO: pair("titolo diverso dai precedenti", "other title"),
+};
+
 const percent = (bp: number, locale: UiLocale) =>
   new Intl.NumberFormat(locale === "it" ? "it-IT" : "en-IE", { maximumFractionDigits: 2 }).format(
     bp / 100,
@@ -135,5 +239,11 @@ export function cassaTypeLabel(type: CassaType | string, locale: UiLocale): stri
 /** "RT01 — ritenuta persone fisiche". */
 export function ritenutaTypeLabel(code: string, locale: UiLocale): string {
   const text = RITENUTA_LABELS[code]?.[locale];
+  return text ? `${code} — ${text}` : code;
+}
+
+/** "A — lavoro autonomo, arte o professione abituale". */
+export function causalePagamentoLabel(code: string, locale: UiLocale): string {
+  const text = CAUSALE_LABELS[code]?.[locale];
   return text ? `${code} — ${text}` : code;
 }

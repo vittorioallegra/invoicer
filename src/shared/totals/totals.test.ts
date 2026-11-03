@@ -124,7 +124,7 @@ describe("rules", () => {
   it("applies ritenuta to rivalsa INPS but not to a cassa contribution", () => {
     const common = {
       lines: [vat(100000, 2200)],
-      ritenuta: { type: "RT01", rateBp: 2000, causale: "A" },
+      ritenuta: { type: "RT01", rateBp: 2000, causale: "A" as const },
     };
     const rivalsa = computeTotals(
       base({
@@ -161,7 +161,7 @@ describe("rules", () => {
       base({
         lines: [vat(100000, 2200)],
         bollo: true,
-        ritenuta: { type: "RT01", rateBp: 2000, causale: "A" },
+        ritenuta: { type: "RT01", rateBp: 2000, causale: "A" as const },
       }),
     );
     expect(t.vatCents).toBe(22000);

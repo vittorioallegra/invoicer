@@ -23,6 +23,7 @@ import {
 } from "../../shared/payment-terms";
 import {
   type CassaType,
+  type CausalePagamento,
   defaultCassaSubjectToRitenuta,
   type Natura,
   parseMoney,
@@ -336,7 +337,7 @@ export function buildInvoice(
       ? {
           type: form.ritenutaType as (typeof RITENUTA_TYPES)[number],
           rateBp: ritenutaRate,
-          causale: form.ritenutaCausale,
+          causale: form.ritenutaCausale as CausalePagamento,
         }
       : null,
     bollo: form.bollo,

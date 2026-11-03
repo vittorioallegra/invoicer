@@ -10,7 +10,7 @@ import {
 } from "../src/shared/fixtures/fatturapa";
 import { INVOICE_FIXTURES } from "../src/shared/fixtures/invoices";
 import { dueDate, type PaymentTerms } from "../src/shared/payment-terms";
-import { NATURA_CODES, NATURA_TEXTS } from "../src/shared/totals";
+import { CAUSALE_PAGAMENTO_CODES, NATURA_CODES, NATURA_TEXTS } from "../src/shared/totals";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -259,5 +259,15 @@ describe("payment terms", () => {
       expect(xml).not.toContain("DataRiferimentoTerminiPagamento");
       expect(xml).toContain("<DataScadenzaPagamento>");
     }
+  });
+});
+
+describe("ritenuta payment causes", () => {
+  it("are the CausalePagamentoType values of the XSD, without the retired Z", () => {
+    const block = /<xs:simpleType name="CausalePagamentoType">([\s\S]*?)<\/xs:simpleType>/.exec(
+      assets.schema,
+    )?.[1];
+    const codes = [...(block ?? "").matchAll(/<xs:enumeration value="([^"]+)"/g)].map((m) => m[1]);
+    expect([...CAUSALE_PAGAMENTO_CODES].sort()).toEqual(codes.filter((c) => c !== "Z").sort());
   });
 });

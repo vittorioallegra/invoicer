@@ -20,8 +20,10 @@ import type { SendReadiness } from "../../shared/onboarding";
 import { maskIban, type PaymentMethodRecord } from "../../shared/payment-method";
 import {
   CASSA_TYPE_CODES,
+  CAUSALE_PAGAMENTO_CODES,
   type CassaType,
   cassaTypeLabel,
+  causalePagamentoLabel,
   defaultCassaSubjectToRitenuta,
   ritenutaTypeLabel,
 } from "../../shared/totals";
@@ -871,14 +873,18 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
             </Field>
             <Field label={t("clients.form.ritenutaCausale")} error={err("data.ritenuta.causale")}>
               {(c) => (
-                <Input
+                <Select
                   {...c}
                   value={form.ritenutaCausale}
-                  maxLength={2}
-                  autoCapitalize="characters"
                   disabled={locked || !form.ritenutaType}
                   onChange={text("ritenutaCausale")}
-                />
+                >
+                  {CAUSALE_PAGAMENTO_CODES.map((code) => (
+                    <option key={code} value={code}>
+                      {causalePagamentoLabel(code, locale)}
+                    </option>
+                  ))}
+                </Select>
               )}
             </Field>
           </div>

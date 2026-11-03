@@ -60,6 +60,42 @@ export type CassaType = "rivalsa_inps" | CassaTypeCode;
 /** `excluded`: amounts exclude the contribution; `included`: amounts are "cassa inclusa". */
 export type CassaMode = "excluded" | "included";
 
+/**
+ * Ritenuta payment causes (FatturaPA `CausalePagamento`, the CU codes): the `CausalePagamentoType`
+ * enumeration of the vendored XSD without Z, which is no longer valid from 2021 (ZO replaces it).
+ */
+export const CAUSALE_PAGAMENTO_CODES = [
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "G",
+  "H",
+  "I",
+  "L",
+  "M",
+  "N",
+  "O",
+  "P",
+  "Q",
+  "R",
+  "S",
+  "T",
+  "U",
+  "V",
+  "W",
+  "X",
+  "Y",
+  "L1",
+  "M1",
+  "M2",
+  "O1",
+  "V1",
+  "ZO",
+] as const;
+export type CausalePagamento = (typeof CAUSALE_PAGAMENTO_CODES)[number];
+
 export interface TotalsLine {
   description: string;
   /** Quantity in thousandths (1000 = 1). */
@@ -87,7 +123,7 @@ export interface RitenutaInput {
   /** Rate in basis points (2000 = 20%). */
   rateBp: number;
   /** FatturaPA `CausalePagamento`, e.g. A. Metadata for the XML. */
-  causale: string;
+  causale: CausalePagamento;
 }
 
 export interface TotalsInput {

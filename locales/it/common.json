@@ -424,7 +424,6 @@
       "withholding": "Ritenuta d'acconto",
       "withholdingRate": "Aliquota (%)",
       "withholdingReason": "Causale del pagamento",
-      "withholdingReasonHint": "1 o 2 lettere, ad esempio A.",
       "stampDuty": "Aggiungi il bollo virtuale"
     }
   },
