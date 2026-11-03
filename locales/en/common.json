@@ -393,7 +393,7 @@
       "pdfLanguage": "Language",
       "pdfLanguageHint": "Used for the invoice PDF and the courtesy email.",
       "currency": "Currency",
-      "defaultsTitle": "Invoice defaults (optional)",
+      "defaultsTitle": "Invoice defaults",
       "defaultsIntro": "These values prefill a new invoice for this client. The pension fund and the withholding tax come from Tax details.",
       "none": "None",
       "cassa": "Cassa / rivalsa",

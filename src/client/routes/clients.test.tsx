@@ -117,21 +117,12 @@ describe("Clients screen", () => {
     expect(select.options.length).toBeGreaterThan(60);
   });
 
-  it("keeps the invoice defaults collapsed and opens them on a validation error", async () => {
+  it("shows the invoice defaults and blocks a save with an invalid currency", async () => {
     mocks.api.mockResolvedValue({ clients: [] });
     await renderClients();
     fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
-    const toggle = await screen.findByRole("button", { name: /Invoice defaults/ });
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByLabelText("Payment terms")).toBeNull();
-
-    fireEvent.click(toggle);
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(await screen.findByLabelText("Payment terms")).toBeTruthy();
     type("Currency", "EURO");
-    fireEvent.click(toggle);
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
-
-    // Fill a valid client except the currency (hidden while collapsed).
     type("Company name", "Acme S.r.l.");
     type("Partita IVA", "12345678903");
     type("Street and number", "Via Roma 1");
@@ -140,9 +131,6 @@ describe("Clients screen", () => {
     type("Province", "RM");
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText("Enter a 3-letter currency code.")).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: /Invoice defaults/ }).getAttribute("aria-expanded"),
-    ).toBe("true");
     expect(mocks.api).not.toHaveBeenCalledWith(
       "/api/clients",
       expect.objectContaining({ method: "POST" }),
@@ -160,7 +148,6 @@ describe("Clients screen", () => {
     );
     await renderClients();
     fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
-    fireEvent.click(await screen.findByRole("button", { name: /Invoice defaults/ }));
     const cassa = (await screen.findByLabelText(
       "Apply the pension fund contribution",
     )) as HTMLInputElement;
@@ -191,7 +178,6 @@ describe("Clients screen", () => {
     );
     await renderClients();
     fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
-    fireEvent.click(await screen.findByRole("button", { name: /Invoice defaults/ }));
     expect(await screen.findAllByRole("link", { name: "Set it up in Tax details" })).toHaveLength(
       2,
     );
@@ -202,7 +188,6 @@ describe("Clients screen", () => {
     mocks.api.mockResolvedValue({ clients: [] });
     await renderClients();
     fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
-    fireEvent.click(await screen.findByRole("button", { name: /Invoice defaults/ }));
     const kind = screen.getByLabelText("Payment terms") as HTMLSelectElement;
     expect(kind.value).toBe("");
     expect([...kind.options].map((o) => o.value)).toEqual([

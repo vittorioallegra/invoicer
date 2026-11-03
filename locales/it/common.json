@@ -393,7 +393,7 @@
       "pdfLanguage": "Lingua",
       "pdfLanguageHint": "Usata per il PDF della fattura e per l'email di cortesia.",
       "currency": "Valuta",
-      "defaultsTitle": "Valori predefiniti fattura (facoltativi)",
+      "defaultsTitle": "Valori predefiniti fattura",
       "defaultsIntro": "Questi valori precompilano una nuova fattura per questo cliente. Cassa previdenziale e ritenuta d'acconto arrivano dai Dati fiscali.",
       "none": "Nessuna",
       "cassa": "Cassa / rivalsa",

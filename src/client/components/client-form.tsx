@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -19,7 +18,6 @@ import { countryOptions } from "../lib/countries";
 import { formTerms, type InvoiceForm, termsToForm } from "../lib/invoice-form";
 import { useOnline } from "../lib/online";
 import { fieldErrors, fieldErrorsFromDetail, taxQuery } from "../lib/settings-api";
-import { cn } from "../lib/utils";
 import { PaymentTermsFields } from "./payment-terms-fields";
 import { Banner } from "./ui/banner";
 import { Button } from "./ui/button";
@@ -136,21 +134,6 @@ function toBody(f: FormState) {
   };
 }
 
-/** True when the form holds invoice defaults other than a new client's, or a PDF language or currency other than the type's. */
-function defaultsDiffer(f: FormState): boolean {
-  const type = deriveClientType(f.kind, f.countryCode);
-  const italian = isItalianClientType(type);
-  return (
-    JSON.stringify(toDefaults(f)) !== JSON.stringify(newClientDefaults(type)) ||
-    f.pdfLanguage !== (italian ? "it" : "en") ||
-    f.currency !== "EUR"
-  );
-}
-
-/** Field errors that live in the collapsed "Invoice defaults" section. */
-const inDefaultsSection = (field: string) =>
-  field.startsWith("defaults.") || field === "pdfLanguage" || field === "currency";
-
 /**
  * A checkbox for "apply the owner's cassa / ritenuta"; until the owner has configured it in Tax
  * details there is nothing to apply, so a hint with a link takes its place.
@@ -251,16 +234,12 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
     return code ? t(`validation.${code}`, { defaultValue: t("validation.invalid") }) : undefined;
   };
 
-  const [defaultsOpen, setDefaultsOpen] = useState(() =>
-    client ? defaultsDiffer(fromRecord(client)) : false,
-  );
   const [separateTaxCode, setSeparateTaxCode] = useState(
     () => (client?.taxCode ?? "") !== "" && client?.type === "it_company",
   );
 
   function showErrors(next: Record<string, string>) {
     setErrors(next);
-    if (Object.keys(next).some(inDefaultsSection)) setDefaultsOpen(true);
   }
 
   /** Changes the kind and/or the country; everything else follows from the derived type. */
@@ -502,72 +481,56 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
         </Field>
       </fieldset>
 
-      <section className="flex flex-col gap-4">
-        <button
-          type="button"
-          aria-expanded={defaultsOpen}
-          aria-controls="client-defaults"
-          onClick={() => setDefaultsOpen((open) => !open)}
-          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-control border border-border px-3 text-start text-base font-medium"
-        >
-          {t("clients.form.defaultsTitle")}
-          <ChevronDown
-            aria-hidden
-            className={cn("size-4 shrink-0 transition-transform", defaultsOpen && "rotate-180")}
+      <fieldset className="flex flex-col gap-4">
+        <legend className={legend}>{t("clients.form.defaultsTitle")}</legend>
+        <p className="text-sm text-muted-foreground">{t("clients.form.defaultsIntro")}</p>
+        <TaxFlag
+          checked={form.applyCassa}
+          configured={tax?.cassa != null}
+          label={t("clients.form.applyCassa")}
+          onChange={(applyCassa) => update({ applyCassa })}
+        />
+        <TaxFlag
+          checked={form.applyRitenuta}
+          configured={tax?.ritenuta != null}
+          label={t("clients.form.applyRitenuta")}
+          onChange={(applyRitenuta) => update({ applyRitenuta })}
+        />
+        <div className={grid}>
+          <PaymentTermsFields
+            kind={form.termsKind}
+            days={form.termsDays}
+            onChange={update}
+            kindError={err("defaults.terms.kind")}
+            daysError={err("defaults.terms.days")}
           />
-        </button>
-        {defaultsOpen ? (
-          <div id="client-defaults" className="flex flex-col gap-4">
-            <p className="text-sm text-muted-foreground">{t("clients.form.defaultsIntro")}</p>
-            <TaxFlag
-              checked={form.applyCassa}
-              configured={tax?.cassa != null}
-              label={t("clients.form.applyCassa")}
-              onChange={(applyCassa) => update({ applyCassa })}
-            />
-            <TaxFlag
-              checked={form.applyRitenuta}
-              configured={tax?.ritenuta != null}
-              label={t("clients.form.applyRitenuta")}
-              onChange={(applyRitenuta) => update({ applyRitenuta })}
-            />
-            <div className={grid}>
-              <PaymentTermsFields
-                kind={form.termsKind}
-                days={form.termsDays}
-                onChange={update}
-                kindError={err("defaults.terms.kind")}
-                daysError={err("defaults.terms.days")}
+        </div>
+        <div className={grid}>
+          <Field
+            label={t("clients.form.pdfLanguage")}
+            hint={t("clients.form.pdfLanguageHint")}
+            error={err("pdfLanguage")}
+          >
+            {(c) => (
+              <Select {...c} value={form.pdfLanguage} onChange={set("pdfLanguage")}>
+                <option value="it">{t("clients.languages.it")}</option>
+                <option value="en">{t("clients.languages.en")}</option>
+              </Select>
+            )}
+          </Field>
+          <Field label={t("clients.form.currency")} error={err("currency")}>
+            {(c) => (
+              <Input
+                {...c}
+                value={form.currency}
+                onChange={set("currency")}
+                maxLength={3}
+                autoCapitalize="characters"
               />
-            </div>
-            <div className={grid}>
-              <Field
-                label={t("clients.form.pdfLanguage")}
-                hint={t("clients.form.pdfLanguageHint")}
-                error={err("pdfLanguage")}
-              >
-                {(c) => (
-                  <Select {...c} value={form.pdfLanguage} onChange={set("pdfLanguage")}>
-                    <option value="it">{t("clients.languages.it")}</option>
-                    <option value="en">{t("clients.languages.en")}</option>
-                  </Select>
-                )}
-              </Field>
-              <Field label={t("clients.form.currency")} error={err("currency")}>
-                {(c) => (
-                  <Input
-                    {...c}
-                    value={form.currency}
-                    onChange={set("currency")}
-                    maxLength={3}
-                    autoCapitalize="characters"
-                  />
-                )}
-              </Field>
-            </div>
-          </div>
-        ) : null}
-      </section>
+            )}
+          </Field>
+        </div>
+      </fieldset>
 
       <div className="flex flex-wrap items-center gap-3">
         {client && !confirmDelete ? (
