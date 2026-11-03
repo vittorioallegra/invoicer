@@ -19,7 +19,7 @@ Italian and foreign clients, and pays for FiC only to do that.
 **Goal:** a simple web app (PWA, usable from the browser or installed on Mac and iPhone)
 where the owner issues FatturaPA invoices to Italian and foreign clients with any VAT /
 exemption setup, sends them to the SdI, follows their delivery, reads received (purchase)
-invoices, tracks drafts, planned, issued and paid invoices, gets push notifications, and
+invoices, tracks invoices to send, sent and paid invoices, gets push notifications, and
 has a courtesy copy (PDF in the client's language) emailed to the client automatically.
 The SdI is reached through the owner's existing PEC mailbox, at no cost.
 
@@ -48,7 +48,7 @@ real invoices in December 2026, so the owner can decide whether to cancel FiC.
 | Backend | Cloudflare Worker (API) | Auth, data API, send authorization, PEC send (SMTP) and mailbox polling (IMAP), push sender, courtesy email sender |
 | Database | Cloudflare D1 | Profile, clients, invoices, events, settings |
 | Files | Cloudflare D1 (BLOBs, max 2 MB each) | Invoice XML, PDF, received invoice files, imports |
-| Scheduled jobs | Cloudflare Cron Triggers | One `*/10 * * * *` trigger: mailbox polling every run; daily jobs (reminders, recurring drafts, quota) at 09:00 Europe/Rome |
+| Scheduled jobs | Cloudflare Cron Triggers | One `*/10 * * * *` trigger: mailbox polling every run; daily jobs (reminders, recurring invoices, quota) at 09:00 Europe/Rome |
 | SdI channel | The owner's PEC mailbox: SMTP send and IMAP polling over `cloudflare:sockets` (`worker-mailer`, `postal-mime`, a minimal in-repo IMAP client); defaults are Aruba's `smtps.pec.aruba.it:465` and `imaps.pec.aruba.it:993` | Send, SdI receipts, received invoices |
 | Email | Resend | Courtesy email from `no-reply@invoicer.vittorioallegra.com` (configurable) |
 | Push | Web Push (VAPID) | Notifications on iPhone (Home screen PWA, iOS 16.4+) and Mac browsers |
@@ -180,12 +180,26 @@ settle the open ones):
 
 - Editor with lines (description, quantity, unit price, unit of measure, VAT rate or
   exemption natura per line; a new line has no VAT chosen and is invalid until the owner picks a
-  rate or a natura, with no default: a draft may be saved with it empty, issuing requires it).
+  rate or a natura, with no default: an invoice may be saved with it empty, sending requires it).
   Natura codes: N1, N2.1, N2.2, N3.1–N3.6, N4, N5, N6.1–N6.9,
   N7, each with a mandatory or suggested legal reference text (e.g. forfettario:
   "Operazione effettuata ai sensi dell'art. 1, commi 54-89, L. 190/2014").
-- Line notes: each line has an optional "Note" textarea, collapsed behind a small "Add note"
-  link until used (or already filled). The XML appends it to the line's `Descrizione` after a
+- Lines are cards, not a table. Each line is a bordered card: the description (full width), then
+  quantity, unit, price, VAT or natura and the computed amount (read-only) in a responsive grid,
+  then the note (full width, always visible, labelled "Note (optional)"). A card has remove and
+  move up / move down icon buttons (labelled with the line number, disabled at the ends,
+  keyboard operable, no drag library); the order is saved and is the XML `NumeroLinea` and PDF
+  order. "Add line" sits under the last card. The amount of every line is shown even while
+  another line has no VAT yet (only the invoice totals wait for it).
+- Editor actions: the title row has, on the right, a "Download" menu (PDF, XML; and "Prepare for
+  the AdE portal" as its last item) and "Send" as the primary button; under the form Delete (left,
+  ghost, red, with a confirmation, only while the invoice is not sent) and Duplicate, Save and,
+  for an issued invoice, "Create credit note" (right). The printed invoice number is under the
+  title. PDF and XML of an invoice that is not sent yet are built in the browser from what is on
+  screen (saved first) with the number it would get now; the XML item is disabled with a reason
+  until the invoice is complete and valid, and the XSD check runs before the file is offered.
+  The sticky bar shows the amount due and the breakdown only.
+- Line notes: each line has an optional note. The XML appends it to the line's `Descrizione` after a
   line feed (`description\nnote`); description and note together fit the 1000 characters of
   `Descrizione`, which the editor and the Worker check (`line_text_too_long` on the note).
   The PDF prints the note under the line description in smaller muted text. Stored in
@@ -240,7 +254,7 @@ settle the open ones):
   are plain `YYYY-MM-DD` on the
   Europe/Rome calendar. A client may
   have default terms (none by default; Company and Tax details have none) that prefill a new invoice.
-  The invoice stores its terms in its payment data. While it is a draft or planned the editor
+  The invoice stores its terms in its payment data. While it is not sent the editor
   shows the date computed from the invoice date (today when empty) and the owner may keep "computed
   from the terms" or choose "custom date". When the number is reserved the issue date is
   fixed and the due date is recomputed from the stored terms, unless it was set by hand, so
@@ -271,8 +285,10 @@ settle the open ones):
     1.040,00 €". The withheld amount is the row value; the PDF adds a muted line with the
     ritenuta type and the causale pagamento.
 - States:
-  - `draft` — saved, editable, no number assigned.
-  - `planned` — draft whose invoice date is in the future (Europe/Rome) when saved; listed under "To issue". A new invoice starts with today's date, so it is a plain draft.
+  - `draft` and `planned` — saved, editable, no number assigned. The user sees no draft: both are
+    one status, "To send" ("Da inviare"), listed under "To send"; sending is always manual.
+    Internally `planned` is a `draft` whose invoice date is in the future (Europe/Rome) when
+    saved; stored states are not migrated.
   - `sent` — handed to the SdI by PEC (the PEC delivery receipt from the SdI mailbox arrived),
     waiting for the SdI outcome.
   - `delivered` — SdI receipt RC.
@@ -294,7 +310,7 @@ settle the open ones):
   year) applies to it. There is no separate operation date.
 - Past-dated invoices and the transmission term: all invoices are TD01 (or TD04 for credit
   notes); there is no deferred-invoice (fattura differita) flag and no TD24. The owner who
-  invoices a month's work the next month saves a draft and issues it with the earlier date. The
+  invoices a month's work the next month saves the invoice and sends it with the earlier date. The
   editor shows a non-blocking warning when the invoice date is more than 12 days before the day
   of sending: an invoice dated in the past must be transmitted to the SdI within 12 days of its
   date (art. 21 DPR 633/72, DL 119/2018). Stored invoice data that still carries `deferred` is
@@ -326,7 +342,7 @@ settle the open ones):
   when the number is reserved, so changing a series' prefix or suffix only affects later
   invoices. Two series cannot share the same prefix and suffix. A series that numbered an
   invoice cannot be deleted (409, message in the UI) but can be renamed; the default series
-  cannot be deleted (make another the default first); drafts of a deleted series move to the
+  cannot be deleted (make another the default first); unsent invoices of a deleted series move to the
   default. A client has an optional default series (empty = default series) that a new
   invoice for it starts in; the editor shows a series select next to the number only when more
   than one series exists, and the series is fixed once the number is reserved. The proposed
@@ -334,7 +350,7 @@ settle the open ones):
   and year.
 - Sent, delivered and not_delivered invoices are read-only (only the payment status
   changes).
-- Duplicate an existing invoice into a new draft.
+- Duplicate an existing invoice into a new unsent invoice.
 
 ### 3a. Credit notes (TD04)
 
@@ -349,10 +365,10 @@ settle the open ones):
 
 - A recurring template stores client, lines, settings and a schedule: every N months
   (monthly, quarterly, yearly), day of month, start date, optional end date or count.
-- The daily job (09:00 Europe/Rome) creates a `planned` draft for each occurrence N days ahead (default 3,
-  configurable) and notifies the owner. Drafts are never sent automatically.
+- The daily job (09:00 Europe/Rome) creates a to-send invoice for each occurrence N days ahead (default 3,
+  configurable) and notifies the owner. Invoices are never sent automatically.
 - Editing a template affects future occurrences only; pausing and deleting a template
-  keeps the drafts already created.
+  keeps the invoices already created.
 - Each occurrence is created exactly once, also if the job runs twice.
 
 ### 4. FatturaPA XML and sending
@@ -404,9 +420,8 @@ settle the open ones):
 
 ### 7. Lists and dashboard
 
-- Home: "To issue" (drafts and planned, planned sorted by date, past planned dates
-  highlighted), "Issued" (with state and payment flag), "Received", and a top strip with
-  counts: to issue, rejected, overdue unpaid; yearly and monthly invoiced totals.
+- Home: "To send" (all unsent invoices, sorted by invoice date), "Issued" (with state and payment flag), "Received", and a top strip with
+  counts: to send, rejected, overdue unpaid; yearly and monthly invoiced totals.
 - Filters: year, month, client/supplier, state, payment flag. Text search on client name
   and invoice number.
 
@@ -443,9 +458,11 @@ settle the open ones):
   - received invoice;
   - SdI outcome: delivered, not delivered, rejected, PEC send error (non-delivery before the
     SdI), arriving within about 10–15 minutes of the PEC;
-  - planned invoice whose date has arrived and is not sent (daily job);
+  - invoice to send whose invoice date has arrived and which is not sent: any unsent invoice
+    with a date, once per invoice per day (daily job, 09:00 Europe/Rome) until it is sent or
+    deleted, for at most 14 days after its date;
   - issued invoice past due date and still unpaid (daily job);
-  - recurring draft created;
+  - recurring invoice created;
   - courtesy email failed;
   - mailbox quota low, mailbox login failing, or an oversize message skipped.
 - No notification for PEC messages that are not SdI related.
@@ -515,7 +532,7 @@ settle the open ones):
     sends and imported numbers. A requested number above the highest issued number of the year
     (also leaving a gap) is respected; one equal to or below it, or already taken by another
     device, is refused with nothing reserved.
-12. A monthly recurring template on day 1 creates exactly one planned draft per month across
+12. A monthly recurring template on day 1 creates exactly one to-send invoice per month across
     12 simulated months, also when the job runs twice for the same date.
 13. The PDF of fixture (c) is in English and of fixture (b) in Italian, and both show IBAN,
     BIC/SWIFT, holder and due date.
@@ -523,7 +540,7 @@ settle the open ones):
     each trigger exactly one courtesy email (Resend test mode) with the PDF attached and
     the configured From, Reply-To and BCC.
 15. With the app closed, push notifications arrive for: a received invoice and an SdI
-    outcome (within 15 minutes of the PEC reaching the mailbox), a planned invoice whose date has arrived and
+    outcome (within 15 minutes of the PEC reaching the mailbox), an unsent invoice whose date has arrived and
     an unpaid invoice past due date (within 24 h).
 16. A mailbox quota below the threshold shows the banner and sends a push (quota from a
     GETQUOTAROOT fixture, and from the size estimate when the server has no QUOTA); a failing
@@ -553,7 +570,7 @@ settle the open ones):
 | Integration | Worker + local D1: auth (passkey, password + TOTP, closed sign-up) | +4 |
 | Unit | minimal IMAP client against a fake socket and recorded transcripts | +10 |
 | Integration | mailbox polling: idempotency, matching by file name, state transitions, catch-up after downtime, UIDVALIDITY change | +6 |
-| Integration | cron jobs: planned due, overdue, recurring, exactly-once | +3 |
+| Integration | cron jobs: unsent invoice due, overdue, recurring, exactly-once | +3 |
 | Integration | courtesy email trigger and payload (Resend mocked) | +2 |
 | Integration | secrets never stored or returned in plaintext | +2 |
 | Integration | PEC send over a fake SMTP socket (attachment, file name, authorization gate) | +2 |
