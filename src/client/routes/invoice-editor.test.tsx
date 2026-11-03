@@ -741,7 +741,7 @@ describe("Invoice editor", () => {
     expect(screen.getByRole("region", { name: "Client" })).toBeTruthy();
   });
 
-  it("opens a saved unsent invoice in view mode: More actions then Finalize on the title row, the rest in the menu", async () => {
+  it("opens a saved unsent invoice in view mode: Finalize then More actions on the title row, the rest in the menu", async () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
     await loaded();
@@ -758,7 +758,7 @@ describe("Invoice editor", () => {
     const follows = (a: HTMLElement, b: HTMLElement) =>
       Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
     expect(follows(title, more)).toBe(true);
-    expect(follows(more, finalize)).toBe(true);
+    expect(follows(finalize, more)).toBe(true);
     // Nothing to download or pay before finalising; Delete comes last.
     fireEvent.click(more);
     expect(menuItems()).toEqual(["Edit", "Duplicate", "Delete"]);

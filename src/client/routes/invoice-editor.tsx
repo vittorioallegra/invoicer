@@ -667,15 +667,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   }
   const titleActions = editing ? undefined : (
     <>
-      {menuItems.length > 0 ? (
-        <MenuButton
-          label={t("invoice.actions.more")}
-          icon={<Ellipsis aria-hidden />}
-          items={menuItems}
-          iconOnly
-          triggerRef={editButton}
-        />
-      ) : null}
       {finalizable ? (
         <Button
           type="button"
@@ -688,6 +679,15 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             record?.state === "rejected" ? "invoice.actions.fixResend" : "invoice.actions.finalize",
           )}
         </Button>
+      ) : null}
+      {menuItems.length > 0 ? (
+        <MenuButton
+          label={t("invoice.actions.more")}
+          icon={<Ellipsis aria-hidden />}
+          items={menuItems}
+          iconOnly
+          triggerRef={editButton}
+        />
       ) : null}
     </>
   );

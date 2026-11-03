@@ -201,9 +201,9 @@ settle the open ones):
   sends (below). The Worker repeats the issuing rules before it reserves the number.
 - Editor modes. A saved invoice opens in view mode: every field is read-only (no disabled
   add-line or client buttons, the extras accordion opens, no line controls). Before finalisation
-  (and for a rejected invoice that can still be fixed) the title row has an icon-only "⋯" menu
-  button ("More actions") and the primary "Finalize" button ("Fix & resend" when rejected), which
-  stays visible; there are no buttons under the form. The menu lists "Edit", "Duplicate", and
+  (and for a rejected invoice that can still be fixed) the title row has the primary "Finalize"
+  button ("Fix & resend" when rejected), which stays visible, then an icon-only "⋯" menu button
+  ("More actions"); there are no buttons under the form. The menu lists "Edit", "Duplicate", and
   "Delete" last (red, separated, unsent invoices only; it opens a confirmation dialog "Delete the
   invoice?" with Cancel and "Confirm delete"). A finalised invoice has no Finalize; its menu has
   Duplicate, Create credit note (issued invoices), Record/Undo payment, Download PDF and Download
