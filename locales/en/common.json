@@ -540,6 +540,7 @@
       "deadline": "Fix and resend by {{date}}. After that the invoice has to be reissued with a new number.",
       "locked": "The number and issue date stay the same. Only the content can change.",
       "error": "SdI error {{code}}: {{text}}",
+      "errorNoCode": "SdI error: {{text}}",
       "noDetails": "The SdI rejected this invoice. The error details have not been received yet.",
       "expired": "The resend window has closed.",
       "expiredBody": "This rejected invoice can no longer be corrected and resent. Reissue it as a new invoice with a new number and date; the old number stays recorded and is never reused.",

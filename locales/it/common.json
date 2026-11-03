@@ -540,6 +540,7 @@
       "deadline": "Correggi e reinvia entro il {{date}}. Dopo la fattura va riemessa con un nuovo numero.",
       "locked": "Numero e data di emissione restano invariati. Si può modificare solo il contenuto.",
       "error": "Errore SdI {{code}}: {{text}}",
+      "errorNoCode": "Errore SdI: {{text}}",
       "noDetails": "Lo SdI ha scartato questa fattura. I dettagli dell'errore non sono ancora arrivati.",
       "expired": "Il termine per il reinvio è scaduto.",
       "expiredBody": "Questa fattura scartata non si può più correggere e reinviare. Riemettila come nuova fattura con un nuovo numero e una nuova data; il vecchio numero resta registrato e non viene riutilizzato.",

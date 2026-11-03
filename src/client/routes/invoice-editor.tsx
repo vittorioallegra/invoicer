@@ -59,6 +59,7 @@ import {
   updateInvoice,
 } from "../lib/invoices-api";
 import { useOnline } from "../lib/online";
+import { sdiErrorLine } from "../lib/sdi-error";
 import {
   fieldErrorsFromDetail,
   onboardingQuery,
@@ -391,9 +392,7 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
           <p>{t("invoice.rejected.locked")}</p>
           <ul className="mt-1 list-disc pl-5">
             {record.rejection.errors.map((error) => (
-              <li key={`${error.code}-${error.description}`}>
-                {t("invoice.rejected.error", { code: error.code, text: error.description })}
-              </li>
+              <li key={`${error.code}-${error.description}`}>{sdiErrorLine(t, error)}</li>
             ))}
           </ul>
         </Banner>
@@ -427,9 +426,7 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
           <p className="font-medium">{t("invoice.rejected.expired")}</p>
           <p>{t("invoice.rejected.expiredBody")}</p>
           {record.rejection?.errors.map((error) => (
-            <p key={`${error.code}-${error.description}`}>
-              {t("invoice.rejected.error", { code: error.code, text: error.description })}
-            </p>
+            <p key={`${error.code}-${error.description}`}>{sdiErrorLine(t, error)}</p>
           ))}
         </Banner>
       ) : null}
@@ -1044,7 +1041,7 @@ function SdiNotes({ record, field }: { record: InvoiceRecord | null; field: "cli
     <div className="flex flex-col gap-1">
       {errors.map((error) => (
         <p key={error.code} role="alert" className="text-sm text-danger">
-          {t("invoice.rejected.error", { code: error.code, text: error.description })}
+          {sdiErrorLine(t, error)}
         </p>
       ))}
     </div>
