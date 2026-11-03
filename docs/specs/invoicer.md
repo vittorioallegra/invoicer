@@ -340,7 +340,8 @@ settle the open ones):
   Europe/Rome). It is the XML `Data`, the PDF date, the numbering year and the base of the
   payment terms. When the number is reserved the issue date is that date if it is not in the
   future, else today; the date-order rule (not before the highest number of the series and
-  year) applies to it. There is no separate operation date.
+  year) applies to it. There is no separate operation date. The invoice date and the number
+  fields have no helper text under them.
 - Past-dated invoices and the transmission term: all invoices are TD01 (or TD04 for credit
   notes); there is no deferred-invoice (fattura differita) flag and no TD24. The owner who
   invoices a month's work the next month saves the invoice and sends it with the earlier date. The

@@ -1161,7 +1161,6 @@ describe("Invoice editor, number on the invoice", () => {
       expect((screen.getByLabelText("Series") as HTMLSelectElement).value).toBe("ch"),
     );
     await waitFor(() => expect(numberInput().value).toBe("3"));
-    expect(screen.getByText("CH-3")).toBeTruthy();
     expect(mocks.api).toHaveBeenCalledWith(expect.stringContaining("series=ch"));
     const body = await fillAndSave();
     expect(body.seriesId).toBe("ch");

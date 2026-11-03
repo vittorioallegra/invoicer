@@ -827,16 +827,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               ) : null}
               <Field
                 label={t("invoice.document.number")}
-                hint={
-                  numberEditable
-                    ? activeSeries &&
-                      (activeSeries.prefix || activeSeries.suffix) &&
-                      typed !== null &&
-                      !Number.isNaN(typed)
-                      ? formatInvoiceNumber(activeSeries, typed)
-                      : undefined
-                    : t("invoice.document.numberAssigned")
-                }
                 error={numberEditable ? numberError : undefined}
                 name="requestedNumber"
               >
@@ -856,7 +846,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               </Field>
               <Field
                 label={t("invoice.document.invoiceDate")}
-                hint={t("invoice.document.invoiceDateHint")}
                 error={err("invoiceDate")}
                 name="invoiceDate"
               >
