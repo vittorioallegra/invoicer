@@ -139,7 +139,7 @@
     "numberInvalid": "Inserisci un numero intero, 1 o più.",
     "numberBelowUsed": "Il numero minimo consentito è {{minimum}}: uno in più del più alto già usato.",
     "pecTitle": "Casella PEC",
-    "pecIntro": "Le credenziali PEC sono segreti del Worker e non vengono mai mostrate qui. Danno accesso completo alla casella, quindi ogni invio richiede la tua passkey. Impostale con wrangler secret put PEC_USERNAME e PEC_PASSWORD.",
+    "pecIntro": "Le credenziali PEC sono segreti del Worker e non vengono mai mostrate qui. Danno accesso completo alla casella, quindi ogni invio richiede la tua passkey o un codice dell'app di autenticazione. Impostale con wrangler secret put PEC_USERNAME e PEC_PASSWORD.",
     "pecUsername": "Utente PEC",
     "pecPassword": "Password PEC",
     "pecServer": "Server IMAP",
@@ -694,7 +694,7 @@
   "pec": {
     "title": "Casella PEC",
     "secretsTitle": "Accesso alla casella",
-    "tradeoff": "Una sola password apre tutta la casella: può leggere ogni PEC (comprese le comunicazioni ufficiali) e inviare PEC a tuo nome. Usa una password per client di posta unica e generata, solo per questa app, tieni un secondo fattore su Cloudflare e GitHub e cambiala al minimo sospetto. Ogni invio richiede comunque la tua passkey.",
+    "tradeoff": "Una sola password apre tutta la casella: può leggere ogni PEC (comprese le comunicazioni ufficiali) e inviare PEC a tuo nome. Usa una password per client di posta unica e generata, solo per questa app, tieni un secondo fattore su Cloudflare e GitHub e cambiala al minimo sospetto. Ogni invio richiede comunque la tua passkey o un codice dell'app di autenticazione.",
     "serversTitle": "Server",
     "serversHint": "Sono precompilati i valori Aruba. Cambiali solo se il tuo gestore è diverso. Salvando si azzera l'ultimo test di connessione.",
     "imapHost": "Server IMAP",
