@@ -38,6 +38,7 @@ import { PaymentTermsFields } from "../components/payment-terms-fields";
 import { SendSheet } from "../components/send-sheet";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
+import { Disclosure } from "../components/ui/disclosure";
 import { Field } from "../components/ui/field";
 import { GroupBox } from "../components/ui/group-box";
 import { Input } from "../components/ui/input";
@@ -220,6 +221,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     enabled: numberEditable,
   });
   const proposal = nextNumber.data?.next ?? null;
+  const [extrasChoice, setExtrasChoice] = useState<boolean | null>(null);
   const [numberTouched, setNumberTouched] = useState(false);
   const [numberTaken, setNumberTaken] = useState(false);
   const numberText = numberTouched
@@ -259,6 +261,35 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     }
     return t(`validation.${code}`, { defaultValue: t("validation.invalid") });
   };
+
+  // Contribution, withholding and stamp duty sit in a disclosure that starts closed unless one of
+  // them is on or has an error; a click of the owner then decides.
+  const extrasActive = form.cassaType !== "" || form.ritenutaType !== "" || form.bollo;
+  const extrasError = [...Object.keys(serverErrors), ...Object.keys(issuing.errors)].some(
+    (path) => (path.startsWith("data.cassa") || path.startsWith("data.ritenuta")) && err(path),
+  );
+  const extrasOpen = extrasError || (extrasChoice ?? extrasActive);
+  const extrasParts: string[] = [];
+  if (form.cassaType) {
+    const code =
+      form.cassaType === "rivalsa_inps" ? t("invoice.extras.summaryRivalsa") : form.cassaType;
+    extrasParts.push(form.cassaRate ? `${code} ${form.cassaRate}%` : code);
+  }
+  if (form.ritenutaType) {
+    const rate = form.ritenutaRate || "?";
+    extrasParts.push(
+      form.ritenutaBase && form.ritenutaBase !== "100"
+        ? t("invoice.extras.summaryBase", {
+            type: form.ritenutaType,
+            rate,
+            base: form.ritenutaBase,
+          })
+        : `${form.ritenutaType} ${rate}%`,
+    );
+  }
+  if (form.bollo) extrasParts.push(t("invoice.extras.summaryBollo"));
+  const extrasSummaryText =
+    extrasParts.length > 0 ? extrasParts.join(" · ") : t("invoice.extras.none");
 
   function selectClient(chosen: ClientRecord | null) {
     setForm((current) => {
@@ -780,63 +811,13 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           </div>
         </section>
 
-        <section className="flex flex-col gap-4" aria-labelledby="inv-lines">
-          <h2 id="inv-lines" className="text-base font-medium">
-            {t("invoice.lines.title")}
-          </h2>
-          <SdiNotes record={record} field="lines" />
-          <InvoiceLines
-            form={form}
-            totals={totals}
-            locale={locale}
-            error={err}
-            onChange={setLines}
-            disabled={locked}
-          />
-          {Object.keys(form.naturaTexts).length > 0 ? (
-            <div className="flex flex-col gap-3">
-              <h3 className="text-sm font-medium">{t("invoice.natura.title")}</h3>
-              <p className="text-sm text-muted-foreground">{t("invoice.natura.intro")}</p>
-              {Object.entries(form.naturaTexts).map(([code, value]) => (
-                <Field
-                  key={code}
-                  label={t("invoice.natura.label", { code })}
-                  error={err(`data.naturaTexts.${code}`)}
-                >
-                  {(c) => (
-                    <Textarea
-                      {...c}
-                      rows={2}
-                      value={value}
-                      onChange={(e) =>
-                        patch({ naturaTexts: { ...form.naturaTexts, [code]: e.target.value } })
-                      }
-                    />
-                  )}
-                </Field>
-              ))}
-            </div>
-          ) : null}
-          <Field
-            label={t("invoice.document.note")}
-            hint={t("invoice.document.noteHint")}
-            error={err("data.note")}
-          >
-            {(c) => (
-              <Textarea
-                {...c}
-                value={form.invoiceNote}
-                disabled={locked}
-                onChange={text("invoiceNote")}
-              />
-            )}
-          </Field>
-        </section>
-
-        <section className="flex flex-col gap-4" aria-labelledby="inv-extras">
-          <h2 id="inv-extras" className="text-base font-medium">
-            {t("invoice.extras.title")}
-          </h2>
+        <Disclosure
+          id="inv-extras"
+          title={t("invoice.extras.title")}
+          summary={extrasSummaryText}
+          open={extrasOpen}
+          onToggle={() => setExtrasChoice(!extrasOpen)}
+        >
           <GroupBox title={t("clients.form.pensionFund")}>
             <Field label={t("clients.form.cassa")} error={err("data.cassa.type")}>
               {(c) => (
@@ -976,6 +957,59 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             />
             {t("invoice.extras.bollo")}
           </label>
+        </Disclosure>
+
+        <section className="flex flex-col gap-4" aria-labelledby="inv-lines">
+          <h2 id="inv-lines" className="text-base font-medium">
+            {t("invoice.lines.title")}
+          </h2>
+          <SdiNotes record={record} field="lines" />
+          <InvoiceLines
+            form={form}
+            totals={totals}
+            locale={locale}
+            error={err}
+            onChange={setLines}
+            disabled={locked}
+          />
+          {Object.keys(form.naturaTexts).length > 0 ? (
+            <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-medium">{t("invoice.natura.title")}</h3>
+              <p className="text-sm text-muted-foreground">{t("invoice.natura.intro")}</p>
+              {Object.entries(form.naturaTexts).map(([code, value]) => (
+                <Field
+                  key={code}
+                  label={t("invoice.natura.label", { code })}
+                  error={err(`data.naturaTexts.${code}`)}
+                >
+                  {(c) => (
+                    <Textarea
+                      {...c}
+                      rows={2}
+                      value={value}
+                      onChange={(e) =>
+                        patch({ naturaTexts: { ...form.naturaTexts, [code]: e.target.value } })
+                      }
+                    />
+                  )}
+                </Field>
+              ))}
+            </div>
+          ) : null}
+          <Field
+            label={t("invoice.document.note")}
+            hint={t("invoice.document.noteHint")}
+            error={err("data.note")}
+          >
+            {(c) => (
+              <Textarea
+                {...c}
+                value={form.invoiceNote}
+                disabled={locked}
+                onChange={text("invoiceNote")}
+              />
+            )}
+          </Field>
         </section>
 
         <section className="flex flex-col gap-4" aria-labelledby="inv-payment">

@@ -515,7 +515,11 @@
       "label": "Legal reference for {{code}}"
     },
     "extras": {
-      "title": "Contributions and withholding",
+      "title": "Contribution, withholding and stamp duty",
+      "summaryRivalsa": "INPS rivalsa",
+      "summaryBase": "{{type}} {{rate}}% of {{base}}%",
+      "summaryBollo": "stamp duty",
+      "none": "None applied",
       "cassaSubject": "The contribution is part of the ritenuta base",
       "bollo": "Apply bollo (virtual stamp)"
     },

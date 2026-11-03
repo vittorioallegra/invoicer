@@ -252,6 +252,11 @@ settle the open ones):
   terms in words ("Data fattura", "15 gg fine mese data fattura", "30 gg fine mese data
   fattura", "60 gg fine mese data fattura", "30 gg data fattura" / "Invoice date", "30 days
   from invoice date") and the due date.
+- Editor layout of the optional extras: contribution (cassa or rivalsa), ritenuta and bollo sit
+  in one collapsible section placed before the lines, titled "Contributo, ritenuta e bollo"
+  (an accessible disclosure: a button with `aria-expanded`). It starts closed unless one of the
+  three is on or has an error; closed, it shows a one-line summary of what is active (for
+  example "TC04 4% · RT06 20% su 10% · bollo").
 - Totals (taxable per rate, VAT, contribution, withholding, stamp, amount due) are computed
   live and shown before sending.
 - States:

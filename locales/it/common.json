@@ -515,7 +515,11 @@
       "label": "Riferimento normativo per {{code}}"
     },
     "extras": {
-      "title": "Contributi e ritenuta",
+      "title": "Contributo, ritenuta e bollo",
+      "summaryRivalsa": "rivalsa INPS",
+      "summaryBase": "{{type}} {{rate}}% su {{base}}%",
+      "summaryBollo": "bollo",
+      "none": "Nessuno applicato",
       "cassaSubject": "Il contributo fa parte della base della ritenuta",
       "bollo": "Applica il bollo virtuale"
     },

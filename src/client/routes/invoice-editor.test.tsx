@@ -256,6 +256,12 @@ describe("Invoice editor", () => {
     await renderEditor();
     await loaded();
     type("Client", "c1");
+    // Nothing applies: the section stays closed until it is opened.
+    const toggle = screen.getByRole("button", { name: /Contribution, withholding and stamp duty/ });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByLabelText("Cassa / rivalsa")).toBeNull();
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect((screen.getByLabelText("Cassa / rivalsa") as HTMLSelectElement).value).toBe("");
     expect((screen.getByLabelText("Ritenuta") as HTMLSelectElement).value).toBe("");
   });
@@ -442,6 +448,29 @@ describe("Invoice editor", () => {
     expect(screen.queryByLabelText(/Deferred invoice/)).toBeNull();
     type("Invoice date", "");
     expect(screen.queryByText(/within 12 days of its date/)).toBeNull();
+  });
+
+  it("opens the contribution section when one applies and summarises it when closed", async () => {
+    serve({
+      clients: [{ ...acme, defaults: { ...acme.defaults, applyRitenuta: true, applyCassa: true } }],
+      tax: {
+        regimeFiscale: "RF01",
+        cassa: { type: "TC04", rateBp: 400, mode: "excluded", subjectToRitenuta: false },
+        ritenuta: { type: "RT06", rateBp: 2000, baseBp: 1000, causale: "A" },
+      },
+    });
+    await renderEditor();
+    await loaded();
+    const toggle = () =>
+      screen.getByRole("button", { name: /Contribution, withholding and stamp duty/ });
+    expect(toggle().getAttribute("aria-expanded")).toBe("false");
+    expect(toggle().textContent).toContain("None applied");
+    type("Client", "c1");
+    expect(toggle().getAttribute("aria-expanded")).toBe("true");
+    fireEvent.click(screen.getByLabelText("Apply bollo (virtual stamp)"));
+    fireEvent.click(toggle());
+    expect(toggle().getAttribute("aria-expanded")).toBe("false");
+    expect(toggle().textContent).toContain("TC04 4% · RT06 20% of 10% · stamp duty");
   });
 
   it("keeps the line note behind a link until it is used, and saves it", async () => {
