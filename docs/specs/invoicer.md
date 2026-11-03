@@ -118,8 +118,8 @@ settle the open ones):
    the passkey; set the fallback password + TOTP.
 3. **Company (the issuer profile):** name or company name, partita IVA, codice fiscale,
    address, regime fiscale (RF01 ordinario, RF19 forfettario, and the other RF codes in a
-   list), next invoice number for the current year (to continue from
-   FiC). It holds no bank data (see Payment methods below) and no default payment terms:
+   list). It holds no invoice number: the number is set on the invoice (see Numbering). It
+   holds no bank data (see Payment methods below) and no default payment terms:
    those are set on each invoice (clients keep their own defaults).
 3a. **Payment methods:** a list of bank accounts, each with a short name (for example
    "Fineco"), IBAN (mod-97 checked), BIC/SWIFT and account holder (no bank name). Bank
@@ -206,8 +206,16 @@ settle the open ones):
   - Payment flag, independent of the above: `unpaid` / `paid` (with paid date), set by hand.
     `overdue` is derived: unpaid and due date passed.
 - Numbering: progressive per calendar year, assigned when the invoice is sent; no
-  duplicates within a year, also with two devices sending at once; configurable next
-  number.
+  duplicates within a year, also with two devices sending at once. The invoice number is set
+  on the invoice, not in Settings: the editor shows a Number field prefilled with the next free
+  number of the year (highest number already issued that year, by the app or imported, plus 1;
+  1 when none), and the owner may change it before sending (for example the first invoice after
+  Fatture in Cloud). Later invoices continue automatically from the highest issued number. A
+  requested number is accepted only if it is a whole number of 1 or more, strictly above the
+  highest issued that year and unique; a gap is allowed, and the editor warns without blocking.
+  If it is no longer valid when the number is reserved (another device took it), nothing is
+  reserved, the Worker answers `number_unavailable` and the editor shows the new proposal next
+  to the field. From reservation on the number is read-only.
 - Sent, delivered and not_delivered invoices are read-only (only payment flag and notes
   change).
 - Duplicate an existing invoice into a new draft.
@@ -383,7 +391,9 @@ settle the open ones):
 10. A received invoice delivered as `.p7m` is listed with supplier, number, date and total
     matching the source XML.
 11. Two invoices in the same year can never get the same number, including two concurrent
-    sends and imported numbers; the configured next number is respected.
+    sends and imported numbers. A requested number above the highest issued number of the year
+    (also leaving a gap) is respected; one equal to or below it, or already taken by another
+    device, is refused with nothing reserved.
 12. A monthly recurring template on day 1 creates exactly one planned draft per month across
     12 simulated months, also when the job runs twice for the same date.
 13. The PDF of fixture (c) is in English and of fixture (b) in Italian, and both show IBAN,

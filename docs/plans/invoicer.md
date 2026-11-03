@@ -136,8 +136,8 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    rule, rounding to the cent, TD04 sign. Money parsing shared with `MoneyInput`: accepts
    `1040,00`, `1.040,00` and `1,040.00`. Fixtures live in `src/shared/fixtures/`. Tests:
    fixtures (a)–(g) totals to the cent, including 1,040.00 and 999.99; money parsing cases.
-7. **Profile, onboarding, settings.** Issuer profile (RF list), payment defaults, next
-   invoice number for the current year, AdE guide screen, email settings (sender name/address,
+7. **Profile, onboarding, settings.** Issuer profile (RF list), payment defaults, AdE
+   guide screen, email settings (sender name/address,
    Reply-To, BCC, mode), language. Setup checklist on Home (passkey, fallback login,
    profile, PEC setup, AdE guide, email): each item done/pending, persisted
    server-side, resumable; "Send" is blocked with a stated reason until profile and PEC
@@ -161,14 +161,17 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    document (the old number stays recorded, never reused). Numbering in the Worker, one
    guarded D1 batch whose first statement fails on a constraint when the invoice is not in
    draft/planned/retryable state (a 0-row UPDATE does not roll a batch back): next number =
-   max(configured next, highest app number + 1, highest imported number + 1) computed in SQL;
+   highest number issued in the year (app and imported) + 1 computed in SQL, or the number the
+   owner requested on the draft (`requested_number_int`) when it is above that highest (a gap is
+   allowed), else `number_unavailable` and nothing is reserved;
    year and issue date = today in Europe/Rome (the Worker runs in UTC), asserted not earlier
    than the date of the highest number already issued that year; allocate the file
    progressive; set `sending`. A numbered invoice can never be deleted or returned to draft:
    its number can be released only if it is still the highest of its year (sequence rolled
    back), otherwise it must be sent; Home lists such invoices as "number reserved, not
    sent". Tests: AC 11 (incl. two devices reserving the same invoice, concurrent sends,
-   imported numbers, configured next below the highest imported), guard failure leaves the
+   imported numbers, a requested number accepted, refused at or below the highest, refused for
+   the loser of a race, gaps allowed), guard failure leaves the
    sequence unchanged, Europe/Rome year boundary, date monotonicity, delete/revert of a
    numbered invoice refused, release rule, rejected and rejected_expired rules.
 10. **FatturaPA XML.** `src/shared/fatturapa`: builder (fast-xml-parser) for FPR12, file name
@@ -247,7 +250,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
     ends in the correct state", out-of-order and stale transitions, replay creates no second
     outbox row, SdI receipt while `sending`, non-SdI mail ignored without notification,
     UIDVALIDITY change.
-    **Milestone A exit:** the owner sets the next number from FiC, sends one real invoice
+    **Milestone A exit:** the owner sets the number on the first invoice, sends one real invoice
     through the production PEC mailbox, records it (AC 21), and the cutover runbook
     (README, written in this step) is followed.
 
@@ -298,7 +301,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
     the two flows in the Testing Plan plus rejected → resend; update `CLAUDE.md`.
 
 ### Cutover runbook (README, written in step 13)
-1. Import the FiC history (or at least set the next number for the year from FiC).
+1. Import the FiC history (or at least set the number on the first invoice to the one FiC would issue next).
 2. Stop issuing in FiC; never issue in both tools in the same period.
 3. First real send through Invoicer (AC 21).
 4. Register the PEC address on the AdE portal as the address for receiving invoices only once
@@ -443,6 +446,7 @@ Approved: yes (2026-11-02)
   - Preview PDF appeared to do nothing — `fix(pdf): make the PDF preview reliable with a download fallback`
 
 ### Decisions
+- Invoice number on the invoice (2026-11-03, owner): the editor prefills the next free number of the year (highest issued app/imported + 1) and the owner may change it before sending; the Worker accepts a requested number only if it is above the highest issued that year and unique; the Settings 'next number' was removed.
 - Transient confirmations are toasts (@radix-ui/react-toast 1.3.1, CSP-safe; sonner rejected because it injects a runtime style element blocked by style-src 'self'); persistent page messages stay inline (2026-11-03, owner).
 - Single-user, self-hosted deployment; generic public code, no owner data in the repo (2026-11-02).
 - SdI channel: the owner's PEC mailbox behind a channel interface (SMTP send, IMAP polling every 10 minutes, manual AdE portal channel as fallback); Openapi was the first choice and is now a possible future channel (2026-11-02, superseded by the 2026-11-02 channel switch below).
@@ -495,7 +499,7 @@ Approved: yes (2026-11-02)
 - Step 19 (from step 13): `job_runs` rows with job `poll` (counts, `error_code`) exist; the last run and the `login_failed` code feed the Settings status and the prominent login warning.
 - SdI details to confirm with the first real messages (AC 21): which address the SdI names in its first reply and whether the sender of its message is that address; the receipt file names (`_RC_001.xml`, `_NS_`, `_MC_`); the real provider receipts replace the hand-written `receipt-fixtures.ts`.
 - Step 14+ (from step 12): `xmllint-wasm` adds a 779 KB WASM file to the client precache; consider excluding it from the service worker precache and caching it at first use.
-- Milestone A exit pending the owner: set the next number from FiC, send one real invoice through the production PEC mailbox (AC 21), follow the cutover runbook in README.
+- Milestone A exit pending the owner: set the number on the first invoice, send one real invoice through the production PEC mailbox (AC 21), follow the cutover runbook in README.
 
 ### Next
 Owner tests the app locally; then Milestone A exit by the owner (see Open questions) and step 15: Received invoices and imports. Step 14 is deferred.
