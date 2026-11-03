@@ -273,7 +273,7 @@ settle the open ones):
     ritenuta type and the causale pagamento.
 - States:
   - `draft` — saved, editable, no number assigned.
-  - `planned` — draft with an invoice date set; listed under "To issue".
+  - `planned` — draft whose invoice date is in the future (Europe/Rome) when saved; listed under "To issue". A new invoice starts with today's date, so it is a plain draft.
   - `sent` — handed to the SdI by PEC (the PEC delivery receipt from the SdI mailbox arrived),
     waiting for the SdI outcome.
   - `delivered` — SdI receipt RC.

@@ -197,7 +197,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     record
       ? fromRecord(record)
       : withAccount(
-          applyDefaults(emptyForm(), null, tax),
+          applyDefaults({ ...emptyForm(), invoiceDate: today }, null, tax),
           accounts.find((account) => account.isDefault) ?? null,
         ),
   );

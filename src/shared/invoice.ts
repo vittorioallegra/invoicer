@@ -152,7 +152,7 @@ export const invoiceInputSchema = z.object({
     .refine((value) => /^[A-Z]{3}$/.test(value), "invalid_currency"),
   /**
    * The invoice date ("Data fattura"): the XML `Data`, the numbering year and the base of the
-   * payment terms. Null = the day the invoice is sent. A date set on an unnumbered invoice lists
+   * payment terms. Null = the day the invoice is sent. A future date on an unnumbered invoice lists
    * it as planned (stored in the `planned_date` column).
    */
   invoiceDate: dateOnly.nullable(),

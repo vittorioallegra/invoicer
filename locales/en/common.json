@@ -484,7 +484,7 @@
       "note": "Note",
       "noteHint": "Printed on the invoice and sent in the XML (Causale), not the internal notes.",
       "invoiceDate": "Invoice date",
-      "invoiceDateHint": "Empty means the day the invoice is sent. A date lists it under To issue.",
+      "invoiceDateHint": "Today for a new invoice. A future date marks it as planned.",
       "dueDate": "Due date",
       "number": "Number",
       "numberAssigned": "Fixed once sent.",

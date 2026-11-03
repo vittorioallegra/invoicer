@@ -297,7 +297,12 @@ function totalCents(body: InvoiceBody): number | null {
   return safeTotals(body)?.documentTotalCents ?? null;
 }
 
-/** Creates a draft (or planned invoice when a planned date is set). */
+/** Draft, or planned when the invoice date is still in the future (Europe/Rome). */
+function openState(invoiceDate: string | null | undefined, now: Date): InvoiceState {
+  return invoiceDate && invoiceDate > romeDateTime(now).date ? "planned" : "draft";
+}
+
+/** Creates a draft (or a planned invoice when its date is in the future). */
 export async function createInvoice(
   db: D1Database,
   body: InvoiceBody,
@@ -305,7 +310,7 @@ export async function createInvoice(
   now = new Date(),
 ): Promise<string> {
   const id = crypto.randomUUID();
-  const state: InvoiceState = body.invoiceDate ? "planned" : "draft";
+  const state = openState(body.invoiceDate, now);
   await db.batch([
     db
       .prepare(
@@ -342,7 +347,7 @@ export async function createInvoice(
 
 /**
  * Saves the content of an invoice. Draft and planned invoices change freely (the state follows
- * the planned date); a rejected one keeps its state, number and date. The first statement fails
+ * invoice date); a rejected one keeps its state, number and date. The first statement fails
  * on a constraint when the invoice stopped being editable meanwhile, so no line is touched.
  */
 export async function updateInvoice(
@@ -363,7 +368,7 @@ export async function updateInvoice(
     throw makeError("conflict", "document_type_locked");
   }
   const free = current.state !== "rejected";
-  const state: InvoiceState = free ? (body.invoiceDate ? "planned" : "draft") : "rejected";
+  const state: InvoiceState = free ? openState(body.invoiceDate, now) : "rejected";
   try {
     await db.batch([
       db

@@ -484,7 +484,7 @@
       "note": "Note",
       "noteHint": "Stampate sulla fattura e inviate nell'XML (Causale), diverse dalle note interne.",
       "invoiceDate": "Data fattura",
-      "invoiceDateHint": "Se vuota è il giorno dell'invio. Con una data compare tra le fatture da emettere.",
+      "invoiceDateHint": "Oggi per una fattura nuova. Con una data futura la fattura risulta pianificata.",
       "dueDate": "Scadenza",
       "number": "Numero",
       "numberAssigned": "Fisso dopo l'invio.",
