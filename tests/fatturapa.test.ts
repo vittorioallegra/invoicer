@@ -233,9 +233,8 @@ describe("payment terms", () => {
 
     const fm = buildFatturaXml(withTerms({ days: 30, basis: "end_of_month" })).xml;
     expect((await validateFatturaXml(fm, assets)).errors).toEqual([]);
-    expect(fm).toContain(
-      "<DataRiferimentoTerminiPagamento>2026-11-30</DataRiferimentoTerminiPagamento>",
-    );
+    expect(fm).not.toContain("DataRiferimentoTerminiPagamento");
+    expect(fm).not.toContain("GiorniTerminiPagamento");
     expect(fm).toContain("<DataScadenzaPagamento>2026-12-31</DataScadenzaPagamento>");
 
     const zero = buildFatturaXml(withTerms({ days: 0, basis: "invoice_date" })).xml;

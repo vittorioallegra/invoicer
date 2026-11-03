@@ -218,7 +218,12 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
   }
 
   const payment = data.payment;
-  const terms = payment.terms && !payment.dueDateCustom ? payment.terms : null;
+  // Reference date + days must equal the due date, which only holds for invoice-date terms; an
+  // end-of-month due date is written on its own.
+  const terms =
+    payment.terms && !payment.dueDateCustom && payment.terms.basis === "invoice_date"
+      ? payment.terms
+      : null;
   const datiPagamento = payment.method
     ? node({
         CondizioniPagamento: "TP02",
