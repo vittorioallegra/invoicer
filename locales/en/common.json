@@ -199,6 +199,12 @@
       "excluded": "The login (passkeys, password, authenticator secret, sessions) and push subscriptions are not included: they are secrets and are set up again after a restore."
     }
   },
+  "unsaved": {
+    "title": "Unsaved changes",
+    "body": "If you leave now, the changes to this invoice will be lost.",
+    "stay": "Stay",
+    "leave": "Leave without saving"
+  },
   "validation": {
     "series_name_taken": "A series with this name already exists.",
     "series_affixes_taken": "Another series already uses this prefix and suffix.",

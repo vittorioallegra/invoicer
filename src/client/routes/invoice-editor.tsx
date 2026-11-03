@@ -49,6 +49,7 @@ import { Select } from "../components/ui/select";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Textarea } from "../components/ui/textarea";
 import { toast } from "../components/ui/toast";
+import { UnsavedChangesGuard } from "../components/unsaved-changes-guard";
 import { INVOICE_LIST_BACK } from "../lib/back-links";
 import { clientsQuery } from "../lib/clients-api";
 import { type FinalizeProblem, finalizeProblems, focusField } from "../lib/finalize-checks";
@@ -202,7 +203,12 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const { t, i18n } = useTranslation();
   const locale: UiLocale = i18n.language.startsWith("it") ? "it" : "en";
   const online = useOnline();
-  const navigate = useNavigate();
+  const routerNavigate = useNavigate();
+  // Every navigation the editor starts itself is allowed past the unsaved-changes guard.
+  const navigate = ((options: Parameters<typeof routerNavigate>[0]) => {
+    leaving.current = true;
+    return routerNavigate(options);
+  }) as typeof routerNavigate;
   const queryClient = useQueryClient();
   const today = romeDateTime(new Date()).date;
 
@@ -220,6 +226,18 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const { dirty, markSaved } = useDirty(initialForm, form);
   // View mode shows the invoice read-only; a new or just duplicated invoice opens in edit mode.
   const [editing, setEditing] = useState(() => !record || OPEN_IN_EDIT.has(record.id));
+  // Unsaved edits block leaving the page, except the editor's own navigations (after a save,
+  // a confirmed discard, a delete...), which set this flag first.
+  const leaving = useRef(false);
+  const blockState = useRef(false);
+  blockState.current = editing && dirty;
+  const shouldBlock = () => {
+    if (leaving.current) {
+      leaving.current = false;
+      return false;
+    }
+    return blockState.current;
+  };
   useEffect(() => {
     if (record) OPEN_IN_EDIT.delete(record.id);
   }, [record]);
@@ -1385,6 +1403,8 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             void navigate({ to: "/invoices/$invoiceId", params: { invoiceId: id } });
           }}
         />
+
+        <UnsavedChangesGuard shouldBlock={shouldBlock} />
 
         <ClientSheet
           open={clientSheet !== null}

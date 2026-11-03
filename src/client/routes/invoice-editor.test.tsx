@@ -1510,6 +1510,40 @@ describe("Invoice editor, number on the invoice", () => {
   });
 });
 
+describe("Invoice editor, unsaved changes", () => {
+  it("asks before leaving edit mode with unsaved changes, and stays or leaves as chosen", async () => {
+    serve({ invoice: record() });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    edit();
+    fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Changed" } });
+
+    fireEvent.click(backLink("Invoices"));
+    const dialog = await screen.findByRole("dialog", { name: "Unsaved changes" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Stay" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect((screen.getByLabelText("Description") as HTMLInputElement).value).toBe("Changed");
+
+    fireEvent.click(backLink("Invoices"));
+    fireEvent.click(
+      within(await screen.findByRole("dialog")).getByRole("button", {
+        name: "Leave without saving",
+      }),
+    );
+    await waitFor(() => expect(screen.queryByLabelText("Description")).toBeNull());
+  });
+
+  it("leaves without asking when nothing changed", async () => {
+    serve({ invoice: record() });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    edit();
+    fireEvent.click(backLink("Invoices"));
+    await waitFor(() => expect(screen.queryByLabelText("Description")).toBeNull());
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
 describe("Invoice editor, rejected invoices", () => {
   const base = { number: "7", year: 2026, issueDate: "2026-03-01" };
   const errors = [

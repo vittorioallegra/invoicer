@@ -199,6 +199,12 @@
       "excluded": "L'accesso (passkey, password, segreto dell'autenticatore, sessioni) e le iscrizioni push non sono inclusi: sono segreti e si configurano di nuovo dopo un ripristino."
     }
   },
+  "unsaved": {
+    "title": "Modifiche non salvate",
+    "body": "Se esci adesso, le modifiche a questa fattura andranno perse.",
+    "stay": "Resta",
+    "leave": "Esci senza salvare"
+  },
   "validation": {
     "series_name_taken": "Esiste già una numerazione con questo nome.",
     "series_affixes_taken": "Un'altra numerazione usa già questo prefisso e suffisso.",

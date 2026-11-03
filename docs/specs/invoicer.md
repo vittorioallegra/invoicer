@@ -212,8 +212,10 @@ settle the open ones):
   ("Discard changes"). A new invoice and a just duplicated one open directly in edit mode; Cancel
   on a new invoice leads back to the Invoices list, and its first Save moves to the invoice's own
   page in view mode. Finalize exists only in view mode, so unsaved edits are never finalised; a
-  failed check in its dialog switches to edit mode and focuses the field. There is no
-  unsaved-changes guard when leaving the page.
+  failed check in its dialog switches to edit mode and focuses the field. Leaving the page in
+  edit mode with unsaved changes asks first (a dialog: "Resta" / "Esci senza salvare"; closing or
+  reloading the tab shows the browser's prompt); the editor's own navigations (after a save, a
+  confirmed discard) are not blocked.
 - Editor actions. Confirmation dialogs (Finalize,
   Record payment, Undo payment) are one responsive dialog: a bottom sheet on phones and a centered
   modal (at most 32rem wide) from the `md` breakpoint up, with a title, a body and a footer with
