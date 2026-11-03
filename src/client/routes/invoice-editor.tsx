@@ -90,6 +90,7 @@ import {
   profileQuery,
   taxQuery,
 } from "../lib/settings-api";
+import { useDirty } from "../lib/use-dirty";
 
 /** Select value for payment details that match no current account. */
 const SNAPSHOT = "__snapshot__";
@@ -205,7 +206,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const queryClient = useQueryClient();
   const today = romeDateTime(new Date()).date;
 
-  const [form, setForm] = useState<InvoiceForm>(() =>
+  const [initialForm] = useState<InvoiceForm>(() =>
     record
       ? fromRecord(record)
       : withAccount(
@@ -213,6 +214,9 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           accounts.find((account) => account.isDefault) ?? null,
         ),
   );
+  const [form, setForm] = useState<InvoiceForm>(initialForm);
+  // Save is enabled once the form differs from what was loaded or last saved.
+  const { dirty, markSaved } = useDirty(initialForm, form);
   const [submitted, setSubmitted] = useState(false);
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
   const [clientSheet, setClientSheet] = useState<"new" | "edit" | null>(null);
@@ -353,9 +357,10 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const [createdId, setCreatedId] = useState<string | null>(null);
   const savedId = record?.id ?? createdId;
   const save = useMutation({
-    mutationFn: ({ body }: { body: unknown; quiet?: boolean }) =>
+    mutationFn: ({ body }: { body: unknown; form: InvoiceForm; quiet?: boolean }) =>
       savedId ? updateInvoice(savedId, body) : createInvoice(body),
-    onSuccess: async ({ invoice }, { quiet }) => {
+    onSuccess: async ({ invoice }, { quiet, form: submitted }) => {
+      markSaved(submitted);
       await refresh(invoice.id);
       if (quiet) setCreatedId(invoice.id);
       else if (record) toast.success(t("invoice.saved"));
@@ -414,6 +419,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     if (problems.length > 0) return { ok: false, problems };
     const { invoice } = await save.mutateAsync({
       body: draftBody(form, proposal, today),
+      form,
       quiet: true,
     });
     return { ok: true, invoiceId: invoice.id };
@@ -445,7 +451,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     if (locked) return;
     // Saving never validates: whatever is typed is stored, and Finalize runs every check.
     setSubmitted(true);
-    save.mutate({ body: draftBody(form, proposal, today) });
+    save.mutate({ body: draftBody(form, proposal, today), form });
   }
 
   const bolloData = {
@@ -1226,7 +1232,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             </Button>
           ) : null}
           {locked ? null : (
-            <Button type="submit" disabled={!online || save.isPending}>
+            <Button type="submit" disabled={!online || !dirty || save.isPending}>
               {t("invoice.actions.save")}
             </Button>
           )}
@@ -1290,6 +1296,10 @@ function PaymentSection({ record }: { record: InvoiceRecord }) {
   const queryClient = useQueryClient();
   const [paid, setPaid] = useState(record.paymentFlag === "paid");
   const [paidDate, setPaidDate] = useState(record.paidDate ?? "");
+  const { dirty, markSaved } = useDirty(
+    { paid: record.paymentFlag === "paid", paidDate: record.paidDate ?? "" },
+    { paid, paidDate: paid ? paidDate : "" },
+  );
 
   const save = useMutation({
     mutationFn: () =>
@@ -1298,6 +1308,7 @@ function PaymentSection({ record }: { record: InvoiceRecord }) {
         paidDate: paid && paidDate ? paidDate : null,
       }),
     onSuccess: async () => {
+      markSaved({ paid, paidDate: paid ? paidDate : "" });
       await queryClient.invalidateQueries({ queryKey: ["invoices"] });
       await queryClient.invalidateQueries({ queryKey: ["invoice", record.id] });
       toast.success(t("invoice.saved"));
@@ -1337,7 +1348,7 @@ function PaymentSection({ record }: { record: InvoiceRecord }) {
       <Button
         className="w-fit"
         variant="secondary"
-        disabled={!online || save.isPending}
+        disabled={!online || !dirty || save.isPending}
         onClick={() => save.mutate()}
       >
         {t("invoice.paid.save")}

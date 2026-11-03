@@ -767,6 +767,39 @@ describe("Invoice editor", () => {
     expect(screen.getByRole("button", { name: "Confirm delete" })).toBeTruthy();
   });
 
+  it("keeps Save disabled until the form differs from what was loaded or last saved", async () => {
+    serve({ invoice: record() });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    const save = () => screen.getByRole("button", { name: "Save" }) as HTMLButtonElement;
+    expect(save().disabled).toBe(true);
+    type("Description", "Consulting, edited");
+    expect(save().disabled).toBe(false);
+    // Typing the loaded text back is no change.
+    type("Description", "Consulting");
+    expect(save().disabled).toBe(true);
+    type("Description", "Consulting, edited");
+    fireEvent.click(save());
+    await waitFor(() =>
+      expect(mocks.api).toHaveBeenCalledWith(
+        "/api/invoices/i1",
+        expect.objectContaining({ method: "PUT" }),
+      ),
+    );
+    await waitFor(() => expect(save().disabled).toBe(true));
+  });
+
+  it("keeps Save disabled on a new invoice until something is entered", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
+    type("Description", "Consulting");
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
+  });
+
   it("starts with a back link to the list the invoice belongs to", async () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
@@ -888,6 +921,13 @@ describe("Invoice editor", () => {
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
     expect(screen.getByRole("button", { name: "Create credit note" })).toBeTruthy();
     expect(screen.getByLabelText("Paid")).toBeTruthy();
+    // The payment status Save waits for a change too.
+    const savePaid = screen.getByRole("button", {
+      name: "Save payment status",
+    }) as HTMLButtonElement;
+    expect(savePaid.disabled).toBe(true);
+    fireEvent.click(screen.getByLabelText("Paid"));
+    expect(savePaid.disabled).toBe(false);
   });
 
   it("lays each line out as a bordered card with the note and the read-only amount", async () => {
