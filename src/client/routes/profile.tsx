@@ -173,8 +173,8 @@ export function ProfilePage() {
             </div>
           </fieldset>
 
-          <fieldset className="flex flex-col gap-4">
-            <legend className="mb-2 text-base font-medium">{t("profile.addressTitle")}</legend>
+          <fieldset className="flex flex-col gap-3 rounded-card border border-border p-4">
+            <legend className="px-1 text-sm font-semibold">{t("profile.addressTitle")}</legend>
             <Field label={t("profile.address")} error={err("address")}>
               {(c) => (
                 <Input
@@ -234,9 +234,11 @@ export function ProfilePage() {
             </div>
           </fieldset>
 
-          <Button type="submit" disabled={!online || save.isPending} className="w-fit">
-            {t("profile.save")}
-          </Button>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={!online || save.isPending}>
+              {t("profile.save")}
+            </Button>
+          </div>
         </form>
       ) : null}
     </Page>

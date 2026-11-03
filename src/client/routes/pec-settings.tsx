@@ -129,9 +129,6 @@ function ServersForm({ online }: { online: boolean }) {
         </Field>
       </div>
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={!online || save.isPending}>
-          {t("pec.saveServers")}
-        </Button>
         {preset ? (
           <Button
             type="button"
@@ -148,6 +145,9 @@ function ServersForm({ online }: { online: boolean }) {
             {t("pec.usePreset")}
           </Button>
         ) : null}
+        <Button type="submit" disabled={!online || save.isPending} className="ms-auto">
+          {t("pec.saveServers")}
+        </Button>
       </div>
     </form>
   );

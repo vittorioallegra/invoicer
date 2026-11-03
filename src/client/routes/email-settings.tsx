@@ -138,9 +138,11 @@ export function EmailSettingsPage() {
               </Select>
             )}
           </Field>
-          <Button type="submit" disabled={!online || save.isPending} className="w-fit">
-            {t("email.save")}
-          </Button>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={!online || save.isPending}>
+              {t("email.save")}
+            </Button>
+          </div>
         </form>
       ) : null}
     </Page>

@@ -288,9 +288,11 @@ export function TaxPage() {
             ) : null}
           </fieldset>
 
-          <Button type="submit" disabled={!online || save.isPending} className="w-fit">
-            {t("tax.save")}
-          </Button>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={!online || save.isPending}>
+              {t("tax.save")}
+            </Button>
+          </div>
         </form>
       ) : null}
     </Page>
