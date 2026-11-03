@@ -447,6 +447,7 @@ Approved: yes (2026-11-02)
   - Preview PDF appeared to do nothing — `fix(pdf): make the PDF preview reliable with a download fallback`
 
 ### Decisions
+- Finalised invoices (2026-11-03, owner): no disabled controls (no add-line, no client new/edit buttons); the extras disclosure toggles and shows its fields read-only, so the form is split into fieldsets around it instead of one disabled fieldset.
 - Invoices list (2026-11-03, owner): each finalised payable row shows the payment chip (Paid/Unpaid) next to the state badge, with the editor's rule (no chip on unsent, rejected or credit notes); the free-text search filter is removed (URL param, API param, SQL and locale keys).
 - Duplicate (2026-11-03, owner): a duplicate is a normal unsent invoice, so its document type stays editable (the select was disabled for every stored record); it is locked only once finalised or rejected.
 - Responsive dialogs (centered on desktop, bottom sheet on phones) for finalize/payment; per-invoice language prefilled from the client; payment row: terms or custom days, computed due date, no manual due date (owner's choice, 2026-11-03).

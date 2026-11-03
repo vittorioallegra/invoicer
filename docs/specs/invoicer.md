@@ -221,7 +221,7 @@ settle the open ones):
   tooltip and accessible detail) or an "Unpaid" chip; "Record payment" opens a small dialog with
   the payment date (default today, Europe/Rome) and Cancel / Save (disabled until the date is
   valid); for a paid invoice the button is "Undo payment", with a confirmation, and sets it back
-  to unpaid. A finalised invoice shows no "read-only" banner (the disabled fields say it); only
+  to unpaid. A finalised invoice shows no "read-only" banner (the disabled fields say it) and no disabled controls: the "Add line" and the client "New"/"Edit" buttons are absent, while the "Contributo, ritenuta e bollo" disclosure still opens and shows its content read-only (its toggle is never disabled, only the fields inside); only
   the state message of the sending flow (waiting for the receipt or the SdI outcome) is shown. There is no payment section and no transmission section on the invoice page (the
   attempts are not listed); only what needs an action stays, such as a send that was not completed
   or whose outcome is unknown and the manual-channel outcome buttons. In the line cards the move

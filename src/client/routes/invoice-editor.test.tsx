@@ -957,6 +957,33 @@ describe("Invoice editor", () => {
     expect(screen.queryByRole("heading", { name: "Transmission" })).toBeNull();
   });
 
+  it("shows no add-line or client buttons on a finalised invoice and keeps the extras readable", async () => {
+    serve({
+      invoice: record({
+        state: "delivered",
+        number: "7",
+        year: 2026,
+        issueDate: "2026-03-01",
+        data: { ...EMPTY_INVOICE_DATA, bollo: true },
+      }),
+    });
+    await renderEditor("/invoices/i1");
+    await screen.findByText("No. 7/2026");
+    expect(screen.queryByRole("button", { name: "Add line" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "New client" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Edit client/ })).toBeNull();
+    const toggle = screen.getByRole("button", { name: /Contribution, withholding/ });
+    expect((toggle as HTMLButtonElement).disabled).toBe(false);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    const bollo = screen.getByRole("checkbox", { name: /Bollo|stamp/i }) as HTMLInputElement;
+    expect(bollo.checked).toBe(true);
+    expect(bollo.matches(":disabled")).toBe(true);
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("records a payment from the title row with the date, then updates", async () => {
     serve({
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),

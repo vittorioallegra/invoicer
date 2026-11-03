@@ -284,16 +284,14 @@ export function InvoiceLines({
           );
         })}
       </ul>
-      <div data-field="lines" className="w-fit">
-        <Button
-          variant="secondary"
-          disabled={disabled}
-          onClick={() => onChange([...form.lines, emptyLine()])}
-        >
-          <Plus aria-hidden />
-          {t("invoice.lines.add")}
-        </Button>
-      </div>
+      {disabled ? null : (
+        <div data-field="lines" className="w-fit">
+          <Button variant="secondary" onClick={() => onChange([...form.lines, emptyLine()])}>
+            <Plus aria-hidden />
+            {t("invoice.lines.add")}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
