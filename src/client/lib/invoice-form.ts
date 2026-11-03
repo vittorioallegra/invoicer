@@ -16,7 +16,11 @@ import {
   safeTotals,
 } from "../../shared/invoice";
 import type { PaymentMethodRecord } from "../../shared/payment-method";
-import { dueDate as computeDueDate, type PaymentTerms } from "../../shared/payment-terms";
+import {
+  dueDate as computeDueDate,
+  type PaymentTerms,
+  type PaymentTermsKind,
+} from "../../shared/payment-terms";
 import {
   type CassaType,
   defaultCassaSubjectToRitenuta,
@@ -51,9 +55,10 @@ export interface InvoiceForm {
   /** Due date typed by the owner; used when there are no terms or `dueDateCustom` is on. */
   dueDate: string;
   /** `""` = no terms, else one of the allowed numbers of days. */
+  /** `""` = no terms. */
+  termsKind: "" | PaymentTermsKind;
+  /** Days from the invoice date; used by the custom kind only. */
   termsDays: string;
-  termsBasis: "invoice_date" | "end_of_month";
-  termsExtraDays: string;
   /** The due date is the typed one, not computed from the terms. */
   dueDateCustom: boolean;
   linkedInvoiceId: string;
@@ -93,9 +98,8 @@ export function emptyForm(): InvoiceForm {
     plannedDate: "",
     operationDate: "",
     dueDate: "",
+    termsKind: "",
     termsDays: "",
-    termsBasis: "invoice_date",
-    termsExtraDays: "0",
     dueDateCustom: false,
     linkedInvoiceId: "",
     notes: "",
@@ -144,9 +148,7 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
     plannedDate: record.plannedDate ?? "",
     operationDate: record.operationDate ?? "",
     dueDate: record.dueDate ?? "",
-    termsDays: data.payment.terms ? String(data.payment.terms.days) : "",
-    termsBasis: data.payment.terms?.basis ?? "invoice_date",
-    termsExtraDays: String(data.payment.terms?.extraDays ?? 0),
+    ...termsToForm(data.payment.terms),
     dueDateCustom: data.payment.dueDateCustom,
     linkedInvoiceId: record.linkedInvoiceId ?? "",
     notes: record.notes ?? "",
@@ -177,16 +179,22 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
   };
 }
 
-/** The terms typed in the form, or null when none are chosen. */
-export function formTerms(
-  form: Pick<InvoiceForm, "termsDays" | "termsBasis" | "termsExtraDays">,
-): PaymentTerms | null {
-  if (form.termsDays === "") return null;
+/** The form fields for stored terms (null = no terms). */
+export function termsToForm(terms: PaymentTerms | null | undefined): {
+  termsKind: "" | PaymentTermsKind;
+  termsDays: string;
+} {
   return {
-    days: Number(form.termsDays),
-    basis: form.termsBasis,
-    extraDays: form.termsBasis === "end_of_month" ? Number(form.termsExtraDays || 0) : 0,
+    termsKind: terms?.kind ?? "",
+    termsDays: terms?.kind === "custom" ? String(terms.days) : "",
   };
+}
+
+/** The terms chosen in the form, or null when none are chosen. */
+export function formTerms(form: Pick<InvoiceForm, "termsKind" | "termsDays">): PaymentTerms | null {
+  if (form.termsKind === "") return null;
+  if (form.termsKind === "custom") return { kind: "custom", days: Number(form.termsDays || 0) };
+  return { kind: form.termsKind };
 }
 
 /**
@@ -228,9 +236,7 @@ export function applyDefaults(form: InvoiceForm, client: ClientRecord | null): I
     next.bollo = defaults.bollo;
   }
   // Terms prefill from the client default (none = no terms); the due date follows them.
-  next.termsDays = defaults?.terms ? String(defaults.terms.days) : "";
-  next.termsBasis = defaults?.terms?.basis ?? "invoice_date";
-  next.termsExtraDays = String(defaults?.terms?.extraDays ?? 0);
+  Object.assign(next, termsToForm(defaults?.terms));
   if (defaults?.terms) next.dueDateCustom = false;
   // Natura legal texts follow the lines.
   next.naturaTexts = naturaTextsFor(next.lines, next.naturaTexts);

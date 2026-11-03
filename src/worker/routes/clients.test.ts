@@ -27,7 +27,7 @@ const acme = {
     ...EMPTY_CLIENT_DEFAULTS,
     vatRateBp: 2200,
     cassa: { type: "TC22", rateBp: 400, mode: "included", subjectToRitenuta: true },
-    terms: { days: 30, basis: "end_of_month" },
+    terms: { kind: "eom_30" },
   },
 };
 
@@ -39,7 +39,7 @@ interface Record_ {
   defaults: {
     vatRateBp: number;
     cassa: { type: string };
-    terms: { days: number; basis: string; extraDays: number } | null;
+    terms: { kind: string; days?: number } | null;
   };
 }
 
@@ -69,7 +69,7 @@ describe("clients API", () => {
       defaults: {
         vatRateBp: 2200,
         cassa: { type: "TC22" },
-        terms: { days: 30, basis: "end_of_month" },
+        terms: { kind: "eom_30" },
       },
     });
     const { id } = created.body.client;
@@ -103,11 +103,7 @@ describe("clients API", () => {
       .bind(JSON.stringify(stored), id)
       .run();
     const read = await owner.json<{ client: Record_ }>(`/api/clients/${id}`);
-    expect(read.body.client.defaults.terms).toEqual({
-      days: 50,
-      basis: "invoice_date",
-      extraDays: 0,
-    });
+    expect(read.body.client.defaults.terms).toEqual({ kind: "custom", days: 50 });
     await owner.json(`/api/clients/${id}`, { method: "DELETE" });
   });
 

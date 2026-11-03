@@ -84,7 +84,7 @@ export const invoicePaymentSchema = z.preprocess(
   },
   paymentDefaultsSchema.extend({
     method: z.enum(PAYMENT_METHODS).nullable(),
-    /** Payment terms (days + basis); the due date is computed from the issue date. */
+    /** Payment terms (one of five choices); the due date is computed from the issue date. */
     terms: paymentTermsSchema.nullable().default(null),
     /** The owner set the due date by hand: it is kept as typed, never recomputed. */
     dueDateCustom: z.boolean().default(false),

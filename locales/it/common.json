@@ -729,12 +729,11 @@
     "page": "Pagina {{pageNumber}} di {{totalPages}}",
     "terms": {
       "label": "Termini",
-      "invoice_date": "{{days}} gg data fattura",
-      "end_of_month": "{{days}} gg fine mese data fattura",
-      "invoice_date_0": "Alla data fattura",
-      "end_of_month_0": "Fine mese data fattura",
-      "end_of_month_extra": "{{days}} gg fine mese data fattura + {{extraDays}} gg",
-      "end_of_month_0_extra": "Fine mese data fattura + {{extraDays}} gg"
+      "invoice_date": "Data fattura",
+      "eom_15": "15 gg fine mese data fattura",
+      "eom_30": "30 gg fine mese data fattura",
+      "eom_60": "60 gg fine mese data fattura",
+      "custom": "{{days}} gg data fattura"
     }
   },
   "pec": {
@@ -916,14 +915,15 @@
     "close": "Chiudi"
   },
   "paymentTerms": {
-    "title": "Termini di pagamento",
-    "days": "Pagamento a",
-    "daysHint": "Numero di giorni, da 0 a 365. Lascia vuoto per nessun termine.",
-    "basis": "Calcolati da",
-    "extraDays": "Giorni dopo fine mese",
+    "label": "Termini di pagamento",
     "none": "Nessun termine",
-    "basis_invoice_date": "Data fattura",
-    "basis_end_of_month": "Fine mese data fattura",
+    "kind_invoice_date": "Data fattura",
+    "kind_eom_15": "15 gg fine mese data fattura",
+    "kind_eom_30": "30 gg fine mese data fattura",
+    "kind_eom_60": "60 gg fine mese data fattura",
+    "kind_custom": "Personalizzato",
+    "days": "Giorni da data fattura",
+    "daysHint": "Numero di giorni, da 0 a 365.",
     "dueMode": "Scadenza da",
     "mode_terms": "Calcolata dai termini",
     "mode_custom": "Data personalizzata",

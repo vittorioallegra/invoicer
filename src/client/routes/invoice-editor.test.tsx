@@ -55,7 +55,7 @@ const acme: ClientRecord = {
     vatRateBp: 2200,
     cassa: { type: "rivalsa_inps", rateBp: 400, mode: "excluded", subjectToRitenuta: true },
     ritenuta: { type: "RT01", rateBp: 2000, causale: "A" },
-    terms: { days: 30, basis: "invoice_date", extraDays: 0 },
+    terms: { kind: "custom", days: 30 },
   },
 };
 const exemptClient: ClientRecord = {
@@ -200,9 +200,9 @@ describe("Invoice editor", () => {
     expect((screen.getByLabelText("Bank account") as HTMLSelectElement).value).toBe("pm1");
     expect((screen.getByLabelText("Payment method") as HTMLSelectElement).value).toBe("MP05");
     expect((screen.getByLabelText("VAT") as HTMLSelectElement).value).toBe("rate:2200");
-    // The client's payment terms prefill the two selects and the computed due date.
-    expect((screen.getByLabelText("Payment due after") as HTMLSelectElement).value).toBe("30");
-    expect((screen.getByLabelText("Counted from") as HTMLSelectElement).value).toBe("invoice_date");
+    // The client's payment terms prefill the select, the custom days and the computed due date.
+    expect((screen.getByLabelText("Payment terms") as HTMLSelectElement).value).toBe("custom");
+    expect((screen.getByLabelText("Days from invoice date") as HTMLInputElement).value).toBe("30");
     expect((screen.getByLabelText("Due date") as HTMLInputElement).value).toMatch(
       /^\d{4}-\d{2}-\d{2}$/,
     );
@@ -217,15 +217,16 @@ describe("Invoice editor", () => {
     const due = () => screen.getByLabelText("Due date") as HTMLInputElement;
     expect(due().value).toBe("2026-12-10");
     expect(due().readOnly).toBe(true);
-    type("Counted from", "end_of_month");
+    type("Payment terms", "eom_30");
     expect(due().value).toBe("2026-12-31");
-    type("Payment due after", "90");
-    expect(due().value).toBe("2027-02-28");
+    type("Payment terms", "custom");
+    type("Days from invoice date", "90");
+    expect(due().value).toBe("2027-02-08");
 
     // A custom date starts from the computed one and is then kept as typed.
     type("Due date from", "custom");
     expect(due().readOnly).toBe(false);
-    expect(due().value).toBe("2027-02-28");
+    expect(due().value).toBe("2027-02-08");
     type("Due date", "2027-01-15");
     type("Planned issue date", "2026-11-20");
     expect(due().value).toBe("2027-01-15");
@@ -243,25 +244,28 @@ describe("Invoice editor", () => {
     const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
     expect(body.dueDate).toBe("2027-01-15");
     expect(body.data.payment).toMatchObject({
-      terms: { days: 90, basis: "end_of_month", extraDays: 0 },
+      terms: { kind: "custom", days: 90 },
       dueDateCustom: true,
     });
   });
 
-  it("shows the days after the end of month only for the end-of-month basis", async () => {
+  it("computes the due date for each terms choice and shows the days only for custom", async () => {
     serve();
     await renderEditor();
     await loaded();
     type("Client", "c1");
     type("Planned issue date", "2026-11-10");
     const due = () => screen.getByLabelText("Due date") as HTMLInputElement;
-    expect(screen.queryByLabelText("Days after the end of the month")).toBeNull();
-    type("Counted from", "end_of_month");
-    type("Payment due after", "0");
-    type("Days after the end of the month", "5");
-    expect(due().value).toBe("2026-12-05");
-    type("Counted from", "invoice_date");
-    expect(screen.queryByLabelText("Days after the end of the month")).toBeNull();
+    type("Payment terms", "eom_15");
+    expect(screen.queryByLabelText("Days from invoice date")).toBeNull();
+    expect(due().value).toBe("2026-12-15");
+    type("Payment terms", "eom_60");
+    expect(due().value).toBe("2027-01-31");
+    type("Payment terms", "custom");
+    type("Days from invoice date", "5");
+    expect(due().value).toBe("2026-11-15");
+    type("Payment terms", "invoice_date");
+    expect(screen.queryByLabelText("Days from invoice date")).toBeNull();
     expect(due().value).toBe("2026-11-10");
   });
 
@@ -270,7 +274,7 @@ describe("Invoice editor", () => {
     await renderEditor();
     await loaded();
     type("Client", "c1");
-    type("Payment due after", "");
+    type("Payment terms", "");
     expect(screen.queryByLabelText("Due date from")).toBeNull();
     expect((screen.getByLabelText("Due date") as HTMLInputElement).readOnly).toBe(false);
   });
@@ -399,7 +403,7 @@ describe("Invoice editor", () => {
       bic: "REVODEB2",
       bankName: "",
       accountHolder: "Mario Rossi",
-      terms: { days: 30, basis: "invoice_date", extraDays: 0 },
+      terms: { kind: "custom", days: 30 },
       dueDateCustom: false,
     });
   });

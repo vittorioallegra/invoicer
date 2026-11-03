@@ -101,7 +101,7 @@ describe("Clients screen", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
     const toggle = await screen.findByRole("button", { name: /Invoice defaults/ });
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByLabelText("Payment due after")).toBeNull();
+    expect(screen.queryByLabelText("Payment terms")).toBeNull();
 
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
@@ -126,22 +126,26 @@ describe("Clients screen", () => {
     expect(mocks.api).toHaveBeenCalledTimes(1);
   });
 
-  it("saves the payment terms as days plus basis", async () => {
+  it("saves the payment terms choice, with days only for a custom one", async () => {
     mocks.api.mockResolvedValue({ clients: [] });
     await renderClients();
     fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
     fireEvent.click(await screen.findByRole("button", { name: /Invoice defaults/ }));
-    const days = screen.getByLabelText("Payment due after") as HTMLInputElement;
-    const basis = screen.getByLabelText("Counted from") as HTMLSelectElement;
+    const kind = screen.getByLabelText("Payment terms") as HTMLSelectElement;
+    expect(kind.value).toBe("");
+    expect([...kind.options].map((o) => o.value)).toEqual([
+      "",
+      "invoice_date",
+      "eom_15",
+      "eom_30",
+      "eom_60",
+      "custom",
+    ]);
+    expect(screen.queryByLabelText("Days from invoice date")).toBeNull();
+    type("Payment terms", "custom");
+    const days = screen.getByLabelText("Days from invoice date") as HTMLInputElement;
     expect(days.type).toBe("number");
-    expect(days.value).toBe("");
-    expect([...basis.options].map((o) => o.value)).toEqual(["invoice_date", "end_of_month"]);
-    expect(basis.disabled).toBe(true);
-    type("Payment due after", "60");
-    expect(basis.disabled).toBe(false);
-    expect(screen.queryByLabelText("Days after the end of the month")).toBeNull();
-    type("Counted from", "end_of_month");
-    type("Days after the end of the month", "5");
+    type("Days from invoice date", "60");
     type("Company name", "Acme S.r.l.");
     type("Partita IVA", "12345678903");
     type("Street and number", "Via Roma 1");
@@ -160,7 +164,7 @@ describe("Clients screen", () => {
       ([path, init]) => path === "/api/clients" && init?.method === "POST",
     );
     const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
-    expect(body.defaults.terms).toEqual({ days: 60, basis: "end_of_month", extraDays: 5 });
+    expect(body.defaults.terms).toEqual({ kind: "custom", days: 60 });
     expect(body.defaults).not.toHaveProperty("paymentTermsDays");
   });
 

@@ -1,7 +1,6 @@
 import { XMLBuilder } from "fast-xml-parser";
 import type { ClientData } from "../client";
 import { type InvoiceBody, invoiceTotalsInput } from "../invoice";
-import { termsReferenceDate } from "../payment-terms";
 import type { ProfileData } from "../profile";
 import { computeTotals, type Natura, type Totals } from "../totals";
 import { encodeFileProgressive, fatturaFileName } from "./file-name";
@@ -218,10 +217,10 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
   }
 
   const payment = data.payment;
-  // Reference date + days must equal the due date, which only holds for invoice-date terms; an
-  // end-of-month due date is written on its own.
+  // Reference date + days must equal the due date, which only holds for custom days from the
+  // invoice date; the other terms and a hand-set date are written as the due date alone.
   const terms =
-    payment.terms && !payment.dueDateCustom && payment.terms.basis === "invoice_date"
+    payment.terms && !payment.dueDateCustom && payment.terms.kind === "custom"
       ? payment.terms
       : null;
   const datiPagamento = payment.method
@@ -232,9 +231,7 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
           ModalitaPagamento: payment.method,
           // The terms are described only when the due date comes from them; a hand-set date
           // stands alone. Order follows the XSD sequence.
-          DataRiferimentoTerminiPagamento: terms
-            ? termsReferenceDate(input.issueDate, terms)
-            : undefined,
+          DataRiferimentoTerminiPagamento: terms ? input.issueDate : undefined,
           GiorniTerminiPagamento: terms ? String(terms.days) : undefined,
           DataScadenzaPagamento: invoice.dueDate ?? undefined,
           ImportoPagamento: formatCents(totals.amountDueCents),

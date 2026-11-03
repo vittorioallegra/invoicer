@@ -221,19 +221,19 @@ describe("due date from the payment terms", () => {
   it("recomputes the due date from the issue date when the number is reserved", async () => {
     const id = await insertInvoice({
       dueDate: "2070-01-01",
-      data: payment({ days: 30, basis: "end_of_month" }),
+      data: payment({ kind: "eom_30" }),
     });
     const reservation = await reserve(id, "2070-11-10T10:00:00Z");
     expect(reservation.issueDate).toBe("2070-11-10");
     expect(await dueOf(id)).toBe("2070-12-31");
 
-    const plain = await insertInvoice({ data: payment({ days: 60, basis: "invoice_date" }) });
+    const plain = await insertInvoice({ data: payment({ kind: "custom", days: 60 }) });
     await reserve(plain, "2070-11-10T11:00:00Z");
     expect(await dueOf(plain)).toBe("2071-01-09");
   });
 
   it("uses the Rome date, not the UTC one", async () => {
-    const id = await insertInvoice({ data: payment({ days: 0, basis: "invoice_date" }) });
+    const id = await insertInvoice({ data: payment({ kind: "invoice_date" }) });
     await reserve(id, "2070-12-31T23:30:00Z");
     expect(await dueOf(id)).toBe("2071-01-01");
   });
@@ -241,7 +241,7 @@ describe("due date from the payment terms", () => {
   it("keeps a due date set by hand and an invoice without terms as stored", async () => {
     const custom = await insertInvoice({
       dueDate: "2070-12-24",
-      data: payment({ days: 30, basis: "invoice_date" }, true),
+      data: payment({ kind: "custom", days: 30 }, true),
     });
     await reserve(custom, "2070-11-11T10:00:00Z");
     expect(await dueOf(custom)).toBe("2070-12-24");

@@ -141,7 +141,7 @@ describe("defaults", () => {
       cassa: { type: "TC22", rateBp: 400, mode: "included", subjectToRitenuta: true },
       ritenuta: { type: "RT01", rateBp: 2000, causale: "A" },
       bollo: true,
-      terms: { days: 30, basis: "end_of_month" },
+      terms: { kind: "eom_30" },
     };
     expect(parse({ defaults }).success).toBe(true);
   });
@@ -154,21 +154,26 @@ describe("defaults", () => {
       });
       return { terms: parsed.terms, hasLegacy: "paymentTermsDays" in parsed };
     };
-    expect(read(30)).toEqual({
-      terms: { days: 30, basis: "invoice_date", extraDays: 0 },
-      hasLegacy: false,
-    });
-    expect(read(45).terms).toEqual({ days: 45, basis: "invoice_date", extraDays: 0 });
-    expect(read(0).terms).toEqual({ days: 0, basis: "invoice_date", extraDays: 0 });
+    expect(read(30)).toEqual({ terms: { kind: "custom", days: 30 }, hasLegacy: false });
+    expect(read(45).terms).toEqual({ kind: "custom", days: 45 });
+    expect(read(0).terms).toEqual({ kind: "invoice_date" });
     expect(read(null).terms).toBeNull();
   });
-  it("rejects terms outside the allowed days, extra days and bases", () => {
+  it("reads the previous stored terms shape", () => {
+    const read = (terms: unknown) =>
+      clientDefaultsSchema.parse({ ...EMPTY_CLIENT_DEFAULTS, terms }).terms;
+    expect(read({ days: 30, basis: "end_of_month", extraDays: 0 })).toEqual({ kind: "eom_30" });
+    expect(read({ days: 45, basis: "invoice_date", extraDays: 0 })).toEqual({
+      kind: "custom",
+      days: 45,
+    });
+  });
+  it("rejects terms outside the allowed kinds and days", () => {
     const bad = (terms: unknown) =>
       parse({ defaults: { ...EMPTY_CLIENT_DEFAULTS, terms } }).success;
-    expect(bad({ days: 366, basis: "invoice_date" })).toBe(false);
-    expect(bad({ days: 30, basis: "month" })).toBe(false);
-    expect(bad({ days: 0, basis: "end_of_month", extraDays: 32 })).toBe(false);
-    expect(bad({ days: 45, basis: "invoice_date" })).toBe(true);
-    expect(bad({ days: 120, basis: "end_of_month" })).toBe(true);
+    expect(bad({ kind: "custom", days: 366 })).toBe(false);
+    expect(bad({ kind: "month" })).toBe(false);
+    expect(bad({ kind: "custom", days: 45 })).toBe(true);
+    expect(bad({ kind: "eom_60" })).toBe(true);
   });
 });

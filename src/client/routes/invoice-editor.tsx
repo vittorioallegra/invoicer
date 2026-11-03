@@ -253,12 +253,8 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
   const terms = formTerms(form);
   const computedDueDate = effectiveDueDate({ ...form, dueDateCustom: false }, today);
   // Clearing the terms keeps the date they gave as a plain date.
-  function changeTerms(changes: {
-    termsDays?: string;
-    termsBasis?: string;
-    termsExtraDays?: string;
-  }) {
-    const clearing = changes.termsDays === "" && terms !== null && !form.dueDateCustom;
+  function changeTerms(changes: { termsKind?: string; termsDays?: string }) {
+    const clearing = changes.termsKind === "" && terms !== null && !form.dueDateCustom;
     patch({
       ...changes,
       ...(clearing ? { dueDate: computedDueDate, dueDateCustom: false } : {}),
@@ -938,13 +934,11 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <PaymentTermsFields
+              kind={form.termsKind}
               days={form.termsDays}
-              basis={form.termsBasis}
-              extraDays={form.termsExtraDays}
               onChange={changeTerms}
+              kindError={err("data.payment.terms.kind")}
               daysError={err("data.payment.terms.days")}
-              basisError={err("data.payment.terms.basis")}
-              extraDaysError={err("data.payment.terms.extraDays")}
             />
             {terms ? (
               <Field label={t("paymentTerms.dueMode")}>
