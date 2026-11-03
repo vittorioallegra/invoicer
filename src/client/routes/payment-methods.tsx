@@ -26,6 +26,7 @@ import {
   setDefaultPaymentMethod,
   updatePaymentMethod,
 } from "../lib/settings-api";
+import { useDirty } from "../lib/use-dirty";
 
 interface FormState {
   label: string;
@@ -57,6 +58,10 @@ function AccountForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [makeDefault, setMakeDefault] = useState(false);
+  const { dirty } = useDirty(
+    { form: method ? fromRecord(method) : EMPTY, makeDefault: false },
+    { form, makeDefault },
+  );
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["payment-methods"] });
   const save = useMutation({
@@ -160,7 +165,7 @@ function AccountForm({
           <Button type="button" variant="secondary" onClick={onDone}>
             {t("common.cancel")}
           </Button>
-          <Button type="submit" disabled={!online || save.isPending}>
+          <Button type="submit" disabled={!online || !dirty || save.isPending}>
             {t("paymentMethods.save")}
           </Button>
         </div>

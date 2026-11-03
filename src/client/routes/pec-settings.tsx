@@ -11,6 +11,7 @@ import { toast } from "../components/ui/toast";
 import { api } from "../lib/api";
 import { useOnline } from "../lib/online";
 import { putJson, settingsQuery } from "../lib/settings-api";
+import { useDirty } from "../lib/use-dirty";
 
 interface Features {
   pec: { username: boolean; password: boolean };
@@ -62,32 +63,40 @@ function TestResult({ result }: { result: PecTestResult | null }) {
   );
 }
 
+const EMPTY_SERVERS = { imapHost: "", imapPort: "", smtpHost: "", smtpPort: "" };
+
 function ServersForm({ online }: { online: boolean }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const query = useQuery(settingsQuery);
-  const [form, setForm] = useState({ imapHost: "", imapPort: "", smtpHost: "", smtpPort: "" });
+  const [form, setForm] = useState(EMPTY_SERVERS);
+  const { dirty, markSaved } = useDirty(EMPTY_SERVERS, form);
   const servers = query.data?.pec.servers;
   useEffect(() => {
     if (servers) {
-      setForm({
+      const loaded = {
         imapHost: servers.imapHost,
         imapPort: String(servers.imapPort),
         smtpHost: servers.smtpHost,
         smtpPort: String(servers.smtpPort),
-      });
+      };
+      setForm(loaded);
+      markSaved(loaded);
     }
-  }, [servers]);
+  }, [servers, markSaved]);
 
   const save = useMutation({
-    mutationFn: () =>
+    mutationFn: (submitted: typeof form) =>
       putJson("/api/settings/pec-servers", {
-        imapHost: form.imapHost.trim(),
-        imapPort: Number(form.imapPort),
-        smtpHost: form.smtpHost.trim(),
-        smtpPort: Number(form.smtpPort),
+        imapHost: submitted.imapHost.trim(),
+        imapPort: Number(submitted.imapPort),
+        smtpHost: submitted.smtpHost.trim(),
+        smtpPort: Number(submitted.smtpPort),
       }),
-    onSuccess: () => toast.success(t("pec.serversSaved")),
+    onSuccess: (_data, submitted) => {
+      markSaved(submitted);
+      toast.success(t("pec.serversSaved"));
+    },
     onError: () => toast.error(t("pec.serversInvalid")),
     onSettled: async () => {
       await Promise.all([
@@ -105,7 +114,7 @@ function ServersForm({ online }: { online: boolean }) {
       className="space-y-3"
       onSubmit={(event: FormEvent) => {
         event.preventDefault();
-        save.mutate();
+        save.mutate(form);
       }}
     >
       <h2 className="text-base font-medium">{t("pec.serversTitle")}</h2>
@@ -145,7 +154,7 @@ function ServersForm({ online }: { online: boolean }) {
             {t("pec.usePreset")}
           </Button>
         ) : null}
-        <Button type="submit" disabled={!online || save.isPending} className="ms-auto">
+        <Button type="submit" disabled={!online || !dirty || save.isPending} className="ms-auto">
           {t("pec.saveServers")}
         </Button>
       </div>

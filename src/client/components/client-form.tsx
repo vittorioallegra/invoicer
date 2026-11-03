@@ -23,6 +23,7 @@ import {
   numberingSeriesQuery,
   taxQuery,
 } from "../lib/settings-api";
+import { useDirty } from "../lib/use-dirty";
 import { PaymentTermsFields } from "./payment-terms-fields";
 import { Banner } from "./ui/banner";
 import { Button } from "./ui/button";
@@ -203,6 +204,7 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
   const allSeries = numbering.data?.series ?? [];
   const tax = taxSettings.data?.tax;
   const [form, setForm] = useState<FormState>(client ? fromRecord(client) : EMPTY);
+  const { dirty } = useDirty(client ? fromRecord(client) : EMPTY, form);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const save = useMutation({
@@ -585,7 +587,7 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
           <Button type="button" variant="secondary" onClick={onCancel}>
             {t("common.cancel")}
           </Button>
-          <Button type="submit" disabled={!online || save.isPending}>
+          <Button type="submit" disabled={!online || !dirty || save.isPending}>
             {t("clients.form.save")}
           </Button>
         </div>

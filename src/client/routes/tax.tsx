@@ -33,6 +33,7 @@ import {
   type TaxResponse,
   taxQuery,
 } from "../lib/settings-api";
+import { useDirty } from "../lib/use-dirty";
 
 interface FormState {
   regimeFiscale: string;
@@ -101,13 +102,16 @@ export function TaxPage() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { dirty, markSaved } = useDirty(EMPTY, form);
 
   useEffect(() => {
     if (query.data && !loaded) {
-      setForm(fromTax(query.data.tax));
+      const loadedForm = fromTax(query.data.tax);
+      setForm(loadedForm);
+      markSaved(loadedForm);
       setLoaded(true);
     }
-  }, [query.data, loaded]);
+  }, [query.data, loaded, markSaved]);
 
   const save = useMutation({
     mutationFn: (body: unknown) => putJson("/api/tax", body),
@@ -144,7 +148,7 @@ export function TaxPage() {
       return;
     }
     setErrors({});
-    save.mutate(body);
+    save.mutate(body, { onSuccess: () => markSaved(form) });
   }
 
   const grid = "grid grid-cols-1 items-start gap-4 sm:grid-cols-2";
@@ -284,7 +288,7 @@ export function TaxPage() {
           </GroupBox>
 
           <div className="flex justify-end">
-            <Button type="submit" disabled={!online || save.isPending}>
+            <Button type="submit" disabled={!online || !dirty || save.isPending}>
               {t("tax.save")}
             </Button>
           </div>

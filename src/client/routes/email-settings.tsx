@@ -12,35 +12,35 @@ import { Select } from "../components/ui/select";
 import { toast } from "../components/ui/toast";
 import { useOnline } from "../lib/online";
 import { fieldErrors, fieldErrorsFromDetail, putJson, settingsQuery } from "../lib/settings-api";
+import { useDirty } from "../lib/use-dirty";
+
+const EMPTY = { senderName: "", senderAddress: "", replyTo: "", bcc: "", mode: "ask" };
 
 export function EmailSettingsPage() {
   const { t } = useTranslation();
   const online = useOnline();
   const queryClient = useQueryClient();
   const query = useQuery(settingsQuery);
-  const [form, setForm] = useState({
-    senderName: "",
-    senderAddress: "",
-    replyTo: "",
-    bcc: "",
-    mode: "ask",
-  });
+  const [form, setForm] = useState(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { dirty, markSaved } = useDirty(EMPTY, form);
 
   useEffect(() => {
     if (query.data && !loaded) {
       const e = query.data.email;
-      setForm({
+      const loadedForm = {
         senderName: e.senderName ?? "",
         senderAddress: e.senderAddress ?? "",
         replyTo: e.replyTo ?? "",
         bcc: e.bcc ?? "",
         mode: e.mode,
-      });
+      };
+      setForm(loadedForm);
+      markSaved(loadedForm);
       setLoaded(true);
     }
-  }, [query.data, loaded]);
+  }, [query.data, loaded, markSaved]);
 
   const save = useMutation({
     mutationFn: (body: unknown) => putJson("/api/settings/email", body),
@@ -76,7 +76,7 @@ export function EmailSettingsPage() {
       return;
     }
     setErrors({});
-    save.mutate(form);
+    save.mutate(form, { onSuccess: () => markSaved(form) });
   }
 
   const defaultName = query.data?.email.defaultSenderName ?? undefined;
@@ -139,7 +139,7 @@ export function EmailSettingsPage() {
             )}
           </Field>
           <div className="flex justify-end">
-            <Button type="submit" disabled={!online || save.isPending}>
+            <Button type="submit" disabled={!online || !dirty || save.isPending}>
               {t("email.save")}
             </Button>
           </div>

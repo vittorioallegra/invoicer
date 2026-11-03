@@ -27,6 +27,7 @@ import {
   setDefaultNumberingSeries,
   updateNumberingSeries,
 } from "../lib/settings-api";
+import { useDirty } from "../lib/use-dirty";
 
 interface FormState {
   name: string;
@@ -56,6 +57,10 @@ function SeriesForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [makeDefault, setMakeDefault] = useState(false);
+  const { dirty } = useDirty(
+    { form: series ? fromRecord(series) : EMPTY, makeDefault: false },
+    { form, makeDefault },
+  );
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["numbering-series"] });
   const fail = (error: unknown) => {
@@ -192,7 +197,7 @@ function SeriesForm({
           <Button type="button" variant="secondary" onClick={onDone}>
             {t("common.cancel")}
           </Button>
-          <Button type="submit" disabled={!online || save.isPending}>
+          <Button type="submit" disabled={!online || !dirty || save.isPending}>
             {t("numbering.save")}
           </Button>
         </div>

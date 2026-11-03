@@ -18,6 +18,7 @@ import {
   profileQuery,
   putJson,
 } from "../lib/settings-api";
+import { useDirty } from "../lib/use-dirty";
 
 interface FormState {
   name: string;
@@ -75,13 +76,18 @@ export function ProfilePage() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { dirty, markSaved } = useDirty(EMPTY, form);
 
   useEffect(() => {
     if (query.data && !loaded) {
-      if (query.data.profile) setForm(fromProfile(query.data.profile));
+      if (query.data.profile) {
+        const loadedForm = fromProfile(query.data.profile);
+        setForm(loadedForm);
+        markSaved(loadedForm);
+      }
       setLoaded(true);
     }
-  }, [query.data, loaded]);
+  }, [query.data, loaded, markSaved]);
 
   const save = useMutation({
     mutationFn: (body: unknown) => putJson("/api/profile", body),
@@ -120,7 +126,7 @@ export function ProfilePage() {
       return;
     }
     setErrors({});
-    save.mutate(body);
+    save.mutate(body, { onSuccess: () => markSaved(form) });
   }
 
   return (
@@ -235,7 +241,7 @@ export function ProfilePage() {
           </GroupBox>
 
           <div className="flex justify-end">
-            <Button type="submit" disabled={!online || save.isPending}>
+            <Button type="submit" disabled={!online || !dirty || save.isPending}>
               {t("profile.save")}
             </Button>
           </div>

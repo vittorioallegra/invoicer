@@ -59,7 +59,12 @@ describe("Tax details page", () => {
     const rates = screen.getAllByLabelText("Rate") as HTMLInputElement[];
     expect(rates.map((input) => input.value)).toEqual(["4", "20"]);
 
+    // Nothing changed yet: Save stays disabled until the form differs from what was loaded.
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.change(rates[0] as HTMLInputElement, { target: { value: "5" } });
+    expect((screen.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith(
