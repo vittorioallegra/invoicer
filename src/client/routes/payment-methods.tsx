@@ -15,6 +15,7 @@ import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { Sheet } from "../components/ui/sheet";
+import { toast } from "../components/ui/toast";
 import { useOnline } from "../lib/online";
 import {
   createPaymentMethod,
@@ -69,6 +70,8 @@ function AccountForm({
     onError: (error) => {
       if (error instanceof ApiError && error.code === "bad_request") {
         setErrors(fieldErrorsFromDetail(error.problem.detail));
+      } else {
+        toast.error(t("common.error"));
       }
     },
   });
@@ -121,9 +124,6 @@ function AccountForm({
       <Field label={t("paymentMethods.accountHolder")} error={err("accountHolder")}>
         {(c) => <Input {...c} value={form.accountHolder} onChange={set("accountHolder")} />}
       </Field>
-      {save.isError && !(save.error instanceof ApiError && save.error.code === "bad_request") ? (
-        <Banner tone="danger">{t("common.error")}</Banner>
-      ) : null}
       <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={!online || save.isPending}>
           {t("paymentMethods.save")}
@@ -163,6 +163,7 @@ export function PaymentMethodsPage() {
   const makeDefault = useMutation({
     mutationFn: (id: string) => setDefaultPaymentMethod(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["payment-methods"] }),
+    onError: () => toast.error(t("common.error")),
   });
   const methods = query.data?.paymentMethods ?? [];
   const add = (
@@ -181,7 +182,6 @@ export function PaymentMethodsPage() {
         </p>
       ) : null}
       {query.isError ? <Banner tone="danger">{t("common.error")}</Banner> : null}
-      {makeDefault.isError ? <Banner tone="danger">{t("common.error")}</Banner> : null}
       {query.data && methods.length === 0 ? (
         <EmptyState
           icon={Landmark}

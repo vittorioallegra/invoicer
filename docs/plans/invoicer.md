@@ -360,6 +360,7 @@ push and email.
 |------|--------|---------|
 | Build / dev | Vite + `@cloudflare/vite-plugin` | 8.3 / 1.67 |
 | UI | React + TanStack Router + TanStack Query, Tailwind, shadcn/ui (Radix) | 19.3 / 1.170 / 5.105, 4.3, latest at step 1 |
+| Toasts | `@radix-ui/react-toast` (no runtime style injection) | 1.3.1 |
 | Send authorization | `@simplewebauthn/server` / `@simplewebauthn/browser` | 14.0 |
 | PWA | `vite-plugin-pwa` | 2.0 |
 | API | Hono | 4.13 |
@@ -442,6 +443,7 @@ Approved: yes (2026-11-02)
   - Preview PDF appeared to do nothing — `fix(pdf): make the PDF preview reliable with a download fallback`
 
 ### Decisions
+- Transient confirmations are toasts (@radix-ui/react-toast 1.3.1, CSP-safe; sonner rejected because it injects a runtime style element blocked by style-src 'self'); persistent page messages stay inline (2026-11-03, owner).
 - Single-user, self-hosted deployment; generic public code, no owner data in the repo (2026-11-02).
 - SdI channel: the owner's PEC mailbox behind a channel interface (SMTP send, IMAP polling every 10 minutes, manual AdE portal channel as fallback); Openapi was the first choice and is now a possible future channel (2026-11-02, superseded by the 2026-11-02 channel switch below).
 - Hosting: everything on Cloudflare free plan (Worker static assets + Worker API, D1, Cron Triggers, secrets); Supabase rejected (inactivity pause, weak free backups, higher paid tier) (2026-11-02).

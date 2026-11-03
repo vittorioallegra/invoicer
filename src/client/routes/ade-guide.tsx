@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
+import { toast } from "../components/ui/toast";
 import { useOnline } from "../lib/online";
 import { putJson, settingsQuery } from "../lib/settings-api";
 
@@ -16,6 +17,7 @@ export function AdeGuidePage() {
   const query = useQuery(settingsQuery);
   const mark = useMutation({
     mutationFn: (done: boolean) => putJson("/api/settings/ade-guide", { done }),
+    onError: () => toast.error(t("common.error")),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["settings"] }),
@@ -39,7 +41,6 @@ export function AdeGuidePage() {
       <Banner tone="info" className="max-w-2xl">
         {t("ade.note")}
       </Banner>
-      {mark.isError ? <Banner tone="danger">{t("common.error")}</Banner> : null}
       {query.isError ? <Banner tone="danger">{t("common.error")}</Banner> : null}
       <Button
         className="w-fit"

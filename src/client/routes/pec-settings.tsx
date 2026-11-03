@@ -7,6 +7,7 @@ import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
 import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
+import { toast } from "../components/ui/toast";
 import { api } from "../lib/api";
 import { useOnline } from "../lib/online";
 import { putJson, settingsQuery } from "../lib/settings-api";
@@ -86,6 +87,8 @@ function ServersForm({ online }: { online: boolean }) {
         smtpHost: form.smtpHost.trim(),
         smtpPort: Number(form.smtpPort),
       }),
+    onSuccess: () => toast.success(t("pec.serversSaved")),
+    onError: () => toast.error(t("pec.serversInvalid")),
     onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["settings"] }),
@@ -125,8 +128,6 @@ function ServersForm({ online }: { online: boolean }) {
           )}
         </Field>
       </div>
-      {save.isError ? <Banner tone="danger">{t("pec.serversInvalid")}</Banner> : null}
-      {save.isSuccess ? <Banner tone="success">{t("pec.serversSaved")}</Banner> : null}
       <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={!online || save.isPending}>
           {t("pec.saveServers")}
@@ -164,6 +165,7 @@ export function PecSettingsPage() {
   const configured = Boolean(features.data?.pec.username && features.data?.pec.password);
   const test = useMutation({
     mutationFn: () => api<PecTestResult>("/api/settings/pec-test", { method: "POST" }),
+    onError: () => toast.error(t("settings.pecTestUnavailable")),
     onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["settings"] }),
@@ -206,7 +208,6 @@ export function PecSettingsPage() {
           {query.data && !test.isPending ? (
             <TestResult result={test.data ?? query.data.pec.test} />
           ) : null}
-          {test.isError ? <Banner tone="danger">{t("settings.pecTestUnavailable")}</Banner> : null}
           <Button
             variant="secondary"
             className="w-fit"

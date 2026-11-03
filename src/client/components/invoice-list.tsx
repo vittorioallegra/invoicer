@@ -9,6 +9,7 @@ import { useOnline } from "../lib/online";
 import { Banner } from "./ui/banner";
 import { Button } from "./ui/button";
 import { StatusBadge } from "./ui/status-badge";
+import { toast } from "./ui/toast";
 
 function useLocale(): UiLocale {
   const { i18n } = useTranslation();
@@ -131,6 +132,7 @@ export function ReservedList() {
       await queryClient.invalidateQueries({ queryKey: ["invoices"] });
       await queryClient.invalidateQueries({ queryKey: ["invoice"] });
     },
+    onError: () => toast.error(t("invoice.reserved.releaseFailed")),
   });
   const invoices = query.data?.invoices ?? [];
   if (invoices.length === 0) return null;
@@ -140,9 +142,6 @@ export function ReservedList() {
         {t("invoice.reserved.title")}
       </h2>
       <p className="text-sm text-muted-foreground">{t("invoice.reserved.intro")}</p>
-      {release.isError ? (
-        <Banner tone="danger">{t("invoice.reserved.releaseFailed")}</Banner>
-      ) : null}
       <ul className="flex flex-col divide-y divide-border rounded-card border border-border">
         {invoices.map((invoice) => (
           <Row

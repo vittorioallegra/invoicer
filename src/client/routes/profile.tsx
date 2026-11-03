@@ -9,6 +9,7 @@ import { Button } from "../components/ui/button";
 import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
+import { toast } from "../components/ui/toast";
 import { useOnline } from "../lib/online";
 import {
   fieldErrors,
@@ -78,7 +79,6 @@ export function ProfilePage() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (query.data && !loaded) {
@@ -90,7 +90,7 @@ export function ProfilePage() {
   const save = useMutation({
     mutationFn: (body: unknown) => putJson("/api/profile", body),
     onSuccess: async () => {
-      setSaved(true);
+      toast.success(t("profile.saved"));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["profile"] }),
         queryClient.invalidateQueries({ queryKey: ["onboarding"] }),
@@ -100,12 +100,13 @@ export function ProfilePage() {
     onError: (error) => {
       if (error instanceof ApiError && error.code === "bad_request") {
         setErrors(fieldErrorsFromDetail(error.problem.detail));
+      } else {
+        toast.error(t("common.error"));
       }
     },
   });
 
   const set = (key: keyof FormState) => (event: { target: { value: string } }) => {
-    setSaved(false);
     setForm((current) => ({ ...current, [key]: event.target.value }));
   };
   const err = (field: string) => {
@@ -119,14 +120,11 @@ export function ProfilePage() {
     const parsed = profileInputSchema.safeParse(body);
     if (!parsed.success) {
       setErrors(fieldErrors(parsed.error));
-      setSaved(false);
       return;
     }
     setErrors({});
     save.mutate(body);
   }
-
-  const serverFailure = save.error && !Object.keys(errors).length;
 
   return (
     <Page title={t("profile.title")} backToSettings>
@@ -137,8 +135,6 @@ export function ProfilePage() {
         </p>
       ) : null}
       {query.isError ? <Banner tone="danger">{t("common.error")}</Banner> : null}
-      {saved ? <Banner tone="success">{t("profile.saved")}</Banner> : null}
-      {serverFailure ? <Banner tone="danger">{t("common.error")}</Banner> : null}
       {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
       {query.data ? (
         <form onSubmit={onSubmit} noValidate className="flex max-w-2xl flex-col gap-6">

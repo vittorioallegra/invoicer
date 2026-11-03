@@ -12,6 +12,7 @@ import { Button } from "../components/ui/button";
 import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
+import { toast } from "../components/ui/toast";
 import { UnmatchedMessages } from "../components/unmatched-messages";
 import { persistLocale } from "../i18n";
 import { api } from "../lib/api";
@@ -70,7 +71,6 @@ function NumberingSection({ online }: { online: boolean }) {
   const numbering = query.data?.invoiceNumber;
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | undefined>();
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (numbering) setValue(String(numbering.next));
@@ -79,7 +79,7 @@ function NumberingSection({ online }: { online: boolean }) {
   const save = useMutation({
     mutationFn: (number: number) => putJson("/api/settings/invoice-number", { number }),
     onSuccess: async () => {
-      setSaved(true);
+      toast.success(t("settings.numberSaved"));
       await queryClient.invalidateQueries({ queryKey: ["settings"] });
     },
     onError: (failure) => {
@@ -93,7 +93,6 @@ function NumberingSection({ online }: { online: boolean }) {
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
-    setSaved(false);
     const number = Number(value);
     if (!/^\d+$/.test(value.trim()) || number < 1) {
       setError(t("settings.numberInvalid"));
@@ -122,7 +121,6 @@ function NumberingSection({ online }: { online: boolean }) {
               value={value}
               inputMode="numeric"
               onChange={(event) => {
-                setSaved(false);
                 setValue(event.target.value);
               }}
             />
@@ -131,7 +129,6 @@ function NumberingSection({ online }: { online: boolean }) {
         <Button type="submit" disabled={!online || save.isPending} className="w-fit">
           {t("settings.saveNumber")}
         </Button>
-        {saved ? <Banner tone="success">{t("settings.numberSaved")}</Banner> : null}
       </form>
     </section>
   );

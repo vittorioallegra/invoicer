@@ -9,6 +9,7 @@ import { Button } from "../components/ui/button";
 import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
+import { toast } from "../components/ui/toast";
 import { useOnline } from "../lib/online";
 import { fieldErrors, fieldErrorsFromDetail, putJson, settingsQuery } from "../lib/settings-api";
 
@@ -26,7 +27,6 @@ export function EmailSettingsPage() {
   });
   const [loaded, setLoaded] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (query.data && !loaded) {
@@ -45,7 +45,7 @@ export function EmailSettingsPage() {
   const save = useMutation({
     mutationFn: (body: unknown) => putJson("/api/settings/email", body),
     onSuccess: async () => {
-      setSaved(true);
+      toast.success(t("email.saved"));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["settings"] }),
         queryClient.invalidateQueries({ queryKey: ["onboarding"] }),
@@ -54,12 +54,13 @@ export function EmailSettingsPage() {
     onError: (error) => {
       if (error instanceof ApiError && error.code === "bad_request") {
         setErrors(fieldErrorsFromDetail(error.problem.detail));
+      } else {
+        toast.error(t("common.error"));
       }
     },
   });
 
   const set = (key: keyof typeof form) => (event: { target: { value: string } }) => {
-    setSaved(false);
     setForm((current) => ({ ...current, [key]: event.target.value }));
   };
   const err = (field: string) => {
@@ -72,7 +73,6 @@ export function EmailSettingsPage() {
     const parsed = emailSettingsInputSchema.safeParse(form);
     if (!parsed.success) {
       setErrors(fieldErrors(parsed.error));
-      setSaved(false);
       return;
     }
     setErrors({});
@@ -90,10 +90,6 @@ export function EmailSettingsPage() {
         </p>
       ) : null}
       {query.isError ? <Banner tone="danger">{t("common.error")}</Banner> : null}
-      {saved ? <Banner tone="success">{t("email.saved")}</Banner> : null}
-      {save.error && !Object.keys(errors).length ? (
-        <Banner tone="danger">{t("common.error")}</Banner>
-      ) : null}
       {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
       {query.data ? (
         <form onSubmit={onSubmit} noValidate className="flex max-w-2xl flex-col gap-4">

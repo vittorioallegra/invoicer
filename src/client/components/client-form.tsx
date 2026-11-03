@@ -25,6 +25,7 @@ import { Field } from "./ui/field";
 import { Input } from "./ui/input";
 import { Select } from "./ui/select";
 import { Sheet } from "./ui/sheet";
+import { toast } from "./ui/toast";
 
 interface FormState {
   type: ClientType;
@@ -195,6 +196,8 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
     onError: (error) => {
       if (error instanceof ApiError && error.code === "bad_request") {
         setErrors(fieldErrorsFromDetail(error.problem.detail));
+      } else {
+        toast.error(t("common.error"));
       }
     },
   });
@@ -205,6 +208,11 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["clients"] });
       onDeleted?.();
+    },
+    onError: (error) => {
+      if (!(error instanceof ApiError && error.code === "conflict")) {
+        toast.error(t("common.error"));
+      }
     },
   });
   const inUse = remove.error instanceof ApiError && remove.error.code === "conflict";
@@ -239,14 +247,10 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
     save.mutate(body);
   }
 
-  const serverFailure = save.error && !Object.keys(errors).length;
-
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
-      {serverFailure ? <Banner tone="danger">{t("common.error")}</Banner> : null}
       {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
       {inUse ? <Banner tone="warning">{t("clients.inUse")}</Banner> : null}
-      {remove.isError && !inUse ? <Banner tone="danger">{t("common.error")}</Banner> : null}
 
       <fieldset className="flex flex-col gap-4">
         <legend className="mb-2 text-base font-medium">{t("clients.form.identity")}</legend>

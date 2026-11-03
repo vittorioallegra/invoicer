@@ -36,6 +36,7 @@ import { Input } from "../components/ui/input";
 import { Select } from "../components/ui/select";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Textarea } from "../components/ui/textarea";
+import { toast } from "../components/ui/toast";
 import { clientsQuery } from "../lib/clients-api";
 import {
   applyDefaults,
@@ -171,7 +172,6 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
   const [clientSheet, setClientSheet] = useState<"new" | "edit" | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   const editability = record ? invoiceEditability(record.state) : "full";
   const locked = editability === "locked";
@@ -186,7 +186,6 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
   );
 
   const patch = (changes: Partial<InvoiceForm>) => {
-    setSaved(false);
     setServerErrors({});
     setForm((current) => ({ ...current, ...changes }));
   };
@@ -201,7 +200,6 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
   };
 
   function selectClient(chosen: ClientRecord | null) {
-    setSaved(false);
     setForm((current) => {
       const next = { ...current, clientId: chosen?.id ?? "" };
       // Defaults prefill a new invoice only; an existing one keeps what it has.
@@ -222,7 +220,6 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
   function chooseAccount(event: { target: { value: string } }) {
     const value = event.target.value;
     if (value === SNAPSHOT) return;
-    setSaved(false);
     setServerErrors({});
     setForm((current) =>
       withAccount(current, accounts.find((account) => account.id === value) ?? null),
@@ -242,12 +239,16 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
     mutationFn: (body: unknown) => (record ? updateInvoice(record.id, body) : createInvoice(body)),
     onSuccess: async ({ invoice }) => {
       await refresh(invoice.id);
-      if (record) setSaved(true);
+      if (record) toast.success(t("invoice.saved"));
       else void navigate({ to: "/invoices/$invoiceId", params: { invoiceId: invoice.id } });
     },
     onError: (error) => {
       if (error instanceof ApiError && error.code === "bad_request") {
         setServerErrors(fieldErrorsFromDetail(error.problem.detail));
+      } else if (error instanceof ApiError && error.status === 409) {
+        toast.error(t("invoice.errors.locked"));
+      } else {
+        toast.error(t("common.error"));
       }
     },
   });
@@ -275,6 +276,7 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
       await queryClient.invalidateQueries({ queryKey: ["invoice"] });
       void navigate({ to: "/" });
     },
+    onError: () => toast.error(t("invoice.reserved.releaseFailed")),
   });
 
   // The PDF is rendered in the browser; the tab is opened by the click itself (see previewPdf).
@@ -287,6 +289,7 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(url);
     },
+    onError: () => toast.error(t("invoice.pdf.failed")),
   });
 
   const [sendOpen, setSendOpen] = useState(false);
@@ -323,7 +326,6 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
     event.preventDefault();
     if (locked) return;
     setSubmitted(true);
-    setSaved(false);
     if (!structural.ok) return;
     save.mutate(structural.body);
   }
@@ -344,8 +346,6 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
   });
   const clientProblems = Object.keys(issuing.errors).filter((path) => path.startsWith("client."));
   const credit = form.documentType === "TD04";
-  const serverFailure = save.isError && Object.keys(serverErrors).length === 0;
-  const lockedReason = serverFailure && save.error instanceof ApiError && save.error.status === 409;
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
@@ -384,7 +384,6 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
         />
       ) : null}
 
-      {preview.isError ? <Banner tone="danger">{t("invoice.pdf.failed")}</Banner> : null}
       {previewUrl ? (
         <Banner tone="info">
           {t("invoice.pdf.ready")}{" "}
@@ -398,12 +397,6 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
         </Banner>
       ) : null}
       {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
-      {serverFailure ? (
-        <Banner tone="danger">
-          {lockedReason ? t("invoice.errors.locked") : t("common.error")}
-        </Banner>
-      ) : null}
-      {saved ? <Banner tone="success">{t("invoice.saved")}</Banner> : null}
       {locked ? <Banner tone="info">{t("invoice.readOnly")}</Banner> : null}
       {record?.numberReserved ? (
         <Banner
@@ -487,9 +480,6 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
             {t("invoice.rejected.openOriginal")}
           </Link>
         </Banner>
-      ) : null}
-      {release.isError ? (
-        <Banner tone="danger">{t("invoice.reserved.releaseFailed")}</Banner>
       ) : null}
       {submitted && !structural.ok ? <Banner tone="danger">{t("invoice.fixErrors")}</Banner> : null}
       {warning ? <Banner tone="warning">{t(`invoice.warnings.${warning}`)}</Banner> : null}
@@ -1034,7 +1024,9 @@ function PaymentSection({ record, showNotes }: { record: InvoiceRecord; showNote
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["invoices"] });
       await queryClient.invalidateQueries({ queryKey: ["invoice", record.id] });
+      toast.success(t("invoice.saved"));
     },
+    onError: () => toast.error(t("common.error")),
   });
 
   return (
@@ -1071,8 +1063,6 @@ function PaymentSection({ record, showNotes }: { record: InvoiceRecord; showNote
           {(c) => <Textarea {...c} value={notes} onChange={(e) => setNotes(e.target.value)} />}
         </Field>
       ) : null}
-      {save.isError ? <Banner tone="danger">{t("common.error")}</Banner> : null}
-      {save.isSuccess ? <Banner tone="success">{t("invoice.saved")}</Banner> : null}
       <Button
         className="w-fit"
         variant="secondary"

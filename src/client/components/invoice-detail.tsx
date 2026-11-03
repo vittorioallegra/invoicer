@@ -11,6 +11,7 @@ import { Button } from "./ui/button";
 import { Field } from "./ui/field";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
+import { toast } from "./ui/toast";
 
 export interface InvoiceDetailProps {
   record: InvoiceRecord;
@@ -47,6 +48,7 @@ export function InvoiceDetail({ record, clientName, totalLabel }: InvoiceDetailP
   const outcome = useMutation({
     mutationFn: (body: Parameters<typeof manualOutcome>[1]) => manualOutcome(record.id, body),
     onSuccess: refresh,
+    onError: () => toast.error(t("common.error")),
   });
 
   const attempts = info.data?.attempts ?? [];
@@ -184,7 +186,6 @@ export function InvoiceDetail({ record, clientName, totalLabel }: InvoiceDetailP
               </Button>
             </div>
           ) : null}
-          {outcome.isError ? <Banner tone="danger">{t("common.error")}</Banner> : null}
         </div>
       ) : null}
 
