@@ -555,7 +555,10 @@ describe("downloads, secrets and the mock channel", () => {
       contentType: "application/pdf",
     });
     const pdf = await owner.request(`/api/invoices/${a.id}/pdf`);
-    expect(pdf.headers.get("Content-Disposition")).toMatch(/^attachment; filename=/);
+    expect(pdf.headers.get("Content-Disposition")).toMatch(
+      /^attachment; filename="invoice-[A-Za-z0-9-]+-[a-z0-9-]+\.pdf"$/,
+    );
+    expect(pdf.headers.get("Content-Disposition")).not.toContain(a.fileName);
   });
 
   it("keeps the PEC password out of responses, D1 and logs when the server echoes it", async () => {

@@ -16,6 +16,7 @@ import {
   parseInvoiceDraft,
 } from "../../shared/invoice";
 import { invoiceFiltersSchema } from "../../shared/invoice-filters";
+import { invoicePdfFileName } from "../../shared/pdf-name";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
 import {
@@ -307,8 +308,8 @@ interface TransmissionRow {
 
 /**
  * Stores the PDF the browser generated for the invoice's current transmission attempt (the
- * highest attempt number). The PDF is named like the XML (`IT<idCodice>_<progressive>.pdf`), is
- * linked to the invoice and the attempt, and replaces an earlier PDF of the same attempt. Once an
+ * highest attempt number). The PDF is named `invoice-<number>-<client>.pdf` (the XML keeps its SdI
+ * file name), is linked to the invoice and the attempt, and replaces an earlier PDF of the same attempt. Once an
  * attempt has been handed to the PEC its PDF is final; a resend opens a new attempt.
  */
 invoices.put("/:id/pdf", async (c) => {
@@ -332,7 +333,8 @@ invoices.put("/:id/pdf", async (c) => {
   if (current.send_outcome !== "none") throw makeError("conflict", "transmission_sent");
 
   const storage = createD1FileStorage(c.env.DB);
-  const filename = current.file_name.replace(/\.xml$/i, ".pdf");
+  const invoice = await requireInvoice(c.env.DB, id);
+  const filename = invoicePdfFileName(invoice.number ?? current.file_name, invoice.clientName);
   const stored = await storage.put({
     kind: "pdf",
     filename,
@@ -370,10 +372,15 @@ invoices.get("/:id/pdf", async (c) => {
     .first<{ pdf_file_id: string }>();
   const file = row ? await createD1FileStorage(c.env.DB).get(row.pdf_file_id) : null;
   if (!file) throw makeError("not_found");
+  // Named from the invoice as it is now (number and client), not from the stored file name.
+  const invoice = await requireInvoice(c.env.DB, c.req.param("id"));
+  const filename = invoice.number
+    ? invoicePdfFileName(invoice.number, invoice.clientName)
+    : file.filename;
   return new Response(file.content, {
     headers: {
       "Content-Type": file.contentType,
-      "Content-Disposition": `attachment; filename="${file.filename}"`,
+      "Content-Disposition": `attachment; filename="${filename}"`,
       "Content-Length": String(file.size),
       "Cache-Control": "private, no-store",
     },
