@@ -1,6 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
 import { CalendarDays } from "lucide-react";
-import { type ChangeEvent, type InputHTMLAttributes, type Ref, useState } from "react";
+import { type ChangeEvent, type InputHTMLAttributes, type Ref, useRef, useState } from "react";
 import { DayPicker } from "react-day-picker";
 import { enIE } from "react-day-picker/locale/en-IE";
 import { it } from "react-day-picker/locale/it";
@@ -90,6 +90,7 @@ function PopoverDate({
   const { t, i18n } = useTranslation();
   const locale: UiLocale = i18n.language.startsWith("it") ? "it" : "en";
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
   const selected = toDate(value);
   const emit = (next: string) => {
     const target = { value: next, name: name ?? "" };
@@ -98,8 +99,16 @@ function PopoverDate({
   const today = romeDateTime(new Date()).date;
   const label = selected ? formatDate(value, locale) : "";
   return (
-    <Popover.Root open={open && !disabled && !readOnly} onOpenChange={setOpen}>
+    <Popover.Root
+      open={open && !disabled && !readOnly}
+      onOpenChange={(next) => {
+        // Also closed when disabled by a <fieldset> (a read-only form), which the prop does not see.
+        if (next && trigger.current?.matches(":disabled")) return;
+        setOpen(next);
+      }}
+    >
       <Popover.Trigger
+        ref={trigger}
         id={id}
         type="button"
         disabled={disabled}

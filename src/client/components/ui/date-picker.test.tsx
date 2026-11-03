@@ -45,6 +45,21 @@ describe("DatePicker with a fine pointer", () => {
     expect(button.textContent).toContain("5 mar 2026");
   });
 
+  it("does not open inside a disabled fieldset (a read-only form)", async () => {
+    setPointer(false);
+    render(
+      <I18nextProvider i18n={await createI18n("it")}>
+        <fieldset disabled>
+          <DatePicker aria-label="Date" value="2026-03-05" onChange={vi.fn()} />
+        </fieldset>
+      </I18nextProvider>,
+    );
+    const button = screen.getByRole("button", { name: "Date" });
+    fireEvent.pointerDown(button, { button: 0, pointerType: "mouse" });
+    fireEvent.click(button);
+    expect(screen.queryByRole("grid")).toBeNull();
+  });
+
   it("picks a day from the calendar (Monday first) and returns YYYY-MM-DD", async () => {
     setPointer(false);
     const onChange = await mount("2026-03-05");

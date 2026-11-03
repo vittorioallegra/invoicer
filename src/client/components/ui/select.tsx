@@ -9,6 +9,8 @@ import {
   type ReactNode,
   type Ref,
   type SelectHTMLAttributes,
+  useRef,
+  useState,
 } from "react";
 import { useNativeControls } from "../../lib/use-native-controls";
 import { cn } from "../../lib/utils";
@@ -99,8 +101,17 @@ function RichSelect({
   const decode = (v: string) => (v === EMPTY ? "" : v);
   const current = value === undefined ? undefined : encode(String(value));
   const selected = options.find((o) => encode(o.value) === current);
+  // Browsers still deliver pointerdown to a button disabled by its <fieldset> (a read-only form),
+  // and Radix opens on pointerdown: the trigger's own :disabled state decides.
+  const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
   return (
     <RadixSelect.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (next && trigger.current?.matches(":disabled")) return;
+        setOpen(next);
+      }}
       {...(current !== undefined ? { value: current } : {})}
       {...(defaultValue !== undefined ? { defaultValue: encode(String(defaultValue)) } : {})}
       {...(name !== undefined ? { name } : {})}
@@ -112,6 +123,7 @@ function RichSelect({
       }}
     >
       <RadixSelect.Trigger
+        ref={trigger}
         id={id}
         onBlur={onBlur as unknown as FocusEventHandler<HTMLButtonElement>}
         aria-label={aria["aria-label"]}

@@ -49,6 +49,22 @@ describe("Select with a fine pointer", () => {
     expect(trigger.textContent).toContain("None");
   });
 
+  it("does not open inside a disabled fieldset (a read-only form)", () => {
+    setPointer(false);
+    render(
+      <fieldset disabled>
+        <Select aria-label="Country" value="it" onChange={vi.fn()}>
+          <option value="it">Italy</option>
+          <option value="fr">France</option>
+        </Select>
+      </fieldset>,
+    );
+    const trigger = screen.getByRole("combobox", { name: "Country" });
+    fireEvent.pointerDown(trigger, { button: 0, pointerType: "mouse" });
+    fireEvent.keyDown(trigger, { key: "Enter" });
+    expect(screen.queryByRole("option", { name: "France" })).toBeNull();
+  });
+
   it("opens by keyboard and reports the chosen value like a change event", async () => {
     setPointer(false);
     const onChange = mount();
