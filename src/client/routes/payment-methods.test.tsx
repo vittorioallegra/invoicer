@@ -41,7 +41,8 @@ const revolut: PaymentMethodRecord = {
 function serve(list: PaymentMethodRecord[]) {
   mocks.api.mockImplementation(async (path: string, init?: { method?: string }) => {
     if (path === "/api/payment-methods" && !init?.method) return { paymentMethods: list };
-    return { paymentMethod: list[0], paymentMethods: list };
+    const target = list.find((m) => path === `/api/payment-methods/${m.id}`) ?? list[0];
+    return { paymentMethod: target, paymentMethods: list };
   });
 }
 
@@ -77,10 +78,22 @@ describe("Payment methods page", () => {
     expect(within(rows[1] as HTMLElement).queryByText("Default")).toBeNull();
   });
 
-  it("sets another account as the default", async () => {
+  it("puts the add button above the list and opens an account from its row", async () => {
     serve([fineco, revolut]);
     await renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Set Revolut as default" }));
+    const add = await screen.findByRole("button", { name: "Add bank account" });
+    const list = (await screen.findAllByRole("listitem"))[0]?.parentElement as HTMLElement;
+    expect(add.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Revolut/ }));
+    expect(await screen.findByRole("dialog", { name: "Edit bank account" })).toBeTruthy();
+  });
+
+  it("makes another account the default from its form", async () => {
+    serve([fineco, revolut]);
+    await renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: /Revolut/ }));
+    fireEvent.click(await screen.findByLabelText("Use as the default account"));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith("/api/payment-methods/pm2/default", {
         method: "POST",
@@ -129,7 +142,7 @@ describe("Payment methods page", () => {
   it("asks for confirmation before deleting", async () => {
     serve([fineco]);
     await renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Edit Fineco" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Fineco/ }));
     fireEvent.click(await screen.findByRole("button", { name: "Delete account" }));
     expect(mocks.api).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));

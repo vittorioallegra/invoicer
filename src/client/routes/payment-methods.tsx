@@ -56,11 +56,16 @@ function AccountForm({
   const [form, setForm] = useState<FormState>(method ? fromRecord(method) : EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [makeDefault, setMakeDefault] = useState(false);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["payment-methods"] });
   const save = useMutation({
-    mutationFn: (body: unknown) =>
-      method ? updatePaymentMethod(method.id, body) : createPaymentMethod(body),
+    mutationFn: async (body: unknown) => {
+      const { paymentMethod } = method
+        ? await updatePaymentMethod(method.id, body)
+        : await createPaymentMethod(body);
+      if (makeDefault) await setDefaultPaymentMethod(paymentMethod.id);
+    },
     onSuccess: async () => {
       await refresh();
       onDone();
@@ -119,6 +124,17 @@ function AccountForm({
       <Field label={t("paymentMethods.accountHolder")} error={err("accountHolder")}>
         {(c) => <Input {...c} value={form.accountHolder} onChange={set("accountHolder")} />}
       </Field>
+      {method?.isDefault ? null : (
+        <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+          <input
+            type="checkbox"
+            className="size-5"
+            checked={makeDefault}
+            onChange={(e) => setMakeDefault(e.target.checked)}
+          />
+          {t("paymentMethods.makeDefault")}
+        </label>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         {method && !confirmDelete ? (
           <Button
@@ -158,15 +174,8 @@ function AccountForm({
 
 export function PaymentMethodsPage() {
   const { t } = useTranslation();
-  const online = useOnline();
-  const queryClient = useQueryClient();
   const query = useQuery(paymentMethodsQuery);
   const [editing, setEditing] = useState<PaymentMethodRecord | "new" | null>(null);
-  const makeDefault = useMutation({
-    mutationFn: (id: string) => setDefaultPaymentMethod(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["payment-methods"] }),
-    onError: () => toast.error(t("common.error")),
-  });
   const methods = query.data?.paymentMethods ?? [];
   const add = (
     <Button onClick={() => setEditing("new")}>
@@ -194,43 +203,28 @@ export function PaymentMethodsPage() {
       ) : null}
       {methods.length > 0 ? (
         <>
-          <ul className="max-w-2xl divide-y divide-border rounded-card border border-border bg-surface">
+          <div>{add}</div>
+          <ul className="flex max-w-2xl flex-col divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
             {methods.map((method) => (
-              <li key={method.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+              <li key={method.id}>
+                <button
+                  type="button"
+                  onClick={() => setEditing(method)}
+                  className="flex min-h-14 w-full flex-col items-start gap-0.5 px-4 py-3 text-left hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+                >
+                  <span className="flex flex-wrap items-center gap-2 font-medium">
                     {method.label}
                     {method.isDefault ? (
                       <span className="rounded-control bg-muted px-2 py-0.5 text-xs font-medium">
                         {t("paymentMethods.defaultBadge")}
                       </span>
                     ) : null}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{maskIban(method.iban)}</p>
-                </div>
-                {!method.isDefault ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={!online || makeDefault.isPending}
-                    onClick={() => makeDefault.mutate(method.id)}
-                    aria-label={t("paymentMethods.setDefaultFor", { label: method.label })}
-                  >
-                    {t("paymentMethods.setDefault")}
-                  </Button>
-                ) : null}
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setEditing(method)}
-                  aria-label={t("paymentMethods.editFor", { label: method.label })}
-                >
-                  {t("paymentMethods.edit")}
-                </Button>
+                  </span>
+                  <span className="text-sm text-muted-foreground">{maskIban(method.iban)}</span>
+                </button>
               </li>
             ))}
           </ul>
-          <div>{add}</div>
         </>
       ) : null}
       <Sheet
