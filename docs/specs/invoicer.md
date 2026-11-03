@@ -20,7 +20,7 @@ Italian and foreign clients, and pays for FiC only to do that.
 where the owner issues FatturaPA invoices to Italian and foreign clients with any VAT /
 exemption setup, sends them to the SdI, follows their delivery, reads received (purchase)
 invoices, tracks invoices to send, sent and paid invoices, gets push notifications, and
-has a courtesy copy (PDF in the client's language) emailed to the client automatically.
+has a courtesy copy (PDF in the invoice's language) emailed to the client automatically.
 The SdI is reached through the owner's existing PEC mailbox, at no cost.
 
 **Why now:** the owner's FiC subscription ends on 2026-12-31. The tool must be usable for
@@ -155,7 +155,7 @@ settle the open ones):
 
 - CRUD for clients: kind (company or private person) and country (Italy first, then the others),
   name, partita IVA and/or codice fiscale, foreign VAT/tax ID, address, codice destinatario (7 chars) and/or PEC, email for courtesy copies,
-  language (IT or EN, used for the invoice PDF and the courtesy email), default currency,
+  language (IT or EN, prefilled as the language of the client's new invoices), default currency,
   default payment terms (see Payment terms below), and two flags: apply the cassa
   previdenziale and apply the ritenuta d'acconto. The values behind the flags are the owner's, in
   Settings > Tax details; the flags are offered only once the owner has configured that item (until
@@ -298,6 +298,13 @@ settle the open ones):
   terms in words ("Data fattura", "15 gg fine mese data fattura", "30 gg fine mese data
   fattura", "60 gg fine mese data fattura", "30 gg data fattura" / "Invoice date", "30 days
   from invoice date") and the due date.
+- Editor document fields: three rows of two columns from `sm` up (stacked on phones): document
+  type and invoice date; numbering series and number; language and currency. For a credit note
+  the linked-invoice field follows these rows. "Lingua" (language, Italian or English) belongs
+  to the invoice: it is prefilled from the client when the client is chosen (and "it" with no
+  client), stays editable, and is stored in the invoice data (`data.language`; an invoice stored
+  without it follows its client's language). It sets the language of that invoice's PDF and
+  courtesy email, not the client's setting.
 - Editor layout of the optional extras: contribution (cassa or rivalsa), ritenuta and bollo sit
   in one collapsible section placed before the lines, titled "Contributo, ritenuta e bollo"
   (an accessible disclosure: a button with `aria-expanded`). It starts closed unless one of the
@@ -480,7 +487,7 @@ settle the open ones):
 
 ### 8. PDF and courtesy email
 
-- PDF of each issued invoice in the client's language (IT or EN), with all FatturaPA data
+- PDF of each issued invoice in the invoice's language (IT or EN, set per invoice and prefilled from the client), with all FatturaPA data
   relevant to the reader: issuer and client data, lines, VAT/natura and its legal
   reference, contribution, withholding, stamp, totals, currency, payment data (IBAN,
   BIC/SWIFT, holder, due date), and the note that the legally valid invoice is the

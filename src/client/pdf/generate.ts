@@ -1,6 +1,6 @@
 import type { ClientRecord } from "../../shared/client";
 import type { FatturaIssuer } from "../../shared/fatturapa";
-import type { InvoiceRecord } from "../../shared/invoice";
+import { type InvoiceRecord, invoiceLanguage } from "../../shared/invoice";
 import { api } from "../lib/api";
 import type { ProfileResponse } from "../lib/settings-api";
 import type { InvoicePdfInput } from "./invoice-model";
@@ -65,7 +65,7 @@ export async function loadInvoicePdfInput(
       invoice.linked?.number && invoice.linked.issueDate
         ? { number: invoice.linked.number, issueDate: invoice.linked.issueDate }
         : null,
-    language: client.pdfLanguage,
+    language: invoiceLanguage(invoice.data, client),
   };
 }
 

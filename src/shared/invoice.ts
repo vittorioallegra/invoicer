@@ -105,6 +105,17 @@ export const invoicePaymentSchema = z.preprocess(
 /** Longest invoice note: about ten `Causale` elements of 200 characters. */
 export const INVOICE_NOTE_MAX = 2000;
 
+export const INVOICE_LANGUAGES = ["it", "en"] as const;
+export type InvoiceLanguage = (typeof INVOICE_LANGUAGES)[number];
+
+/** The language of an invoice's PDF and email: its own, else the client's, else Italian. */
+export function invoiceLanguage(
+  data: Pick<InvoiceData, "language">,
+  client: { pdfLanguage: InvoiceLanguage } | null | undefined,
+): InvoiceLanguage {
+  return data.language ?? client?.pdfLanguage ?? "it";
+}
+
 export const invoiceDataSchema = z.object({
   cassa: cassaDefaultsSchema.nullable(),
   ritenuta: ritenutaDefaultsSchema.nullable(),
@@ -118,6 +129,12 @@ export const invoiceDataSchema = z.object({
   /** Legal text per natura code used by the lines (prefilled from `NATURA_TEXTS`, editable). */
   naturaTexts: z.partialRecord(z.enum(NATURA_CODES), z.string().trim().max(1000)),
   payment: invoicePaymentSchema,
+  /**
+   * Language of this invoice's PDF and courtesy email, chosen per invoice (prefilled from the
+   * client). Null on invoices stored before the field existed: they follow the client's language
+   * (`invoiceLanguage`).
+   */
+  language: z.enum(INVOICE_LANGUAGES).nullable().default(null),
 });
 export type InvoiceData = z.output<typeof invoiceDataSchema>;
 
@@ -128,6 +145,7 @@ export const EMPTY_INVOICE_DATA: InvoiceData = {
   bolloSuggestionDismissed: false,
   note: "",
   naturaTexts: {},
+  language: null,
   payment: {
     method: null,
     iban: null,
@@ -211,6 +229,7 @@ function draftData(raw: unknown): InvoiceData {
     bollo: data.bollo === true,
     bolloSuggestionDismissed: data.bolloSuggestionDismissed === true,
     note: textOf(data.note),
+    language: orFallback(z.enum(INVOICE_LANGUAGES).nullable(), data.language, null),
     naturaTexts: Object.fromEntries(
       NATURA_CODES.flatMap((code) =>
         typeof texts[code] === "string" ? [[code, texts[code]]] : [],

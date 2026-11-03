@@ -7,6 +7,7 @@ import {
   invoiceEditability,
   invoiceInputSchema,
   invoiceIssuableSchema,
+  invoiceLanguage,
   issueMap,
   parseInvoiceDraft,
   parseQuantityMilli,
@@ -256,5 +257,13 @@ describe("parseInvoiceDraft", () => {
     expect(parseInvoiceDraft(null)).toBeNull();
     expect(parseInvoiceDraft({ lines: "x" })).toBeNull();
     expect(parseInvoiceDraft({ lines: Array.from({ length: 501 }, () => ({})) })).toBeNull();
+  });
+});
+
+describe("invoiceLanguage", () => {
+  it("uses the invoice's own language, else the client's, else Italian", () => {
+    expect(invoiceLanguage({ language: "en" }, { pdfLanguage: "it" })).toBe("en");
+    expect(invoiceLanguage({ language: null }, { pdfLanguage: "en" })).toBe("en");
+    expect(invoiceLanguage({ language: null }, null)).toBe("it");
   });
 });

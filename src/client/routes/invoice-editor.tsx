@@ -205,7 +205,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
 
   const [initialForm] = useState<InvoiceForm>(() =>
     record
-      ? fromRecord(record)
+      ? fromRecord(record, clients)
       : withAccount(
           applyDefaults({ ...emptyForm(), invoiceDate: today }, null, tax),
           accounts.find((account) => account.isDefault) ?? null,
@@ -314,8 +314,10 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   function selectClient(chosen: ClientRecord | null) {
     setForm((current) => {
       const next = { ...current, clientId: chosen?.id ?? "" };
-      // Defaults prefill a new invoice only; an existing one keeps what it has.
-      return record ? next : applyDefaults(next, chosen, tax);
+      // Defaults prefill a new invoice only; an existing one keeps what it has, except the
+      // language, which follows the client chosen (and stays editable).
+      if (record) return chosen ? { ...next, language: chosen.pdfLanguage } : next;
+      return applyDefaults(next, chosen, tax);
     });
   }
 
@@ -792,14 +794,18 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                   </Select>
                 )}
               </Field>
-              <Field label={t("invoice.document.currency")} error={err("currency")} name="currency">
+              <Field
+                label={t("invoice.document.invoiceDate")}
+                error={err("invoiceDate")}
+                name="invoiceDate"
+              >
                 {(c) => (
                   <Input
                     {...c}
-                    value={form.currency}
-                    maxLength={3}
-                    autoCapitalize="characters"
-                    onChange={text("currency")}
+                    type="date"
+                    value={form.invoiceDate}
+                    disabled={locked || editability === "rejected"}
+                    onChange={text("invoiceDate")}
                   />
                 )}
               </Field>
@@ -844,18 +850,26 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                   />
                 )}
               </Field>
-              <Field
-                label={t("invoice.document.invoiceDate")}
-                error={err("invoiceDate")}
-                name="invoiceDate"
-              >
+              <Field label={t("invoice.document.language")} name="language">
+                {(c) => (
+                  <Select
+                    {...c}
+                    value={form.language}
+                    onChange={(e) => patch({ language: e.target.value as "it" | "en" })}
+                  >
+                    <option value="it">{t("invoice.document.languageIt")}</option>
+                    <option value="en">{t("invoice.document.languageEn")}</option>
+                  </Select>
+                )}
+              </Field>
+              <Field label={t("invoice.document.currency")} error={err("currency")} name="currency">
                 {(c) => (
                   <Input
                     {...c}
-                    type="date"
-                    value={form.invoiceDate}
-                    disabled={locked || editability === "rejected"}
-                    onChange={text("invoiceDate")}
+                    value={form.currency}
+                    maxLength={3}
+                    autoCapitalize="characters"
+                    onChange={text("currency")}
                   />
                 )}
               </Field>

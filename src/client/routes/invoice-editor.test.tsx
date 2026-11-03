@@ -1135,19 +1135,45 @@ describe("Invoice editor, number on the invoice", () => {
     expect((field("Series") as HTMLSelectElement).options).toHaveLength(1);
   });
 
-  it("lays the document fields out two per row: type and currency, series and number, date", async () => {
+  it("lays the document fields out three rows of two: type and date, series and number, language and currency", async () => {
     serve();
     await renderEditor();
     await loaded();
     const grid = field("Document type").closest("div.grid") as HTMLElement;
     expect(grid.className).toContain("sm:grid-cols-2");
     expect(grid.className).not.toContain("grid-cols-3");
-    const order = ["Document type", "Currency", "Series", "Number", "Invoice date"].map((label) =>
-      Array.from(grid.querySelectorAll("label, select, input")).indexOf(field(label)),
+    const order = ["Document type", "Invoice date", "Series", "Number", "Language", "Currency"].map(
+      (label) => Array.from(grid.querySelectorAll("label, select, input")).indexOf(field(label)),
     );
     expect(order.every((index, i) => index >= 0 && (i === 0 || index > (order[i - 1] ?? 0)))).toBe(
       true,
     );
+  });
+
+  it("prefills the language from the client, keeps an edit and saves it on the invoice", async () => {
+    const english = { ...acme, pdfLanguage: "en" as const };
+    serve({ clients: [english, { ...acme, id: "c2", name: "Beta", pdfLanguage: "it" as const }] });
+    await renderEditor();
+    await loaded();
+    expect((field("Language") as HTMLSelectElement).value).toBe("it");
+    type("Client", "c1");
+    expect((field("Language") as HTMLSelectElement).value).toBe("en");
+    type("Language", "it");
+    fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Work" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(mocks.api.mock.calls.some(([path]) => path === "/api/invoices")).toBe(true),
+    );
+    const call = mocks.api.mock.calls.find(([path]) => path === "/api/invoices");
+    const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
+    expect(body.data.language).toBe("it");
+  });
+
+  it("opens a stored invoice without a language in the client's language", async () => {
+    serve({ clients: [{ ...acme, pdfLanguage: "en" }], invoice: record() });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect((field("Language") as HTMLSelectElement).value).toBe("en");
   });
 
   it("starts in the client's series, proposes its number and sends the series", async () => {

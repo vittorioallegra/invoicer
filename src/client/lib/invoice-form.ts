@@ -5,9 +5,11 @@ import {
   EMPTY_INVOICE_DATA,
   type InvoiceData,
   type InvoiceInput,
+  type InvoiceLanguage,
   type InvoiceLine,
   type InvoiceRecord,
   invoiceInputSchema,
+  invoiceLanguage,
   issueMap,
   issuingProblems,
   isValidDate,
@@ -51,6 +53,8 @@ export interface InvoiceForm {
   documentType: "TD01" | "TD04";
   clientId: string;
   currency: string;
+  /** Language of the PDF and the courtesy email; prefilled from the client, editable. */
+  language: InvoiceLanguage;
   /** Number typed by the owner; empty = automatic (the proposed next number). */
   requestedNumber: string;
   /** Numbering series; `""` = the default series. */
@@ -109,6 +113,7 @@ export function emptyForm(): InvoiceForm {
     documentType: "TD01",
     clientId: "",
     currency: "EUR",
+    language: "it",
     requestedNumber: "",
     seriesId: "",
     invoiceDate: "",
@@ -153,18 +158,22 @@ const lineVat = (line: Pick<InvoiceLine, "natura" | "vatRateBp">) =>
   line.natura ? `natura:${line.natura}` : line.vatRateBp ? `rate:${line.vatRateBp}` : "";
 
 /** The editor state of a stored invoice; an unsent one reopens with the raw text as it was typed. */
-export function fromRecord(record: InvoiceRecord): InvoiceForm {
-  const stored = fromStored(record);
+export function fromRecord(
+  record: InvoiceRecord,
+  clients: readonly ClientRecord[] = [],
+): InvoiceForm {
+  const stored = fromStored(record, clients.find((c) => c.id === record.clientId) ?? null);
   const unsent = record.state === "draft" || record.state === "planned";
   return unsent ? restoreForm(record.editorForm, stored) : stored;
 }
 
-function fromStored(record: InvoiceRecord): InvoiceForm {
+function fromStored(record: InvoiceRecord, client: ClientRecord | null): InvoiceForm {
   const { data } = record;
   return {
     documentType: record.documentType,
     clientId: record.clientId ?? "",
     currency: record.currency,
+    language: invoiceLanguage(data, client),
     requestedNumber: record.requestedNumber === null ? "" : String(record.requestedNumber),
     seriesId: record.seriesId,
     invoiceDate: record.invoiceDate ?? "",
@@ -302,7 +311,10 @@ export function applyDefaults(
 ): InvoiceForm {
   const next: InvoiceForm = { ...form };
   const defaults = client?.defaults;
-  if (client) next.currency = client.currency;
+  if (client) {
+    next.currency = client.currency;
+    next.language = client.pdfLanguage;
+  }
   // The client's series starts a new invoice; none means the default series.
   next.seriesId = defaults?.seriesId ?? "";
   if (defaults) {
@@ -434,6 +446,7 @@ export function buildInvoice(
     bolloSuggestionDismissed: form.bolloDismissed,
     note: form.invoiceNote,
     naturaTexts: naturaTextsFor(form.lines, form.naturaTexts),
+    language: form.language,
     payment: {
       terms: formTerms(form),
       dueDateCustom: form.dueDateCustom && formTerms(form) !== null,
