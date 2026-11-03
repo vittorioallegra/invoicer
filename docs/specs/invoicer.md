@@ -117,11 +117,16 @@ settle the open ones):
 2. **First run:** create the owner account (requires the deploy's setup token) and register
    the passkey; set the fallback password + TOTP.
 3. **Company (the issuer profile):** name or company name, partita IVA, codice fiscale,
-   address, regime fiscale (RF01 ordinario, RF19 forfettario, and the other RF codes in a
-   list). It holds no invoice number: the number is set on the invoice (see Numbering). It
+   address. It holds no invoice number: the number is set on the invoice (see Numbering). It
    holds no bank data (see Payment methods below) and no default payment terms:
    those are set on each invoice (clients keep their own defaults).
-3a. **Payment methods:** a list of bank accounts, each with a short name (for example
+3a. **Tax details** (Settings, Tax details): the owner's fiscal options. The regime fiscale
+   (RF01 ordinario, RF19 forfettario, and the other RF codes in a list; stored with the
+   profile), the cassa previdenziale (none, rivalsa INPS or a TC code, rate, mode added or
+   included) and the ritenuta d'acconto (none or an RT code, rate, base imponibile share
+   defaulting to 100%, causale pagamento). Cassa and ritenuta are stored with the settings, so
+   they can be set before the Company page. Clients and invoices take these values from here.
+3b. **Payment methods:** a list of bank accounts, each with a short name (for example
    "Fineco"), IBAN (mod-97 checked), BIC/SWIFT and account holder (no bank name). Bank
    transfer only (MP05). Exactly one account is the default while any exist: the first one
    added becomes it, the owner can move it, and deleting the default promotes the oldest
@@ -151,8 +156,15 @@ settle the open ones):
 - CRUD for clients: type (Italian company, Italian private person, EU company, non-EU
   company), name, partita IVA and/or codice fiscale, foreign VAT/tax ID with country code,
   address, codice destinatario (7 chars) and/or PEC, email for courtesy copies,
-  language (IT or EN, used for the invoice PDF and the courtesy email), default currency, default VAT/exemption, default rivalsa / cassa /
-  ritenuta / bollo settings, default payment terms (see Payment terms below).
+  language (IT or EN, used for the invoice PDF and the courtesy email), default currency,
+  default payment terms (see Payment terms below), and two flags: apply the cassa
+  previdenziale and apply the ritenuta d'acconto. The values behind the flags are the owner's, in
+  Settings > Tax details; the flags are offered only once the owner has configured that item (until
+  then a hint links to Tax details). A new client starts with the cassa on, and the ritenuta on for
+  Italian companies (they are withholding agents) and off for private persons and foreign clients.
+  A client has no default VAT/exemption and no bollo setting. Stored defaults of the older shape are
+  read into the flags (cassa applies when the old defaults had a cassa, likewise the ritenuta) and
+  their VAT and bollo values are dropped; the owner's values are not copied from a client.
 - Field rules derived from type: Italian company needs partita IVA and codice
   destinatario or PEC (default "0000000"); Italian private person needs codice fiscale and
   gets codice destinatario "0000000"; foreign clients get codice destinatario "XXXXXXX".
@@ -162,10 +174,14 @@ settle the open ones):
 ### 3. Invoices (TD01)
 
 - Editor with lines (description, quantity, unit price, unit of measure, VAT rate or
-  exemption natura per line). Natura codes: N1, N2.1, N2.2, N3.1–N3.6, N4, N5, N6.1–N6.9,
+  exemption natura per line; a new line has no VAT chosen and is invalid until the owner picks a
+  rate or a natura, with no default: a draft may be saved with it empty, issuing requires it).
+  Natura codes: N1, N2.1, N2.2, N3.1–N3.6, N4, N5, N6.1–N6.9,
   N7, each with a mandatory or suggested legal reference text (e.g. forfettario:
   "Operazione effettuata ai sensi dell'art. 1, commi 54-89, L. 190/2014").
-- Optional per invoice, prefilled from client/profile defaults: rivalsa INPS 4% or a cassa
+- Optional per invoice, prefilled from Tax details when the client's flag for it is on (the
+  invoice then keeps its own editable copy, so later changes to Tax details never alter it):
+  rivalsa INPS 4% or a cassa
   previdenziale (TipoCassa TC01–TC22, rate, VAT/natura on the contribution, subject to
   ritenuta or not), with an **amount mode**:
   - `excluded` (default): line amounts exclude the contribution; contribution =
@@ -175,7 +191,7 @@ settle the open ones):
     contribution always equals the typed amount to the cent. Example: 1,040.00 at 4% →
     base 1,000.00, contribution 40.00. The XML and PDF show the base and the contribution,
     never the typed gross amount as a line price.
-  - The mode is a client default and can be changed per invoice; the editor shows which
+  - The mode comes from Tax details and can be changed per invoice; the editor shows which
     mode is active next to the totals.
 - ritenuta d'acconto (type, rate, base, causale pagamento). The rate applies to the amount
   subject to ritenuta (lines, plus rivalsa INPS when subject), by default in full; the **base**
@@ -185,8 +201,10 @@ settle the open ones):
   (the rate) and `ImportoRitenuta` (the reduced amount); the PDF states the share when it is
   not 100% ("Ritenuta d'acconto 20% sul 10% dell'imponibile"). The causale pagamento is a
   select of the `CausalePagamentoType` codes of the XSD (CU codes, without the retired Z), each
-  shown as "code — short description". Bollo virtuale (2.00 EUR, suggested
-  automatically when exempt amounts exceed 77.47 EUR); currency (default EUR); payment
+  shown as "code — short description". Bollo virtuale (2.00 EUR): a manual checkbox on the
+  invoice only, never applied automatically and never taken from the client; when the natura
+  (no-VAT) lines exceed 77.47 EUR and it is unchecked, the editor shows a non-blocking hint
+  suggesting it, and the totals, the XML (`DatiBollo`) and the PDF follow the checkbox alone; currency (default EUR); payment
   data (method, due date and the bank account copied from the Payment methods list: IBAN,
   BIC/SWIFT, holder).
 - Options that stand for a code show the code and a short description in the UI language
@@ -205,7 +223,7 @@ settle the open ones):
   stored terms (days + basis + days after the end of month) are read into these choices. Dates
   are plain `YYYY-MM-DD` on the
   Europe/Rome calendar. A client may
-  have default terms (none by default; the Company page has none) that prefill a new invoice.
+  have default terms (none by default; Company and Tax details have none) that prefill a new invoice.
   The invoice stores its terms in its payment data. While it is a draft or planned the editor
   shows the date computed from today (or the planned date) and the owner may keep "computed
   from the terms" or choose "custom date". When the number is reserved the issue date is
