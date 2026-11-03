@@ -552,7 +552,9 @@
     },
     "pdf": {
       "preview": "Preview PDF",
-      "failed": "The PDF could not be generated. Try again."
+      "failed": "The PDF could not be generated. Try again.",
+      "ready": "If no tab opened or it stays blank,",
+      "download": "download the PDF"
     }
   },
   "fatturapa": {

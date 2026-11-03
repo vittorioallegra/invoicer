@@ -59,6 +59,7 @@ import {
   updateInvoice,
 } from "../lib/invoices-api";
 import { useOnline } from "../lib/online";
+import { previewPdf } from "../lib/pdf-preview";
 import { sdiErrorLine } from "../lib/sdi-error";
 import {
   fieldErrorsFromDetail,
@@ -237,21 +238,15 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
     },
   });
 
-  // The PDF is rendered in the browser and shown in a tab opened right away (popup blockers
-  // only allow a window opened by the click itself).
+  // The PDF is rendered in the browser; the tab is opened by the click itself (see previewPdf).
+  // The link below stays as a reliable way to get the file when the viewer stays blank.
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const preview = useMutation({
-    mutationFn: async (id: string) => {
-      const tab = window.open("", "_blank");
-      try {
-        const bytes = await renderInvoicePdfFor(id);
-        const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
-        if (tab) tab.location.href = url;
-        else window.location.assign(url);
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      } catch (error) {
-        tab?.close();
-        throw error;
-      }
+    mutationFn: (id: string) =>
+      previewPdf(() => renderInvoicePdfFor(id), `invoice-${record?.number ?? id}.pdf`),
+    onSuccess: ({ url }) => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(url);
     },
   });
 
@@ -351,6 +346,18 @@ function EditorForm({ record, clients, profile, send }: EditorFormProps) {
       ) : null}
 
       {preview.isError ? <Banner tone="danger">{t("invoice.pdf.failed")}</Banner> : null}
+      {previewUrl ? (
+        <Banner tone="info">
+          {t("invoice.pdf.ready")}{" "}
+          <a
+            className="font-medium underline"
+            href={previewUrl}
+            download={`invoice-${record?.number ?? "preview"}.pdf`}
+          >
+            {t("invoice.pdf.download")}
+          </a>
+        </Banner>
+      ) : null}
       {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
       {serverFailure ? (
         <Banner tone="danger">

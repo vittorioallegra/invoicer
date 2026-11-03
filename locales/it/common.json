@@ -552,7 +552,9 @@
     },
     "pdf": {
       "preview": "Anteprima PDF",
-      "failed": "Impossibile generare il PDF. Riprova."
+      "failed": "Impossibile generare il PDF. Riprova.",
+      "ready": "Se non si è aperta nessuna scheda o resta vuota,",
+      "download": "scarica il PDF"
     }
   },
   "fatturapa": {

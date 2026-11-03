@@ -438,6 +438,7 @@ Approved: yes (2026-11-02)
   - fresh DB: login has no way to reach setup — `fix(auth): send a first-run visitor to the setup screen`
   - setup showed the blank create form after the owner was created — `fix(auth): keep the setup flow on its step after the owner account is created`
   - PEC settings said every send needs the passkey — `fix(settings): say a send needs a passkey or an authenticator code`
+  - Preview PDF appeared to do nothing — `fix(pdf): make the PDF preview reliable with a download fallback`
 
 ### Decisions
 - Single-user, self-hosted deployment; generic public code, no owner data in the repo (2026-11-02).
