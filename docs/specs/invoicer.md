@@ -199,6 +199,10 @@ settle the open ones):
   invoice (`editor_form`, raw text), so an unsent invoice reopens exactly as it was left. Inline
   field errors stay as hints and never block. **Finalize runs every check**, then numbers and
   sends (below). The Worker repeats the issuing rules before it reserves the number.
+  Progressive numbers follow the dates: in a series and year, an invoice may not be dated before
+  the last number issued (`GET /api/invoices/next-number` returns its `lastIssueDate`). The editor
+  says so under the invoice date, Finalize lists it with the other checks, and a refusal from the
+  Worker (`date_before_last_issue`) is shown with the same sentence and date.
 - Editor modes. A saved invoice opens in view mode: every field is read-only (no disabled
   add-line or client buttons, the extras accordion opens, no line controls). Before finalisation
   (and for a rejected invoice that can still be fixed) the title row has the primary "Finalize"

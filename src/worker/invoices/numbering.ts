@@ -68,6 +68,25 @@ export async function nextFreeNumber(
   return (row?.highest ?? 0) + 1;
 }
 
+/**
+ * The date of the highest number issued in a year and series: a new number of that series may
+ * not carry an earlier date (progressive numbers follow the dates).
+ */
+export async function lastIssueDate(
+  db: D1Database,
+  year: number,
+  seriesId: string,
+): Promise<string | null> {
+  const last = await db
+    .prepare(
+      `SELECT issue_date FROM invoices WHERE year = ? AND series_id = ? AND number_int IS NOT NULL
+       ORDER BY number_int DESC LIMIT 1`,
+    )
+    .bind(year, seriesId)
+    .first<{ issue_date: string | null }>();
+  return last?.issue_date ?? null;
+}
+
 interface InvoiceNumberRow {
   state: string;
   number_int: number | null;
@@ -272,15 +291,9 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
         );
       }
     }
-    const last = await db
-      .prepare(
-        `SELECT issue_date FROM invoices WHERE year = ? AND series_id = ? AND number_int IS NOT NULL
-         ORDER BY number_int DESC LIMIT 1`,
-      )
-      .bind(year, seriesId)
-      .first<{ issue_date: string | null }>();
-    if (last?.issue_date && last.issue_date > issueDate) {
-      throw makeError("conflict", `date_before_last_issue (${last.issue_date})`);
+    const last = await lastIssueDate(db, year, seriesId);
+    if (last && last > issueDate) {
+      throw makeError("conflict", `date_before_last_issue (${last})`);
     }
     throw error;
   }

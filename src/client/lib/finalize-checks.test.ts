@@ -41,6 +41,19 @@ describe("finalizeProblems", () => {
     expect(outside.map((p) => p.key)).toEqual(["offline", "profile"]);
     expect(outside[1]?.to).toBe("/settings/profile");
   });
+
+  it("asks for a date not before the last issued number of the series", async () => {
+    const t = await translator();
+    const [problem] = finalizeProblems(t, {
+      errors: {},
+      nextNumber: 2,
+      online: true,
+      profileIncomplete: false,
+      dateBeforeLast: "3 Nov 2026",
+    });
+    expect(problem).toMatchObject({ key: "invoiceDate", field: "invoiceDate" });
+    expect(problem?.message).toContain("already issued on 3 Nov 2026");
+  });
 });
 
 describe("focusField", () => {

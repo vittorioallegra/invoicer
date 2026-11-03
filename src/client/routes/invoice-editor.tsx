@@ -295,6 +295,14 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     enabled: numberEditable,
   });
   const proposal = nextNumber.data?.next ?? null;
+  // A new number may not be dated before the last one issued in its series (same year): the date
+  // the invoice will be issued with is its own, or today when empty or in the future.
+  const issueDateNow = form.invoiceDate && form.invoiceDate <= today ? form.invoiceDate : today;
+  const lastIssued = numberEditable ? (nextNumber.data?.lastIssueDate ?? null) : null;
+  const dateBeforeLast =
+    lastIssued && lastIssued.slice(0, 4) === issueDateNow.slice(0, 4) && issueDateNow < lastIssued
+      ? formatDate(lastIssued, locale)
+      : null;
   const [extrasChoice, setExtrasChoice] = useState<boolean | null>(null);
   const [numberTouched, setNumberTouched] = useState(false);
   const [numberTaken, setNumberTaken] = useState(false);
@@ -481,6 +489,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
       nextNumber: proposal,
       online,
       profileIncomplete: send.reasons.includes("profile_incomplete"),
+      dateBeforeLast,
     });
     if (problems.length > 0) return { ok: false, problems };
     const { invoice } = await save.mutateAsync({
@@ -927,7 +936,11 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 </Field>
                 <Field
                   label={t("invoice.document.invoiceDate")}
-                  error={err("invoiceDate")}
+                  error={
+                    dateBeforeLast
+                      ? t("invoice.document.dateBeforeLast", { date: dateBeforeLast })
+                      : err("invoiceDate")
+                  }
                   name="invoiceDate"
                 >
                   {(c) => (

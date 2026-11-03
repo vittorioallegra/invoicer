@@ -2,9 +2,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ApiError } from "../../shared/errors";
 import { createI18n } from "../i18n";
 import { runSendFlow } from "../lib/send-flow";
-import { type Preflight, SendSheet } from "./send-sheet";
+import { type Preflight, SendError, SendSheet } from "./send-sheet";
 
 vi.mock("../lib/send-flow", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../lib/send-flow")>()),
@@ -92,5 +93,28 @@ describe("SendSheet as the Finalize dialog", () => {
     await waitFor(() => expect(onSent).toHaveBeenCalledWith("new1"));
     expect(vi.mocked(runSendFlow).mock.calls.at(-1)?.[0]).toBe("new1");
     expect(vi.mocked(runSendFlow).mock.calls.at(-1)?.[2]).toBe("manual");
+  });
+});
+
+describe("SendError", () => {
+  it("explains a date before the last issued number of the series", async () => {
+    const i18n = await createI18n("en");
+    render(
+      <I18nextProvider i18n={i18n}>
+        <SendError
+          error={
+            new ApiError({
+              type: "about:blank",
+              title: "Conflict",
+              status: 409,
+              code: "conflict",
+              anchor: "error-conflict",
+              detail: "date_before_last_issue (2026-11-03)",
+            })
+          }
+        />
+      </I18nextProvider>,
+    );
+    expect(screen.getByText(/already issued on 3 Nov 2026/)).toBeTruthy();
   });
 });

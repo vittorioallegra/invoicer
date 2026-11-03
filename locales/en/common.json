@@ -493,6 +493,7 @@
       "note": "Note",
       "noteHint": "Printed on the invoice and sent in the XML (Causale).",
       "invoiceDate": "Invoice date",
+      "dateBeforeLast": "An invoice in the same series was already issued on {{date}}: this invoice needs a date from {{date}} on, or a different series.",
       "dueDate": "Due date",
       "number": "Number",
       "numberGap": "This leaves a gap: the numbers {{from}} to {{to}} of {{year}} will stay unused.",

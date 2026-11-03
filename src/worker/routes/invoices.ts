@@ -20,6 +20,7 @@ import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
 import {
   defaultSeriesId,
+  lastIssueDate,
   nextFreeNumber,
   releaseNumber,
   reserveNumber,
@@ -119,7 +120,8 @@ invoices.get("/", async (c) => {
 
 /**
  * The number proposed for a new invoice of the year in a series (`series` query, default series
- * when absent): highest issued in that series (app and imported) + 1.
+ * when absent): highest issued in that series (app and imported) + 1, with the date of that
+ * highest one, before which a new number may not be dated.
  */
 invoices.get("/next-number", async (c) => {
   const raw = c.req.query("year");
@@ -132,7 +134,12 @@ invoices.get("/next-number", async (c) => {
     .bind(series)
     .first();
   if (!exists) throw makeError("bad_request", "series: not_found");
-  return c.json({ year, series, next: await nextFreeNumber(c.env.DB, year, series) });
+  return c.json({
+    year,
+    series,
+    next: await nextFreeNumber(c.env.DB, year, series),
+    lastIssueDate: await lastIssueDate(c.env.DB, year, series),
+  });
 });
 
 invoices.post("/", async (c) => {

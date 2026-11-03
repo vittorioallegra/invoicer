@@ -31,7 +31,7 @@ export const invoiceQuery = (id: string) => ({
 export const nextNumberQuery = (year: number, seriesId: string | null = null) => ({
   queryKey: ["next-number", year, seriesId],
   queryFn: () =>
-    api<{ year: number; series: string; next: number }>(
+    api<{ year: number; series: string; next: number; lastIssueDate: string | null }>(
       `/api/invoices/next-number?year=${year}${seriesId ? `&series=${encodeURIComponent(seriesId)}` : ""}`,
     ),
 });

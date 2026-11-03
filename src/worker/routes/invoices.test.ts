@@ -426,7 +426,12 @@ describe("invoice number on the invoice", () => {
       .run();
     expect((await nextNumber()).next).toBe(first.next + 41);
     // Another year does not count, and the year can be asked for.
-    expect(await nextNumber("?year=2001")).toEqual({ year: 2001, series: "default", next: 1 });
+    expect(await nextNumber("?year=2001")).toEqual({
+      year: 2001,
+      series: "default",
+      next: 1,
+      lastIssueDate: null,
+    });
     expect((await owner.json("/api/invoices/next-number?year=abc")).status).toBe(400);
     expect((await owner.json("/api/invoices/next-number?year=99999")).status).toBe(400);
     const anon = new TestClient("10.8.1.9", bindings);

@@ -4,6 +4,7 @@ import { CircleCheck, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ApiError } from "../../shared/errors";
+import { formatDate } from "../../shared/format";
 import { describeXsdErrors } from "../lib/fatturapa-errors";
 import type { FinalizeProblem } from "../lib/finalize-checks";
 import {
@@ -247,7 +248,7 @@ export function SendSheet({
 
 /** Plain-language reason for a failed send, with what to do next. */
 export function SendError({ error }: { error: unknown }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   if (error instanceof SendFlowError) {
     if (error.code === "invalid_xml") {
       const described = error.detail.mapped
@@ -275,6 +276,17 @@ export function SendError({ error }: { error: unknown }) {
     return <Banner tone="warning">{t(`send.errors.${error.code}`)}</Banner>;
   }
   if (error instanceof ApiError) {
+    const dateConflict = /^date_before_last_issue \((\d{4}-\d{2}-\d{2})\)$/.exec(
+      error.problem.detail ?? "",
+    );
+    if (dateConflict?.[1]) {
+      const locale = i18n.language.startsWith("it") ? "it" : "en";
+      return (
+        <Banner tone="danger">
+          {t("invoice.document.dateBeforeLast", { date: formatDate(dateConflict[1], locale) })}
+        </Banner>
+      );
+    }
     const key = `send.errors.${error.code}`;
     return (
       <Banner tone="danger">

@@ -34,6 +34,8 @@ vi.mock("../lib/send-flow", async (importOriginal) => ({
 
 /** What GET /api/invoices/next-number answers; tests change it to simulate another device. */
 let proposal = 8;
+/** The date of the last issued number the endpoint reports (null = none issued yet). */
+let lastIssueDate: string | null = null;
 const YEAR = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome", year: "numeric" }).format(
   new Date(),
 );
@@ -186,6 +188,7 @@ function serve(
         year: Number(YEAR),
         series: series ?? "default",
         next: series === "ch" ? 3 : proposal,
+        lastIssueDate,
       };
     }
     if (path === "/api/invoices" && init?.method === "POST")
@@ -244,6 +247,7 @@ beforeEach(() => {
   mocks.runSend.mockReset();
   mocks.downloadUrl.mockReset();
   proposal = 8;
+  lastIssueDate = null;
 });
 afterEach(cleanup);
 
@@ -1516,6 +1520,22 @@ describe("Invoice editor, number on the invoice", () => {
       await screen.findByText("That number is no longer free. The next free number is 10."),
     ).toBeTruthy();
     expect(numberInput().value).toBe("9");
+  });
+});
+
+describe("Invoice editor, date before the last issued number", () => {
+  it("explains on the date field and in the Finalize checks that the date is too early", async () => {
+    lastIssueDate = `${YEAR}-12-31`;
+    serve({ invoice: record({ invoiceDate: `${YEAR}-01-02` }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    const message = /already issued on 31 Dec .*needs a date from/;
+    expect(await screen.findByText(message)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: /Finalize|Check|Continue/ }));
+    expect(await within(dialog).findByText(message)).toBeTruthy();
+    expect(mocks.runSend).not.toHaveBeenCalled();
   });
 });
 

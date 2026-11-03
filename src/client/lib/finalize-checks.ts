@@ -101,6 +101,8 @@ export function finalizeProblems(
     nextNumber: number | null;
     online: boolean;
     profileIncomplete: boolean;
+    /** The formatted date of the last issued number of the series when the invoice is dated before it. */
+    dateBeforeLast?: string | null;
   },
 ): FinalizeProblem[] {
   const out: FinalizeProblem[] = [];
@@ -110,6 +112,14 @@ export function finalizeProblems(
       key: "profile",
       label: t("onboarding.reasons.profile_incomplete"),
       to: "/settings/profile",
+    });
+  }
+  if (input.dateBeforeLast) {
+    out.push({
+      key: "invoiceDate",
+      label: t("invoice.document.invoiceDate"),
+      message: t("invoice.document.dateBeforeLast", { date: input.dateBeforeLast }),
+      field: "invoiceDate",
     });
   }
   const paths = Object.keys(input.errors).sort((a, b) => {

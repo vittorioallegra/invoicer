@@ -493,6 +493,7 @@
       "note": "Note",
       "noteHint": "Stampata sulla fattura e inviata nell'XML (Causale).",
       "invoiceDate": "Data fattura",
+      "dateBeforeLast": "Nella stessa numerazione c'è già una fattura emessa il {{date}}: questa fattura deve avere una data dal {{date}} in poi, oppure una numerazione diversa.",
       "dueDate": "Scadenza",
       "number": "Numero",
       "numberGap": "Così si crea un salto: i numeri da {{from}} a {{to}} del {{year}} resteranno inutilizzati.",
