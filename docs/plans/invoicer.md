@@ -417,7 +417,7 @@ Approved: yes (2026-11-02)
 - [x] 11. PDF — `feat(pdf): render the invoice PDF in IT/EN in the browser and store it per transmission attempt`
 - [x] 12. PEC channel and send flow — `feat(invoices): add the invoice detail page with downloads, manual AdE channel actions and a state-driven primary action`
 - [x] 13. Mailbox polling and SdI receipts — `docs: write the cutover runbook and tick the mailbox polling step`
-- [ ] 14. UI polish: Liquid Glass
+- [ ] 14. UI polish: Liquid Glass (deferred to a later phase, after step 21)
 - [ ] 15. Received invoices and imports
 - [ ] 16. Lists and dashboard
 - [ ] 17. Courtesy email
@@ -463,6 +463,7 @@ Approved: yes (2026-11-02)
 - No notifications for non-SdI PEC messages: the app ignores them and the owner reads them in the Aruba app (2026-11-02).
 
 - Liquid Glass styling after Milestone A, as a dedicated step 14 once the real screens exist (2026-11-02, owner request).
+- Step 14 (Liquid Glass) deferred to a later phase; the owner tests the app locally first, then work continues with step 15 (2026-11-03, owner).
 - Scheduling (2026-11-02): one cron trigger `*/10 * * * *` only; every run polls the mailbox and the daily jobs run once per Rome day from 09:00 Europe/Rome, tracked in `job_runs` with catch-up of missed ticks. No weekly job, no automatic backup and no monthly reminder: restore relies on D1 Time Travel and the manual "Download all data" export.
 
 - Spike results (docs/notes/spike.md): passkey and Web Push pass on iPhone (iOS 27) and Mac; PBKDF2 at 10,000 iterations; Aruba needs a dedicated mail-client password; the mailbox poll fetches only small MIME parts in the Worker and leaves full invoice/P7M parsing to the browser (2026-11-02).
@@ -490,4 +491,4 @@ Approved: yes (2026-11-02)
 - Milestone A exit pending the owner: set the next number from FiC, send one real invoice through the production PEC mailbox (AC 21), follow the cutover runbook in README.
 
 ### Next
-Milestone A exit by the owner (see Open questions), then step 14: UI polish: Liquid Glass.
+Owner tests the app locally; then Milestone A exit by the owner (see Open questions) and step 15: Received invoices and imports. Step 14 is deferred.
