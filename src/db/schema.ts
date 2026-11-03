@@ -56,6 +56,8 @@ export const profile = sqliteTable(
     province: text("province"),
     country: text("country").notNull().default("IT"),
     regimeFiscale: text("regime_fiscale").notNull().default("RF01"),
+    email: text("email"),
+    phone: text("phone"),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
   },
   (t) => [check("profile_single_row", sql`${t.id} = 1`)],

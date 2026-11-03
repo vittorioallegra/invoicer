@@ -20,6 +20,8 @@ function toResponse(row: typeof schema.profile.$inferSelect) {
     city: row.city,
     province: row.province,
     country: row.country,
+    email: row.email,
+    phone: row.phone,
     regimeFiscale: row.regimeFiscale,
   };
 }

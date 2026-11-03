@@ -217,6 +217,8 @@
     "invalid_country": "Inserisci il codice paese di 2 lettere.",
     "invalid_iban": "Questo IBAN non è valido.",
     "invalid_bic": "Questo codice BIC/SWIFT non è valido.",
+    "invalid_phone": "Usa cifre, spazi, punti, trattini o parentesi, con un + o 00 iniziale facoltativo.",
+    "invalid_phone_length": "Il file della fattura richiede da 5 a 12 cifre dopo il prefisso internazionale (+ o 00); se il numero è più lungo, il prefisso italiano 39 viene tolto.",
     "invalid_email": "Inserisci un indirizzo email valido.",
     "invalid_recipient_code": "Inserisci 7 lettere o cifre.",
     "invalid_eu_country": "Inserisci un codice paese UE diverso da IT.",
@@ -251,7 +253,11 @@
     "postalCode": "CAP",
     "city": "Città",
     "province": "Provincia",
-    "country": "Paese"
+    "country": "Paese",
+    "contactsTitle": "Contatti",
+    "contactsHint": "Facoltativi. Stampati sotto i tuoi dati in fattura.",
+    "email": "Email",
+    "phone": "Telefono"
   },
   "tax": {
     "title": "Dati fiscali",
@@ -670,6 +676,8 @@
         "city": "Il tuo comune (azienda)",
         "province": "La tua provincia (azienda)",
         "country": "Il tuo paese (azienda)",
+        "email": "La tua email (azienda)",
+        "phone": "Il tuo telefono (azienda)",
         "regimeFiscale": "Il tuo regime fiscale (azienda)"
       },
       "client": {
@@ -738,6 +746,8 @@
     "foreignTaxId": "Identificativo fiscale: {{value}}",
     "recipientCode": "Codice destinatario SdI: {{value}}",
     "pec": "PEC: {{value}}",
+    "email": "Email: {{value}}",
+    "phone": "Tel.: {{value}}",
     "linked": "Rettifica la fattura {{number}} del {{date}}",
     "columns": {
       "description": "Descrizione",

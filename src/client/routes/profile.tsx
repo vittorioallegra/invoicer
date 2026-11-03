@@ -30,6 +30,8 @@ interface FormState {
   city: string;
   province: string;
   country: string;
+  email: string;
+  phone: string;
 }
 
 const EMPTY: FormState = {
@@ -41,6 +43,8 @@ const EMPTY: FormState = {
   city: "",
   province: "",
   country: "IT",
+  email: "",
+  phone: "",
 };
 
 function fromProfile(p: ProfileResponse): FormState {
@@ -53,6 +57,8 @@ function fromProfile(p: ProfileResponse): FormState {
     city: p.city ?? "",
     province: p.province ?? "",
     country: p.country,
+    email: p.email ?? "",
+    phone: p.phone ?? "",
   };
 }
 
@@ -66,6 +72,8 @@ function toBody(f: FormState) {
     city: f.city,
     province: f.province,
     country: f.country,
+    email: f.email,
+    phone: f.phone,
   };
 }
 
@@ -235,6 +243,34 @@ export function ProfilePage() {
                     onChange={set("country")}
                     maxLength={2}
                     autoCapitalize="characters"
+                  />
+                )}
+              </Field>
+            </div>
+          </GroupBox>
+
+          <GroupBox title={t("profile.contactsTitle")}>
+            <p className="text-sm text-muted-foreground">{t("profile.contactsHint")}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label={t("profile.email")} error={err("email")}>
+                {(c) => (
+                  <Input
+                    {...c}
+                    type="email"
+                    value={form.email}
+                    onChange={set("email")}
+                    autoComplete="email"
+                  />
+                )}
+              </Field>
+              <Field label={t("profile.phone")} error={err("phone")}>
+                {(c) => (
+                  <Input
+                    {...c}
+                    type="tel"
+                    value={form.phone}
+                    onChange={set("phone")}
+                    autoComplete="tel"
                   />
                 )}
               </Field>

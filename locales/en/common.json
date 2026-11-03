@@ -217,6 +217,8 @@
     "invalid_country": "Enter the 2-letter country code.",
     "invalid_iban": "This IBAN is not valid.",
     "invalid_bic": "This BIC/SWIFT code is not valid.",
+    "invalid_phone": "Use digits, spaces, dots, dashes or parentheses, with an optional leading + or 00.",
+    "invalid_phone_length": "The invoice file needs 5 to 12 digits after the country code (+ or 00); the Italian code 39 is dropped if the number is longer.",
     "invalid_email": "Enter a valid email address.",
     "invalid_recipient_code": "Enter 7 letters or digits.",
     "invalid_eu_country": "Enter an EU country code other than IT.",
@@ -251,7 +253,11 @@
     "postalCode": "Postal code",
     "city": "City",
     "province": "Province",
-    "country": "Country"
+    "country": "Country",
+    "contactsTitle": "Contacts",
+    "contactsHint": "Optional. Printed under your details on the invoice.",
+    "email": "Email",
+    "phone": "Phone"
   },
   "tax": {
     "title": "Tax details",
@@ -670,6 +676,8 @@
         "city": "Your city (company)",
         "province": "Your province (company)",
         "country": "Your country (company)",
+        "email": "Your email (company)",
+        "phone": "Your phone (company)",
         "regimeFiscale": "Your tax regime (company)"
       },
       "client": {
@@ -738,6 +746,8 @@
     "foreignTaxId": "Tax ID: {{value}}",
     "recipientCode": "SdI recipient code: {{value}}",
     "pec": "PEC: {{value}}",
+    "email": "Email: {{value}}",
+    "phone": "Tel.: {{value}}",
     "linked": "Corrects invoice {{number}} of {{date}}",
     "columns": {
       "description": "Description",

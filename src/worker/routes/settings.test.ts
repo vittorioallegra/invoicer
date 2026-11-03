@@ -115,6 +115,26 @@ describe("profile", () => {
     // The regime is not part of the Company form: a new row starts at the ordinary regime.
     expect(saved.body.profile).toMatchObject({ regimeFiscale: "RF01", taxCode: null });
 
+    const contacts = await owner.json<{ profile: { email: string | null; phone: string | null } }>(
+      "/api/profile",
+      { method: "PUT", body: { ...profile, email: "info@studio.it", phone: "+39 06 1234567" } },
+    );
+    expect(contacts.body.profile).toMatchObject({
+      email: "info@studio.it",
+      phone: "+39 06 1234567",
+    });
+    const badPhone = await owner.json<{ detail: string }>("/api/profile", {
+      method: "PUT",
+      body: { ...profile, phone: "12" },
+    });
+    expect(badPhone.status).toBe(400);
+    expect(badPhone.body.detail).toContain("phone: invalid_phone_length");
+    const cleared = await owner.json<{ profile: { email: null; phone: null } }>("/api/profile", {
+      method: "PUT",
+      body: profile,
+    });
+    expect(cleared.body.profile).toMatchObject({ email: null, phone: null });
+
     await owner.json("/api/profile", { method: "PUT", body: { ...profile, name: "Mario R." } });
     const row = await env.DB.prepare("SELECT COUNT(*) AS n, name FROM profile").first<{
       n: number;

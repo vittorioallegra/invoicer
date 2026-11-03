@@ -15,6 +15,8 @@ export interface ProfileResponse {
   city: string | null;
   province: string | null;
   country: string;
+  email: string | null;
+  phone: string | null;
   regimeFiscale: string;
 }
 
