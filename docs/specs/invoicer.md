@@ -267,7 +267,22 @@ settle the open ones):
   shown as "code — short description". Bollo virtuale (2.00 EUR): a manual checkbox on the
   invoice only, never applied automatically and never taken from the client; when the natura
   (no-VAT) lines exceed 77.47 EUR and it is unchecked, the editor shows a non-blocking hint
-  suggesting it, and the totals, the XML (`DatiBollo`) and the PDF follow the checkbox alone; currency (default EUR); payment
+  suggesting it, and the totals, the XML (`DatiBollo`) and the PDF follow the checkbox alone.
+  With bollo on, a choice says who bears it ("Addebitato al cliente", the default, or "A carico
+  mio"; `data.bolloCharge`). Charged to the client: the app generates a line "Imposta di bollo" of
+  2.00 EUR (quantity 1, not editable, shown read-only after the user lines in the editor and on
+  the PDF) with the natura of the no-VAT lines (several naturas: the one with the largest
+  total, the first in line order on a tie; no natura line: no stamp line). It is calculated like
+  any line, so it enters the taxable base, the document total and the amount due, and the cassa
+  and ritenuta bases; the XML has a regular `DettaglioLinee` for it (with `Ritenuta` like the
+  others). Borne by the issuer: no line and the totals do not change. In both cases `DatiBollo`
+  has `BolloVirtuale` = `SI` and `ImportoBollo` 2.00 (the AdE ignores the amount). Why not an N1
+  line: AdE Circ. 5/E 2021 and Interpello 428/2022 say the rebilled stamp is part of the
+  compenso and cannot be excluded under art. 15 DPR 633/72; sources in docs/notes/bollo.md.
+  Invoices stored before the choice existed read as `legacy` (2.00 added to the total and amount
+  due without a line, exactly as they were calculated), never offered in the UI; an unsent
+  invoice is moved to "client" when opened, and a duplicate, credit note or reissue starts
+  with the current rule. Currency (default EUR); payment
   data (method, due date and the bank account copied from the Payment methods list: IBAN,
   BIC/SWIFT, holder).
 - Options that stand for a code show the code and a short description in the UI language
@@ -568,20 +583,25 @@ settle the open ones):
    Fixture inputs and expected totals (source of truth, worked out by hand; implemented in
    `src/shared/fixtures/invoices.ts`). Rules: VAT per rate group on the rounded group taxable,
    the contribution takes the group's rate (or natura), ritenuta on lines + rivalsa INPS (not on
-   a cassa contributo integrativo), bollo 2.00 added to the amount due, half-up rounding to the
+   a cassa contributo integrativo), bollo charged to the client = a 2.00 line with the natura of
+   the no-VAT lines, in the taxable base like any line (fixtures b, c, j; borne by the issuer: k;
+   stored invoices, `legacy`: 2.00 in the total without a line: l), half-up rounding to the
    cent, TD04 amounts positive with the document type giving the sign. Amounts in cents/100.
 
    | Fix. | Inputs | Contribution | Taxable | VAT | Ritenuta | Stamp | Doc. total | Due |
    |------|--------|-------------:|--------:|----:|---------:|------:|-----------:|----:|
    | a | RF01, IT company; 1 x 1,200.00 + 7.5 x 65.30 (489.75), 22%; rivalsa INPS 4% excluded; ritenuta 20% | 67.59 | 1,757.34 | 386.61 | 351.47 | 0 | 2,143.95 | 1,792.48 |
-   | b | RF19, IT private; 1 x 800.00 + 3 x 41.70, N2.2; bollo | 0 | 925.10 | 0 | 0 | 2.00 | 927.10 | 927.10 |
-   | c | RF01, EU company (XXXXXXX); 12.5 x 87.30 (1,091.25) + 1 x 250.00, N2.1; bollo | 0 | 1,341.25 | 0 | 0 | 2.00 | 1,343.25 | 1,343.25 |
+   | b | RF19, IT private; 1 x 800.00 + 3 x 41.70, N2.2; bollo charged (line 2.00, N2.2) | 0 | 927.10 | 0 | 0 | 0 | 927.10 | 927.10 |
+   | c | RF01, EU company (XXXXXXX); 12.5 x 87.30 (1,091.25) + 1 x 250.00, N2.1; bollo charged (line 2.00, N2.1) | 0 | 1,343.25 | 0 | 0 | 0 | 1,343.25 | 1,343.25 |
    | d | RF01, non-EU company (XXXXXXX), USD; 1 x 2,500.00 + 3 x 479.99, N2.1; no bollo (EUR amount, see step 10) | 0 | 3,939.97 | 0 | 0 | 0 | 3,939.97 | 3,939.97 |
    | e | RF01, IT company; 1 x 3,200.00 + 18.5 x 71.30 (1,319.05), 22%; cassa TC04 4% excluded, 22% on the contribution, not subject to ritenuta; ritenuta 20% on 4,519.05 | 180.76 | 4,699.81 | 1,033.96 | 903.81 | 0 | 5,733.77 | 4,829.96 |
    | f1 | RF01, IT company; typed 1,040.00 at 22%; rivalsa INPS 4% included (base 1,000.00 + 40.00) | 40.00 | 1,040.00 | 228.80 | 0 | 0 | 1,268.80 | 1,268.80 |
    | f2 | as f1, typed 999.99 (base 961.53 + 38.46) | 38.46 | 999.99 | 220.00 | 0 | 0 | 1,219.99 | 1,219.99 |
    | h | RF01, IT company; 1 x 1,000.00, 22%; ritenuta 20% on 10% of the taxable (base 100.00) | 0 | 1,000.00 | 220.00 | 20.00 | 0 | 1,220.00 | 1,200.00 |
    | i | as h, with rivalsa INPS 4% excluded (40.00) subject to ritenuta; ritenuta 20% on 10% of 1,040.00 (base 104.00) | 40.00 | 1,040.00 | 228.80 | 20.80 | 0 | 1,268.80 | 1,248.00 |
+   | j | RF01, IT company; 1 x 1,000.00, N4; bollo charged (line 2.00, N4); cassa TC04 4% excluded on 1,002.00; ritenuta 20% on 1,002.00 | 40.08 | 1,042.08 | 0 | 200.40 | 0 | 1,042.08 | 841.68 |
+   | k | as b, bollo borne by the issuer (no line) | 0 | 925.10 | 0 | 0 | 0 | 925.10 | 925.10 |
+   | l | as b, stored before the choice (legacy: 2.00 in the total, no line) | 0 | 925.10 | 0 | 0 | 2.00 | 927.10 | 927.10 |
    | g | TD04 linked to (a) (no. 1, 2026-03-15); 3 x 65.30 (195.90), 22%; rivalsa INPS 4% excluded; ritenuta 20% | 7.84 | 203.74 | 44.82 | 40.75 | 0 | 248.56 | 207.81 (signed -207.81) |
 7. Using recorded IMAP/SMTP fixtures and a fake socket (no network), a sent invoice goes to
    `sent` on the PEC delivery receipt and then to `delivered`, `not_delivered` or `rejected`
