@@ -336,10 +336,8 @@ settle the open ones):
   stored with a hand-set due date keeps it until it is edited. The bank account select (payment
   method MP05) stays in the section, right below the row.
   The XML keeps `DataScadenzaPagamento` (the computed date) and, for custom terms, adds
-  `GiorniTerminiPagamento` (days) and `DataRiferimentoTerminiPagamento` (the invoice date); the other choices write just `DataScadenzaPagamento`. The PDF prints the
-  terms in words ("Data fattura", "15 gg fine mese data fattura", "30 gg fine mese data
-  fattura", "60 gg fine mese data fattura", "30 gg data fattura" / "Invoice date", "30 days
-  from invoice date") and the due date.
+  `GiorniTerminiPagamento` (days) and `DataRiferimentoTerminiPagamento` (the invoice date); the other choices write just `DataScadenzaPagamento`. The PDF prints
+  only the due date, not the terms it was computed from.
 - Editor document fields: three rows of two columns from `sm` up (stacked on phones): document
   type and invoice date; numbering series and number; language and currency. For a credit note
   the linked-invoice field follows these rows. "Lingua" (language, Italian or English) belongs
@@ -540,7 +538,7 @@ settle the open ones):
   data (no tax regime line), lines, natura and its legal reference, the invoice notes, and
   the note that the legally valid invoice is the electronic one sent to SdI. There is no VAT
   summary table and the header holds only the title and the number and date. Payment (method,
-  holder, bank, IBAN, BIC/SWIFT, terms in words, due date; no amount line) and the totals recap
+  holder, bank, IBAN, BIC/SWIFT, due date; no terms, no amount line) and the totals recap
   (contribution, VAT, stamp, document total, withholding, amount due) form one block anchored
   to the bottom of the last page, payment on the left and totals on the right; it never
   splits across pages, so a long invoice flows to a second page and the block sits on the

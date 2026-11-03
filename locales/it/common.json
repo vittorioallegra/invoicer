@@ -785,15 +785,7 @@
       "MP23": "PagoPA"
     },
     "legalNote": "Copia di cortesia. La fattura giuridicamente valida è la fattura elettronica (XML) trasmessa tramite il Sistema di Interscambio (SdI) e disponibile nell'area riservata del destinatario.",
-    "page": "Pagina {{pageNumber}} di {{totalPages}}",
-    "terms": {
-      "label": "Termini",
-      "invoice_date": "Data fattura",
-      "eom_15": "15 gg fine mese data fattura",
-      "eom_30": "30 gg fine mese data fattura",
-      "eom_60": "60 gg fine mese data fattura",
-      "custom": "{{days}} gg data fattura"
-    }
+    "page": "Pagina {{pageNumber}} di {{totalPages}}"
   },
   "pec": {
     "title": "Casella PEC",

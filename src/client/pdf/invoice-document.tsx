@@ -29,8 +29,11 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: "Helvetica-Bold", marginBottom: 3 },
   bottom: { marginTop: "auto", paddingTop: 16, flexDirection: "row", gap: 24 },
   paymentBlock: { flex: 1 },
-  totals: { width: 260 },
-  totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 1.5 },
+  totals: { width: 280 },
+  totalRow: { flexDirection: "row", paddingVertical: 1.5 },
+  // A long label (a cassa or ritenuta description) wraps inside its own column, never under the amount.
+  totalLabel: { flex: 1, paddingRight: 10 },
+  totalValue: { flexShrink: 0, textAlign: "right" },
   due: { fontSize: 11, fontFamily: "Helvetica-Bold", marginTop: 2 },
   footer: { position: "absolute", left: 36, right: 36, bottom: 24, fontSize: 7.5, color: "#555" },
   pageNumber: { textAlign: "right", marginTop: 2 },
@@ -125,8 +128,12 @@ export function InvoiceDocument({ model, t }: { model: InvoicePdfModel; t: TFunc
           <View style={styles.totals}>
             {model.totals.map((row) => (
               <View key={row.label} style={styles.totalRow}>
-                <Text style={row.strong ? styles.due : undefined}>{row.label}</Text>
-                <Text style={row.strong ? styles.due : undefined}>{row.value}</Text>
+                <Text style={row.strong ? [styles.totalLabel, styles.due] : styles.totalLabel}>
+                  {row.label}
+                </Text>
+                <Text style={row.strong ? [styles.totalValue, styles.due] : styles.totalValue}>
+                  {row.value}
+                </Text>
               </View>
             ))}
             {model.ritenuta ? <Text style={styles.muted}>{model.ritenuta}</Text> : null}

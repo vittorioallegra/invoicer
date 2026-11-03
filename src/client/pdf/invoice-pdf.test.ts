@@ -133,29 +133,15 @@ describe("invoice PDF payment terms", () => {
     };
   };
 
-  it("prints the terms in words and the due date, in the PDF language", async () => {
+  it("prints the due date in the PDF language, never the terms it came from", async () => {
     const it = extractText(await renderInvoicePdf(withTerms("b", { kind: "eom_30" })));
-    expect(it).toContain("30 gg fine mese data fattura");
+    expect(it).toContain("Scadenza");
     expect(it).toContain("31 dic 2026");
-    const en = extractText(await renderInvoicePdf(withTerms("c", { kind: "eom_30" })));
-    expect(en).toContain("30 days end of month");
+    expect(it).not.toContain("fine mese");
+    expect(it).not.toContain("Termini");
+    const en = extractText(await renderInvoicePdf(withTerms("c", { kind: "custom", days: 60 })));
     expect(en).toContain("31 Dec 2026");
-    const custom = extractText(
-      await renderInvoicePdf(withTerms("c", { kind: "custom", days: 60 })),
-    );
-    expect(custom).toContain("60 days from invoice date");
-    const customIt = extractText(
-      await renderInvoicePdf(withTerms("b", { kind: "custom", days: 45 })),
-    );
-    expect(customIt).toContain("45 gg data fattura");
-    const df = extractText(await renderInvoicePdf(withTerms("c", { kind: "invoice_date" })));
-    expect(df).toContain("Invoice date");
-    const dfIt = extractText(await renderInvoicePdf(withTerms("b", { kind: "invoice_date" })));
-    expect(dfIt).toContain("Data fattura");
-    const eom15 = extractText(await renderInvoicePdf(withTerms("c", { kind: "eom_15" })));
-    expect(eom15).toContain("15 days end of month");
-    const eom60It = extractText(await renderInvoicePdf(withTerms("b", { kind: "eom_60" })));
-    expect(eom60It).toContain("60 gg fine mese data fattura");
+    expect(en).not.toContain("days from invoice date");
   });
 
   it("prints only the due date without terms", async () => {

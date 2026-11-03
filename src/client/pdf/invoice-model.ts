@@ -195,13 +195,7 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
     if (pay.iban) payment.push({ label: t("pdf.payment.iban"), value: pay.iban });
     if (pay.bic) payment.push({ label: t("pdf.payment.bic"), value: pay.bic });
   }
-  const terms = pay.terms;
-  if (terms) {
-    payment.push({
-      label: t("pdf.terms.label"),
-      value: t(`pdf.terms.${terms.kind}`, { days: terms.kind === "custom" ? terms.days : 0 }),
-    });
-  }
+  // The due date alone: the terms it was computed from are not printed.
   if (invoice.dueDate) {
     payment.push({ label: t("pdf.payment.dueDate"), value: formatDate(invoice.dueDate, language) });
   }
