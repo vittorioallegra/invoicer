@@ -255,11 +255,11 @@ export function InvoiceLines({
                     </Select>
                   )}
                 </Cell>
-                <div className="col-span-2 md:col-span-2">
+                <div className="col-span-2 text-right md:col-span-2">
                   <span className="mb-1 block text-sm font-medium">
                     {t("invoice.lines.amount")}
                   </span>
-                  <p className="flex min-h-11 items-center font-medium tabular-nums md:justify-end">
+                  <p className="flex min-h-11 items-center font-medium tabular-nums justify-end">
                     {amount === undefined ? "–" : formatMoney(amount, locale, currency)}
                   </p>
                 </div>

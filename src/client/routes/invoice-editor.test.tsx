@@ -939,6 +939,15 @@ describe("Invoice editor", () => {
     expect(within(line).getByText("Amount")).toBeTruthy();
   });
 
+  it("right-aligns the line amount with its label", async () => {
+    serve({ invoice: record() });
+    await renderEditor("/invoices/i1");
+    const line = await screen.findByTestId("invoice-line");
+    const label = within(line).getByText("Amount");
+    expect(label.parentElement?.className).toContain("text-right");
+    expect(label.nextElementSibling?.className).toContain("justify-end");
+  });
+
   it("shows move and remove controls only with two or more lines", async () => {
     const two = record().lines.concat(record().lines);
     serve({ invoice: record() });
