@@ -83,6 +83,14 @@
    * the translucent status bar or the home indicator while the viewport settles, and size the
    * body with dvh (never vh). Safe-area insets are applied once, on the shell (app-shell.tsx).
    */
+  /* Tailwind v4 dropped the pointer cursor on buttons; restore it for every enabled control. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
   html {
     -webkit-text-size-adjust: 100%;
     background: var(--background);
