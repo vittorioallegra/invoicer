@@ -17,7 +17,7 @@ async function apply(predicate: (file: string) => boolean) {
 
 describe("payment methods migration", () => {
   it("turns the profile's payment data into the first default account and drops the column", async () => {
-    await apply((file) => !file.includes("0003_"));
+    await apply((file) => !file.includes("0003_") && !file.includes("0005_"));
     await env.DB.prepare(
       `INSERT INTO profile (id, name, vat_number, country, regime_fiscale, payment_defaults)
        VALUES (1, 'Mario Rossi', '12345678903', 'IT', 'RF19', ?)`,
@@ -44,6 +44,13 @@ describe("payment methods migration", () => {
       account_holder: "Mario Rossi",
       is_default: 1,
     });
+
+    await apply((file) => file.includes("0005_"));
+    const kept = await env.DB.prepare("SELECT * FROM payment_methods").first<
+      Record<string, unknown>
+    >();
+    expect(kept).toMatchObject({ label: "Fineco", account_holder: "Mario Rossi", is_default: 1 });
+    expect(kept).not.toHaveProperty("bank_name");
     const columns = await env.DB.prepare("PRAGMA table_info(profile)").all<{ name: string }>();
     expect(columns.results.map((c) => c.name)).not.toContain("payment_defaults");
     const profile = await env.DB.prepare("SELECT name FROM profile").first<{ name: string }>();

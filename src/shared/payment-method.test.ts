@@ -36,7 +36,6 @@ describe("payment method input", () => {
     label: " Fineco ",
     iban: "IT60 X054 2811 1010 0000 0123 456",
     bic: "uncritmm",
-    bankName: "",
     accountHolder: " Mario Rossi ",
   };
 
@@ -45,7 +44,6 @@ describe("payment method input", () => {
       label: "Fineco",
       iban: "IT60X0542811101000000123456",
       bic: "UNCRITMM",
-      bankName: null,
       accountHolder: "Mario Rossi",
     });
   });

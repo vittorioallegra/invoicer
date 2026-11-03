@@ -72,7 +72,6 @@ export const paymentMethods = sqliteTable(
     label: text("label").notNull(),
     iban: text("iban").notNull(),
     bic: text("bic"),
-    bankName: text("bank_name"),
     accountHolder: text("account_holder"),
     isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
     createdAt: createdAt(),

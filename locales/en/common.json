@@ -865,7 +865,6 @@
     "emptyBody": "Add the account where clients should pay you. It will be preselected on new invoices.",
     "iban": "IBAN",
     "bic": "BIC/SWIFT",
-    "bankName": "Bank name",
     "accountHolder": "Account holder"
   },
   "toast": {

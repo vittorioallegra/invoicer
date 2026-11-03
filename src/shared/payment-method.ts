@@ -55,7 +55,6 @@ export const paymentMethodInputSchema = z.object({
     .refine((value) => value !== "", "required")
     .refine((value) => value === "" || isValidIban(value), "invalid_iban"),
   bic: paymentDefaultsSchema.shape.bic,
-  bankName: optional(140),
   accountHolder: optional(140),
 });
 export type PaymentMethodInput = z.input<typeof paymentMethodInputSchema>;
@@ -66,7 +65,6 @@ export interface PaymentMethodRecord {
   label: string;
   iban: string;
   bic: string | null;
-  bankName: string | null;
   accountHolder: string | null;
   isDefault: boolean;
 }

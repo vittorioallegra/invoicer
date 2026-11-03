@@ -31,17 +31,15 @@ interface FormState {
   label: string;
   iban: string;
   bic: string;
-  bankName: string;
   accountHolder: string;
 }
 
-const EMPTY: FormState = { label: "", iban: "", bic: "", bankName: "", accountHolder: "" };
+const EMPTY: FormState = { label: "", iban: "", bic: "", accountHolder: "" };
 
 const fromRecord = (m: PaymentMethodRecord): FormState => ({
   label: m.label,
   iban: m.iban,
   bic: m.bic ?? "",
-  bankName: m.bankName ?? "",
   accountHolder: m.accountHolder ?? "",
 });
 
@@ -117,9 +115,6 @@ function AccountForm({
       </Field>
       <Field label={t("paymentMethods.bic")} error={err("bic")}>
         {(c) => <Input {...c} value={form.bic} onChange={set("bic")} autoCapitalize="characters" />}
-      </Field>
-      <Field label={t("paymentMethods.bankName")} error={err("bankName")}>
-        {(c) => <Input {...c} value={form.bankName} onChange={set("bankName")} />}
       </Field>
       <Field label={t("paymentMethods.accountHolder")} error={err("accountHolder")}>
         {(c) => <Input {...c} value={form.accountHolder} onChange={set("accountHolder")} />}
@@ -204,10 +199,7 @@ export function PaymentMethodsPage() {
                       </span>
                     ) : null}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    {maskIban(method.iban)}
-                    {method.bankName ? ` · ${method.bankName}` : ""}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{maskIban(method.iban)}</p>
                 </div>
                 {!method.isDefault ? (
                   <Button

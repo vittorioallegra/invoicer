@@ -122,15 +122,15 @@ settle the open ones):
    FiC). It holds no bank data (see Payment methods below) and no default payment terms:
    those are set on each invoice (clients keep their own defaults).
 3a. **Payment methods:** a list of bank accounts, each with a short name (for example
-   "Fineco"), IBAN (mod-97 checked), BIC/SWIFT, bank name and account holder. Bank
+   "Fineco"), IBAN (mod-97 checked), BIC/SWIFT and account holder (no bank name). Bank
    transfer only (MP05). Exactly one account is the default while any exist: the first one
    added becomes it, the owner can move it, and deleting the default promotes the oldest
    remaining account (or leaves none). There is no per-client account. Each new invoice
    starts from the default account and the editor lets the owner pick another while the
    invoice is editable. The invoice stores a copy (snapshot) of the chosen account's IBAN,
-   BIC, bank name and holder, so editing or deleting an account later never changes an
+   BIC and holder, so editing or deleting an account later never changes an
    invoice; the XML (`DettaglioPagamento`, `ModalitaPagamento` MP05 with IBAN, BIC,
-   `IstitutoFinanziario`, `Beneficiario`) and the PDF read that copy. Sending does not
+   `Beneficiario`; `IstitutoFinanziario` is omitted for new invoices) and the PDF read that copy. Sending does not
    require an account. The screen is Settings, Payment methods, with an empty state that
    invites adding the first account.
 4. **PEC setup, guided:** set `PEC_USERNAME` and `PEC_PASSWORD` as Worker secrets (commands
@@ -180,7 +180,7 @@ settle the open ones):
 - ritenuta d'acconto (type, rate, causale pagamento); bollo virtuale (2.00 EUR, suggested
   automatically when exempt amounts exceed 77.47 EUR); currency (default EUR); payment
   data (method, due date and the bank account copied from the Payment methods list: IBAN,
-  BIC/SWIFT, bank name, holder).
+  BIC/SWIFT, holder).
 - Totals (taxable per rate, VAT, contribution, withholding, stamp, amount due) are computed
   live and shown before sending.
 - States:

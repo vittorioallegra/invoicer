@@ -204,7 +204,7 @@ export function withAccount(form: InvoiceForm, account: PaymentMethodRecord | nu
     iban: account.iban,
     bic: account.bic ?? "",
     accountHolder: account.accountHolder ?? "",
-    bankName: account.bankName ?? "",
+    bankName: "",
     paymentMethod: form.paymentMethod || "MP05",
   };
 }

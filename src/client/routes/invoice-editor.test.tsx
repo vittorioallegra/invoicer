@@ -73,7 +73,6 @@ const ACCOUNTS = [
     label: "Fineco",
     iban: "IT60X0542811101000000123456",
     bic: null,
-    bankName: null,
     accountHolder: "Mario Rossi",
     isDefault: true,
   },
@@ -82,7 +81,6 @@ const ACCOUNTS = [
     label: "Revolut",
     iban: "DE89370400440532013000",
     bic: "REVODEB2",
-    bankName: "Revolut Bank",
     accountHolder: "Mario Rossi",
     isDefault: false,
   },
@@ -315,7 +313,7 @@ describe("Invoice editor", () => {
       method: "MP05",
       iban: "DE89370400440532013000",
       bic: "REVODEB2",
-      bankName: "Revolut Bank",
+      bankName: "",
       accountHolder: "Mario Rossi",
     });
   });
@@ -337,7 +335,7 @@ describe("Invoice editor", () => {
     await renderEditor("/invoices/i1");
     await loaded();
     const select = screen.getByLabelText("Bank account") as HTMLSelectElement;
-    expect(select.selectedOptions[0]?.textContent).toBe("Old Bank · FR14 •••• 2606");
+    expect(select.selectedOptions[0]?.textContent).toBe("Saved on this invoice · FR14 •••• 2606");
     // Deleting later from Settings never reaches this copy; clearing it is explicit.
     type("Bank account", "");
     expect(select.value).toBe("");

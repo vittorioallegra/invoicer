@@ -53,7 +53,6 @@ describe("invoice form", () => {
       label: "Fineco",
       iban: "IT60X0542811101000000123456",
       bic: "FINEITMM",
-      bankName: "Fineco Bank",
       accountHolder: "X",
       isDefault: true,
     };
@@ -62,7 +61,7 @@ describe("invoice form", () => {
       paymentMethod: "MP05",
       iban: account.iban,
       bic: "FINEITMM",
-      bankName: "Fineco Bank",
+      bankName: "",
       accountHolder: "X",
     });
     expect(buildInvoice(filled).input.data.payment).toMatchObject({ iban: account.iban });

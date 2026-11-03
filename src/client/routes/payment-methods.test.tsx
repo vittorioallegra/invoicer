@@ -26,7 +26,6 @@ const fineco: PaymentMethodRecord = {
   label: "Fineco",
   iban: "IT60X0542811101000000123456",
   bic: null,
-  bankName: "Fineco Bank",
   accountHolder: null,
   isDefault: true,
 };
@@ -35,7 +34,6 @@ const revolut: PaymentMethodRecord = {
   label: "Revolut",
   iban: "DE89370400440532013000",
   bic: null,
-  bankName: null,
   accountHolder: null,
   isDefault: false,
 };
@@ -74,7 +72,7 @@ describe("Payment methods page", () => {
     expect(rows).toHaveLength(2);
     expect(within(rows[0] as HTMLElement).getByText("Fineco")).toBeTruthy();
     expect(within(rows[0] as HTMLElement).getByText("Default")).toBeTruthy();
-    expect(within(rows[0] as HTMLElement).getByText(/IT60 •••• 3456 · Fineco Bank/)).toBeTruthy();
+    expect(within(rows[0] as HTMLElement).getByText(/IT60 •••• 3456/)).toBeTruthy();
     expect(screen.queryByText("IT60X0542811101000000123456")).toBeNull();
     expect(within(rows[1] as HTMLElement).queryByText("Default")).toBeNull();
   });

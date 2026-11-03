@@ -20,7 +20,6 @@ const body = (label: string, iban: string) => ({
   label,
   iban,
   bic: "",
-  bankName: "",
   accountHolder: "",
 });
 

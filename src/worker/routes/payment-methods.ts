@@ -22,7 +22,6 @@ function toRecord(row: Row): PaymentMethodRecord {
     label: row.label,
     iban: row.iban,
     bic: row.bic,
-    bankName: row.bankName,
     accountHolder: row.accountHolder,
     isDefault: row.isDefault,
   };

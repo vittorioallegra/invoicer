@@ -865,7 +865,6 @@
     "emptyBody": "Aggiungi il conto su cui i clienti devono pagarti. Sarà preselezionato nelle nuove fatture.",
     "iban": "IBAN",
     "bic": "BIC/SWIFT",
-    "bankName": "Nome della banca",
     "accountHolder": "Intestatario del conto"
   },
   "toast": {

@@ -213,7 +213,6 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
     (account) =>
       account.iban === form.iban &&
       (account.bic ?? "") === form.bic &&
-      (account.bankName ?? "") === form.bankName &&
       (account.accountHolder ?? "") === form.accountHolder,
   );
   const accountValue = matching?.id ?? (form.iban ? SNAPSHOT : "");
@@ -840,7 +839,7 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
                   <option value="">{t("clients.form.none")}</option>
                   {accountValue === SNAPSHOT ? (
                     <option value={SNAPSHOT}>
-                      {form.bankName || t("invoice.payment.accountSaved")} · {maskIban(form.iban)}
+                      {t("invoice.payment.accountSaved")} · {maskIban(form.iban)}
                     </option>
                   ) : null}
                   {accounts.map((account) => (
