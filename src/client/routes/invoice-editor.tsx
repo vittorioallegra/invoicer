@@ -628,10 +628,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
       ) : null}
 
       <fieldset disabled={locked} className="flex min-w-0 flex-col gap-6">
-        <section className="flex flex-col gap-4" aria-labelledby="inv-client">
-          <h2 id="inv-client" className="text-base font-medium">
-            {t("invoice.client.title")}
-          </h2>
+        <section className="flex flex-col gap-4" aria-label={t("invoice.client.label")}>
           <div className="flex flex-wrap items-end gap-3">
             <Field
               label={t("invoice.client.label")}

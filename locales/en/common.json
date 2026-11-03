@@ -467,7 +467,6 @@
       "dismiss": "Dismiss"
     },
     "client": {
-      "title": "Client",
       "label": "Client",
       "choose": "Choose a client",
       "new": "New client",

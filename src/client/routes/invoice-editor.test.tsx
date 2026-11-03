@@ -631,6 +631,15 @@ describe("Invoice editor", () => {
     expect(manual).toBeTruthy();
   });
 
+  it("shows the client title once: as the select label, with no repeated heading", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    expect(screen.getAllByText("Client")).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: "Client" })).toBeNull();
+    expect(screen.getByRole("region", { name: "Client" })).toBeTruthy();
+  });
+
   it("opens the inline client creation sheet", async () => {
     serve();
     await renderEditor();
