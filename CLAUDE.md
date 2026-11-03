@@ -44,6 +44,7 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
   secret names the variable and its `wrangler secret put` fix. Every error code has a README anchor.
 - Routes are code-based TanStack Router in `src/client/router.tsx`; status label/colour/icon live
   only in `src/client/lib/status.ts`; use the base components in `components/ui/` (`Disclosure` for collapsible sections).
+- Page actions: one `role="toolbar"` right under the title (primary, secondary, ghost, ghost-danger last with `ml-auto`); the sticky bar of the invoice editor shows totals only. A number or status for the title row goes in `Page`'s `aside` slot.
 - Transient feedback (saved, action failed) goes through `toast()` from `components/ui/toast.tsx`, never a page banner; `Banner` is for persistent page messages.
 - Security: the CSP in `src/shared/csp.ts` must equal `public/_headers` (tested); no inline script,
   `connect-src 'self'`; state-changing `/api/*` calls need a matching `Origin`.

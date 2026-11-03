@@ -482,6 +482,92 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   return (
     <Page title={t(record ? "invoice.editTitle" : "invoice.newTitle")} aside={printedNumber}>
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
+        <div
+          role="toolbar"
+          aria-label={t("invoice.actions.title")}
+          className="flex flex-wrap gap-2"
+        >
+          {locked ? null : (
+            <>
+              <Button
+                type="button"
+                variant={send.ready ? "default" : "secondary"}
+                disabled={!online || !record || !send.ready || !issuing.ok || save.isPending}
+                title={record ? undefined : t("send.saveFirst")}
+                onClick={() => void startSend("pec")}
+              >
+                <Send aria-hidden />
+                {t(
+                  record?.state === "rejected"
+                    ? "invoice.actions.fixResend"
+                    : "invoice.actions.send",
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant={send.ready ? "secondary" : "default"}
+                disabled={
+                  !online ||
+                  !record ||
+                  send.reasons.includes("profile_incomplete") ||
+                  !issuing.ok ||
+                  save.isPending
+                }
+                title={record ? undefined : t("send.saveFirst")}
+                onClick={() => void startSend("manual")}
+              >
+                <Upload aria-hidden />
+                {t("invoice.actions.prepareManual")}
+              </Button>
+              <Button type="submit" variant="secondary" disabled={!online || save.isPending}>
+                {t(record ? "invoice.actions.save" : "invoice.actions.saveDraft")}
+              </Button>
+            </>
+          )}
+          {record ? (
+            <Button
+              variant="ghost"
+              disabled={!online || duplicate.isPending}
+              onClick={() => duplicate.mutate(record.id)}
+            >
+              <Copy aria-hidden />
+              {t("invoice.actions.duplicate")}
+            </Button>
+          ) : null}
+          {record &&
+          record.documentType === "TD01" &&
+          (record.state === "delivered" || record.state === "not_delivered") ? (
+            <Button
+              variant="ghost"
+              disabled={!online || creditNote.isPending}
+              onClick={() => creditNote.mutate(record.id)}
+            >
+              <FileMinus aria-hidden />
+              {t("invoice.actions.creditNote")}
+            </Button>
+          ) : null}
+          {record && (record.state === "draft" || record.state === "planned") && !confirmDelete ? (
+            <Button
+              variant="ghost"
+              className="ml-auto text-danger"
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 aria-hidden />
+              {t("invoice.actions.delete")}
+            </Button>
+          ) : null}
+          {record && confirmDelete ? (
+            <Button
+              variant="destructive"
+              className="ml-auto"
+              disabled={!online || remove.isPending}
+              onClick={() => remove.mutate(record.id)}
+            >
+              {t("invoice.actions.deleteConfirm")}
+            </Button>
+          ) : null}
+        </div>
+
         {record ? (
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <StatusBadge status={record.state} />
@@ -1120,90 +1206,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           </Banner>
         ) : null}
 
-        <div className="flex flex-wrap gap-3">
-          {record ? (
-            <Button
-              variant="secondary"
-              disabled={!online || duplicate.isPending}
-              onClick={() => duplicate.mutate(record.id)}
-            >
-              <Copy aria-hidden />
-              {t("invoice.actions.duplicate")}
-            </Button>
-          ) : null}
-          {record &&
-          record.documentType === "TD01" &&
-          (record.state === "delivered" || record.state === "not_delivered") ? (
-            <Button
-              variant="secondary"
-              disabled={!online || creditNote.isPending}
-              onClick={() => creditNote.mutate(record.id)}
-            >
-              <FileMinus aria-hidden />
-              {t("invoice.actions.creditNote")}
-            </Button>
-          ) : null}
-          {record && (record.state === "draft" || record.state === "planned") && !confirmDelete ? (
-            <Button variant="ghost" onClick={() => setConfirmDelete(true)}>
-              <Trash2 aria-hidden />
-              {t("invoice.actions.delete")}
-            </Button>
-          ) : null}
-          {record && confirmDelete ? (
-            <Button
-              variant="destructive"
-              disabled={!online || remove.isPending}
-              onClick={() => remove.mutate(record.id)}
-            >
-              {t("invoice.actions.deleteConfirm")}
-            </Button>
-          ) : null}
-        </div>
-
-        <InvoiceTotals
-          totals={totals}
-          form={form}
-          locale={locale}
-          actions={
-            locked ? null : (
-              <>
-                <Button type="submit" disabled={!online || save.isPending}>
-                  {t(record ? "invoice.actions.save" : "invoice.actions.saveDraft")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={!online || !record || !send.ready || !issuing.ok || save.isPending}
-                  title={record ? undefined : t("send.saveFirst")}
-                  onClick={() => void startSend("pec")}
-                >
-                  <Send aria-hidden />
-                  {t(
-                    record?.state === "rejected"
-                      ? "invoice.actions.fixResend"
-                      : "invoice.actions.send",
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={
-                    !online ||
-                    !record ||
-                    send.reasons.includes("profile_incomplete") ||
-                    !issuing.ok ||
-                    save.isPending
-                  }
-                  title={record ? undefined : t("send.saveFirst")}
-                  onClick={() => void startSend("manual")}
-                >
-                  <Upload aria-hidden />
-                  {t("invoice.actions.prepareManual")}
-                </Button>
-              </>
-            )
-          }
-        />
+        <InvoiceTotals totals={totals} form={form} locale={locale} />
 
         {record ? (
           <SendSheet

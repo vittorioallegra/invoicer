@@ -687,6 +687,46 @@ describe("Invoice editor", () => {
     expect(screen.getByRole("region", { name: "Client" })).toBeTruthy();
   });
 
+  it("groups the actions in one toolbar under the title and keeps only the totals in the sticky bar", async () => {
+    serve({ invoice: record() });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    const toolbar = screen.getByRole("toolbar", { name: "Actions" });
+    const names = within(toolbar)
+      .getAllByRole("button")
+      .map((button) => button.textContent);
+    expect(names).toEqual([
+      "Send",
+      "Prepare for the AdE portal",
+      "Save",
+      "Duplicate",
+      "Delete draft",
+    ]);
+    const [send, , save, duplicate, remove] = within(toolbar).getAllByRole("button");
+    expect(send?.className).toContain("bg-primary");
+    expect(save?.className).toContain("border-border");
+    expect(duplicate?.className).toContain("hover:bg-muted");
+    expect(remove?.className).toContain("ml-auto");
+    expect(remove?.className).toContain("text-danger");
+    // The toolbar follows the title; the totals bar has no action buttons.
+    const title = screen.getByRole("heading", { level: 1 });
+    expect(title.compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const totals = screen.getByRole("region", { name: "Totals" });
+    expect(within(totals).getAllByRole("button")).toHaveLength(1);
+    // Deleting still asks for a confirmation first.
+    fireEvent.click(remove as HTMLElement);
+    expect(within(toolbar).getByRole("button", { name: "Confirm delete" })).toBeTruthy();
+  });
+
+  it("makes Prepare the primary action while the PEC setup blocks Send", async () => {
+    serve({ send: { ready: false, reasons: ["pec_credentials_missing"] } });
+    await renderEditor();
+    await loaded();
+    const prepare = screen.getByRole("button", { name: "Prepare for the AdE portal" });
+    expect(prepare.className).toContain("bg-primary");
+    expect(screen.getByRole("button", { name: "Send" }).className).not.toContain("bg-primary");
+  });
+
   it("opens the inline client creation sheet", async () => {
     serve();
     await renderEditor();

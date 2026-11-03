@@ -1,5 +1,5 @@
 import { ChevronUp } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatMoney, type UiLocale } from "../../shared/format";
 import type { Totals } from "../../shared/totals";
@@ -10,12 +10,10 @@ export interface InvoiceTotalsProps {
   totals: Totals | null;
   form: InvoiceForm;
   locale: UiLocale;
-  /** Primary action(s) shown beside the amount. */
-  actions?: ReactNode;
 }
 
 /** Sticky footer: amount due, cassa mode chip and an expandable breakdown. */
-export function InvoiceTotals({ totals, form, locale, actions }: InvoiceTotalsProps) {
+export function InvoiceTotals({ totals, form, locale }: InvoiceTotalsProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const currency = form.currency.toUpperCase();
@@ -126,7 +124,6 @@ export function InvoiceTotals({ totals, form, locale, actions }: InvoiceTotalsPr
           />
           <span className="sr-only">{t("invoice.totals.breakdown")}</span>
         </button>
-        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
       </div>
     </section>
   );

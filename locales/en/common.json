@@ -565,6 +565,7 @@
       "save": "Save payment status"
     },
     "actions": {
+      "title": "Actions",
       "saveDraft": "Save draft",
       "save": "Save",
       "send": "Send",

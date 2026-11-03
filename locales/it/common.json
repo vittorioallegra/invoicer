@@ -565,6 +565,7 @@
       "save": "Salva stato di pagamento"
     },
     "actions": {
+      "title": "Azioni",
       "saveDraft": "Salva bozza",
       "save": "Salva",
       "send": "Invia",
