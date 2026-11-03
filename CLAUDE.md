@@ -42,7 +42,7 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
   `worker` (workerd via `@cloudflare/vitest-pool-workers`), `client` (jsdom).
 - Errors: API failures are problem+json built with `ApiError` (`src/shared/errors.ts`); a missing
   secret names the variable and its `wrangler secret put` fix. Every error code has a README anchor.
-- Routes are code-based TanStack Router in `src/client/router.tsx`; status label/colour/icon live
+- Routes are code-based TanStack Router in `src/client/router.tsx`; the Invoices list (`/invoices`, `routes/invoices.tsx`) keeps its filters in the URL search params and gets list and recap from `GET /api/invoices?scope=all`; status label/colour/icon live
   only in `src/client/lib/status.ts`; use the base components in `components/ui/` (`Disclosure` for collapsible sections).
 - Page actions: the invoice editor has the primary and the download actions on the title row (`Page` `aside`, `MenuButton` in `components/ui/menu-button.tsx` for menus; no menu library) and Delete (left, ghost, red) / Duplicate / Save (right) under the form; the sticky bar shows totals only. A number or status for the title row goes in `Page`'s `subtitle` slot.
 - Invoice editor: Save never validates (`parseInvoiceDraft`; the raw form is kept in `invoices.editor_form`); every check runs in Finalize (`SendSheet` with `preflight`, `lib/finalize-checks.ts`). Every Save button is disabled until the form changed (`useDirty`, `lib/use-dirty.ts`); a page's back link is `Page`'s `back` prop with a constant from `lib/back-links.ts`.

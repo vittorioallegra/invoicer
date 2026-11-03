@@ -215,8 +215,8 @@ settle the open ones):
   note" for an issued invoice); the payment status section stays editable. A rejected invoice
   stays editable: "Fix & resend" replaces Finalize and Save stays. **Every Save button in the
   app is disabled until the form differs from what was loaded or last saved** (new-item forms:
-  until something is entered). An invoice page starts with a back link to its list (Home for an
-  unsent invoice, Issued for a sent one). The printed invoice number is under the title. The
+  until something is entered). An invoice page starts with a back link to its list (always the Invoices
+  list, labelled "Fatture"). The printed invoice number is under the title. The
   sticky bar shows the amount due and the breakdown only.
 - Line notes: each line has an optional note. The XML appends it to the line's `Descrizione` after a
   line feed (`description\nnote`); description and note together fit the 1000 characters of
@@ -441,8 +441,27 @@ settle the open ones):
 
 - Home: "To send" (all unsent invoices, sorted by invoice date), "Issued" (with state and payment flag), "Received", and a top strip with
   counts: to send, rejected, overdue unpaid; yearly and monthly invoiced totals.
-- Filters: year, month, client/supplier, state, payment flag. Text search on client name
-  and invoice number.
+- Navigation: the second item is "Invoices" (it: "Fatture"), at `/invoices` (`/issued` redirects
+  there). It lists ALL the owner's invoices, unsent ("To send") and sent in any state, credit notes
+  included, newest first by invoice date (issue date, else the date set on an unsent invoice; an
+  unsent invoice without a date counts as today), then by number. Every invoice page goes back to it.
+- Invoices page filters, kept in the URL search params (`year`, `status`, `client`, `series`, `q`) so
+  they survive reload and back, and applied by the Worker (`GET /api/invoices?scope=all`, SQL over
+  indexed columns, the whole set in one response: single user, free-plan CPU budget):
+  - year: default the current Europe/Rome year (not written to the URL), any year that has an
+    invoice, or "all";
+  - status: all, to send, sent (sending + sent), delivered (delivered + not delivered), rejected
+    (rejected + expired), paid, unpaid (the last two apply to sent invoices only, by payment flag);
+    labels come from `status.ts`;
+  - client (select), numbering series (select, shown only when there is more than one series), and
+    a text search over the printed number and the client name (case-insensitive substring).
+  On phones the filters sit in a "Filters" disclosure, closed at first; on wide screens it starts open.
+- Invoices page recap, over exactly the filtered set, computed by the Worker in integer cents:
+  "Invoiced" = sum of the document totals of finalised invoices (sending, sent, delivered, not
+  delivered), credit notes subtracted, rejected ones (including expired) excluded; "To collect" =
+  the same set minus the paid ones; "To send" = number and amount of unsent invoices; plus the
+  number of invoices listed. Amounts of different currencies are never added: each card shows one
+  line per currency present (EUR first, always shown), in the currency's own format.
 
 ### 8. PDF and courtesy email
 
