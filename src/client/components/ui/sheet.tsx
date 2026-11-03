@@ -11,6 +11,9 @@ const sheetVariants = cva("fixed z-50 flex flex-col gap-4 bg-surface p-4 shadow-
       // Bottom sheet on iPhone: respects the home-indicator safe area.
       bottom:
         "inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-card border-t border-border pb-[calc(1rem+env(safe-area-inset-bottom))]",
+      // Bottom sheet on phones, centered modal dialog from md up (confirm and short-form dialogs).
+      responsive:
+        "inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-card border-t border-border pb-[calc(1rem+env(safe-area-inset-bottom))] md:inset-x-auto md:bottom-auto md:left-1/2 md:top-1/2 md:w-[calc(100%-2rem)] md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-card md:border md:p-6",
       right: "inset-y-0 right-0 w-full max-w-md overflow-y-auto border-l border-border",
     },
   },
@@ -23,6 +26,11 @@ export interface SheetProps extends VariantProps<typeof sheetVariants> {
   title: string;
   description?: string;
   children: ReactNode;
+}
+
+/** Footer row of a responsive dialog: Cancel (secondary) on the left, the primary action on the right. */
+export function SheetFooter({ children }: { children: ReactNode }) {
+  return <div className="flex items-center justify-between gap-2">{children}</div>;
 }
 
 /** Modal sheet built on Radix Dialog (focus trap, Escape, scroll lock). */

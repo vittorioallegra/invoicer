@@ -18,7 +18,7 @@ import { Banner } from "./ui/banner";
 import { Button } from "./ui/button";
 import { Field } from "./ui/field";
 import { Input } from "./ui/input";
-import { Sheet } from "./ui/sheet";
+import { Sheet, SheetFooter } from "./ui/sheet";
 
 /** What `preflight` of a finalize sheet decides: stop with the problems, or go on with the invoice. */
 export type Preflight =
@@ -120,6 +120,7 @@ export function SendSheet({
       onOpenChange={(next) => {
         if (!busy) onOpenChange(next);
       }}
+      side="responsive"
       title={t(finalizing ? "finalize.title" : "send.title")}
       description={
         finalizing
@@ -188,10 +189,13 @@ export function SendSheet({
 
       {!busy && manual ? (
         <>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={() => run.mutate()}>{t("finalize.confirmManual")}</Button>
-          </div>
           <p className="text-sm text-muted-foreground">{t("finalize.manualNote")}</p>
+          <SheetFooter>
+            <Button variant="secondary" onClick={() => onOpenChange(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button onClick={() => run.mutate()}>{t("finalize.confirmManual")}</Button>
+          </SheetFooter>
         </>
       ) : null}
 
@@ -211,7 +215,18 @@ export function SendSheet({
               )}
             </Field>
           ) : null}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col items-start gap-1">
+            <p className="text-sm text-muted-foreground">
+              {t(finalizing ? "finalize.confirmNote" : "send.confirmNote")}
+            </p>
+            <Button variant="ghost" onClick={() => setUseTotp(!useTotp)}>
+              {t(useTotp ? "send.usePasskey" : "send.useTotp")}
+            </Button>
+          </div>
+          <SheetFooter>
+            <Button variant="secondary" onClick={() => onOpenChange(false)}>
+              {t("common.cancel")}
+            </Button>
             <Button onClick={() => run.mutate()} disabled={useTotp && !/^\d{6}$/.test(totp)}>
               {t(
                 finalizing
@@ -223,13 +238,7 @@ export function SendSheet({
                     : "send.confirm",
               )}
             </Button>
-            <Button variant="ghost" onClick={() => setUseTotp(!useTotp)}>
-              {t(useTotp ? "send.usePasskey" : "send.useTotp")}
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {t(finalizing ? "finalize.confirmNote" : "send.confirmNote")}
-          </p>
+          </SheetFooter>
         </>
       ) : null}
     </Sheet>

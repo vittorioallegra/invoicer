@@ -8,7 +8,7 @@ import { useOnline } from "../lib/online";
 import { Button } from "./ui/button";
 import { Field } from "./ui/field";
 import { Input } from "./ui/input";
-import { Sheet } from "./ui/sheet";
+import { Sheet, SheetFooter } from "./ui/sheet";
 import { toast } from "./ui/toast";
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -58,6 +58,7 @@ export function PaymentAction({ record, today }: { record: InvoiceRecord; today:
       <Sheet
         open={open}
         onOpenChange={setOpen}
+        side="responsive"
         title={t(paid ? "invoice.paid.undoTitle" : "invoice.paid.recordTitle")}
         {...(paid ? { description: t("invoice.paid.undoBody") } : {})}
       >
@@ -76,7 +77,7 @@ export function PaymentAction({ record, today }: { record: InvoiceRecord; today:
               )}
             </Field>
           )}
-          <div className="flex flex-wrap justify-end gap-2">
+          <SheetFooter>
             <Button variant="secondary" onClick={() => setOpen(false)}>
               {t("common.cancel")}
             </Button>
@@ -87,7 +88,7 @@ export function PaymentAction({ record, today }: { record: InvoiceRecord; today:
             >
               {t(paid ? "invoice.paid.undoConfirm" : "invoice.paid.save")}
             </Button>
-          </div>
+          </SheetFooter>
         </form>
       </Sheet>
     </>
