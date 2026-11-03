@@ -221,6 +221,14 @@ const backLink = (name: string) => {
   if (!link) throw new Error(`no back link ${name}`);
   return link;
 };
+/** The body of the PATCH sent to the invoice (the payment meta), or null before it is sent. */
+const patchBody = () => {
+  const call = mocks.api.mock.calls.find(
+    ([path, init]) =>
+      path === "/api/invoices/i1" && (init as { method?: string } | undefined)?.method === "PATCH",
+  );
+  return call ? JSON.parse((call[1] as { body: string }).body) : null;
+};
 const loaded = () => screen.findByRole("combobox", { name: "Client" });
 
 beforeEach(() => {
@@ -838,7 +846,7 @@ describe("Invoice editor", () => {
     );
     for (let i = 1; i < order.length; i++) {
       expect(
-        order[i - 1]?.compareDocumentPosition(order[i] as Element) &
+        (order[i - 1] as Element).compareDocumentPosition(order[i] as Element) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     }
@@ -957,11 +965,7 @@ describe("Invoice editor", () => {
     expect(save.disabled).toBe(false);
     fireEvent.click(save);
     await waitFor(() => {
-      const call = mocks.api.mock.calls.find(
-        ([path, init]) =>
-          path === "/api/invoices/i1" && (init as { method?: string })?.method === "PATCH",
-      );
-      expect(JSON.parse((call?.[1] as { body: string }).body)).toEqual({
+      expect(patchBody()).toEqual({
         paymentFlag: "paid",
         paidDate: "2026-12-12",
       });
@@ -987,11 +991,7 @@ describe("Invoice editor", () => {
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Undo payment" }));
     await waitFor(() => {
-      const call = mocks.api.mock.calls.find(
-        ([path, init]) =>
-          path === "/api/invoices/i1" && (init as { method?: string })?.method === "PATCH",
-      );
-      expect(JSON.parse((call?.[1] as { body: string }).body)).toEqual({ paymentFlag: "unpaid" });
+      expect(patchBody()).toEqual({ paymentFlag: "unpaid" });
     });
   });
 

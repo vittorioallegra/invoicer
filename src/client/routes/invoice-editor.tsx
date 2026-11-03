@@ -76,7 +76,6 @@ import {
   invoiceQuery,
   invoicesQuery,
   nextNumberQuery,
-  patchInvoice,
   reissueInvoice,
   releaseNumber,
   updateInvoice,
