@@ -295,7 +295,7 @@ describe("Invoice editor", () => {
     expect(within(totals).getByText("Ritenuta")).toBeTruthy();
     // The contribution row names the active mode, in both modes.
     expect(within(totals).getByText("Contribution (added on top)")).toBeTruthy();
-    type("How the contribution applies", "included");
+    type("Applies", "included");
     expect(within(totals).getByText("Contribution (included above)")).toBeTruthy();
     expect(within(totals).queryByText("Contribution (added on top)")).toBeNull();
   });

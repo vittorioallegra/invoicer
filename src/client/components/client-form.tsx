@@ -580,15 +580,12 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
               </Field>
               {form.cassaType ? (
                 <div className={`${grid} ${nested}`}>
-                  <Field
-                    label={t("clients.form.pensionRate")}
-                    hint={t("clients.form.rateHint")}
-                    error={err("defaults.cassa.rateBp")}
-                  >
+                  <Field label={t("clients.form.pensionRate")} error={err("defaults.cassa.rateBp")}>
                     {(c) => (
                       <Input
                         {...c}
                         value={form.cassaRate}
+                        suffix="%"
                         onChange={set("cassaRate")}
                         inputMode="decimal"
                       />
@@ -624,13 +621,13 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
                 <div className={`${grid} ${nested}`}>
                   <Field
                     label={t("clients.form.withholdingRate")}
-                    hint={t("clients.form.rateHint")}
                     error={err("defaults.ritenuta.rateBp")}
                   >
                     {(c) => (
                       <Input
                         {...c}
                         value={form.ritenutaRate}
+                        suffix="%"
                         onChange={set("ritenutaRate")}
                         inputMode="decimal"
                       />
@@ -638,13 +635,13 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
                   </Field>
                   <Field
                     label={t("clients.form.withholdingBase")}
-                    hint={t("clients.form.withholdingBaseHint")}
                     error={err("defaults.ritenuta.baseBp")}
                   >
                     {(c) => (
                       <Input
                         {...c}
                         value={form.ritenutaBase}
+                        suffix="%"
                         onChange={set("ritenutaBase")}
                         inputMode="decimal"
                       />

@@ -820,6 +820,7 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
                       <Input
                         {...c}
                         value={form.cassaRate}
+                        suffix="%"
                         inputMode="decimal"
                         disabled={locked}
                         onChange={text("cassaRate")}
@@ -875,21 +876,19 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
                     <Input
                       {...c}
                       value={form.ritenutaRate}
+                      suffix="%"
                       inputMode="decimal"
                       disabled={locked}
                       onChange={text("ritenutaRate")}
                     />
                   )}
                 </Field>
-                <Field
-                  label={t("clients.form.ritenutaBase")}
-                  hint={t("clients.form.withholdingBaseHint")}
-                  error={err("data.ritenuta.baseBp")}
-                >
+                <Field label={t("clients.form.ritenutaBase")} error={err("data.ritenuta.baseBp")}>
                   {(c) => (
                     <Input
                       {...c}
                       value={form.ritenutaBase}
+                      suffix="%"
                       inputMode="decimal"
                       disabled={locked}
                       onChange={text("ritenutaBase")}

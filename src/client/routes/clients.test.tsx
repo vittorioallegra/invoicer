@@ -105,9 +105,9 @@ describe("Clients screen", () => {
 
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    expect(screen.queryByLabelText("Contribution rate (%)")).toBeNull();
+    expect(screen.queryByLabelText("Rate")).toBeNull();
     type("Cassa / rivalsa", "rivalsa_inps");
-    expect(screen.getByLabelText("Contribution rate (%)")).toBeTruthy();
+    expect(screen.getByLabelText("Rate")).toBeTruthy();
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
 
