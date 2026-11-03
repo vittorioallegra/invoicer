@@ -29,7 +29,7 @@ function NewInvoiceLink({ className }: { className?: string }) {
 function Sidebar() {
   const { t } = useTranslation();
   return (
-    <aside className="hidden w-60 shrink-0 flex-col gap-6 border-r border-border bg-surface p-4 md:flex">
+    <aside className="hidden w-60 shrink-0 flex-col gap-6 overflow-y-auto border-r border-border bg-surface p-4 md:sticky md:top-0 md:flex md:h-dvh md:self-start">
       <div className="px-2 pt-2 text-lg font-semibold">{t("app.name")}</div>
       <NewInvoiceLink />
       <nav aria-label={t("nav.label")} className="flex flex-col gap-1">
