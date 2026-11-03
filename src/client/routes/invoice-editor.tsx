@@ -1094,20 +1094,10 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             </Field>
           </div>
         </section>
-
-        {editability !== "locked" ? (
-          <Field label={t("invoice.notes")} error={err("notes")}>
-            {(c) => <Textarea {...c} value={form.notes} onChange={text("notes")} />}
-          </Field>
-        ) : null}
       </fieldset>
 
       {record && (locked || record.state === "rejected") ? (
-        <PaymentSection
-          key={record.paymentFlag + record.paidDate}
-          record={record}
-          showNotes={locked}
-        />
+        <PaymentSection key={record.paymentFlag + record.paidDate} record={record} />
       ) : null}
 
       {!locked && !send.ready ? (
@@ -1254,21 +1244,19 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   );
 }
 
-/** Payment flag and notes: what still changes once an invoice is out. */
-function PaymentSection({ record, showNotes }: { record: InvoiceRecord; showNotes: boolean }) {
+/** Payment flag: what still changes once an invoice is out. */
+function PaymentSection({ record }: { record: InvoiceRecord }) {
   const { t } = useTranslation();
   const online = useOnline();
   const queryClient = useQueryClient();
   const [paid, setPaid] = useState(record.paymentFlag === "paid");
   const [paidDate, setPaidDate] = useState(record.paidDate ?? "");
-  const [notes, setNotes] = useState(record.notes ?? "");
 
   const save = useMutation({
     mutationFn: () =>
       patchInvoice(record.id, {
         paymentFlag: paid ? "paid" : "unpaid",
         paidDate: paid && paidDate ? paidDate : null,
-        ...(showNotes ? { notes } : {}),
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["invoices"] });
@@ -1305,11 +1293,6 @@ function PaymentSection({ record, showNotes }: { record: InvoiceRecord; showNote
               onChange={(e) => setPaidDate(e.target.value)}
             />
           )}
-        </Field>
-      ) : null}
-      {showNotes ? (
-        <Field label={t("invoice.notes")}>
-          {(c) => <Textarea {...c} value={notes} onChange={(e) => setNotes(e.target.value)} />}
         </Field>
       ) : null}
       <Button

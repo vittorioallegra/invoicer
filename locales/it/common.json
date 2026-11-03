@@ -453,9 +453,8 @@
     "numberYear": "N. {{number}}/{{year}}",
     "issuedOn": "Emessa il {{date}}",
     "saved": "Salvata.",
-    "readOnly": "Questa fattura è stata emessa e non si può più modificare. Puoi ancora impostare lo stato di pagamento e le note.",
+    "readOnly": "Questa fattura è stata emessa e non si può più modificare. Puoi ancora impostare lo stato di pagamento.",
     "fixErrors": "Correggi i campi evidenziati per salvare.",
-    "notes": "Note (interne)",
     "errors": {
       "locked": "Questa fattura non si può più modificare."
     },
@@ -484,7 +483,7 @@
       "linked": "Fattura collegata",
       "noLinked": "Nessuna (nota di credito autonoma)",
       "note": "Note",
-      "noteHint": "Stampate sulla fattura e inviate nell'XML (Causale), diverse dalle note interne.",
+      "noteHint": "Stampata sulla fattura e inviata nell'XML (Causale).",
       "invoiceDate": "Data fattura",
       "invoiceDateHint": "Oggi per una fattura nuova. Con una data futura la fattura risulta pianificata.",
       "dueDate": "Scadenza",

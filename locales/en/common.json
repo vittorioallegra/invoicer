@@ -453,9 +453,8 @@
     "numberYear": "No. {{number}}/{{year}}",
     "issuedOn": "Issued {{date}}",
     "saved": "Saved.",
-    "readOnly": "This invoice has been issued and can no longer be edited. You can still set its payment status and notes.",
+    "readOnly": "This invoice has been issued and can no longer be edited. You can still set its payment status.",
     "fixErrors": "Fix the highlighted fields to save.",
-    "notes": "Notes (internal)",
     "errors": {
       "locked": "This invoice can no longer be edited."
     },
@@ -484,7 +483,7 @@
       "linked": "Linked invoice",
       "noLinked": "None (stand-alone credit note)",
       "note": "Note",
-      "noteHint": "Printed on the invoice and sent in the XML (Causale), not the internal notes.",
+      "noteHint": "Printed on the invoice and sent in the XML (Causale).",
       "invoiceDate": "Invoice date",
       "invoiceDateHint": "Today for a new invoice. A future date marks it as planned.",
       "dueDate": "Due date",

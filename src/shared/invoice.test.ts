@@ -44,7 +44,6 @@ const input = (over: Record<string, unknown> = {}) => ({
   invoiceDate: null,
   dueDate: null,
   linkedInvoiceId: null,
-  notes: null,
   lines: [{ ...line, vatRateBp: 2200, natura: null }],
   data: EMPTY_INVOICE_DATA,
   ...over,

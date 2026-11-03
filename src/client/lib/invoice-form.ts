@@ -65,7 +65,6 @@ export interface InvoiceForm {
   /** The due date is the typed one, not computed from the terms. */
   dueDateCustom: boolean;
   linkedInvoiceId: string;
-  notes: string;
   lines: LineForm[];
   cassaType: string;
   cassaRate: string;
@@ -78,7 +77,7 @@ export interface InvoiceForm {
   ritenutaCausale: string;
   bollo: boolean;
   bolloDismissed: boolean;
-  /** Note printed on the invoice (not the internal notes). */
+  /** Note printed on the invoice. */
   invoiceNote: string;
   naturaTexts: Record<string, string>;
   paymentMethod: string;
@@ -117,7 +116,6 @@ export function emptyForm(): InvoiceForm {
     termsDays: "",
     dueDateCustom: false,
     linkedInvoiceId: "",
-    notes: "",
     lines: [emptyLine()],
     cassaType: "",
     cassaRate: "",
@@ -167,7 +165,6 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
     ...termsToForm(data.payment.terms),
     dueDateCustom: data.payment.dueDateCustom,
     linkedInvoiceId: record.linkedInvoiceId ?? "",
-    notes: record.notes ?? "",
     lines: record.lines.map((line) => ({
       key: newLineKey(),
       description: line.description,
@@ -395,7 +392,6 @@ export function buildInvoice(
       invoiceDate: blank(form.invoiceDate),
       dueDate: blank(effectiveDueDate(form, today)),
       linkedInvoiceId: form.linkedInvoiceId || null,
-      notes: blank(form.notes),
       lines,
       data,
     },

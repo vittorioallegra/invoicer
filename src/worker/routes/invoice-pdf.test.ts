@@ -40,7 +40,6 @@ async function reservedInvoice(): Promise<string> {
       invoiceDate: null,
       dueDate: null,
       linkedInvoiceId: null,
-      notes: null,
       lines: [
         {
           description: "Consulting",
@@ -237,7 +236,6 @@ describe("invoice PDF storage", () => {
         invoiceDate: null,
         dueDate: null,
         linkedInvoiceId: null,
-        notes: null,
         lines: [],
         data: EMPTY_INVOICE_DATA,
       },

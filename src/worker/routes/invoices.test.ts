@@ -46,7 +46,6 @@ const body = (over: Record<string, unknown> = {}) => ({
   invoiceDate: null,
   dueDate: null,
   linkedInvoiceId: null,
-  notes: null,
   lines: [line()],
   data: EMPTY_INVOICE_DATA,
   ...over,
@@ -83,9 +82,9 @@ describe("invoices API", () => {
 
     const planned = await owner.json<Invoice>(`/api/invoices/${draft.id}`, {
       method: "PUT",
-      body: body({ invoiceDate: "2030-01-31", notes: "Thanks" }),
+      body: body({ invoiceDate: "2030-01-31" }),
     });
-    expect(planned.body.invoice).toMatchObject({ state: "planned", notes: "Thanks" });
+    expect(planned.body.invoice).toMatchObject({ state: "planned" });
 
     const listed = await owner.json<{ invoices: { id: string; state: string }[] }>(
       "/api/invoices?scope=to_issue",
@@ -214,19 +213,18 @@ describe("invoices API", () => {
     expect(after).toMatchObject({ state: "sending", number: "1" });
   });
 
-  it("changes only the payment flag and notes once an invoice is out", async () => {
+  it("changes only the payment flag once an invoice is out", async () => {
     const invoice = await create({ dueDate: "2000-01-01" });
     await force(invoice.id, "delivered", 4);
     const overdue = (await owner.json<Invoice>(`/api/invoices/${invoice.id}`)).body.invoice;
     expect(overdue.paymentFlag).toBe("overdue");
     const paid = await owner.json<Invoice>(`/api/invoices/${invoice.id}`, {
       method: "PATCH",
-      body: { paymentFlag: "paid", paidDate: "2030-03-03", notes: "Paid by wire" },
+      body: { paymentFlag: "paid", paidDate: "2030-03-03" },
     });
     expect(paid.body.invoice).toMatchObject({
       paymentFlag: "paid",
       paidDate: "2030-03-03",
-      notes: "Paid by wire",
       state: "delivered",
     });
     const locked = await owner.json(`/api/invoices/${invoice.id}`, {

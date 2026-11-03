@@ -138,7 +138,7 @@ invoices.delete("/:id", async (c) => {
   return c.body(null, 204);
 });
 
-/** Payment flag and notes change in any state (spec 3: the only edits once an invoice is out). */
+/** The payment flag changes in any state (spec 3: the only edit once an invoice is out). */
 invoices.patch("/:id", async (c) => {
   const id = c.req.param("id");
   const parsed = invoiceMetaSchema.safeParse(await c.req.json().catch(() => null));
@@ -152,10 +152,6 @@ invoices.patch("/:id", async (c) => {
       meta.paymentFlag,
       meta.paymentFlag === "paid" ? (meta.paidDate ?? romeDateTime(new Date()).date) : null,
     );
-  }
-  if (meta.notes !== undefined) {
-    sets.push("notes = ?");
-    values.push(meta.notes);
   }
   const result = await c.env.DB.prepare(
     `UPDATE invoices SET ${sets.join(", ")}, updated_at = ? WHERE id = ?`,

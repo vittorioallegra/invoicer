@@ -112,8 +112,7 @@ export const invoiceDataSchema = z.object({
   /** The owner dismissed the "add bollo" suggestion for this invoice. */
   bolloSuggestionDismissed: z.boolean(),
   /**
-   * Note printed on the invoice (PDF) and sent in the XML as `Causale` elements. Not the internal
-   * `notes` of the invoice, which are never printed.
+   * Note printed on the invoice (PDF) and sent in the XML as `Causale` elements.
    */
   note: z.string().trim().max(INVOICE_NOTE_MAX, "note_too_long").default(""),
   /** Legal text per natura code used by the lines (prefilled from `NATURA_TEXTS`, editable). */
@@ -163,29 +162,17 @@ export const invoiceInputSchema = z.object({
   seriesId: z.string().min(1).nullable().default(null),
   /** TD04 only: the invoice the credit note corrects (DatiFattureCollegate). */
   linkedInvoiceId: z.string().min(1).nullable(),
-  notes: z
-    .string()
-    .trim()
-    .max(2000)
-    .nullable()
-    .transform((value) => value || null),
   lines: z.array(invoiceLineSchema).max(500),
   data: invoiceDataSchema,
 });
 export type InvoiceInput = z.input<typeof invoiceInputSchema>;
 export type InvoiceBody = z.output<typeof invoiceInputSchema>;
 
-/** Payment flag and notes: the only things that change once an invoice is out. */
+/** Payment flag: the only thing that changes once an invoice is out. */
 export const invoiceMetaSchema = z
   .object({
     paymentFlag: z.enum(["unpaid", "paid"]),
     paidDate: dateOnly.nullable(),
-    notes: z
-      .string()
-      .trim()
-      .max(2000)
-      .nullable()
-      .transform((value) => value || null),
   })
   .partial()
   .refine((value) => Object.keys(value).length > 0, "empty");
@@ -350,7 +337,6 @@ export interface InvoiceRecord {
   linked: { number: string | null; issueDate: string | null } | null;
   /** The rejected invoice this one reissues. */
   reissuesInvoiceId: string | null;
-  notes: string | null;
   lines: InvoiceLine[];
   data: InvoiceData;
   /** Number reserved but nothing handed to the PEC yet: it can be sent or released. */

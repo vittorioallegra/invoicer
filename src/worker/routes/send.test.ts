@@ -86,7 +86,6 @@ async function reserved(): Promise<{ id: string; fileName: string; xml: Uint8Arr
       invoiceDate: null,
       dueDate: null,
       linkedInvoiceId: null,
-      notes: null,
       lines: [
         {
           description: "Consulting",

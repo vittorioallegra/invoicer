@@ -29,7 +29,6 @@ const base: InvoiceRecord = {
   linkedInvoiceId: null,
   linked: null,
   reissuesInvoiceId: null,
-  notes: null,
   lines: [],
   data: EMPTY_INVOICE_DATA,
   numberReserved: false,

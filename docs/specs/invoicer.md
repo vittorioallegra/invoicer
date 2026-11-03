@@ -190,8 +190,7 @@ settle the open ones):
   `Descrizione`, which the editor and the Worker check (`line_text_too_long` on the note).
   The PDF prints the note under the line description in smaller muted text. Stored in
   `invoice_lines.note`.
-- Invoice note: one optional "Note" textarea for the invoice (up to 2000 characters), apart
-  from the internal notes, which are never printed or sent. The XML writes it as
+- Invoice note: one optional "Note" textarea for the invoice (up to 2000 characters). The XML writes it as
   `DatiGeneraliDocumento/Causale` elements: each line of the note is cut at word boundaries into
   pieces of at most 200 characters, and these elements come first; the complete natura legal
   texts that do not fit `RiferimentoNormativo` follow as further `Causale` elements. The PDF
@@ -333,8 +332,8 @@ settle the open ones):
   than one series exists, and the series is fixed once the number is reserved. The proposed
   and requested number rules, the date order check and the release rule all apply per series
   and year.
-- Sent, delivered and not_delivered invoices are read-only (only payment flag and notes
-  change).
+- Sent, delivered and not_delivered invoices are read-only (only the payment status
+  changes).
 - Duplicate an existing invoice into a new draft.
 
 ### 3a. Credit notes (TD04)

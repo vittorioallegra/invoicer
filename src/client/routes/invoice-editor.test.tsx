@@ -134,7 +134,6 @@ function record(over: Partial<InvoiceRecord> = {}): InvoiceRecord {
     linkedInvoiceId: null,
     linked: null,
     reissuesInvoiceId: null,
-    notes: null,
     lines: [
       {
         description: "Consulting",
@@ -498,7 +497,7 @@ describe("Invoice editor", () => {
     expect(body.lines[0]).toMatchObject({ description: "Consulting", note: "Phase 1" });
   });
 
-  it("saves the invoice note, apart from the internal notes", async () => {
+  it("saves the invoice note", async () => {
     serve();
     await renderEditor();
     await loaded();
@@ -507,7 +506,6 @@ describe("Invoice editor", () => {
     type("Unit price", "50");
     type("VAT", "rate:2200");
     type("Note", "Printed on the invoice");
-    type("Notes (internal)", "Only for me");
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith(
@@ -518,7 +516,7 @@ describe("Invoice editor", () => {
     const call = mocks.api.mock.calls.find(([path]) => path === "/api/invoices");
     const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
     expect(body.data.note).toBe("Printed on the invoice");
-    expect(body.notes).toBe("Only for me");
+    expect(body.notes).toBeUndefined();
   });
 
   it("flags a description and note that do not fit Descrizione together", async () => {

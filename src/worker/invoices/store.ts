@@ -36,13 +36,12 @@ interface InvoiceRow {
   total_cents: number | null;
   linked_invoice_id: string | null;
   reissues_invoice_id: string | null;
-  notes: string | null;
 }
 
 const SELECT = `SELECT i.id, i.document_type, i.state, i.payment_flag, i.paid_date, i.client_id,
   c.name AS client_name, i.number_raw, i.number_int, i.requested_number_int, i.series_id, i.year, i.issue_date, i.planned_date,
   i.due_date, i.currency, i.data, i.total_cents, i.linked_invoice_id,
-  i.reissues_invoice_id, i.notes
+  i.reissues_invoice_id
   FROM invoices i LEFT JOIN clients c ON c.id = i.client_id`;
 
 const rank = (state: InvoiceState) => INVOICE_STATES.indexOf(state);
@@ -195,7 +194,6 @@ export async function loadInvoice(
     linkedInvoiceId: row.linked_invoice_id,
     linked: linked ? { number: linked.number_raw, issueDate: linked.issue_date } : null,
     reissuesInvoiceId: row.reissues_invoice_id,
-    notes: row.notes,
     lines: lineRows.map((line) => ({
       description: line.description,
       note: line.note ?? "",
@@ -317,8 +315,8 @@ export async function createInvoice(
         `INSERT INTO invoices
            (id, document_type, state, state_rank, payment_flag, source, client_id, planned_date,
             due_date, currency, data, total_cents, linked_invoice_id,
-            reissues_invoice_id, notes, requested_number_int, series_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'unpaid', 'app', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            reissues_invoice_id, requested_number_int, series_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 'unpaid', 'app', ?, ?, ?, ?, ?, ?, ?, ?, ?,
                  COALESCE(?, (SELECT id FROM numbering_series WHERE is_default = 1)), ?, ?)`,
       )
       .bind(
@@ -334,7 +332,6 @@ export async function createInvoice(
         totalCents(body),
         body.linkedInvoiceId,
         extra.reissuesInvoiceId ?? null,
-        body.notes,
         body.requestedNumber,
         body.seriesId,
         now.getTime(),
@@ -383,10 +380,10 @@ export async function updateInvoice(
           `UPDATE invoices SET document_type = ?2, state = CASE WHEN state = 'rejected' THEN state ELSE ?3 END,
              state_rank = CASE WHEN state = 'rejected' THEN state_rank ELSE ?4 END,
              client_id = ?5, planned_date = ?6, due_date = ?7, currency = ?8,
-             data = ?9, total_cents = ?10, linked_invoice_id = ?11, notes = ?12, updated_at = ?13,
-             requested_number_int = CASE WHEN number_int IS NULL THEN ?14 ELSE NULL END,
+             data = ?9, total_cents = ?10, linked_invoice_id = ?11, updated_at = ?12,
+             requested_number_int = CASE WHEN number_int IS NULL THEN ?13 ELSE NULL END,
              series_id = CASE WHEN number_int IS NULL
-               THEN COALESCE(?15, (SELECT id FROM numbering_series WHERE is_default = 1))
+               THEN COALESCE(?14, (SELECT id FROM numbering_series WHERE is_default = 1))
                ELSE series_id END
            WHERE id = ?1`,
         )
@@ -402,7 +399,6 @@ export async function updateInvoice(
           JSON.stringify(body.data),
           totalCents(body),
           body.linkedInvoiceId,
-          body.notes,
           now.getTime(),
           body.requestedNumber,
           body.seriesId,
@@ -439,7 +435,6 @@ export function recordToBody(record: InvoiceRecord): InvoiceBody {
     invoiceDate: null,
     dueDate: null,
     linkedInvoiceId: record.linkedInvoiceId,
-    notes: record.notes,
     lines: record.lines,
     data: record.data,
   };

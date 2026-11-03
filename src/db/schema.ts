@@ -216,13 +216,14 @@ export const invoices = sqliteTable(
     operationDate: text("operation_date"),
     dueDate: text("due_date"),
     currency: text("currency").notNull().default("EUR"),
-    /** Invoice settings (cassa, ritenuta, bollo, payment data, notes) as JSON. */
+    /** Invoice settings (cassa, ritenuta, bollo, payment data, note) as JSON. */
     data: text("data", { mode: "json" }),
     totalCents: integer("total_cents"),
     linkedInvoiceId: text("linked_invoice_id"),
     /** Rejected invoice this one reissues after `rejected_expired`. */
     reissuesInvoiceId: text("reissues_invoice_id"),
     recurringTemplateId: text("recurring_template_id").references(() => recurringTemplates.id),
+    /** Unused since the internal invoice notes were removed; the column is kept to avoid a data loss. */
     notes: text("notes"),
     createdAt: createdAt(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
