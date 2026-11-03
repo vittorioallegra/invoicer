@@ -8,6 +8,8 @@ const migrations = import.meta.glob("../../migrations/*.sql", {
   eager: true,
 }) as Record<string, string>;
 
+const order = (file: string) => Number(file.match(/\/(\d{4})_/)?.[1]);
+
 async function apply(predicate: (file: string) => boolean) {
   for (const file of Object.keys(migrations).sort().filter(predicate)) {
     const statements = (migrations[file] ?? "").split("--> statement-breakpoint");
@@ -17,7 +19,7 @@ async function apply(predicate: (file: string) => boolean) {
 
 describe("numbering series migration", () => {
   it("creates the default series and moves the existing invoices and counters into it", async () => {
-    await apply((file) => !file.includes("0008_"));
+    await apply((file) => order(file) < 8);
     await env.DB.batch([
       env.DB.prepare(
         `INSERT INTO invoices (id, state, state_rank, source, year, number_int, number_raw, created_at)
@@ -28,12 +30,13 @@ describe("numbering series migration", () => {
       env.DB.prepare("INSERT INTO number_sequences (year, last_number) VALUES (2026, 2)"),
     ]);
 
-    await apply((file) => file.includes("0008_"));
+    await apply((file) => order(file) >= 8);
 
     const series = await env.DB.prepare("SELECT * FROM numbering_series").all();
     expect(series.results).toHaveLength(1);
     expect(series.results[0]).toMatchObject({
       id: "default",
+      name: "Principale",
       prefix: null,
       suffix: null,
       is_default: 1,

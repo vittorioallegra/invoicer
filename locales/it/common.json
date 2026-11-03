@@ -181,7 +181,7 @@
       },
       "numbering": {
         "title": "Numerazioni",
-        "body": "Numeri di fattura separati, ad esempio per i clienti svizzeri"
+        "body": "Serie separate di numeri di fattura"
       }
     },
     "unmatched": {
@@ -956,12 +956,12 @@
   },
   "numbering": {
     "title": "Numerazioni",
-    "intro": "Usa numerazioni separate per tenere distinte le fatture, ad esempio una per i clienti italiani e una per i clienti svizzeri con CH nel numero. Ogni numerazione ha un proprio progressivo che riparte ogni anno. La numerazione predefinita si usa se il cliente o la fattura non ne indicano un'altra.",
+    "intro": "Ogni numerazione ha un proprio progressivo che riparte ogni anno, con un prefisso o un suffisso facoltativo. La numerazione predefinita si usa se il cliente o la fattura non ne indicano un'altra.",
     "add": "Aggiungi numerazione",
     "newTitle": "Nuova numerazione",
     "editTitle": "Modifica numerazione",
     "name": "Nome",
-    "nameHint": "Come riconosci la numerazione, ad esempio Svizzera.",
+    "nameHint": "Come riconosci la numerazione.",
     "prefix": "Prefisso",
     "suffix": "Suffisso",
     "example": "Esempio: {{example}}",

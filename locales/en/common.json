@@ -181,7 +181,7 @@
       },
       "numbering": {
         "title": "Numbering series",
-        "body": "Separate invoice numbers, for example for Swiss clients"
+        "body": "Separate series of invoice numbers"
       }
     },
     "unmatched": {
@@ -956,12 +956,12 @@
   },
   "numbering": {
     "title": "Numbering series",
-    "intro": "Use separate series to keep invoices apart, for example one for Italian clients and one for Swiss clients with CH in the number. Each series has its own progressive that restarts every year. The default series is used unless a client or an invoice says otherwise.",
+    "intro": "Each series has its own progressive that restarts every year, with an optional prefix or suffix. The default series is used unless a client or an invoice says otherwise.",
     "add": "Add series",
     "newTitle": "New series",
     "editTitle": "Edit series",
     "name": "Name",
-    "nameHint": "How you recognise the series, for example Switzerland.",
+    "nameHint": "How you recognise the series.",
     "prefix": "Prefix",
     "suffix": "Suffix",
     "example": "Example: {{example}}",

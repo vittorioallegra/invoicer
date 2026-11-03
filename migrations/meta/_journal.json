@@ -71,6 +71,13 @@
       "when": 1793710403864,
       "tag": "0009_sleepy_sway",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1793711440262,
+      "tag": "0010_rename_default_series",
+      "breakpoints": true
     }
   ]
 }

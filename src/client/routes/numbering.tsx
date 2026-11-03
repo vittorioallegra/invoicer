@@ -132,7 +132,7 @@ function SeriesForm({
             onChange={set("prefix")}
             maxLength={MAX_AFFIX_LENGTH}
             autoCapitalize="characters"
-            placeholder="CH-"
+            placeholder="IT-"
           />
         )}
       </Field>
@@ -148,7 +148,7 @@ function SeriesForm({
             onChange={set("suffix")}
             maxLength={MAX_AFFIX_LENGTH}
             autoCapitalize="characters"
-            placeholder="/CH"
+            placeholder="/IT"
           />
         )}
       </Field>
