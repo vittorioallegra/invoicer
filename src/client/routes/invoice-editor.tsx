@@ -720,7 +720,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 />
               )}
             </Field>
-            {series.length > 1 ? (
+            {series.length > 0 ? (
               <Field label={t("invoice.document.series")}>
                 {(c) => (
                   <Select

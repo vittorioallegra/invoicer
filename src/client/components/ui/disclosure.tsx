@@ -13,11 +13,14 @@ export interface DisclosureProps {
   children: ReactNode;
 }
 
-/** A collapsible section: a heading with a full-width button (aria-expanded) and a panel below. */
+/**
+ * A collapsible section in one bordered box: a heading with a full-width button (aria-expanded)
+ * and, when open, the panel inside the same border.
+ */
 export function Disclosure({ id, title, summary, open, onToggle, children }: DisclosureProps) {
   const panelId = `${id}-panel`;
   return (
-    <section className="flex flex-col gap-4">
+    <section className="rounded-card border border-border">
       <h2 className="text-base font-medium">
         <button
           type="button"
@@ -25,7 +28,7 @@ export function Disclosure({ id, title, summary, open, onToggle, children }: Dis
           aria-expanded={open}
           {...(open ? { "aria-controls": panelId } : {})}
           onClick={onToggle}
-          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-control border border-border px-3 py-2 text-start"
+          className="flex min-h-11 w-full items-center justify-between gap-3 rounded-card px-4 py-3 text-start"
         >
           <span className="min-w-0">
             <span className="block">{title}</span>
@@ -42,7 +45,7 @@ export function Disclosure({ id, title, summary, open, onToggle, children }: Dis
         </button>
       </h2>
       {open ? (
-        <div id={panelId} className="flex flex-col gap-4">
+        <div id={panelId} className="flex flex-col gap-4 px-4 pb-4">
           {children}
         </div>
       ) : null}

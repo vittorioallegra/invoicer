@@ -729,11 +729,11 @@ describe("Invoice editor, number on the invoice", () => {
     ).toBeTruthy();
   });
 
-  it("offers no series select with a single series", async () => {
+  it("shows the series select even with a single series", async () => {
     serve();
     await renderEditor();
     await loaded();
-    expect(screen.queryByLabelText("Series")).toBeNull();
+    expect((field("Series") as HTMLSelectElement).options).toHaveLength(1);
   });
 
   it("starts in the client's series, proposes its number and sends the series", async () => {
