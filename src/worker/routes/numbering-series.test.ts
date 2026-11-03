@@ -59,6 +59,13 @@ describe("numbering series API", () => {
     expect(none.status).toBe(409);
   });
 
+  it("refuses a second series with the same name, ignoring case", async () => {
+    expect((await create({ name: "Spagna", prefix: "ES-" })).status).toBe(201);
+    const dup = await create({ name: "spagna", prefix: "X-" });
+    expect(dup.status).toBe(409);
+    expect(dup.body.detail).toBe("series_name_taken");
+  });
+
   it("changes the default and keeps exactly one", async () => {
     const created = await create({ name: "Estero", suffix: "/EU" });
     const res = await owner.json<{ series: Series[] }>(

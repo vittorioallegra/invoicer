@@ -198,6 +198,8 @@
     }
   },
   "validation": {
+    "series_name_taken": "A series with this name already exists.",
+    "series_affixes_taken": "Another series already uses this prefix and suffix.",
     "required": "This field is required.",
     "invalid": "This value is not valid.",
     "invalid_vat_number": "Enter the 11-digit partita IVA (the check digit does not match).",
@@ -975,7 +977,6 @@
     "emptyTitle": "No series yet",
     "emptyBody": "Add a series to number invoices.",
     "conflict_series_in_use": "This series numbered an invoice and cannot be deleted. You can rename it.",
-    "conflict_series_default": "The default series cannot be deleted.",
-    "conflict_series_affixes_taken": "Another series already uses this prefix and suffix."
+    "conflict_series_default": "The default series cannot be deleted."
   }
 }

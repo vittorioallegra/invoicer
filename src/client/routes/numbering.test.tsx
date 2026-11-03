@@ -143,6 +143,19 @@ describe("Numbering series page", () => {
     ).toBeTruthy();
   });
 
+  it("shows a duplicate name on the name field", async () => {
+    mocks.api.mockImplementation(async (_path: string, init?: { method?: string }) => {
+      if (init?.method === "POST") throw conflict("series_name_taken");
+      return { series: [italia] };
+    });
+    await renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Add series" }));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Italia" } });
+    fireEvent.change(screen.getByLabelText("Prefix"), { target: { value: "X-" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("A series with this name already exists.")).toBeTruthy();
+  });
+
   it("deletes an unused series", async () => {
     serve([italia, svizzera]);
     await renderPage();

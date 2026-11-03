@@ -198,6 +198,8 @@
     }
   },
   "validation": {
+    "series_name_taken": "Esiste già una numerazione con questo nome.",
+    "series_affixes_taken": "Un'altra numerazione usa già questo prefisso e suffisso.",
     "required": "Campo obbligatorio.",
     "invalid": "Valore non valido.",
     "invalid_vat_number": "Inserisci la partita IVA di 11 cifre (la cifra di controllo non torna).",
@@ -975,7 +977,6 @@
     "emptyTitle": "Nessuna numerazione",
     "emptyBody": "Aggiungi una numerazione per numerare le fatture.",
     "conflict_series_in_use": "Questa numerazione ha già numerato una fattura e non si può eliminare. Puoi rinominarla.",
-    "conflict_series_default": "La numerazione predefinita non si può eliminare.",
-    "conflict_series_affixes_taken": "Un'altra numerazione usa già questo prefisso e suffisso."
+    "conflict_series_default": "La numerazione predefinita non si può eliminare."
   }
 }

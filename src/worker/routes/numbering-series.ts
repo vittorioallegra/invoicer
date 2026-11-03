@@ -33,19 +33,26 @@ async function readBody(c: { req: { json: () => Promise<unknown> } }) {
   return parsed.data;
 }
 
-/** Two series with the same prefix and suffix would print the same numbers. */
-async function requireFreeAffixes(
+/**
+ * Two series may not share a name (case-insensitive) nor a prefix and suffix, which would print
+ * the same numbers.
+ */
+async function requireUnique(
   db: D1Database,
-  data: { prefix: string | null; suffix: string | null },
+  data: { name: string; prefix: string | null; suffix: string | null },
   exceptId: string | null,
 ): Promise<void> {
   const taken = await db
     .prepare(
-      `SELECT 1 AS hit FROM numbering_series
-       WHERE COALESCE(prefix, '') = ? AND COALESCE(suffix, '') = ? AND id <> ?`,
+      `SELECT lower(name) = lower(?1) AS same_name,
+              (COALESCE(prefix, '') = ?2 AND COALESCE(suffix, '') = ?3) AS same_affixes
+       FROM numbering_series
+       WHERE id <> ?4 AND (lower(name) = lower(?1) OR (COALESCE(prefix, '') = ?2 AND COALESCE(suffix, '') = ?3))
+       LIMIT 1`,
     )
-    .bind(data.prefix ?? "", data.suffix ?? "", exceptId ?? "")
-    .first();
+    .bind(data.name, data.prefix ?? "", data.suffix ?? "", exceptId ?? "")
+    .first<{ same_name: number; same_affixes: number }>();
+  if (taken?.same_name) throw makeError("conflict", "series_name_taken");
   if (taken) throw makeError("conflict", "series_affixes_taken");
 }
 
@@ -62,7 +69,7 @@ numberingSeries.get("/", async (c) => {
 
 numberingSeries.post("/", async (c) => {
   const data = await readBody(c);
-  await requireFreeAffixes(c.env.DB, data, null);
+  await requireUnique(c.env.DB, data, null);
   const [row] = await drizzle(c.env.DB, { schema })
     .insert(schema.numberingSeries)
     .values({ ...data, isDefault: false })
@@ -74,7 +81,7 @@ numberingSeries.post("/", async (c) => {
 numberingSeries.put("/:id", async (c) => {
   const id = c.req.param("id");
   const data = await readBody(c);
-  await requireFreeAffixes(c.env.DB, data, id);
+  await requireUnique(c.env.DB, data, id);
   const [row] = await drizzle(c.env.DB, { schema })
     .update(schema.numberingSeries)
     .set({ ...data, updatedAt: new Date() })

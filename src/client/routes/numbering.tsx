@@ -61,6 +61,10 @@ function SeriesForm({
   const fail = (error: unknown) => {
     if (error instanceof ApiError && error.code === "bad_request") {
       setErrors(fieldErrorsFromDetail(error.problem.detail));
+    } else if (error instanceof ApiError && error.problem.detail === "series_name_taken") {
+      setErrors({ name: "series_name_taken" });
+    } else if (error instanceof ApiError && error.problem.detail === "series_affixes_taken") {
+      setErrors({ prefix: "series_affixes_taken", suffix: "series_affixes_taken" });
     } else if (error instanceof ApiError && error.code === "conflict") {
       toast.error(
         t(`numbering.conflict_${error.problem.detail}`, { defaultValue: t("common.error") }),

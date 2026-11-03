@@ -114,11 +114,12 @@ export function Toaster() {
           </ToastPrimitive.Root>
         );
       })}
-      {/* Top-center on phones (never hidden by the tab bar or the editor's totals bar),
+      {/* Above sheets and dialogs (z-50), so feedback from a form in a sheet stays visible.
+          Top-center on phones (never hidden by the tab bar or the editor's totals bar),
           bottom-right on desktop. */}
       <ToastPrimitive.Viewport
         className={cn(
-          "pointer-events-none fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] z-50 mx-auto flex w-full max-w-sm list-none flex-col gap-2 px-4 outline-none",
+          "pointer-events-none fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] z-[60] mx-auto flex w-full max-w-sm list-none flex-col gap-2 px-4 outline-none",
           "md:inset-x-auto md:top-auto md:right-4 md:bottom-4 md:mx-0 md:w-96 md:max-w-none md:px-0",
         )}
       />
