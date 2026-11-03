@@ -786,7 +786,8 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
           <h2 id="inv-extras" className="text-base font-medium">
             {t("invoice.extras.title")}
           </h2>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <fieldset className="flex flex-col gap-3 rounded-card border border-border p-4">
+            <legend className="px-1 text-sm font-semibold">{t("clients.form.pensionFund")}</legend>
             <Field label={t("clients.form.cassa")} error={err("data.cassa.type")}>
               {(c) => (
                 <Select
@@ -811,43 +812,50 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
                 </Select>
               )}
             </Field>
-            <Field label={t("clients.form.cassaRate")} error={err("data.cassa.rateBp")}>
-              {(c) => (
-                <Input
-                  {...c}
-                  value={form.cassaRate}
-                  inputMode="decimal"
-                  disabled={locked || !form.cassaType}
-                  onChange={text("cassaRate")}
-                />
-              )}
-            </Field>
-            <Field label={t("clients.form.cassaMode")}>
-              {(c) => (
-                <Select
-                  {...c}
-                  value={form.cassaMode}
-                  disabled={locked || !form.cassaType}
-                  onChange={text("cassaMode")}
-                >
-                  <option value="excluded">{t("clients.form.modeExcluded")}</option>
-                  <option value="included">{t("clients.form.modeIncluded")}</option>
-                </Select>
-              )}
-            </Field>
-          </div>
-          {form.cassaType && form.ritenutaType ? (
-            <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-              <input
-                type="checkbox"
-                className="size-5"
-                checked={form.cassaSubjectToRitenuta}
-                onChange={(e) => patch({ cassaSubjectToRitenuta: e.target.checked })}
-              />
-              {t("invoice.extras.cassaSubject")}
-            </label>
-          ) : null}
-          <div className="grid gap-4 sm:grid-cols-3">
+            {form.cassaType ? (
+              <div className="flex flex-col gap-4 border-s-2 border-border ps-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label={t("clients.form.cassaRate")} error={err("data.cassa.rateBp")}>
+                    {(c) => (
+                      <Input
+                        {...c}
+                        value={form.cassaRate}
+                        inputMode="decimal"
+                        disabled={locked}
+                        onChange={text("cassaRate")}
+                      />
+                    )}
+                  </Field>
+                  <Field label={t("clients.form.cassaMode")}>
+                    {(c) => (
+                      <Select
+                        {...c}
+                        value={form.cassaMode}
+                        disabled={locked}
+                        onChange={text("cassaMode")}
+                      >
+                        <option value="excluded">{t("clients.form.modeExcluded")}</option>
+                        <option value="included">{t("clients.form.modeIncluded")}</option>
+                      </Select>
+                    )}
+                  </Field>
+                </div>
+                {form.ritenutaType ? (
+                  <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      className="size-5"
+                      checked={form.cassaSubjectToRitenuta}
+                      onChange={(e) => patch({ cassaSubjectToRitenuta: e.target.checked })}
+                    />
+                    {t("invoice.extras.cassaSubject")}
+                  </label>
+                ) : null}
+              </div>
+            ) : null}
+          </fieldset>
+          <fieldset className="flex flex-col gap-3 rounded-card border border-border p-4">
+            <legend className="px-1 text-sm font-semibold">{t("clients.form.withholding")}</legend>
             <Field label={t("clients.form.ritenuta")} error={err("data.ritenuta.type")}>
               {(c) => (
                 <Select {...c} value={form.ritenutaType} onChange={text("ritenutaType")}>
@@ -860,49 +868,57 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
                 </Select>
               )}
             </Field>
-            <Field label={t("clients.form.ritenutaRate")} error={err("data.ritenuta.rateBp")}>
-              {(c) => (
-                <Input
-                  {...c}
-                  value={form.ritenutaRate}
-                  inputMode="decimal"
-                  disabled={locked || !form.ritenutaType}
-                  onChange={text("ritenutaRate")}
-                />
-              )}
-            </Field>
-            <Field
-              label={t("clients.form.ritenutaBase")}
-              hint={t("clients.form.withholdingBaseHint")}
-              error={err("data.ritenuta.baseBp")}
-            >
-              {(c) => (
-                <Input
-                  {...c}
-                  value={form.ritenutaBase}
-                  inputMode="decimal"
-                  disabled={locked || !form.ritenutaType}
-                  onChange={text("ritenutaBase")}
-                />
-              )}
-            </Field>
-            <Field label={t("clients.form.ritenutaCausale")} error={err("data.ritenuta.causale")}>
-              {(c) => (
-                <Select
-                  {...c}
-                  value={form.ritenutaCausale}
-                  disabled={locked || !form.ritenutaType}
-                  onChange={text("ritenutaCausale")}
+            {form.ritenutaType ? (
+              <div className="grid gap-4 border-s-2 border-border ps-4 sm:grid-cols-2">
+                <Field label={t("clients.form.ritenutaRate")} error={err("data.ritenuta.rateBp")}>
+                  {(c) => (
+                    <Input
+                      {...c}
+                      value={form.ritenutaRate}
+                      inputMode="decimal"
+                      disabled={locked}
+                      onChange={text("ritenutaRate")}
+                    />
+                  )}
+                </Field>
+                <Field
+                  label={t("clients.form.ritenutaBase")}
+                  hint={t("clients.form.withholdingBaseHint")}
+                  error={err("data.ritenuta.baseBp")}
                 >
-                  {CAUSALE_PAGAMENTO_CODES.map((code) => (
-                    <option key={code} value={code}>
-                      {causalePagamentoLabel(code, locale)}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-          </div>
+                  {(c) => (
+                    <Input
+                      {...c}
+                      value={form.ritenutaBase}
+                      inputMode="decimal"
+                      disabled={locked}
+                      onChange={text("ritenutaBase")}
+                    />
+                  )}
+                </Field>
+                <Field
+                  label={t("clients.form.ritenutaCausale")}
+                  error={err("data.ritenuta.causale")}
+                  className="sm:col-span-2"
+                >
+                  {(c) => (
+                    <Select
+                      {...c}
+                      value={form.ritenutaCausale}
+                      disabled={locked}
+                      onChange={text("ritenutaCausale")}
+                    >
+                      {CAUSALE_PAGAMENTO_CODES.map((code) => (
+                        <option key={code} value={code}>
+                          {causalePagamentoLabel(code, locale)}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </Field>
+              </div>
+            ) : null}
+          </fieldset>
           <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
             <input
               type="checkbox"

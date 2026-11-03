@@ -301,6 +301,10 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
 
   const grid = "grid grid-cols-1 items-start gap-4 sm:grid-cols-2";
   const legend = "mb-2 text-base font-medium";
+  // A select with the fields that belong to it: a bordered group, dependents indented.
+  const group = "flex flex-col gap-3 rounded-card border border-border p-4";
+  const groupLegend = "px-1 text-sm font-semibold";
+  const nested = "border-s-2 border-border ps-4";
   const countries =
     form.type === "eu_company" || form.type === "non_eu_company"
       ? countryOptions(
@@ -559,104 +563,111 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
               )}
             </Field>
 
-            <Field label={t("clients.form.pensionFund")} error={err("defaults.cassa.type")}>
-              {(c) => (
-                <Select {...c} value={form.cassaType} onChange={set("cassaType")}>
-                  <option value="">{t("clients.form.none")}</option>
-                  <option value="rivalsa_inps">{cassaTypeLabel("rivalsa_inps", locale)}</option>
-                  {CASSA_TYPE_CODES.map((code) => (
-                    <option key={code} value={code}>
-                      {cassaTypeLabel(code, locale)}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-            {form.cassaType ? (
-              <div className={grid}>
-                <Field
-                  label={t("clients.form.pensionRate")}
-                  hint={t("clients.form.rateHint")}
-                  error={err("defaults.cassa.rateBp")}
-                >
-                  {(c) => (
-                    <Input
-                      {...c}
-                      value={form.cassaRate}
-                      onChange={set("cassaRate")}
-                      inputMode="decimal"
-                    />
-                  )}
-                </Field>
-                <Field label={t("clients.form.pensionMode")} error={err("defaults.cassa.mode")}>
-                  {(c) => (
-                    <Select {...c} value={form.cassaMode} onChange={set("cassaMode")}>
-                      <option value="excluded">{t("clients.form.pensionAdded")}</option>
-                      <option value="included">{t("clients.form.pensionIncluded")}</option>
-                    </Select>
-                  )}
-                </Field>
-              </div>
-            ) : null}
+            <fieldset className={group}>
+              <legend className={groupLegend}>{t("clients.form.pensionFund")}</legend>
+              <Field label={t("clients.form.cassa")} error={err("defaults.cassa.type")}>
+                {(c) => (
+                  <Select {...c} value={form.cassaType} onChange={set("cassaType")}>
+                    <option value="">{t("clients.form.none")}</option>
+                    <option value="rivalsa_inps">{cassaTypeLabel("rivalsa_inps", locale)}</option>
+                    {CASSA_TYPE_CODES.map((code) => (
+                      <option key={code} value={code}>
+                        {cassaTypeLabel(code, locale)}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+              {form.cassaType ? (
+                <div className={`${grid} ${nested}`}>
+                  <Field
+                    label={t("clients.form.pensionRate")}
+                    hint={t("clients.form.rateHint")}
+                    error={err("defaults.cassa.rateBp")}
+                  >
+                    {(c) => (
+                      <Input
+                        {...c}
+                        value={form.cassaRate}
+                        onChange={set("cassaRate")}
+                        inputMode="decimal"
+                      />
+                    )}
+                  </Field>
+                  <Field label={t("clients.form.pensionMode")} error={err("defaults.cassa.mode")}>
+                    {(c) => (
+                      <Select {...c} value={form.cassaMode} onChange={set("cassaMode")}>
+                        <option value="excluded">{t("clients.form.pensionAdded")}</option>
+                        <option value="included">{t("clients.form.pensionIncluded")}</option>
+                      </Select>
+                    )}
+                  </Field>
+                </div>
+              ) : null}
+            </fieldset>
 
-            <Field label={t("clients.form.withholding")} error={err("defaults.ritenuta.type")}>
-              {(c) => (
-                <Select {...c} value={form.ritenutaType} onChange={set("ritenutaType")}>
-                  <option value="">{t("clients.form.none")}</option>
-                  {RITENUTA_TYPES.map((code) => (
-                    <option key={code} value={code}>
-                      {ritenutaTypeLabel(code, locale)}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-            {form.ritenutaType ? (
-              <div className={grid}>
-                <Field
-                  label={t("clients.form.withholdingRate")}
-                  hint={t("clients.form.rateHint")}
-                  error={err("defaults.ritenuta.rateBp")}
-                >
-                  {(c) => (
-                    <Input
-                      {...c}
-                      value={form.ritenutaRate}
-                      onChange={set("ritenutaRate")}
-                      inputMode="decimal"
-                    />
-                  )}
-                </Field>
-                <Field
-                  label={t("clients.form.withholdingBase")}
-                  hint={t("clients.form.withholdingBaseHint")}
-                  error={err("defaults.ritenuta.baseBp")}
-                >
-                  {(c) => (
-                    <Input
-                      {...c}
-                      value={form.ritenutaBase}
-                      onChange={set("ritenutaBase")}
-                      inputMode="decimal"
-                    />
-                  )}
-                </Field>
-                <Field
-                  label={t("clients.form.withholdingReason")}
-                  error={err("defaults.ritenuta.causale")}
-                >
-                  {(c) => (
-                    <Select {...c} value={form.ritenutaCausale} onChange={set("ritenutaCausale")}>
-                      {CAUSALE_PAGAMENTO_CODES.map((code) => (
-                        <option key={code} value={code}>
-                          {causalePagamentoLabel(code, locale)}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </Field>
-              </div>
-            ) : null}
+            <fieldset className={group}>
+              <legend className={groupLegend}>{t("clients.form.withholding")}</legend>
+              <Field label={t("clients.form.ritenuta")} error={err("defaults.ritenuta.type")}>
+                {(c) => (
+                  <Select {...c} value={form.ritenutaType} onChange={set("ritenutaType")}>
+                    <option value="">{t("clients.form.none")}</option>
+                    {RITENUTA_TYPES.map((code) => (
+                      <option key={code} value={code}>
+                        {ritenutaTypeLabel(code, locale)}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+              {form.ritenutaType ? (
+                <div className={`${grid} ${nested}`}>
+                  <Field
+                    label={t("clients.form.withholdingRate")}
+                    hint={t("clients.form.rateHint")}
+                    error={err("defaults.ritenuta.rateBp")}
+                  >
+                    {(c) => (
+                      <Input
+                        {...c}
+                        value={form.ritenutaRate}
+                        onChange={set("ritenutaRate")}
+                        inputMode="decimal"
+                      />
+                    )}
+                  </Field>
+                  <Field
+                    label={t("clients.form.withholdingBase")}
+                    hint={t("clients.form.withholdingBaseHint")}
+                    error={err("defaults.ritenuta.baseBp")}
+                  >
+                    {(c) => (
+                      <Input
+                        {...c}
+                        value={form.ritenutaBase}
+                        onChange={set("ritenutaBase")}
+                        inputMode="decimal"
+                      />
+                    )}
+                  </Field>
+                  <Field
+                    label={t("clients.form.withholdingReason")}
+                    error={err("defaults.ritenuta.causale")}
+                    className="sm:col-span-2"
+                  >
+                    {(c) => (
+                      <Select {...c} value={form.ritenutaCausale} onChange={set("ritenutaCausale")}>
+                        {CAUSALE_PAGAMENTO_CODES.map((code) => (
+                          <option key={code} value={code}>
+                            {causalePagamentoLabel(code, locale)}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                  </Field>
+                </div>
+              ) : null}
+            </fieldset>
 
             <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
               <input
