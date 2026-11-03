@@ -244,6 +244,32 @@ describe("text that the XSD would refuse", () => {
   });
 });
 
+describe("line notes", () => {
+  it("are appended to Descrizione on a new line and stay XSD-valid", async () => {
+    const input = fixtureToFatturaInput(fixture("a"));
+    const lines = input.invoice.lines.map((line, index) =>
+      index === 0
+        ? { ...line, description: "Consulting", note: "Phase 1\nDelivered 2026-03-10" }
+        : line,
+    );
+    const { xml } = buildFatturaXml({ ...input, invoice: { ...input.invoice, lines } });
+    expect((await validateFatturaXml(xml, assets)).errors).toEqual([]);
+    expect(xml).toContain("<Descrizione>Consulting\nPhase 1\nDelivered 2026-03-10</Descrizione>");
+    const parsed = parseFatturaXml(xml);
+    expect(parsed).toBeDefined();
+  });
+
+  it("keep Descrizione within 1000 characters", async () => {
+    const input = fixtureToFatturaInput(fixture("a"));
+    const lines = input.invoice.lines.map((line, index) =>
+      index === 0 ? { ...line, description: "D".repeat(500), note: "N".repeat(499) } : line,
+    );
+    const { xml } = buildFatturaXml({ ...input, invoice: { ...input.invoice, lines } });
+    expect((await validateFatturaXml(xml, assets)).errors).toEqual([]);
+    expect(xml).toContain(`${"D".repeat(500)}\n${"N".repeat(499)}</Descrizione>`);
+  });
+});
+
 describe("payment terms", () => {
   const withTerms = (terms: PaymentTerms | null, dueDateCustom = false) => {
     const input = fixtureToFatturaInput(fixture("a"));

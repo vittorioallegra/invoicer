@@ -5,7 +5,14 @@ import type { ProfileData, RegimeFiscale } from "../profile";
 import { computeTotals, type Natura, type Totals } from "../totals";
 import { encodeFileProgressive, fatturaFileName } from "./file-name";
 import { formatBasisPoints, formatCents, formatQuantity, formatUnitPrice } from "./numbers";
-import { CAUSALE_MAX, chunkText, naturaFullText, naturaReference, toLatin } from "./text";
+import {
+  CAUSALE_MAX,
+  chunkText,
+  lineDescription,
+  naturaFullText,
+  naturaReference,
+  toLatin,
+} from "./text";
 
 export const FATTURAPA_NAMESPACE = "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2";
 export const FATTURAPA_FORMAT = "FPR12";
@@ -153,7 +160,7 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
     const exactUnitPrice = cassa?.mode !== "included";
     return node({
       NumeroLinea: String(index + 1),
-      Descrizione: toLatin(line.description, 1000),
+      Descrizione: lineDescription(line),
       Quantita: formatQuantity(line.quantityMilli),
       UnitaMisura: line.unit ? toLatin(line.unit, 10) : undefined,
       PrezzoUnitario: exactUnitPrice

@@ -249,6 +249,8 @@ export const invoiceLines = sqliteTable(
       .references(() => invoices.id, { onDelete: "cascade" }),
     position: integer("position").notNull(),
     description: text("description").notNull(),
+    /** Optional note appended to the description in the XML and printed under it on the PDF. */
+    note: text("note"),
     /** Quantity in thousandths and prices in cents as integers. */
     quantityMilli: integer("quantity_milli").notNull().default(1000),
     unit: text("unit"),

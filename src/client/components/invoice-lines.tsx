@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from "lucide-react";
-import { type ReactNode, useId } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatMoney, type UiLocale } from "../../shared/format";
 import { NATURA_CODES, naturaLabel, type Totals, vatRateLabel } from "../../shared/totals";
@@ -8,11 +8,14 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { MoneyInput } from "./ui/money-input";
 import { Select } from "./ui/select";
+import { Textarea } from "./ui/textarea";
 
 interface CellProps {
   label: string;
   error?: string | undefined;
   className?: string;
+  /** Keep the label visible in the desktop table too (fields outside the table columns). */
+  labelVisible?: boolean;
   children: (control: {
     id: string;
     "aria-invalid": true | undefined;
@@ -21,12 +24,15 @@ interface CellProps {
 }
 
 /** Label above the control on a phone (stacked card); visually hidden in the desktop table. */
-function Cell({ label, error, className, children }: CellProps) {
+function Cell({ label, error, className, labelVisible, children }: CellProps) {
   const id = useId();
   const errorId = `${id}-error`;
   return (
     <div className={className}>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium md:sr-only">
+      <label
+        htmlFor={id}
+        className={`mb-1 block text-sm font-medium ${labelVisible ? "" : "md:sr-only"}`}
+      >
         {label}
       </label>
       {children({
@@ -67,6 +73,8 @@ export function InvoiceLines({
 }: InvoiceLinesProps) {
   const { t } = useTranslation();
   const currency = form.currency.toUpperCase();
+  // A note stays behind the "Add note" link until it is used (or already has text).
+  const [noteOpen, setNoteOpen] = useState<ReadonlySet<string>>(new Set());
 
   const update = (key: string, patch: Partial<LineForm>) =>
     onChange(form.lines.map((line) => (line.key === key ? { ...line, ...patch } : line)));
@@ -197,6 +205,34 @@ export function InvoiceLines({
                   <Trash2 aria-hidden />
                 </Button>
               </div>
+              {line.note !== "" || noteOpen.has(line.key) ? (
+                <Cell
+                  label={t("invoice.lines.note")}
+                  error={error(path("note"))}
+                  className="md:col-span-full"
+                  labelVisible
+                >
+                  {(c) => (
+                    <Textarea
+                      {...c}
+                      value={line.note}
+                      rows={2}
+                      className="min-h-16"
+                      disabled={disabled}
+                      onChange={(e) => update(line.key, { note: e.target.value })}
+                    />
+                  )}
+                </Cell>
+              ) : disabled ? null : (
+                <button
+                  type="button"
+                  aria-label={t("invoice.lines.addNoteTo", { n: index + 1 })}
+                  className="min-h-11 w-fit text-sm underline underline-offset-4 md:col-span-full md:min-h-9"
+                  onClick={() => setNoteOpen((open) => new Set(open).add(line.key))}
+                >
+                  {t("invoice.lines.addNote")}
+                </button>
+              )}
             </li>
           );
         })}

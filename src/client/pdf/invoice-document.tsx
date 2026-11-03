@@ -21,6 +21,7 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: "row", paddingVertical: 3, borderBottomWidth: 0.5, borderColor: "#ccc" },
   cDesc: { flex: 5, paddingRight: 6 },
+  note: { fontSize: 8, color: "#555", marginTop: 1 },
   cQty: { flex: 1.4, textAlign: "right", paddingRight: 6 },
   cPrice: { flex: 2, textAlign: "right", paddingRight: 6 },
   cVat: { flex: 2, textAlign: "right", paddingRight: 6 },
@@ -83,7 +84,10 @@ export function InvoiceDocument({ model, t }: { model: InvoicePdfModel; t: TFunc
         {model.lines.map((line, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: lines have no stable id and never reorder
           <View key={index} style={styles.row} wrap={false}>
-            <Text style={styles.cDesc}>{line.description}</Text>
+            <View style={styles.cDesc}>
+              <Text>{line.description}</Text>
+              {line.note ? <Text style={styles.note}>{line.note}</Text> : null}
+            </View>
             <Text style={styles.cQty}>{line.quantity}</Text>
             <Text style={styles.cPrice}>{line.unitPrice}</Text>
             <Text style={styles.cVat}>{line.vat}</Text>

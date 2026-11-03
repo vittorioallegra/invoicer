@@ -167,3 +167,18 @@ describe("invoice PDF ritenuta base", () => {
     expect(whole).not.toContain("dell'imponibile");
   });
 });
+
+describe("invoice PDF line notes", () => {
+  it("prints the note under the line description", async () => {
+    const input = inputFor("b");
+    const lines = input.invoice.lines.map((line, index) =>
+      index === 0 ? { ...line, note: "Phase one, delivered in March" } : line,
+    );
+    const text = extractText(
+      await renderInvoicePdf({ ...input, invoice: { ...input.invoice, lines } }),
+    );
+    expect(text).toContain("Phase one, delivered in March");
+    const without = extractText(await renderInvoicePdf(input));
+    expect(without).not.toContain("Phase one");
+  });
+});

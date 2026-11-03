@@ -141,12 +141,13 @@ export async function loadInvoice(
   if (!row) return null;
   const { results: lineRows } = await db
     .prepare(
-      `SELECT description, quantity_milli, unit, unit_price_cents, vat_rate_bp, natura
+      `SELECT description, note, quantity_milli, unit, unit_price_cents, vat_rate_bp, natura
        FROM invoice_lines WHERE invoice_id = ? ORDER BY position`,
     )
     .bind(id)
     .all<{
       description: string;
+      note: string | null;
       quantity_milli: number;
       unit: string | null;
       unit_price_cents: number;
@@ -197,6 +198,7 @@ export async function loadInvoice(
     notes: row.notes,
     lines: lineRows.map((line) => ({
       description: line.description,
+      note: line.note ?? "",
       quantityMilli: line.quantity_milli,
       unit: line.unit,
       unitPriceCents: line.unit_price_cents,
@@ -273,14 +275,15 @@ function lineStatements(db: D1Database, id: string, lines: InvoiceBody["lines"])
     db
       .prepare(
         `INSERT INTO invoice_lines
-           (id, invoice_id, position, description, quantity_milli, unit, unit_price_cents, vat_rate_bp, natura)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, invoice_id, position, description, note, quantity_milli, unit, unit_price_cents, vat_rate_bp, natura)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         crypto.randomUUID(),
         id,
         index,
         line.description,
+        line.note || null,
         line.quantityMilli,
         line.unit,
         line.unitPriceCents,

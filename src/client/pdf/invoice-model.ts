@@ -15,6 +15,8 @@ export interface PdfRow {
 
 export interface PdfLine {
   description: string;
+  /** Optional note printed under the description in smaller muted text. */
+  note: string | null;
   quantity: string;
   unitPrice: string;
   vat: string;
@@ -104,6 +106,7 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
 
   const lines = invoice.lines.map((line, index) => ({
     description: line.description,
+    note: line.note.trim() || null,
     quantity: [number.format(line.quantityMilli / 1000), line.unit].filter(Boolean).join(" "),
     unitPrice: money(line.unitPriceCents),
     vat:

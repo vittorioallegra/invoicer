@@ -145,6 +145,7 @@ describe("invoice form", () => {
       {
         key: "a",
         description: "Work",
+        note: "",
         quantity: "7,5",
         unit: "h",
         price: "1.040,00",
@@ -160,8 +161,24 @@ describe("invoice form", () => {
   it("reports unreadable amounts and keeps totalling the rest", () => {
     const form = emptyForm();
     form.lines = [
-      { key: "a", description: "A", quantity: "1", unit: "", price: "oops", vat: "rate:2200" },
-      { key: "b", description: "B", quantity: "1", unit: "", price: "10", vat: "rate:2200" },
+      {
+        key: "a",
+        description: "A",
+        note: "",
+        quantity: "1",
+        unit: "",
+        price: "oops",
+        vat: "rate:2200",
+      },
+      {
+        key: "b",
+        description: "B",
+        note: "",
+        quantity: "1",
+        unit: "",
+        price: "10",
+        vat: "rate:2200",
+      },
     ];
     expect(buildInvoice(form).problems).toEqual({ "lines.0.unitPriceCents": "invalid_amount" });
     expect(formTotals(form)?.taxableCents).toBe(1000);

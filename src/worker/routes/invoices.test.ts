@@ -99,6 +99,16 @@ describe("invoices API", () => {
     expect(unplanned.body.invoice.state).toBe("draft");
   });
 
+  it("stores a line note, and a line without one reads back empty", async () => {
+    const saved = await create({ lines: [line({ note: "Phase 1" }), line()] });
+    expect(saved.lines.map((l) => l.note)).toEqual(["Phase 1", ""]);
+    const tooLong = await owner.json<{ detail: string }>("/api/invoices", {
+      body: body({ lines: [line({ description: "D".repeat(600), note: "N".repeat(500) })] }),
+    });
+    expect(tooLong.status).toBe(400);
+    expect(tooLong.body.detail).toContain("lines.0.note: line_text_too_long");
+  });
+
   it("rejects malformed content with the failing fields", async () => {
     const bad = await owner.json<{ detail: string }>("/api/invoices", {
       body: body({ invoiceDate: "2030-02-31", lines: [line({ quantityMilli: 0 })] }),

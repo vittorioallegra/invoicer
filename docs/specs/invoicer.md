@@ -184,6 +184,12 @@ settle the open ones):
   Natura codes: N1, N2.1, N2.2, N3.1–N3.6, N4, N5, N6.1–N6.9,
   N7, each with a mandatory or suggested legal reference text (e.g. forfettario:
   "Operazione effettuata ai sensi dell'art. 1, commi 54-89, L. 190/2014").
+- Line notes: each line has an optional "Note" textarea, collapsed behind a small "Add note"
+  link until used (or already filled). The XML appends it to the line's `Descrizione` after a
+  line feed (`description\nnote`); description and note together fit the 1000 characters of
+  `Descrizione`, which the editor and the Worker check (`line_text_too_long` on the note).
+  The PDF prints the note under the line description in smaller muted text. Stored in
+  `invoice_lines.note`.
 - Optional per invoice, prefilled from Tax details when the client's flag for it is on (the
   invoice then keeps its own editable copy, so later changes to Tax details never alter it):
   rivalsa INPS 4% or a cassa

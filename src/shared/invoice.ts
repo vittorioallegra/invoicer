@@ -47,10 +47,22 @@ export function isValidDate(value: string): boolean {
 
 const dateOnly = z.string().refine(isValidDate, "invalid_date");
 
+/** FatturaPA `Descrizione` is limited to 1000 characters (String1000LatinType). */
+export const LINE_TEXT_MAX = 1000;
+
+/** Characters the line text takes in `Descrizione`: the description, then the note on a new line. */
+export function lineTextLength(line: { description: string; note?: string | undefined }): number {
+  const description = line.description.trim().length;
+  const note = (line.note ?? "").trim().length;
+  return note > 0 ? description + 1 + note : description;
+}
+
 export const invoiceLineSchema = z
   .object({
-    /** FatturaPA `Descrizione`: at most 1000 characters (required when issuing). */
-    description: z.string().trim().max(1000),
+    /** FatturaPA `Descrizione` (required when issuing); with the note it fits 1000 characters. */
+    description: z.string().trim().max(LINE_TEXT_MAX),
+    /** Optional note, written after the description on a new line of `Descrizione`. */
+    note: z.string().trim().max(LINE_TEXT_MAX, "line_text_too_long").default(""),
     /** Quantity in thousandths (1000 = 1). */
     quantityMilli: z.number().int().min(1).max(999_999_999_999),
     unit: z
@@ -66,6 +78,10 @@ export const invoiceLineSchema = z
   .refine((line) => !(line.vatRateBp !== null && line.natura !== null), {
     message: "invalid_vat_default",
     path: ["natura"],
+  })
+  .refine((line) => lineTextLength(line) <= LINE_TEXT_MAX, {
+    message: "line_text_too_long",
+    path: ["note"],
   });
 export type InvoiceLine = z.output<typeof invoiceLineSchema>;
 

@@ -213,6 +213,7 @@
     "invalid_non_eu_country": "Inserisci un codice paese extra UE.",
     "invalid_currency": "Inserisci un codice valuta di 3 lettere.",
     "invalid_vat_default": "Scegli un'aliquota IVA oppure un'esenzione.",
+    "line_text_too_long": "Il testo è troppo lungo per la riga: descrizione e nota insieme non possono superare 1000 caratteri.",
     "invalid_date": "Inserisci una data valida.",
     "natura_text_required": "Aggiungi il riferimento normativo per questa esenzione.",
     "vat_required": "Scegli un'aliquota IVA o un'esenzione per questa riga.",
@@ -499,6 +500,9 @@
       "vat": "IVA",
       "amount": "Importo",
       "chooseVat": "Scegli l'IVA",
+      "note": "Nota",
+      "addNote": "Aggiungi nota",
+      "addNoteTo": "Aggiungi nota alla riga {{n}}",
       "add": "Aggiungi riga",
       "remove": "Rimuovi riga {{n}}"
     },

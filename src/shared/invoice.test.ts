@@ -75,6 +75,23 @@ describe("transmission-term warning (art. 21 DPR 633/72)", () => {
   });
 });
 
+describe("line notes", () => {
+  const withNote = (description: string, note?: string) =>
+    issues({ lines: [{ ...line, vatRateBp: 2200, natura: null, description, note }] });
+  it("are optional and default to empty", () => {
+    expect(issues()).toEqual({});
+    const parsed = invoiceInputSchema.parse(input());
+    expect(parsed.lines[0]?.note).toBe("");
+  });
+  it("share the 1000 characters of Descrizione with the description", () => {
+    expect(withNote("D".repeat(500), "N".repeat(499))).toEqual({});
+    expect(withNote("D".repeat(500), "N".repeat(500))).toMatchObject({
+      "lines.0.note": "line_text_too_long",
+    });
+    expect(withNote("D", "N".repeat(1001))).toMatchObject({ "lines.0.note": "line_text_too_long" });
+  });
+});
+
 describe("issuing rules", () => {
   it("accepts a complete invoice", () => {
     expect(issues()).toEqual({});

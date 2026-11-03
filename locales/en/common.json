@@ -213,6 +213,7 @@
     "invalid_non_eu_country": "Enter a country code outside the EU.",
     "invalid_currency": "Enter a 3-letter currency code.",
     "invalid_vat_default": "Choose either a VAT rate or an exemption.",
+    "line_text_too_long": "This text is too long for the line: the description and the note must fit 1000 characters together.",
     "invalid_date": "Enter a valid date.",
     "natura_text_required": "Add the legal reference for this exemption.",
     "vat_required": "Choose a VAT rate or an exemption for this line.",
@@ -499,6 +500,9 @@
       "vat": "VAT",
       "amount": "Amount",
       "chooseVat": "Choose VAT",
+      "note": "Note",
+      "addNote": "Add note",
+      "addNoteTo": "Add note to line {{n}}",
       "add": "Add line",
       "remove": "Remove line {{n}}"
     },

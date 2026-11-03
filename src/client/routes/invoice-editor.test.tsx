@@ -138,6 +138,7 @@ function record(over: Partial<InvoiceRecord> = {}): InvoiceRecord {
     lines: [
       {
         description: "Consulting",
+        note: "",
         quantityMilli: 2000,
         unit: "h",
         unitPriceCents: 5000,
@@ -441,6 +442,42 @@ describe("Invoice editor", () => {
     expect(screen.queryByLabelText(/Deferred invoice/)).toBeNull();
     type("Invoice date", "");
     expect(screen.queryByText(/within 12 days of its date/)).toBeNull();
+  });
+
+  it("keeps the line note behind a link until it is used, and saves it", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    expect(screen.queryByLabelText("Note")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Add note to line 1" }));
+    expect(screen.queryByRole("button", { name: "Add note to line 1" })).toBeNull();
+    type("Client", "c1");
+    type("Description", "Consulting");
+    type("Note", "Phase 1");
+    type("Unit price", "50");
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    await waitFor(() =>
+      expect(mocks.api).toHaveBeenCalledWith(
+        "/api/invoices",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    const call = mocks.api.mock.calls.find(([path]) => path === "/api/invoices");
+    const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
+    expect(body.lines[0]).toMatchObject({ description: "Consulting", note: "Phase 1" });
+  });
+
+  it("flags a description and note that do not fit Descrizione together", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    fireEvent.click(screen.getByRole("button", { name: "Add note to line 1" }));
+    type("Description", "D".repeat(600));
+    type("Note", "N".repeat(500));
+    type("Unit price", "50");
+    type("VAT", "rate:2200");
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
+    expect(await screen.findByText(/must fit 1000 characters together/)).toBeTruthy();
   });
 
   it("offers the accounts and saves the chosen one as a copy on the invoice", async () => {

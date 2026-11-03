@@ -37,6 +37,21 @@ export function toLatin(text: string, max?: number): string {
   return max === undefined ? out : out.slice(0, max).trimEnd();
 }
 
+/**
+ * `Descrizione` of a line: the description, then the optional note on a new line, at most 1000
+ * characters (the editor refuses longer text). Line breaks inside the note are kept; the XSD
+ * Latin types accept a line feed.
+ */
+export function lineDescription(line: { description: string; note?: string | undefined }): string {
+  const note = (line.note ?? "")
+    .split(/\r?\n/)
+    .map((part) => toLatin(part))
+    .filter(Boolean)
+    .join("\n");
+  const text = note ? `${toLatin(line.description)}\n${note}` : toLatin(line.description);
+  return text.slice(0, 1000).trimEnd();
+}
+
 /** Cuts text into pieces of at most `max` characters, at word boundaries when possible. */
 export function chunkText(text: string, max: number): string[] {
   const out: string[] = [];

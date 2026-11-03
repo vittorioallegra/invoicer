@@ -37,6 +37,8 @@ export interface LineForm {
   /** Stable React key; not persisted. */
   key: string;
   description: string;
+  /** Optional note, shown behind "Add note" until used. */
+  note: string;
   quantity: string;
   unit: string;
   price: string;
@@ -89,7 +91,15 @@ export const newLineKey = () => `line-${++lineCounter}`;
 
 /** A new line has no VAT or exemption chosen: the owner picks one per line. */
 export function emptyLine(): LineForm {
-  return { key: newLineKey(), description: "", quantity: "1", unit: "", price: "", vat: "" };
+  return {
+    key: newLineKey(),
+    description: "",
+    note: "",
+    quantity: "1",
+    unit: "",
+    price: "",
+    vat: "",
+  };
 }
 
 export function emptyForm(): InvoiceForm {
@@ -158,6 +168,7 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
     lines: record.lines.map((line) => ({
       key: newLineKey(),
       description: line.description,
+      note: line.note,
       quantity: milliToText(line.quantityMilli),
       unit: line.unit ?? "",
       price: centsToText(line.unitPriceCents),
@@ -317,6 +328,7 @@ export function buildInvoice(
     if (quantity === null) problems[`lines.${index}.quantityMilli`] = "invalid_quantity";
     return {
       description: line.description,
+      note: line.note,
       quantityMilli: quantity ?? Number.NaN,
       unit: blank(line.unit),
       unitPriceCents: price === null || price < 0 ? Number.NaN : price,
@@ -431,6 +443,7 @@ export function formTotals(form: InvoiceForm): Totals | null {
     data,
     lines: input.lines.map((line) => ({
       ...line,
+      note: line.note ?? "",
       unit: line.unit,
       quantityMilli: clean(line.quantityMilli),
       unitPriceCents: clean(line.unitPriceCents),
