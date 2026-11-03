@@ -468,8 +468,7 @@
     "issuedOn": "Emessa il {{date}}",
     "saved": "Salvata.",
     "errors": {
-      "locked": "Questa fattura non si può più modificare.",
-      "pdfFailed": "Non è stato possibile creare il PDF. Riprova."
+      "locked": "Questa fattura non si può più modificare."
     },
     "warnings": {
       "late": "Una fattura con data passata va trasmessa al SdI entro 12 giorni dalla sua data (art. 21 DPR 633/72). Questa sarà in ritardo."
@@ -603,7 +602,6 @@
       "deleteConfirm": "Conferma eliminazione",
       "more": "Altre azioni",
       "downloadAs": "Scarica {{format}}",
-      "pdfRendering": "Creazione del PDF…",
       "deleteTitle": "Eliminare la fattura?",
       "deleteBody": "La fattura non inviata viene eliminata definitivamente.",
       "fixResend": "Correggi e reinvia",

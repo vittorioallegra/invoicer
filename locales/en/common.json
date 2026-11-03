@@ -468,8 +468,7 @@
     "issuedOn": "Issued {{date}}",
     "saved": "Saved.",
     "errors": {
-      "locked": "This invoice can no longer be edited.",
-      "pdfFailed": "The PDF could not be created. Try again."
+      "locked": "This invoice can no longer be edited."
     },
     "warnings": {
       "late": "An invoice dated in the past must be transmitted to the SdI within 12 days of its date (art. 21 DPR 633/72). This one will be late."
@@ -603,7 +602,6 @@
       "deleteConfirm": "Confirm delete",
       "more": "More actions",
       "downloadAs": "Download {{format}}",
-      "pdfRendering": "Rendering PDF…",
       "deleteTitle": "Delete the invoice?",
       "deleteBody": "The unsent invoice is deleted for good.",
       "fixResend": "Fix & resend",

@@ -64,7 +64,7 @@ import { UnsavedChangesGuard } from "../components/unsaved-changes-guard";
 import { INVOICE_LIST_BACK } from "../lib/back-links";
 import { clientsQuery } from "../lib/clients-api";
 import { type FinalizeProblem, finalizeProblems, focusField } from "../lib/finalize-checks";
-import { downloadBytes, downloadUrl } from "../lib/invoice-download";
+import { downloadUrl } from "../lib/invoice-download";
 import {
   applyDefaults,
   draftBody,
@@ -104,8 +104,6 @@ import {
   taxQuery,
 } from "../lib/settings-api";
 import { useDirty } from "../lib/use-dirty";
-import { renderSentInvoicePdf } from "../pdf/generate";
-import { SentContentError } from "../pdf/sent-content";
 
 /** Select value for payment details that match no current account. */
 const SNAPSHOT = "__snapshot__";
@@ -599,31 +597,13 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     });
   }
 
-  // "Download PDF" renders a fresh PDF with the current layout from the sent content (the stored
-  // XML), in the browser. An invoice edited since its last attempt no longer matches its XML:
-  // that one gets the stored PDF of the attempt instead.
-  const [pdfBusy, setPdfBusy] = useState(false);
-  const downloadFreshPdf = (id: string) => {
-    setPdfBusy(true);
-    renderSentInvoicePdf(id)
-      .then(({ bytes, fileName }) => downloadBytes(bytes, fileName))
-      .catch((error: unknown) => {
-        if (error instanceof SentContentError) downloadUrl(`/api/invoices/${id}/pdf`);
-        else toast.error(t("invoice.errors.pdfFailed"));
-      })
-      .finally(() => setPdfBusy(false));
-  };
   // An unsent invoice has one action, Finalize; once finalised the stored files are offered.
   const downloadItems = (["pdf", "xml"] as const).map((kind) => ({
     key: kind,
     label: kind.toUpperCase(),
-    disabled: !online || (kind === "pdf" && pdfBusy),
+    disabled: !online,
     reason: online ? undefined : t("offline.reason"),
-    onSelect: () => {
-      if (!record) return;
-      if (kind === "pdf") downloadFreshPdf(record.id);
-      else downloadUrl(`/api/invoices/${record.id}/xml`);
-    },
+    onSelect: () => record && downloadUrl(`/api/invoices/${record.id}/${kind}`),
   }));
   const finalizable = !locked;
   const issuedCreditable =
@@ -677,10 +657,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     downloadItems.forEach((item, index) => {
       menuItems.push({
         ...item,
-        label:
-          item.key === "pdf" && pdfBusy
-            ? t("invoice.actions.pdfRendering")
-            : t("invoice.actions.downloadAs", { format: item.label }),
+        label: t("invoice.actions.downloadAs", { format: item.label }),
         icon: <Download aria-hidden />,
         separated: index === 0,
       });
