@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { KeyRound } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AuthLayout } from "../components/auth-layout";
 import { Banner } from "../components/ui/banner";
@@ -364,6 +364,8 @@ export function SetupPage() {
     gcTime: 0,
   });
   const session = authClient.useSession();
+  const ready = useRef(false);
+  if (!status.isPending && !session.isPending) ready.current = true;
 
   if (status.isError) {
     return (
@@ -381,7 +383,9 @@ export function SetupPage() {
       </AuthLayout>
     );
   }
-  if (status.isPending || session.isPending) {
+  // Loading only before the first answers: once the owner is created and the session refetches,
+  // unmounting the flow would drop its step and show the create form again.
+  if (!ready.current && (status.isPending || session.isPending)) {
     return (
       <AuthLayout title={t("common.loading")}>
         <div role="status" aria-label={t("common.loading")} />
@@ -390,7 +394,8 @@ export function SetupPage() {
   }
   return (
     <SetupFlow
-      ownerExists={status.data.ownerExists}
+      // A signed-in user proves the owner exists even when the cached status is stale.
+      ownerExists={Boolean(status.data?.ownerExists || session.data?.user)}
       user={(session.data?.user as SessionUser | undefined) ?? null}
     />
   );

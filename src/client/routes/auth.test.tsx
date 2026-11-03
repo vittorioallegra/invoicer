@@ -82,6 +82,18 @@ describe("session gate", () => {
   });
 });
 
+describe("setup screen", () => {
+  it("continues with the authenticator step for a signed-in owner even if the cached status is stale", async () => {
+    // Right after "Create owner account" the session exists while the status query still says
+    // that no owner exists; the form must not come back.
+    mocks.api.mockResolvedValue({ ownerExists: false });
+    mocks.session.data = { user: { id: "1", twoFactorEnabled: false } };
+    await renderAt("/setup");
+    await screen.findByRole("heading", { name: "Authenticator app" });
+    expect(screen.queryByRole("button", { name: "Create owner account" })).toBeNull();
+  });
+});
+
 describe("login screen", () => {
   it("signs in with a passkey and goes to the app", async () => {
     mocks.signInPasskey.mockImplementation(async () => {

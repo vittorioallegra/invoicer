@@ -436,6 +436,7 @@ Approved: yes (2026-11-02)
   - rejected-invoice error line had a space before the colon — `fix(invoices): drop the empty code slot from the SdI error line`
   - totals breakdown label wrong in excluded mode — `fix(invoices): label the contribution row after the active cassa mode`
   - fresh DB: login has no way to reach setup — `fix(auth): send a first-run visitor to the setup screen`
+  - setup showed the blank create form after the owner was created — `fix(auth): keep the setup flow on its step after the owner account is created`
 
 ### Decisions
 - Single-user, self-hosted deployment; generic public code, no owner data in the repo (2026-11-02).
