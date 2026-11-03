@@ -124,7 +124,7 @@ export const settings = sqliteTable(
 export const clients = sqliteTable("clients", {
   id: id(),
   type: text("type", {
-    enum: ["it_company", "it_private", "eu_company", "non_eu_company"],
+    enum: ["it_company", "it_private", "eu_company", "non_eu_company", "foreign_private"],
   }).notNull(),
   name: text("name").notNull(),
   vatNumber: text("vat_number"),

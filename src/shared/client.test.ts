@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   clientDefaultsSchema,
   clientInputSchema,
+  clientKind,
+  deriveClientType,
   EMPTY_CLIENT_DEFAULTS,
   isValidClientTaxCode,
   isValidPersonalTaxCode,
@@ -127,6 +129,52 @@ describe("foreign clients", () => {
   });
 });
 
+describe("foreign private person", () => {
+  const person = {
+    type: "foreign_private",
+    vatNumber: "",
+    countryCode: "us",
+    foreignTaxId: "",
+    postalCode: "10001",
+    province: "",
+  };
+  it("needs name and address, may omit the tax id, and gets XXXXXXX", () => {
+    const result = parse({ ...person, recipientCode: "ABC1234", pec: "x@pec.it" });
+    expect(result.success && result.data).toMatchObject({
+      countryCode: "US",
+      foreignTaxId: null,
+      recipientCode: "XXXXXXX",
+      province: null,
+      pec: null,
+    });
+    expect(codes({ ...person, address: "" })).toEqual({ address: "required" });
+  });
+  it("is not for Italy, but any other country, EU or not", () => {
+    expect(codes({ ...person, countryCode: "IT" })).toMatchObject({
+      countryCode: "invalid_foreign_country",
+    });
+    expect(parse({ ...person, countryCode: "DE" }).success).toBe(true);
+  });
+});
+
+describe("type derived from kind and country", () => {
+  it("maps each kind and country to a stored type", () => {
+    expect(deriveClientType("company", "IT")).toBe("it_company");
+    expect(deriveClientType("private", "IT")).toBe("it_private");
+    expect(deriveClientType("company", "DE")).toBe("eu_company");
+    expect(deriveClientType("company", "US")).toBe("non_eu_company");
+    expect(deriveClientType("private", "DE")).toBe("foreign_private");
+    expect(deriveClientType("private", "US")).toBe("foreign_private");
+  });
+  it("reads the kind back from the stored type", () => {
+    expect(clientKind("it_company")).toBe("company");
+    expect(clientKind("eu_company")).toBe("company");
+    expect(clientKind("non_eu_company")).toBe("company");
+    expect(clientKind("it_private")).toBe("private");
+    expect(clientKind("foreign_private")).toBe("private");
+  });
+});
+
 describe("defaults", () => {
   it("accepts the cassa and ritenuta flags with terms", () => {
     const defaults = { applyCassa: true, applyRitenuta: false, terms: { kind: "eom_30" } };
@@ -137,7 +185,7 @@ describe("defaults", () => {
       applyCassa: true,
       applyRitenuta: true,
     });
-    for (const type of ["it_private", "eu_company", "non_eu_company"] as const) {
+    for (const type of ["it_private", "eu_company", "non_eu_company", "foreign_private"] as const) {
       expect(newClientDefaults(type)).toMatchObject({ applyCassa: true, applyRitenuta: false });
     }
   });

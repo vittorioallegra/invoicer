@@ -1,5 +1,5 @@
 import { XMLBuilder } from "fast-xml-parser";
-import type { ClientData } from "../client";
+import { type ClientData, isItalianClientType } from "../client";
 import { type InvoiceBody, invoiceTotalsInput } from "../invoice";
 import type { ProfileData, RegimeFiscale } from "../profile";
 import { computeTotals, type Natura, type Totals } from "../totals";
@@ -113,12 +113,14 @@ function clientIdentity(client: FatturaClient) {
   const rawId = (client.foreignTaxId ?? "").replaceAll(/\s+/g, "");
   const code =
     client.type === "eu_company" && rawId.startsWith(country) ? rawId.slice(country.length) : rawId;
-  // Non-EU clients without a tax identifier use the AdE convention 0000000.
-  return buildParty(client, { country, code: (code || "0000000").slice(0, 28) });
+  // Without a tax identifier a foreign private person uses 99999999999 (common practice for
+  // individuals), a non-EU company the AdE convention 0000000.
+  const fallback = client.type === "foreign_private" ? "99999999999" : "0000000";
+  return buildParty(client, { country, code: (code || fallback).slice(0, 28) });
 }
 
 function clientSede(client: FatturaClient) {
-  const italian = client.type === "it_company" || client.type === "it_private";
+  const italian = isItalianClientType(client.type);
   return node({
     Indirizzo: toLatin(client.address, 60),
     // The XSD wants five digits; the AdE convention for foreign addresses is 00000.
@@ -234,7 +236,7 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
       })
     : undefined;
 
-  const foreignRecipient = client.type === "eu_company" || client.type === "non_eu_company";
+  const foreignRecipient = !isItalianClientType(client.type);
   const body = node({
     DatiGenerali: node({
       DatiGeneraliDocumento: node({

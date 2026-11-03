@@ -118,6 +118,33 @@ describe("fixture specifics", () => {
     expect(xml).toContain("<Natura>N2.1</Natura>");
   });
 
+  it("a foreign private person: country id, 99999999999 without a tax id, XXXXXXX, XSD-valid", async () => {
+    const input = fixtureToFatturaInput(fixture("c"));
+    const person = { ...input.client, type: "foreign_private" as const, name: "Jane Roe" };
+    const customerOf = (xml: string) => xml.slice(xml.indexOf("<CessionarioCommittente>"));
+
+    const noId = buildFatturaXml({
+      ...input,
+      client: { ...person, countryCode: "US", foreignTaxId: null },
+    }).xml;
+    expect((await validateFatturaXml(noId, assets)).errors).toEqual([]);
+    expect(customerOf(noId)).toContain(
+      "<IdFiscaleIVA>\n          <IdPaese>US</IdPaese>\n          <IdCodice>99999999999</IdCodice>",
+    );
+    expect(customerOf(noId)).toContain("<Denominazione>Jane Roe</Denominazione>");
+    expect(customerOf(noId)).toContain("<Nazione>US</Nazione>");
+    expect(customerOf(noId)).not.toContain("<CodiceFiscale>");
+    expect(noId).toContain("<CodiceDestinatario>XXXXXXX</CodiceDestinatario>");
+    expect(noId).toContain("<CAP>00000</CAP>");
+
+    const withId = buildFatturaXml({
+      ...input,
+      client: { ...person, countryCode: "FR", foreignTaxId: "FR 12345678" },
+    }).xml;
+    expect((await validateFatturaXml(withId, assets)).errors).toEqual([]);
+    expect(customerOf(withId)).toContain("<IdCodice>FR12345678</IdCodice>");
+  });
+
   it("(d) a USD invoice is written in USD with the fixture's own totals", () => {
     const { xml, totals } = build("d");
     expect(totals).toMatchObject({

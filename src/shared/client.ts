@@ -2,8 +2,35 @@ import { z } from "zod";
 import { legacyTerms, paymentTermsSchema } from "./payment-terms";
 import { isValidVatNumber } from "./profile";
 
-export const CLIENT_TYPES = ["it_company", "it_private", "eu_company", "non_eu_company"] as const;
+export const CLIENT_TYPES = [
+  "it_company",
+  "it_private",
+  "eu_company",
+  "non_eu_company",
+  "foreign_private",
+] as const;
 export type ClientType = (typeof CLIENT_TYPES)[number];
+
+/** What the owner picks first: a company or a private person. The type follows from kind + country. */
+export type ClientKind = "company" | "private";
+
+/** True for the types with an Italian address (partita IVA / codice fiscale, province). */
+export function isItalianClientType(type: ClientType): boolean {
+  return type === "it_company" || type === "it_private";
+}
+
+export function clientKind(type: ClientType): ClientKind {
+  return type === "it_private" || type === "foreign_private" ? "private" : "company";
+}
+
+/** The stored type for a kind and a country (ISO 3166-1 alpha-2). */
+export function deriveClientType(kind: ClientKind, countryCode: string): ClientType {
+  if (countryCode === "IT") return kind === "company" ? "it_company" : "it_private";
+  if (kind === "private") return "foreign_private";
+  return (EU_COUNTRY_CODES as readonly string[]).includes(countryCode)
+    ? "eu_company"
+    : "non_eu_company";
+}
 
 /** Codice destinatario for Italian clients without a SdI channel code (PEC or portal delivery). */
 export const RECIPIENT_CODE_ITALY_DEFAULT = "0000000";
@@ -79,9 +106,7 @@ export function isValidRecipientCode(value: string): boolean {
 
 /** Codice destinatario applied when the owner leaves it empty or the type fixes it. */
 export function defaultRecipientCode(type: ClientType): string {
-  return type === "it_company" || type === "it_private"
-    ? RECIPIENT_CODE_ITALY_DEFAULT
-    : RECIPIENT_CODE_FOREIGN;
+  return isItalianClientType(type) ? RECIPIENT_CODE_ITALY_DEFAULT : RECIPIENT_CODE_FOREIGN;
 }
 
 const text = (max: number) => z.string().trim().max(max);
@@ -169,7 +194,7 @@ export const clientInputSchema = clientBaseSchema
   .superRefine((value, ctx) => {
     const fail = (path: string, message: string) =>
       ctx.addIssue({ code: "custom", path: [path], message });
-    const italian = value.type === "it_company" || value.type === "it_private";
+    const italian = isItalianClientType(value.type);
     if (value.vatNumber !== null && italian && !isValidVatNumber(value.vatNumber)) {
       fail("vatNumber", "invalid_vat_number");
     }
@@ -196,6 +221,9 @@ export const clientInputSchema = clientBaseSchema
       if (value.type === "non_eu_company" && (eu || value.countryCode === "IT")) {
         fail("countryCode", "invalid_non_eu_country");
       }
+      if (value.type === "foreign_private" && value.countryCode === "IT") {
+        fail("countryCode", "invalid_foreign_country");
+      }
       if (value.type === "eu_company" && value.foreignTaxId === null) {
         fail("foreignTaxId", "required");
       }
@@ -205,7 +233,7 @@ export const clientInputSchema = clientBaseSchema
     }
   })
   .transform((value) => {
-    const italian = value.type === "it_company" || value.type === "it_private";
+    const italian = isItalianClientType(value.type);
     return {
       ...value,
       taxCode: value.taxCode || null,

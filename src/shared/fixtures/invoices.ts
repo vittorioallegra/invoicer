@@ -7,7 +7,7 @@ import type { CassaInput, DocumentType, RitenutaInput, TotalsLine } from "../tot
  * never computed by the engine. All amounts are integer cents of the document currency.
  */
 export interface FixtureClient {
-  type: "it_company" | "it_private" | "eu_company" | "non_eu_company";
+  type: "it_company" | "it_private" | "eu_company" | "non_eu_company" | "foreign_private";
   name: string;
   country: string;
   vatId?: string;
