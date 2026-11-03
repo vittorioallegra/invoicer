@@ -73,7 +73,7 @@ export function MenuButton({
   }
 
   function onMenuKeyDown(event: KeyboardEvent) {
-    const current = itemRefs.current.findIndex((el) => el === document.activeElement);
+    const current = itemRefs.current.indexOf(document.activeElement as HTMLButtonElement);
     let next: number | null = null;
     if (event.key === "ArrowDown") next = (current + 1) % items.length;
     else if (event.key === "ArrowUp") next = (current - 1 + items.length) % items.length;

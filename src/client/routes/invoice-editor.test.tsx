@@ -1292,6 +1292,9 @@ describe("Invoice editor, rejected invoices", () => {
     // Listed in the banner and repeated next to the client field.
     expect(screen.getAllByText("SdI error 00311: CodiceDestinatario non valido")).toHaveLength(2);
     expect(screen.getAllByText("SdI error 00999: Altro errore")).toHaveLength(1);
+    // Never issued, so nothing to pay.
+    expect(screen.queryByRole("button", { name: "Record payment" })).toBeNull();
+    expect(screen.queryByText("Unpaid")).toBeNull();
   });
 
   it("offers only the reissue action once the window has closed", async () => {

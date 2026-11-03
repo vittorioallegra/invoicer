@@ -223,6 +223,14 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const locked = editability === "locked";
   // Not finalised yet: no number, freely editable and deletable.
   const unsent = record?.state === "draft" || record?.state === "planned";
+  // A rejected invoice (also once its term expired) was never issued, so there is nothing to pay; credit notes neither.
+  const payable =
+    record !== null &&
+    record !== undefined &&
+    !unsent &&
+    record.state !== "rejected" &&
+    record.state !== "rejected_expired" &&
+    record.documentType !== "TD04";
   const client = clients.find((c) => c.id === form.clientId) ?? null;
 
   // The number is chosen here until it is reserved; from then on it is shown read-only.
@@ -528,7 +536,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           {t("invoice.actions.creditNote")}
         </Button>
       ) : null}
-      {record && !unsent && record.documentType !== "TD04" ? (
+      {record && payable ? (
         <PaymentAction key={record.paymentFlag} record={record} today={today} />
       ) : null}
       {record && !unsent ? (
@@ -565,7 +573,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
         {record ? (
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <StatusBadge status={record.state} />
-            {!unsent && record.documentType !== "TD04" ? (
+            {payable ? (
               <StatusBadge
                 status={record.paymentFlag}
                 detail={
