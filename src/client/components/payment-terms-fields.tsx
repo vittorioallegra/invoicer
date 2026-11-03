@@ -33,7 +33,12 @@ export function PaymentTermsFields({
       <Field
         label={t("paymentTerms.label")}
         error={kindError}
-        {...(compact ? { className: "min-w-48 flex-1" } : {})}
+        // In a two-column grid the choice takes the whole row unless the days field sits beside it.
+        {...(compact
+          ? { className: "min-w-48 flex-1" }
+          : kind === "custom"
+            ? {}
+            : { className: "sm:col-span-2" })}
       >
         {(c) => (
           <Select
