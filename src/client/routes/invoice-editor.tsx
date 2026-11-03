@@ -800,7 +800,9 @@ function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
             {t("invoice.extras.title")}
           </h2>
           <fieldset className="flex flex-col gap-3 rounded-card border border-border p-4">
-            <legend className="px-1 text-sm font-semibold">{t("clients.form.pensionFund")}</legend>
+            <legend className="float-start w-full text-sm font-semibold">
+              {t("clients.form.pensionFund")}
+            </legend>
             <Field label={t("clients.form.cassa")} error={err("data.cassa.type")}>
               {(c) => (
                 <Select
@@ -869,7 +871,9 @@ function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
             ) : null}
           </fieldset>
           <fieldset className="flex flex-col gap-3 rounded-card border border-border p-4">
-            <legend className="px-1 text-sm font-semibold">{t("clients.form.withholding")}</legend>
+            <legend className="float-start w-full text-sm font-semibold">
+              {t("clients.form.withholding")}
+            </legend>
             <Field label={t("clients.form.ritenuta")} error={err("data.ritenuta.type")}>
               {(c) => (
                 <Select {...c} value={form.ritenutaType} onChange={text("ritenutaType")}>

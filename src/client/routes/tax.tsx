@@ -149,7 +149,8 @@ export function TaxPage() {
   const grid = "grid grid-cols-1 items-start gap-4 sm:grid-cols-2";
   // A select with the fields that belong to it: a bordered group, dependents below it.
   const group = "flex flex-col gap-3 rounded-card border border-border p-4";
-  const groupLegend = "px-1 text-sm font-semibold";
+  // A floated legend is laid out inside the box, so the border runs unbroken above the title.
+  const groupLegend = "float-start w-full text-sm font-semibold";
   const noProfile = query.data !== undefined && query.data.tax.regimeFiscale === null;
 
   return (

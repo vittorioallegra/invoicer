@@ -174,7 +174,9 @@ export function ProfilePage() {
           </fieldset>
 
           <fieldset className="flex flex-col gap-3 rounded-card border border-border p-4">
-            <legend className="px-1 text-sm font-semibold">{t("profile.addressTitle")}</legend>
+            <legend className="float-start w-full text-sm font-semibold">
+              {t("profile.addressTitle")}
+            </legend>
             <Field label={t("profile.address")} error={err("address")}>
               {(c) => (
                 <Input
