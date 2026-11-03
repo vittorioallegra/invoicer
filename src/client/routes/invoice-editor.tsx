@@ -107,7 +107,6 @@ import { useDirty } from "../lib/use-dirty";
 
 /** Select value for payment details that match no current account. */
 const SNAPSHOT = "__snapshot__";
-const REQUIRED_LIKE = new Set(["required", "natura_text_required"]);
 /** Invoices just duplicated: they open straight in edit mode, once (read when the page mounts). */
 const OPEN_IN_EDIT = new Set<string>();
 
@@ -330,15 +329,13 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const text = (key: keyof InvoiceForm) => (event: { target: { value: string } }) =>
     patch({ [key]: event.target.value } as Partial<InvoiceForm>);
 
+  // The checks show only after a Finalize attempt (`submitted`): opening or editing an invoice
+  // shows none, they stay while editing after that attempt, and Save or Cancel clears them.
+  // A refusal from the server (`serverErrors`) always shows.
   const err = (path: string): string | undefined => {
     const server = serverErrors[path];
-    const code = server ?? issuing.errors[path];
-    if (!code || (!server && REQUIRED_LIKE.has(code) && !submitted)) return undefined;
-    // A missing VAT shows as soon as the line has content, not on an untouched new line.
-    if (code === "vat_required" && !server && !submitted) {
-      const line = form.lines[Number(path.split(".")[1])];
-      if (!line || (line.description.trim() === "" && line.price.trim() === "")) return undefined;
-    }
+    const code = server ?? (submitted ? issuing.errors[path] : undefined);
+    if (!code) return undefined;
     return t(`validation.${code}`, { defaultValue: t("validation.invalid") });
   };
 
@@ -425,11 +422,13 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const save = useMutation({
     mutationFn: ({ body }: { body: unknown; form: InvoiceForm; quiet?: boolean }) =>
       record ? updateInvoice(record.id, body) : createInvoice(body),
-    onSuccess: async ({ invoice }, { quiet, form: submitted }) => {
-      markSaved(submitted);
-      setStored(submitted);
+    onSuccess: async ({ invoice }, { quiet, form: saved }) => {
+      markSaved(saved);
+      setStored(saved);
       await refresh(invoice.id);
       if (quiet) return;
+      setSubmitted(false);
+      setServerErrors({});
       if (record) {
         toast.success(t("invoice.saved"));
         focusEditButton.current = true;
@@ -554,7 +553,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     event.preventDefault();
     if (readOnly) return;
     // Saving never validates: whatever is typed is stored, and Finalize runs every check.
-    setSubmitted(true);
     save.mutate({ body: draftBody(form, proposal, today), form });
   }
 
@@ -580,7 +578,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   let numberError: string | undefined;
   if (numberTaken) {
     numberError = t("invoice.document.numberUnavailable", { next: proposal ?? "" });
-  } else if (issuing.errors.requestedNumber === "number_too_low") {
+  } else if (submitted && issuing.errors.requestedNumber === "number_too_low") {
     numberError = t("invoice.document.numberTooLow", { next: proposal ?? "" });
   } else {
     numberError = err("requestedNumber");
@@ -891,7 +889,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 ) : null}
               </div>
               <SdiNotes record={record} field="client" />
-              {client && clientProblems.length > 0 ? (
+              {submitted && client && clientProblems.length > 0 ? (
                 <Banner tone="warning">
                   <p className="font-medium">{t("invoice.client.incomplete")}</p>
                   <ul className="list-disc pl-5">

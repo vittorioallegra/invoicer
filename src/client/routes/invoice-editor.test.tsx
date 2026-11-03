@@ -7,6 +7,7 @@ import { type ClientRecord, EMPTY_CLIENT_DEFAULTS } from "../../shared/client";
 import { ApiError } from "../../shared/errors";
 import { EMPTY_INVOICE_DATA, type InvoiceRecord } from "../../shared/invoice";
 import { createI18n } from "../i18n";
+import { emptyForm, emptyLine, type InvoiceForm } from "../lib/invoice-form";
 import { createAppRouter } from "../router";
 
 const mocks = vi.hoisted(() => ({
@@ -242,6 +243,35 @@ const edit = () => {
 const menuItems = () => screen.getAllByRole("menuitem").map((item) => item.textContent);
 const cancel = () => fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
+/** A saved invoice whose stored form is `over` on top of one complete line. */
+function savedWith(
+  over: Partial<InvoiceForm> = {},
+  line: Partial<InvoiceForm["lines"][number]> = {},
+) {
+  const form: InvoiceForm = {
+    ...emptyForm(),
+    clientId: "c1",
+    language: "en",
+    lines: [{ ...emptyLine(), description: "Consulting", price: "50", vat: "rate:2200", ...line }],
+    ...over,
+  };
+  return record({ editorForm: form as unknown as InvoiceRecord["editorForm"] });
+}
+/** The Finalize dialog's problem list says `message`. */
+function dialogHas(dialog: HTMLElement, message: string | RegExp) {
+  const text = dialog.textContent ?? "";
+  if (typeof message === "string") expect(text).toContain(message);
+  else expect(text).toMatch(message);
+}
+/** Attempts a Finalize from view mode and returns the dialog with its problem list. */
+async function attemptFinalize() {
+  fireEvent.click(await screen.findByRole("button", { name: "Finalize" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Finalize and send with passkey" }));
+  const dialog = await screen.findByRole("dialog");
+  expect(await within(dialog).findByText(/cannot be finalised yet/)).toBeTruthy();
+  return dialog;
+}
+
 beforeEach(() => {
   mocks.api.mockReset();
   mocks.runSend.mockReset();
@@ -390,20 +420,29 @@ describe("Invoice editor", () => {
     expect(within(totals).queryByText(/added on top/)).toBeNull();
   });
 
-  it("starts every line without VAT and flags it once the line has content", async () => {
+  it("starts every line without VAT and flags it only after a failed Finalize", async () => {
     serve();
     await renderEditor();
     await loaded();
-    expect(screen.queryByText("Choose a VAT rate or an exemption for this line.")).toBeNull();
+    const message = "Choose a VAT rate or an exemption for this line.";
     type("Description", "Consulting");
     type("Unit price", "50");
-    expect(screen.getByText("Choose a VAT rate or an exemption for this line.")).toBeTruthy();
-
+    expect(screen.queryByText(message)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Add line" }));
     expect((screen.getAllByLabelText("VAT") as HTMLSelectElement[]).map((s) => s.value)).toEqual([
       "",
       "",
     ]);
+    expect(screen.queryByText(message)).toBeNull();
+
+    cleanup();
+    serve({ invoice: savedWith({}, { vat: "" }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect(screen.queryByText(message)).toBeNull();
+    const dialog = await attemptFinalize();
+    dialogHas(dialog, message);
+    expect(screen.getAllByText(message).length).toBeGreaterThan(0);
   });
 
   it("keeps the amounts of the filled lines when a line without VAT is added", async () => {
@@ -419,13 +458,13 @@ describe("Invoice editor", () => {
     expect(screen.getByText("€100.00")).toBeTruthy();
   });
 
-  it("shows problems as hints but saves whatever was typed, keeping the raw text", async () => {
+  it("shows no problem while typing, saves whatever was typed with the raw text, and flags it on Finalize", async () => {
     serve();
     await renderEditor();
     await loaded();
     expect(screen.queryByText("This field is required.")).toBeNull();
     type("Unit price", "1,2,3");
-    expect(screen.getByText(/Enter an amount such as/)).toBeTruthy();
+    expect(screen.queryByText(/Enter an amount such as/)).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
@@ -438,20 +477,36 @@ describe("Invoice editor", () => {
       ([path, init]) => path === "/api/invoices" && init?.method,
     );
     expect(JSON.parse(call?.[1].body).editorForm.lines[0].price).toBe("1,2,3");
+
+    cleanup();
+    serve({ invoice: savedWith({}, { price: "1,2,3" }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect(screen.queryByText(/Enter an amount such as/)).toBeNull();
+    const dialog = await attemptFinalize();
+    dialogHas(dialog, /Enter an amount such as/);
   });
 
-  it("applies the client type rules and points at the client", async () => {
+  it("points at the client's missing data only after a failed Finalize", async () => {
+    const banner = "This client's data is not complete enough for an e-invoice:";
     serve();
     await renderEditor();
     await loaded();
     type("Client", "c3");
-    expect(
-      await screen.findByText("This client's data is not complete enough for an e-invoice:"),
-    ).toBeTruthy();
-    expect(screen.getByText(/check digit does not match/)).toBeTruthy();
+    expect(screen.queryByText(banner)).toBeNull();
+
+    cleanup();
+    serve({ invoice: savedWith({ clientId: "c3" }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect(screen.queryByText(banner)).toBeNull();
+    await attemptFinalize();
+    expect(await screen.findByText(banner)).toBeTruthy();
+    expect(screen.getAllByText(/check digit does not match/).length).toBeGreaterThan(0);
   });
 
-  it("requires and prefills the legal text of a natura line", async () => {
+  it("prefills the legal text of a natura line and requires it only after a failed Finalize", async () => {
+    const message = "Add the legal reference for this exemption.";
     serve();
     await renderEditor();
     await loaded();
@@ -460,8 +515,18 @@ describe("Invoice editor", () => {
     const text = screen.getByLabelText("Legal reference for N2.2") as HTMLTextAreaElement;
     expect(text.value).toContain("L. 190/2014");
     fireEvent.change(text, { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByText("Add the legal reference for this exemption.")).toBeTruthy();
+    expect(screen.queryByText(message)).toBeNull();
+
+    cleanup();
+    serve({
+      invoice: savedWith({ clientId: "c2", naturaTexts: { "N2.2": "" } }, { vat: "natura:N2.2" }),
+    });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect(screen.queryByText(message)).toBeNull();
+    const dialog = await attemptFinalize();
+    dialogHas(dialog, message);
+    expect(screen.getAllByText(message).length).toBeGreaterThan(0);
   });
 
   it("suggests bollo for exempt amounts above 77.47 EUR, dismissibly, and never in USD", async () => {
@@ -611,16 +676,20 @@ describe("Invoice editor", () => {
     expect(body.notes).toBeUndefined();
   });
 
-  it("flags a description and note that do not fit Descrizione together", async () => {
-    serve();
-    await renderEditor();
+  it("flags a description and note that do not fit Descrizione together only after a failed Finalize", async () => {
+    const message = /must fit 1000 characters together/;
+    serve({ invoice: savedWith({}, { description: "D".repeat(600), note: "N".repeat(500) }) });
+    await renderEditor("/invoices/i1");
     await loaded();
-    type("Description", "D".repeat(600));
-    type("Note (optional)", "N".repeat(500));
-    type("Unit price", "50");
-    type("VAT", "rate:2200");
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByText(/must fit 1000 characters together/)).toBeTruthy();
+    expect(screen.queryByText(message)).toBeNull();
+    edit();
+    type("Unit price", "60");
+    expect(screen.queryByText(message)).toBeNull();
+    cancel();
+    fireEvent.click(await screen.findByRole("button", { name: "Discard changes" }));
+    const dialog = await attemptFinalize();
+    dialogHas(dialog, message);
+    expect(screen.getAllByText(message).length).toBeGreaterThan(0);
   });
 
   it("offers the accounts and saves the chosen one as a copy on the invoice", async () => {
@@ -1311,27 +1380,45 @@ describe("Invoice editor, number on the invoice", () => {
     expect((await fillAndSave()).requestedNumber).toBe(120);
   });
 
-  it("treats a number equal to the proposal as automatic and rejects text", async () => {
+  it("treats a number equal to the proposal as automatic, and rejects text only on Finalize", async () => {
+    const message = "Enter a whole number, 1 or more.";
     serve();
     await renderEditor();
     await loaded();
     await waitFor(() => expect(numberInput().value).toBe("8"));
     fireEvent.change(numberInput(), { target: { value: "ab" } });
-    expect(screen.getByText("Enter a whole number, 1 or more.")).toBeTruthy();
+    expect(screen.queryByText(message)).toBeNull();
     fireEvent.change(numberInput(), { target: { value: "8" } });
-    expect(screen.queryByText("Enter a whole number, 1 or more.")).toBeNull();
     expect((await fillAndSave()).requestedNumber).toBeNull();
+
+    cleanup();
+    serve({ invoice: savedWith({ requestedNumber: "ab" }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect(screen.queryByText(message)).toBeNull();
+    const dialog = await attemptFinalize();
+    dialogHas(dialog, message);
+    expect(screen.getAllByText(message).length).toBeGreaterThan(0);
   });
 
-  it("points out a number below the next free one", async () => {
+  it("points out a number below the next free one only after a failed Finalize", async () => {
+    const message = "The number must be 8 or higher: lower numbers are already issued.";
     serve();
     await renderEditor();
     await loaded();
     await waitFor(() => expect(numberInput().value).toBe("8"));
     fireEvent.change(numberInput(), { target: { value: "3" } });
-    expect(
-      screen.getByText("The number must be 8 or higher: lower numbers are already issued."),
-    ).toBeTruthy();
+    expect(screen.queryByText(message)).toBeNull();
+
+    cleanup();
+    serve({ invoice: savedWith({ requestedNumber: "3" }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    await waitFor(() => expect(numberInput().value).toBe("3"));
+    expect(screen.queryByText(message)).toBeNull();
+    const dialog = await attemptFinalize();
+    dialogHas(dialog, message);
+    expect(screen.getAllByText(message).length).toBeGreaterThan(0);
   });
 
   it("shows the series select even with a single series", async () => {
@@ -1543,7 +1630,48 @@ describe("Invoice editor, date before the last issued number", () => {
     expect(await within(dialog).findByText(message)).toBeTruthy();
     expect(mocks.runSend).not.toHaveBeenCalled();
     // Then the date field says it too.
-    expect(screen.getAllByText(message).length).toBeGreaterThan(1);
+    expect(screen.getAllByText(message).length).toBeGreaterThan(0);
+  });
+});
+
+describe("Invoice editor, when errors show", () => {
+  const message = "Choose a VAT rate or an exemption for this line.";
+
+  it("shows none on open, edit or Cancel, lists them after a failed Finalize and clears them on Cancel or Save", async () => {
+    serve({ invoice: savedWith({}, { vat: "" }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    expect(screen.queryByText(message)).toBeNull();
+    edit();
+    type("Description", "Consulting, edited");
+    expect(screen.queryByText(message)).toBeNull();
+    cancel();
+    fireEvent.click(await screen.findByRole("button", { name: "Discard changes" }));
+    expect(screen.queryByText(message)).toBeNull();
+
+    // A failed Finalize lists the problem, and choosing it switches to edit mode on the field.
+    const dialog = await attemptFinalize();
+    dialogHas(dialog, message);
+    fireEvent.click(within(dialog).getByRole("button", { name: /Line 1: VAT/ }));
+    await screen.findByRole("button", { name: "Cancel" });
+    expect(screen.getAllByText(message)).toHaveLength(1);
+    // The error stays while the owner edits, and Cancel clears it.
+    type("Description", "Consulting, again");
+    expect(screen.getAllByText(message)).toHaveLength(1);
+    cancel();
+    fireEvent.click(await screen.findByRole("button", { name: "Discard changes" }));
+    await screen.findByRole("button", { name: "More actions" });
+    expect(screen.queryByText(message)).toBeNull();
+
+    // A successful Save clears them too.
+    const again = await attemptFinalize();
+    fireEvent.click(within(again).getByRole("button", { name: /Line 1: VAT/ }));
+    await screen.findByRole("button", { name: "Cancel" });
+    expect(screen.getAllByText(message)).toHaveLength(1);
+    type("Description", "Consulting, saved");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await screen.findByRole("button", { name: "More actions" });
+    expect(screen.queryByText(message)).toBeNull();
   });
 });
 

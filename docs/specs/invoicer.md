@@ -197,8 +197,12 @@ settle the open ones):
   reference to a deleted client or series is dropped. Unreadable values are stored as far as
   they can be (an amount as 0, an invalid date as none) and the form as typed is stored with the
   invoice (`editor_form`, raw text), so an unsent invoice reopens exactly as it was left. Inline
-  field errors stay as hints and never block. **Finalize runs every check**, then numbers and
-  sends (below). The Worker repeats the issuing rules before it reserves the number.
+  field errors are shown only after a failed Finalize: opening or editing an invoice shows none,
+  and Save stores without any check. After a failed Finalize the errors (field errors, the
+  incomplete-client banner, the number and date messages) stay visible, also in edit mode, until
+  a successful Save, Cancel or leaving the page clears them. Errors returned by the server (a
+  refused save, a number taken at reserve) always show. **Finalize runs every check**, then
+  numbers and sends (below). The Worker repeats the issuing rules before it reserves the number.
   Progressive numbers follow the dates: in a series and year, an invoice may not be dated before
   the last number issued (`GET /api/invoices/next-number` returns its `lastIssueDate`). Finalize
   lists it with the other checks (and from then on the editor says so under the invoice date), and a refusal from the
