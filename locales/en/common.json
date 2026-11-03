@@ -465,7 +465,6 @@
     "editTitle": "Invoice",
     "notFound": "This invoice does not exist.",
     "numberYear": "No. {{number}}/{{year}}",
-    "issuedOn": "Issued {{date}}",
     "saved": "Saved.",
     "errors": {
       "locked": "This invoice can no longer be edited.",
@@ -617,7 +616,6 @@
       "number": "No. {{number}}",
       "creditNoteNumber": "Credit note {{number}}",
       "noClient": "No client",
-      "issued": "Issued {{date}}",
       "dated": "Dated {{date}}",
       "toSendTitle": "To send",
       "toSendEmpty": "Nothing to send.",

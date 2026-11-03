@@ -20,12 +20,10 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
   const { t } = useTranslation();
   const locale = useLocale();
   const credit = invoice.documentType === "TD04";
+  // The invoice date only (the issue date of a sent invoice is that same date, as in the XML).
+  const date = invoice.issueDate ?? invoice.invoiceDate;
   const dateLine =
-    invoice.issueDate !== null
-      ? t("invoice.list.issued", { date: formatDate(invoice.issueDate, locale) })
-      : invoice.invoiceDate !== null
-        ? t("invoice.list.dated", { date: formatDate(invoice.invoiceDate, locale) })
-        : null;
+    date !== null ? t("invoice.list.dated", { date: formatDate(date, locale) }) : null;
   // Same rule as the editor chip: finalised, not rejected, not a credit note.
   const payable =
     invoice.state !== "draft" &&

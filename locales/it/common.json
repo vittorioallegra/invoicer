@@ -465,7 +465,6 @@
     "editTitle": "Fattura",
     "notFound": "Questa fattura non esiste.",
     "numberYear": "N. {{number}}/{{year}}",
-    "issuedOn": "Emessa il {{date}}",
     "saved": "Salvata.",
     "errors": {
       "locked": "Questa fattura non si può più modificare.",
@@ -617,7 +616,6 @@
       "number": "N. {{number}}",
       "creditNoteNumber": "Nota di credito {{number}}",
       "noClient": "Nessun cliente",
-      "issued": "Emessa il {{date}}",
       "dated": "Del {{date}}",
       "toSendTitle": "Da inviare",
       "toSendEmpty": "Niente da inviare.",

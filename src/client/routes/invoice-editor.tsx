@@ -759,11 +759,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 }
               />
             ) : null}
-            {record.issueDate ? (
-              <span className="text-muted-foreground">
-                {t("invoice.issuedOn", { date: formatDate(record.issueDate, locale) })}
-              </span>
-            ) : null}
           </div>
         ) : null}
 
