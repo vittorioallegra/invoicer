@@ -600,7 +600,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
         ) : null}
 
         {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
-        {locked ? <Banner tone="info">{t("invoice.readOnly")}</Banner> : null}
         {record?.numberReserved ? (
           <Banner
             tone="warning"

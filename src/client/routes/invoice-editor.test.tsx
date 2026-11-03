@@ -934,13 +934,13 @@ describe("Invoice editor", () => {
     expect(await screen.findByRole("heading", { name: "New client" })).toBeTruthy();
   });
 
-  it("shows an issued invoice read-only, with a payment chip and no save", async () => {
+  it("shows an issued invoice read-only, with a payment chip, no save and no read-only banner", async () => {
     serve({
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
     await renderEditor("/invoices/i1");
     expect(await screen.findByText("No. 7/2026")).toBeTruthy();
-    expect(screen.getByText(/can no longer be edited/)).toBeTruthy();
+    expect(screen.queryByText(/can no longer be edited/)).toBeNull();
     expect((screen.getByLabelText("Description") as HTMLInputElement).disabled).toBe(true);
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
     expect(screen.getByText("Unpaid")).toBeTruthy();

@@ -201,7 +201,11 @@ settle the open ones):
   sends (below). The Worker repeats the issuing rules before it reserves the number.
 - Editor actions. Before finalisation the title row has one primary "Finalize" button (no Download
   yet) is led by "Duplicate" (first, leftmost button of the group) and under the form are
-  Delete (left, ghost, red, with a confirmation) and Save (right). "Finalize" opens a confirmation dialog: the invoice will be checked (complete
+  Delete (left, ghost, red, with a confirmation) and Save (right). Confirmation dialogs (Finalize,
+  Record payment, Undo payment) are one responsive dialog: a bottom sheet on phones and a centered
+  modal (at most 32rem wide) from the `md` breakpoint up, with a title, a body and a footer with
+  Cancel (secondary, left) and the primary action (right); the client, payment method and
+  numbering forms stay side sheets. "Finalize" opens a confirmation dialog: the invoice will be checked (complete
   client, VAT or natura on every line, natura texts, totals, number rules, the built XML against
   the XSD, send readiness) and, if valid, numbered, finalised and sent. Confirming runs the
   checks that need no number first: when any fails, the dialog lists them (each with a link that
@@ -217,7 +221,8 @@ settle the open ones):
   tooltip and accessible detail) or an "Unpaid" chip; "Record payment" opens a small dialog with
   the payment date (default today, Europe/Rome) and Cancel / Save (disabled until the date is
   valid); for a paid invoice the button is "Undo payment", with a confirmation, and sets it back
-  to unpaid. There is no payment section and no transmission section on the invoice page (the
+  to unpaid. A finalised invoice shows no "read-only" banner (the disabled fields say it); only
+  the state message of the sending flow (waiting for the receipt or the SdI outcome) is shown. There is no payment section and no transmission section on the invoice page (the
   attempts are not listed); only what needs an action stays, such as a send that was not completed
   or whose outcome is unknown and the manual-channel outcome buttons. In the line cards the move
   up/down and remove controls show only before finalisation and only with two or more lines;

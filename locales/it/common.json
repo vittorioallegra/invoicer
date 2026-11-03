@@ -453,7 +453,6 @@
     "numberYear": "N. {{number}}/{{year}}",
     "issuedOn": "Emessa il {{date}}",
     "saved": "Salvata.",
-    "readOnly": "Questa fattura è stata emessa e non si può più modificare. Puoi ancora impostare lo stato di pagamento.",
     "errors": {
       "locked": "Questa fattura non si può più modificare."
     },
