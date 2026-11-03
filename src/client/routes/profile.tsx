@@ -152,7 +152,7 @@ export function ProfilePage() {
   const serverFailure = save.error && !Object.keys(errors).length;
 
   return (
-    <Page title={t("profile.title")}>
+    <Page title={t("profile.title")} backToSettings>
       <p className="text-sm text-muted-foreground">{t("profile.intro")}</p>
       {query.isPending ? (
         <p role="status" className="text-sm text-muted-foreground">

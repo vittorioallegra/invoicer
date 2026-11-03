@@ -195,6 +195,15 @@ describe("Settings", () => {
     );
   });
 
+  it("links back to Settings from the sub-pages", async () => {
+    respond({ "/api/features": features, "/api/settings": settings });
+    await renderAt("/settings/pec");
+    const heading = await screen.findByRole("heading", { level: 1 });
+    const back = heading.previousElementSibling;
+    expect(back?.textContent).toBe("Settings");
+    expect(back?.getAttribute("href")).toBe("/settings");
+  });
+
   it("refuses a next number below the ones already used, before calling the server", async () => {
     respond({ "/api/features": features, "/api/settings": settings });
     await renderAt("/settings");

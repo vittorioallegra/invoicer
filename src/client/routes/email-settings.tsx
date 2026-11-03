@@ -82,7 +82,7 @@ export function EmailSettingsPage() {
   const defaultName = query.data?.email.defaultSenderName ?? undefined;
 
   return (
-    <Page title={t("email.title")}>
+    <Page title={t("email.title")} backToSettings>
       <p className="text-sm text-muted-foreground">{t("email.intro")}</p>
       {query.isPending ? (
         <p role="status" className="text-sm text-muted-foreground">

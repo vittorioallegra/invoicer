@@ -26,7 +26,7 @@ export function AdeGuidePage() {
   const done = query.data?.adeGuideDone ?? false;
 
   return (
-    <Page title={t("ade.title")}>
+    <Page title={t("ade.title")} backToSettings>
       <p className="max-w-2xl text-sm text-muted-foreground">{t("ade.intro")}</p>
       <ol className="flex max-w-2xl list-decimal flex-col gap-4 pl-5">
         {STEPS.map((step) => (

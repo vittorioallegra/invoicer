@@ -175,7 +175,7 @@ export function PecSettingsPage() {
     set ? t("settings.configured") : t("settings.notConfigured");
 
   return (
-    <Page title={t("pec.title")}>
+    <Page title={t("pec.title")} backToSettings>
       <div className="max-w-2xl space-y-6">
         {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
         <section className="space-y-3">
