@@ -182,3 +182,17 @@ describe("invoice PDF line notes", () => {
     expect(without).not.toContain("Phase one");
   });
 });
+
+describe("invoice PDF note", () => {
+  it("prints the invoice note in a notes block, and nothing without one", async () => {
+    const input = inputFor("b");
+    const data = { ...input.invoice.data, note: "Payment by bank transfer only.\nThank you." };
+    const text = extractText(
+      await renderInvoicePdf({ ...input, invoice: { ...input.invoice, data } }),
+    );
+    expect(text).toContain("Note");
+    expect(text).toContain("Payment by bank transfer only.");
+    expect(text).toContain("Thank you.");
+    expect(extractText(await renderInvoicePdf(input))).not.toContain("Thank you.");
+  });
+});

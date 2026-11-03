@@ -190,6 +190,12 @@ settle the open ones):
   `Descrizione`, which the editor and the Worker check (`line_text_too_long` on the note).
   The PDF prints the note under the line description in smaller muted text. Stored in
   `invoice_lines.note`.
+- Invoice note: one optional "Note" textarea for the invoice (up to 2000 characters), apart
+  from the internal notes, which are never printed or sent. The XML writes it as
+  `DatiGeneraliDocumento/Causale` elements: each line of the note is cut at word boundaries into
+  pieces of at most 200 characters, and these elements come first; the complete natura legal
+  texts that do not fit `RiferimentoNormativo` follow as further `Causale` elements. The PDF
+  prints the note in a "Notes" block above the totals. Stored in the invoice data (`note`).
 - Optional per invoice, prefilled from Tax details when the client's flag for it is on (the
   invoice then keeps its own editable copy, so later changes to Tax details never alter it):
   rivalsa INPS 4% or a cassa

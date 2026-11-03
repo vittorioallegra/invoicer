@@ -78,6 +78,8 @@ export interface InvoiceForm {
   ritenutaCausale: string;
   bollo: boolean;
   bolloDismissed: boolean;
+  /** Note printed on the invoice (not the internal notes). */
+  invoiceNote: string;
   naturaTexts: Record<string, string>;
   paymentMethod: string;
   iban: string;
@@ -127,6 +129,7 @@ export function emptyForm(): InvoiceForm {
     ritenutaCausale: "A",
     bollo: false,
     bolloDismissed: false,
+    invoiceNote: "",
     naturaTexts: {},
     paymentMethod: "",
     iban: "",
@@ -184,6 +187,7 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
     ritenutaCausale: data.ritenuta?.causale ?? "A",
     bollo: data.bollo,
     bolloDismissed: data.bolloSuggestionDismissed,
+    invoiceNote: data.note,
     naturaTexts: Object.fromEntries(Object.entries(data.naturaTexts)) as Record<string, string>,
     paymentMethod: data.payment.method ?? "",
     iban: data.payment.iban ?? "",
@@ -368,6 +372,7 @@ export function buildInvoice(
       : null,
     bollo: form.bollo,
     bolloSuggestionDismissed: form.bolloDismissed,
+    note: form.invoiceNote,
     naturaTexts: naturaTextsFor(form.lines, form.naturaTexts),
     payment: {
       terms: formTerms(form),

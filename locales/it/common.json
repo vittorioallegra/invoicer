@@ -213,6 +213,7 @@
     "invalid_non_eu_country": "Inserisci un codice paese extra UE.",
     "invalid_currency": "Inserisci un codice valuta di 3 lettere.",
     "invalid_vat_default": "Scegli un'aliquota IVA oppure un'esenzione.",
+    "note_too_long": "La nota è troppo lunga (al massimo 2000 caratteri).",
     "line_text_too_long": "Il testo è troppo lungo per la riga: descrizione e nota insieme non possono superare 1000 caratteri.",
     "invalid_date": "Inserisci una data valida.",
     "natura_text_required": "Aggiungi il riferimento normativo per questa esenzione.",
@@ -480,6 +481,8 @@
       "currency": "Valuta",
       "linked": "Fattura collegata",
       "noLinked": "Nessuna (nota di credito autonoma)",
+      "note": "Note",
+      "noteHint": "Stampate sulla fattura e inviate nell'XML (Causale), diverse dalle note interne.",
       "invoiceDate": "Data fattura",
       "invoiceDateHint": "Se vuota è il giorno dell'invio. Con una data compare tra le fatture da emettere.",
       "dueDate": "Scadenza",
@@ -500,7 +503,7 @@
       "vat": "IVA",
       "amount": "Importo",
       "chooseVat": "Scegli l'IVA",
-      "note": "Nota",
+      "note": "Nota della riga",
       "addNote": "Aggiungi nota",
       "addNoteTo": "Aggiungi nota alla riga {{n}}",
       "add": "Aggiungi riga",
@@ -706,6 +709,7 @@
       "vat": "IVA"
     },
     "naturaTitle": "Riferimento normativo per le operazioni senza IVA",
+    "noteTitle": "Note",
     "cassa": {
       "rivalsa_inps": "Rivalsa INPS",
       "other": "Contributo cassa previdenziale {{label}}",

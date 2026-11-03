@@ -211,8 +211,12 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
       })
     : [];
 
-  // Causale: the complete natura texts that do not fit RiferimentoNormativo.
-  const causali: string[] = [];
+  // Causale: the invoice note first (split at word boundaries into elements of at most 200
+  // characters, each line of the note on its own), then the complete natura texts that do not
+  // fit RiferimentoNormativo.
+  const causali: string[] = data.note
+    .split(/\r?\n/)
+    .flatMap((part) => chunkText(toLatin(part), CAUSALE_MAX));
   for (const text of naturaTexts.values()) {
     if (naturaReference(text) !== text) causali.push(...chunkText(text, CAUSALE_MAX));
   }

@@ -102,12 +102,20 @@ export const invoicePaymentSchema = z.preprocess(
   }),
 );
 
+/** Longest invoice note: about ten `Causale` elements of 200 characters. */
+export const INVOICE_NOTE_MAX = 2000;
+
 export const invoiceDataSchema = z.object({
   cassa: cassaDefaultsSchema.nullable(),
   ritenuta: ritenutaDefaultsSchema.nullable(),
   bollo: z.boolean(),
   /** The owner dismissed the "add bollo" suggestion for this invoice. */
   bolloSuggestionDismissed: z.boolean(),
+  /**
+   * Note printed on the invoice (PDF) and sent in the XML as `Causale` elements. Not the internal
+   * `notes` of the invoice, which are never printed.
+   */
+  note: z.string().trim().max(INVOICE_NOTE_MAX, "note_too_long").default(""),
   /** Legal text per natura code used by the lines (prefilled from `NATURA_TEXTS`, editable). */
   naturaTexts: z.partialRecord(z.enum(NATURA_CODES), z.string().trim().max(1000)),
   payment: invoicePaymentSchema,
@@ -119,6 +127,7 @@ export const EMPTY_INVOICE_DATA: InvoiceData = {
   ritenuta: null,
   bollo: false,
   bolloSuggestionDismissed: false,
+  note: "",
   naturaTexts: {},
   payment: {
     method: null,

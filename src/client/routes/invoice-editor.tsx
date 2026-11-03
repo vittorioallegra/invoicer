@@ -817,6 +817,20 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               ))}
             </div>
           ) : null}
+          <Field
+            label={t("invoice.document.note")}
+            hint={t("invoice.document.noteHint")}
+            error={err("data.note")}
+          >
+            {(c) => (
+              <Textarea
+                {...c}
+                value={form.invoiceNote}
+                disabled={locked}
+                onChange={text("invoiceNote")}
+              />
+            )}
+          </Field>
         </section>
 
         <section className="flex flex-col gap-4" aria-labelledby="inv-extras">

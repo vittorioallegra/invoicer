@@ -122,6 +122,16 @@ export function InvoiceDocument({ model, t }: { model: InvoicePdfModel; t: TFunc
           </View>
         ) : null}
 
+        {model.noteLines.length > 0 ? (
+          <View style={styles.section} wrap={false}>
+            <Text style={styles.sectionTitle}>{t("pdf.noteTitle")}</Text>
+            {model.noteLines.map((line, index) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: note lines never reorder
+              <Text key={index}>{line || " "}</Text>
+            ))}
+          </View>
+        ) : null}
+
         <View style={styles.totals} wrap={false}>
           {model.totals.map((row) => (
             <View key={row.label} style={styles.totalRow}>

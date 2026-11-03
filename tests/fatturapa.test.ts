@@ -270,6 +270,36 @@ describe("line notes", () => {
   });
 });
 
+describe("invoice note", () => {
+  const LONG_NATURA = `Operazione non soggetta ${"con riferimento normativo molto lungo ".repeat(3)}art. 1, comma 54, L. 190/2014`;
+  const withNote = (note: string) => {
+    const input = fixtureToFatturaInput(fixture("b"));
+    const data = { ...input.invoice.data, note, naturaTexts: { "N2.2": LONG_NATURA } as const };
+    return buildFatturaXml({ ...input, invoice: { ...input.invoice, data } }).xml;
+  };
+  const causali = (xml: string) =>
+    [...xml.matchAll(/<Causale>(.*)<\/Causale>/g)].map((m) => m[1] ?? "");
+
+  it("is split on word boundaries into Causale elements of at most 200 characters, before the natura text", async () => {
+    const words = Array.from({ length: 70 }, (_, i) => `word${i}`).join(" ");
+    const xml = withNote(`First paragraph.\n${words}`);
+    expect((await validateFatturaXml(xml, assets)).errors).toEqual([]);
+    const found = causali(xml);
+    expect(found[0]).toBe("First paragraph.");
+    const noteParts = found.slice(1, -1);
+    expect(noteParts.length).toBeGreaterThan(1);
+    expect(noteParts.every((part) => part.length <= 200)).toBe(true);
+    expect(noteParts.join(" ")).toBe(words);
+    // The complete natura text follows the note.
+    expect(found.at(-1)).toContain("art. 1, comma 54");
+  });
+
+  it("writes no Causale of its own for an empty note", () => {
+    expect(causali(withNote(""))).toHaveLength(1);
+    expect(causali(withNote("A note"))).toEqual(["A note", ...causali(withNote(""))]);
+  });
+});
+
 describe("payment terms", () => {
   const withTerms = (terms: PaymentTerms | null, dueDateCustom = false) => {
     const input = fixtureToFatturaInput(fixture("a"));

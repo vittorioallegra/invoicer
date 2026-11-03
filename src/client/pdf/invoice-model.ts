@@ -42,6 +42,8 @@ export interface InvoicePdfModel {
   lines: PdfLine[];
   groups: PdfVatGroup[];
   naturaTexts: { code: Natura; text: string }[];
+  /** The invoice note, one entry per line; empty when there is none. */
+  noteLines: string[];
   /** Cassa, VAT, stamp, document total, withholding and amount due, in print order. */
   totals: (PdfRow & { strong?: boolean })[];
   ritenuta: string | null;
@@ -222,6 +224,7 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
     lines,
     groups,
     naturaTexts,
+    noteLines: data.note ? data.note.split(/\r?\n/) : [],
     totals: rows,
     ritenuta,
     payment,
