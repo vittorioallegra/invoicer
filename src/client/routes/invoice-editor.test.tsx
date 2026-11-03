@@ -414,16 +414,16 @@ describe("Invoice editor", () => {
     fireEvent.click(within(totals).getByRole("button", { name: /Amount due/ }));
     expect(within(totals).getByText("VAT")).toBeTruthy();
     // The ritenuta row shows how it was computed: rate and the amount it applies to.
-    expect(within(totals).getByText("Withholding tax 20% on €1,248.00")).toBeTruthy();
+    expect(within(totals).getByText("Withholding tax 20% on € 1,248.00")).toBeTruthy();
     // The contribution row names its percentage and the active mode, in both modes.
     expect(within(totals).getByText("Contribution INPS rivalsa 4% (added on top)")).toBeTruthy();
     expect(within(totals).queryByText("Taxable without contribution")).toBeNull();
     type("Applies", "included");
     // Typed 1,200.00 with the contribution inside: base 1,153.85 + 46.15 = 1,200.00.
     expect(within(totals).getByText("Taxable without contribution")).toBeTruthy();
-    expect(within(totals).getByText("€1,153.85")).toBeTruthy();
+    expect(within(totals).getByText("€ 1,153.85")).toBeTruthy();
     expect(within(totals).getByText("Contribution INPS rivalsa 4%")).toBeTruthy();
-    expect(within(totals).getByText("€46.15")).toBeTruthy();
+    expect(within(totals).getByText("€ 46.15")).toBeTruthy();
     expect(within(totals).getByText("Taxable total")).toBeTruthy();
     expect(within(totals).queryByText(/added on top/)).toBeNull();
   });
@@ -460,10 +460,10 @@ describe("Invoice editor", () => {
     type("Description", "Consulting");
     type("Unit price", "50");
     type("Quantity", "2");
-    expect(screen.getByText("€100.00")).toBeTruthy();
+    expect(screen.getByText("€ 100.00")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Add line" }));
     expect(screen.getAllByTestId("invoice-line")).toHaveLength(2);
-    expect(screen.getByText("€100.00")).toBeTruthy();
+    expect(screen.getByText("€ 100.00")).toBeTruthy();
   });
 
   it("shows no problem while typing, saves whatever was typed with the raw text, and flags it on Finalize", async () => {

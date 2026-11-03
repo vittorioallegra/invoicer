@@ -154,7 +154,7 @@ describe("invoice lists", () => {
     expect(screen.getByText(/Credit note 8/)).toBeTruthy();
     expect(screen.getByText(/Beta Srl/)).toBeTruthy();
     // A credit note shows as a negative amount.
-    expect(screen.getByText(/-€50\.00|−€50\.00|€-50\.00/)).toBeTruthy();
+    expect(screen.getByText(/-€ 50\.00|−€ 50\.00|€ -50\.00/)).toBeTruthy();
   });
 
   it("shows the payment chip only on finalised payable rows, not on unsent, rejected or credit notes", async () => {
@@ -241,10 +241,10 @@ describe("invoice lists", () => {
     await renderAt("/invoices");
     const recap = await screen.findByRole("region", { name: "Summary of the listed invoices" });
     const card = (label: string) => within(recap).getByText(label).closest("div") as HTMLElement;
-    expect(within(card("Invoiced")).getByText("€12,345.67")).toBeTruthy();
-    expect(within(card("Invoiced")).getByText("US$70.00")).toBeTruthy();
-    expect(within(card("To collect")).getByText("€700.00")).toBeTruthy();
-    expect(within(card("To send")).getByText("€50.00")).toBeTruthy();
+    expect(within(card("Invoiced")).getByText("€ 12,345.67")).toBeTruthy();
+    expect(within(card("Invoiced")).getByText("US$ 70.00")).toBeTruthy();
+    expect(within(card("To collect")).getByText("€ 700.00")).toBeTruthy();
+    expect(within(card("To send")).getByText("€ 50.00")).toBeTruthy();
     expect(within(card("To send")).getByText("2 invoices not sent")).toBeTruthy();
     expect(within(card("Invoices")).getByText("3")).toBeTruthy();
   });

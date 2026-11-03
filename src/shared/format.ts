@@ -5,11 +5,20 @@ const INTL_LOCALE: Record<UiLocale, string> = { en: "en-IE", it: "it-IT" };
 /** Formats integer cents for display (domain code stays in cents; this is display only). */
 export function formatMoney(cents: number, locale: UiLocale, currency = "EUR"): string {
   // it-IT leaves 4-digit amounts ungrouped ("1040,00 €"); invoices read better as "1.040,00 €".
-  return new Intl.NumberFormat(INTL_LOCALE[locale], {
+  const parts = new Intl.NumberFormat(INTL_LOCALE[locale], {
     style: "currency",
     currency,
     useGrouping: "always",
-  }).format(cents / 100);
+  }).formatToParts(cents / 100);
+  // English puts the symbol right before the digits ("€1,040.00"); a no-break space keeps them
+  // apart without splitting them across lines ("€ 1,040.00").
+  return parts
+    .map((part, index) =>
+      part.type === "currency" && parts[index + 1] && parts[index + 1]?.type !== "literal"
+        ? `${part.value}\u00a0`
+        : part.value,
+    )
+    .join("");
 }
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
