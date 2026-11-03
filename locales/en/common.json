@@ -838,5 +838,11 @@
       "title": "Message unreadable",
       "body": "A PEC message could not be read and was skipped."
     }
+  },
+  "copy": {
+    "recoveryCodes": "Copy recovery codes",
+    "setupKey": "Copy setup key",
+    "copied": "Copied",
+    "failed": "Could not copy. Select the text and copy it by hand."
   }
 }

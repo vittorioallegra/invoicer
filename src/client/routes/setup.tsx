@@ -4,6 +4,7 @@ import { KeyRound } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AuthLayout } from "../components/auth-layout";
+import { CopyButton } from "../components/copy-button";
 import { QrCode } from "../components/qr-code";
 import { Banner } from "../components/ui/banner";
 import { Button, buttonVariants } from "../components/ui/button";
@@ -235,7 +236,12 @@ function EnrollTotp({
           {t("auth.totpOpenApp")}
         </a>
         <Field label={t("auth.totpSecret")} hint={t("auth.totpSecretHint")}>
-          {(control) => <Input {...control} readOnly value={secretOf(enrolment.uri)} />}
+          {(control) => (
+            <div className="flex flex-wrap items-center gap-1">
+              <Input {...control} readOnly value={secretOf(enrolment.uri)} />
+              <CopyButton text={secretOf(enrolment.uri)} label={t("copy.setupKey")} />
+            </div>
+          )}
         </Field>
         {banner}
         <Field label={t("auth.totpCode")}>
@@ -264,14 +270,21 @@ function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void 
     <AuthLayout title={t("auth.recoveryTitle")}>
       <div className="flex flex-col gap-4">
         <Banner tone="warning">{t("auth.recoveryWarning")}</Banner>
-        <ul
-          aria-label={t("auth.recoveryTitle")}
-          className="grid grid-cols-2 gap-2 rounded-control border border-border bg-surface p-3 font-mono text-sm"
-        >
-          {codes.map((code) => (
-            <li key={code}>{code}</li>
-          ))}
-        </ul>
+        <div className="relative rounded-control border border-border bg-surface">
+          <ul
+            aria-label={t("auth.recoveryTitle")}
+            className="grid grid-cols-2 gap-2 p-3 pr-14 font-mono text-sm"
+          >
+            {codes.map((code) => (
+              <li key={code}>{code}</li>
+            ))}
+          </ul>
+          <CopyButton
+            text={codes.join("\n")}
+            label={t("copy.recoveryCodes")}
+            className="absolute top-1 right-1"
+          />
+        </div>
         <Button onClick={onDone}>{t("auth.recoverySaved")}</Button>
       </div>
     </AuthLayout>

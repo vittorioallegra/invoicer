@@ -838,5 +838,11 @@
       "title": "Messaggio illeggibile",
       "body": "Un messaggio PEC non ha potuto essere letto ed è stato saltato."
     }
+  },
+  "copy": {
+    "recoveryCodes": "Copia i codici di recupero",
+    "setupKey": "Copia la chiave di configurazione",
+    "copied": "Copiati",
+    "failed": "Copia non riuscita. Seleziona il testo e copialo a mano."
   }
 }
