@@ -5,6 +5,7 @@ import {
   EMPTY_CLIENT_DEFAULTS,
   isValidClientTaxCode,
   isValidPersonalTaxCode,
+  newClientDefaults,
 } from "./client";
 
 const base = {
@@ -127,44 +128,49 @@ describe("foreign clients", () => {
 });
 
 describe("defaults", () => {
-  it("rejects both a VAT rate and a natura", () => {
-    expect(
-      codes({ defaults: { ...EMPTY_CLIENT_DEFAULTS, vatRateBp: 2200, natura: "N4" } }),
-    ).toEqual({
-      "defaults.natura": "invalid_vat_default",
-    });
-  });
-  it("accepts cassa and ritenuta defaults", () => {
-    const defaults = {
-      ...EMPTY_CLIENT_DEFAULTS,
-      natura: "N2.2",
-      cassa: { type: "TC22", rateBp: 400, mode: "included", subjectToRitenuta: true },
-      ritenuta: { type: "RT01", rateBp: 2000, causale: "A" },
-      bollo: true,
-      terms: { kind: "eom_30" },
-    };
+  it("accepts the cassa and ritenuta flags with terms", () => {
+    const defaults = { applyCassa: true, applyRitenuta: false, terms: { kind: "eom_30" } };
     expect(parse({ defaults }).success).toBe(true);
   });
-  it("reads a ritenuta without a base as 100%", () => {
-    const parsed = clientDefaultsSchema.parse({
-      ...EMPTY_CLIENT_DEFAULTS,
-      ritenuta: { type: "RT01", rateBp: 2000, causale: "A" },
+  it("starts a new client with the cassa on and the ritenuta only for Italian companies", () => {
+    expect(newClientDefaults("it_company")).toMatchObject({
+      applyCassa: true,
+      applyRitenuta: true,
     });
-    expect(parsed.ritenuta?.baseBp).toBe(10000);
-    expect(
-      clientDefaultsSchema.safeParse({
-        ...EMPTY_CLIENT_DEFAULTS,
-        ritenuta: { type: "RT01", rateBp: 2000, baseBp: 0, causale: "A" },
-      }).success,
-    ).toBe(false);
+    for (const type of ["it_private", "eu_company", "non_eu_company"] as const) {
+      expect(newClientDefaults(type)).toMatchObject({ applyCassa: true, applyRitenuta: false });
+    }
+  });
+  it("reads the older shape: the flags mean a cassa / ritenuta was set, VAT and bollo are dropped", () => {
+    const parsed = clientDefaultsSchema.parse({
+      vatRateBp: 2200,
+      natura: null,
+      cassa: { type: "TC22", rateBp: 400, mode: "included", subjectToRitenuta: true },
+      ritenuta: null,
+      bollo: true,
+      terms: { kind: "eom_30" },
+    });
+    expect(parsed).toEqual({ applyCassa: true, applyRitenuta: false, terms: { kind: "eom_30" } });
+    const bare = clientDefaultsSchema.parse({
+      vatRateBp: null,
+      natura: "N2.2",
+      cassa: null,
+      ritenuta: { type: "RT01", rateBp: 2000, causale: "A" },
+      bollo: false,
+    });
+    expect(bare).toEqual({ applyCassa: false, applyRitenuta: true, terms: null });
+  });
+  it("keeps the new flags over any older value", () => {
+    const parsed = clientDefaultsSchema.parse({
+      applyCassa: false,
+      applyRitenuta: true,
+      cassa: {},
+    });
+    expect(parsed).toMatchObject({ applyCassa: false, applyRitenuta: true });
   });
   it("maps the older numeric payment terms to the same days from the invoice date", () => {
     const read = (legacy: number | null) => {
-      const parsed = clientDefaultsSchema.parse({
-        ...EMPTY_CLIENT_DEFAULTS,
-        terms: undefined,
-        paymentTermsDays: legacy,
-      });
+      const parsed = clientDefaultsSchema.parse({ paymentTermsDays: legacy });
       return { terms: parsed.terms, hasLegacy: "paymentTermsDays" in parsed };
     };
     expect(read(30)).toEqual({ terms: { kind: "custom", days: 30 }, hasLegacy: false });

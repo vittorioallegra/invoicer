@@ -51,18 +51,22 @@ const acme: ClientRecord = {
   pdfLanguage: "it",
   currency: "EUR",
   defaults: {
-    ...EMPTY_CLIENT_DEFAULTS,
-    vatRateBp: 2200,
-    cassa: { type: "rivalsa_inps", rateBp: 400, mode: "excluded", subjectToRitenuta: true },
-    ritenuta: { type: "RT01", rateBp: 2000, baseBp: 10000, causale: "A" },
+    applyCassa: true,
+    applyRitenuta: true,
     terms: { kind: "custom", days: 30 },
   },
+};
+/** The owner's Tax details: what a client's cassa and ritenuta flags copy onto a new invoice. */
+const TAX = {
+  regimeFiscale: "RF01",
+  cassa: { type: "rivalsa_inps", rateBp: 400, mode: "excluded", subjectToRitenuta: true },
+  ritenuta: { type: "RT01", rateBp: 2000, baseBp: 10000, causale: "A" },
 };
 const exemptClient: ClientRecord = {
   ...acme,
   id: "c2",
   name: "Forfettario Cliente",
-  defaults: { ...EMPTY_CLIENT_DEFAULTS, natura: "N2.2" },
+  defaults: EMPTY_CLIENT_DEFAULTS,
 };
 const brokenClient: ClientRecord = { ...acme, id: "c3", name: "Broken", vatNumber: "12345678900" };
 
@@ -140,11 +144,14 @@ function record(over: Partial<InvoiceRecord> = {}): InvoiceRecord {
   };
 }
 
-function serve(opts: { send?: object; invoice?: InvoiceRecord; clients?: ClientRecord[] } = {}) {
+function serve(
+  opts: { send?: object; invoice?: InvoiceRecord; clients?: ClientRecord[]; tax?: object } = {},
+) {
   mocks.api.mockImplementation(async (path: string, init?: { method?: string }) => {
     if (path === "/api/clients")
       return { clients: opts.clients ?? [acme, exemptClient, brokenClient] };
     if (path === "/api/profile") return { profile };
+    if (path === "/api/tax") return { tax: opts.tax ?? TAX };
     if (path === "/api/payment-methods") return { paymentMethods: ACCOUNTS };
     if (path === "/api/onboarding") {
       return { checklist: [], complete: true, send: opts.send ?? ready, pecTest: null };
@@ -206,6 +213,25 @@ describe("Invoice editor", () => {
     expect((screen.getByLabelText("Due date") as HTMLInputElement).value).toMatch(
       /^\d{4}-\d{2}-\d{2}$/,
     );
+  });
+
+  it("copies the Tax details onto the invoice only for the flags the client has on", async () => {
+    serve({ clients: [{ ...acme, defaults: { ...acme.defaults, applyRitenuta: false } }] });
+    await renderEditor();
+    await loaded();
+    type("Client", "c1");
+    expect((screen.getByLabelText("Cassa / rivalsa") as HTMLSelectElement).value).toBe(
+      "rivalsa_inps",
+    );
+    expect((screen.getByLabelText("Ritenuta") as HTMLSelectElement).value).toBe("");
+
+    cleanup();
+    serve({ tax: { regimeFiscale: "RF01", cassa: null, ritenuta: null } });
+    await renderEditor();
+    await loaded();
+    type("Client", "c1");
+    expect((screen.getByLabelText("Cassa / rivalsa") as HTMLSelectElement).value).toBe("");
+    expect((screen.getByLabelText("Ritenuta") as HTMLSelectElement).value).toBe("");
   });
 
   it("computes the due date from the terms and the planned date, or keeps a custom date", async () => {
@@ -334,6 +360,7 @@ describe("Invoice editor", () => {
     await renderEditor();
     await loaded();
     type("Client", "c2");
+    type("VAT", "natura:N2.2");
     const text = screen.getByLabelText("Legal reference for N2.2") as HTMLTextAreaElement;
     expect(text.value).toContain("L. 190/2014");
     fireEvent.change(text, { target: { value: "" } });
@@ -346,6 +373,7 @@ describe("Invoice editor", () => {
     await renderEditor();
     await loaded();
     type("Client", "c2");
+    type("VAT", "natura:N2.2");
     type("Unit price", "100,00");
     expect(await screen.findByText(/Exempt amounts exceed/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
@@ -356,6 +384,7 @@ describe("Invoice editor", () => {
     await renderEditor();
     await loaded();
     type("Client", "c2");
+    type("VAT", "natura:N2.2");
     type("Currency", "USD");
     type("Unit price", "100,00");
     expect(screen.queryByText(/Exempt amounts exceed/)).toBeNull();

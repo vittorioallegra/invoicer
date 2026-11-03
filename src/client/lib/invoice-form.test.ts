@@ -28,17 +28,17 @@ const client: ClientRecord = {
   email: null,
   pdfLanguage: "it",
   currency: "USD",
-  defaults: {
-    ...EMPTY_CLIENT_DEFAULTS,
-    natura: "N2.1",
-    cassa: { type: "TC04", rateBp: 400, mode: "included", subjectToRitenuta: false },
-    terms: { kind: "custom", days: 30 },
-  },
+  defaults: { applyCassa: true, applyRitenuta: false, terms: { kind: "custom", days: 30 } },
 };
 
+const tax = {
+  cassa: { type: "TC04", rateBp: 400, mode: "included", subjectToRitenuta: false },
+  ritenuta: { type: "RT01", rateBp: 2000, baseBp: 5000, causale: "A" },
+} as const;
+
 describe("invoice form", () => {
-  it("prefills from the client defaults", () => {
-    const form = applyDefaults(emptyForm(), client);
+  it("prefills from the client defaults and the owner's Tax details", () => {
+    const form = applyDefaults(emptyForm(), client, tax);
     expect(form).toMatchObject({
       currency: "USD",
       cassaType: "TC04",
@@ -47,12 +47,37 @@ describe("invoice form", () => {
       termsKind: "custom",
       dueDateCustom: false,
     });
-    expect(form.lines[0]?.vat).toBe("natura:N2.1");
-    expect(form.naturaTexts["N2.1"]).toContain("7-ter");
+    // The ritenuta flag is off: nothing is copied for it. VAT and bollo are never prefilled.
+    expect(form).toMatchObject({ cassaRate: "4", ritenutaType: "", bollo: false });
+    expect(form.lines[0]?.vat).toBe(emptyForm().lines[0]?.vat);
+  });
+
+  it("copies the ritenuta with its base and reason when the client applies it", () => {
+    const form = applyDefaults(
+      emptyForm(),
+      { ...client, defaults: { ...client.defaults, applyCassa: false, applyRitenuta: true } },
+      tax,
+    );
+    expect(form).toMatchObject({
+      cassaType: "",
+      ritenutaType: "RT01",
+      ritenutaRate: "20",
+      ritenutaBase: "50",
+      ritenutaCausale: "A",
+    });
+  });
+
+  it("copies nothing while the owner has not set the cassa or ritenuta up", () => {
+    const form = applyDefaults(
+      emptyForm(),
+      { ...client, defaults: { ...client.defaults, applyRitenuta: true } },
+      { cassa: null, ritenuta: null },
+    );
+    expect(form).toMatchObject({ cassaType: "", ritenutaType: "" });
   });
 
   it("saves the due date computed from the terms, from the planned date or today", () => {
-    const form = applyDefaults(emptyForm(), client);
+    const form = applyDefaults(emptyForm(), client, tax);
     expect(effectiveDueDate(form, "2026-01-20")).toBe("2026-02-19");
     expect(effectiveDueDate({ ...form, plannedDate: "2026-03-05" }, "2026-01-20")).toBe(
       "2026-04-04",
@@ -67,7 +92,7 @@ describe("invoice form", () => {
   });
 
   it("keeps a custom due date, and a typed date when there are no terms", () => {
-    const base = applyDefaults(emptyForm(), client);
+    const base = applyDefaults(emptyForm(), client, tax);
     const custom = { ...base, dueDateCustom: true, dueDate: "2026-02-03" };
     expect(effectiveDueDate(custom, "2026-01-20")).toBe("2026-02-03");
     expect(buildInvoice(custom, null, "2026-01-20").input.data.payment).toMatchObject({

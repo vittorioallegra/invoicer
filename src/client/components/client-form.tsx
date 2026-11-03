@@ -1,4 +1,5 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,29 +9,14 @@ import {
   type ClientRecord,
   type ClientType,
   clientInputSchema,
-  EMPTY_CLIENT_DEFAULTS,
+  newClientDefaults,
 } from "../../shared/client";
 import { ApiError } from "../../shared/errors";
-import type { UiLocale } from "../../shared/format";
-import { RITENUTA_TYPES } from "../../shared/tax";
-import {
-  CASSA_TYPE_CODES,
-  CAUSALE_PAGAMENTO_CODES,
-  type CassaType,
-  type CausalePagamento,
-  cassaTypeLabel,
-  causalePagamentoLabel,
-  defaultCassaSubjectToRitenuta,
-  NATURA_CODES,
-  naturaLabel,
-  ritenutaTypeLabel,
-  vatRateLabel,
-} from "../../shared/totals";
 import { createClient, deleteClient, updateClient } from "../lib/clients-api";
 import { countryName, countryOptions } from "../lib/countries";
 import { formTerms, type InvoiceForm, termsToForm } from "../lib/invoice-form";
 import { useOnline } from "../lib/online";
-import { fieldErrors, fieldErrorsFromDetail } from "../lib/settings-api";
+import { fieldErrors, fieldErrorsFromDetail, taxQuery } from "../lib/settings-api";
 import { cn } from "../lib/utils";
 import { PaymentTermsFields } from "./payment-terms-fields";
 import { Banner } from "./ui/banner";
@@ -57,21 +43,11 @@ interface FormState {
   email: string;
   pdfLanguage: "it" | "en";
   currency: string;
-  /** `""` none, `rate:<bp>` or `natura:<code>`. */
-  vat: string;
-  cassaType: string;
-  cassaRate: string;
-  cassaMode: "excluded" | "included";
-  ritenutaType: string;
-  ritenutaRate: string;
-  ritenutaBase: string;
-  ritenutaCausale: string;
-  bollo: boolean;
+  applyCassa: boolean;
+  applyRitenuta: boolean;
   termsKind: string;
   termsDays: string;
 }
-
-const VAT_RATES = [2200, 1000, 500, 400];
 
 const EMPTY: FormState = {
   type: "it_company",
@@ -89,25 +65,14 @@ const EMPTY: FormState = {
   email: "",
   pdfLanguage: "it",
   currency: "EUR",
-  vat: "",
-  cassaType: "",
-  cassaRate: "",
-  cassaMode: "excluded",
-  ritenutaType: "",
-  ritenutaRate: "",
-  ritenutaBase: "100",
-  ritenutaCausale: "A",
-  bollo: false,
+  ...flagsOf(newClientDefaults("it_company")),
   termsKind: "",
   termsDays: "",
 };
 
-const bpToText = (bp: number) => String(bp / 100).replace(".", ",");
-
-/** "22" or "22,5" to basis points; NaN when it is not a number. */
-function percentToBp(text: string): number {
-  const value = Number(text.trim().replace(",", "."));
-  return text.trim() === "" || Number.isNaN(value) ? Number.NaN : Math.round(value * 100);
+/** The two apply flags of a defaults object, as form state. */
+function flagsOf(d: ClientDefaults) {
+  return { applyCassa: d.applyCassa, applyRitenuta: d.applyRitenuta };
 }
 
 function fromRecord(c: ClientRecord): FormState {
@@ -129,40 +94,16 @@ function fromRecord(c: ClientRecord): FormState {
     email: c.email ?? "",
     pdfLanguage: c.pdfLanguage,
     currency: c.currency,
-    vat: d.natura ? `natura:${d.natura}` : d.vatRateBp !== null ? `rate:${d.vatRateBp}` : "",
-    cassaType: d.cassa?.type ?? "",
-    cassaRate: d.cassa ? bpToText(d.cassa.rateBp) : "",
-    cassaMode: d.cassa?.mode ?? "excluded",
-    ritenutaType: d.ritenuta?.type ?? "",
-    ritenutaRate: d.ritenuta ? bpToText(d.ritenuta.rateBp) : "",
-    ritenutaBase: d.ritenuta ? bpToText(d.ritenuta.baseBp) : "100",
-    ritenutaCausale: d.ritenuta?.causale ?? "A",
-    bollo: d.bollo,
+    applyCassa: d.applyCassa,
+    applyRitenuta: d.applyRitenuta,
     ...termsToForm(d.terms),
   };
 }
 
 function toDefaults(f: FormState): ClientDefaults {
   return {
-    vatRateBp: f.vat.startsWith("rate:") ? Number(f.vat.slice(5)) : null,
-    natura: f.vat.startsWith("natura:") ? (f.vat.slice(7) as ClientDefaults["natura"]) : null,
-    cassa: f.cassaType
-      ? {
-          type: f.cassaType as CassaType,
-          rateBp: percentToBp(f.cassaRate),
-          mode: f.cassaMode,
-          subjectToRitenuta: defaultCassaSubjectToRitenuta(f.cassaType as CassaType),
-        }
-      : null,
-    ritenuta: f.ritenutaType
-      ? {
-          type: f.ritenutaType as (typeof RITENUTA_TYPES)[number],
-          rateBp: percentToBp(f.ritenutaRate),
-          baseBp: percentToBp(f.ritenutaBase),
-          causale: f.ritenutaCausale as CausalePagamento,
-        }
-      : null,
-    bollo: f.bollo,
+    applyCassa: f.applyCassa,
+    applyRitenuta: f.applyRitenuta,
     terms: formTerms({
       termsKind: f.termsKind as InvoiceForm["termsKind"],
       termsDays: f.termsDays,
@@ -191,11 +132,11 @@ function toBody(f: FormState) {
   };
 }
 
-/** True when the form holds invoice defaults, or a PDF language or currency other than the type's. */
+/** True when the form holds invoice defaults other than a new client's, or a PDF language or currency other than the type's. */
 function defaultsDiffer(f: FormState): boolean {
   const italian = f.type === "it_company" || f.type === "it_private";
   return (
-    JSON.stringify(toDefaults(f)) !== JSON.stringify(EMPTY_CLIENT_DEFAULTS) ||
+    JSON.stringify(toDefaults(f)) !== JSON.stringify(newClientDefaults(f.type)) ||
     f.pdfLanguage !== (italian ? "it" : "en") ||
     f.currency !== "EUR"
   );
@@ -204,6 +145,45 @@ function defaultsDiffer(f: FormState): boolean {
 /** Field errors that live in the collapsed "Invoice defaults" section. */
 const inDefaultsSection = (field: string) =>
   field.startsWith("defaults.") || field === "pdfLanguage" || field === "currency";
+
+/**
+ * A checkbox for "apply the owner's cassa / ritenuta"; until the owner has configured it in Tax
+ * details there is nothing to apply, so a hint with a link takes its place.
+ */
+function TaxFlag({
+  checked,
+  configured,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  configured: boolean;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  if (!configured) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {label}: {t("clients.form.taxNotSet")}{" "}
+        <Link to="/settings/tax" className="underline underline-offset-4">
+          {t("clients.form.taxOpen")}
+        </Link>
+      </p>
+    );
+  }
+  return (
+    <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+      <input
+        type="checkbox"
+        className="size-5"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      {label}
+    </label>
+  );
+}
 
 export interface ClientFormProps {
   /** Client to edit; omit to create one. */
@@ -218,9 +198,10 @@ export interface ClientFormProps {
 /** Create / edit form for a client; reusable inside a sheet (Clients screen, invoice editor). */
 export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormProps) {
   const { t, i18n } = useTranslation();
-  const locale: UiLocale = i18n.language.startsWith("it") ? "it" : "en";
   const online = useOnline();
   const queryClient = useQueryClient();
+  const taxSettings = useQuery(taxQuery);
+  const tax = taxSettings.data?.tax;
   const [form, setForm] = useState<FormState>(client ? fromRecord(client) : EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -284,6 +265,8 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
       pdfLanguage: toItalian ? "it" : "en",
       recipientCode: type === "it_company" ? form.recipientCode : "",
       pec: type === "it_company" ? form.pec : "",
+      // A new client starts from its type's defaults; an existing one keeps its choices.
+      ...(client ? {} : { applyRitenuta: newClientDefaults(type).applyRitenuta }),
     });
   }
 
@@ -301,10 +284,6 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
 
   const grid = "grid grid-cols-1 items-start gap-4 sm:grid-cols-2";
   const legend = "mb-2 text-base font-medium";
-  // A select with the fields that belong to it: a bordered group, dependents indented.
-  const group = "flex flex-col gap-3 rounded-card border border-border p-4";
-  const groupLegend = "px-1 text-sm font-semibold";
-  const nested = "border-s-2 border-border ps-4";
   const countries =
     form.type === "eu_company" || form.type === "non_eu_company"
       ? countryOptions(
@@ -542,139 +521,18 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
         {defaultsOpen ? (
           <div id="client-defaults" className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">{t("clients.form.defaultsIntro")}</p>
-            <Field
-              label={t("clients.form.vat")}
-              error={err("defaults.vatRateBp") ?? err("defaults.natura")}
-            >
-              {(c) => (
-                <Select {...c} value={form.vat} onChange={set("vat")}>
-                  <option value="">{t("clients.form.none")}</option>
-                  {VAT_RATES.map((bp) => (
-                    <option key={bp} value={`rate:${bp}`}>
-                      {vatRateLabel(bp, locale)}
-                    </option>
-                  ))}
-                  {NATURA_CODES.map((code) => (
-                    <option key={code} value={`natura:${code}`}>
-                      {naturaLabel(code, locale)}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-
-            <fieldset className={group}>
-              <legend className={groupLegend}>{t("clients.form.pensionFund")}</legend>
-              <Field label={t("clients.form.cassa")} error={err("defaults.cassa.type")}>
-                {(c) => (
-                  <Select {...c} value={form.cassaType} onChange={set("cassaType")}>
-                    <option value="">{t("clients.form.none")}</option>
-                    <option value="rivalsa_inps">{cassaTypeLabel("rivalsa_inps", locale)}</option>
-                    {CASSA_TYPE_CODES.map((code) => (
-                      <option key={code} value={code}>
-                        {cassaTypeLabel(code, locale)}
-                      </option>
-                    ))}
-                  </Select>
-                )}
-              </Field>
-              {form.cassaType ? (
-                <div className={`${grid} ${nested}`}>
-                  <Field label={t("clients.form.pensionRate")} error={err("defaults.cassa.rateBp")}>
-                    {(c) => (
-                      <Input
-                        {...c}
-                        value={form.cassaRate}
-                        suffix="%"
-                        onChange={set("cassaRate")}
-                        inputMode="decimal"
-                      />
-                    )}
-                  </Field>
-                  <Field label={t("clients.form.pensionMode")} error={err("defaults.cassa.mode")}>
-                    {(c) => (
-                      <Select {...c} value={form.cassaMode} onChange={set("cassaMode")}>
-                        <option value="excluded">{t("clients.form.pensionAdded")}</option>
-                        <option value="included">{t("clients.form.pensionIncluded")}</option>
-                      </Select>
-                    )}
-                  </Field>
-                </div>
-              ) : null}
-            </fieldset>
-
-            <fieldset className={group}>
-              <legend className={groupLegend}>{t("clients.form.withholding")}</legend>
-              <Field label={t("clients.form.ritenuta")} error={err("defaults.ritenuta.type")}>
-                {(c) => (
-                  <Select {...c} value={form.ritenutaType} onChange={set("ritenutaType")}>
-                    <option value="">{t("clients.form.none")}</option>
-                    {RITENUTA_TYPES.map((code) => (
-                      <option key={code} value={code}>
-                        {ritenutaTypeLabel(code, locale)}
-                      </option>
-                    ))}
-                  </Select>
-                )}
-              </Field>
-              {form.ritenutaType ? (
-                <div className={`${grid} ${nested}`}>
-                  <Field
-                    label={t("clients.form.withholdingRate")}
-                    error={err("defaults.ritenuta.rateBp")}
-                  >
-                    {(c) => (
-                      <Input
-                        {...c}
-                        value={form.ritenutaRate}
-                        suffix="%"
-                        onChange={set("ritenutaRate")}
-                        inputMode="decimal"
-                      />
-                    )}
-                  </Field>
-                  <Field
-                    label={t("clients.form.withholdingBase")}
-                    error={err("defaults.ritenuta.baseBp")}
-                  >
-                    {(c) => (
-                      <Input
-                        {...c}
-                        value={form.ritenutaBase}
-                        suffix="%"
-                        onChange={set("ritenutaBase")}
-                        inputMode="decimal"
-                      />
-                    )}
-                  </Field>
-                  <Field
-                    label={t("clients.form.withholdingReason")}
-                    error={err("defaults.ritenuta.causale")}
-                    className="sm:col-span-2"
-                  >
-                    {(c) => (
-                      <Select {...c} value={form.ritenutaCausale} onChange={set("ritenutaCausale")}>
-                        {CAUSALE_PAGAMENTO_CODES.map((code) => (
-                          <option key={code} value={code}>
-                            {causalePagamentoLabel(code, locale)}
-                          </option>
-                        ))}
-                      </Select>
-                    )}
-                  </Field>
-                </div>
-              ) : null}
-            </fieldset>
-
-            <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-              <input
-                type="checkbox"
-                className="size-5"
-                checked={form.bollo}
-                onChange={(e) => update({ bollo: e.target.checked })}
-              />
-              {t("clients.form.stampDuty")}
-            </label>
+            <TaxFlag
+              checked={form.applyCassa}
+              configured={tax?.cassa != null}
+              label={t("clients.form.applyCassa")}
+              onChange={(applyCassa) => update({ applyCassa })}
+            />
+            <TaxFlag
+              checked={form.applyRitenuta}
+              configured={tax?.ritenuta != null}
+              label={t("clients.form.applyRitenuta")}
+              onChange={(applyRitenuta) => update({ applyRitenuta })}
+            />
             <div className={grid}>
               <PaymentTermsFields
                 kind={form.termsKind}

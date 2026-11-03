@@ -21,7 +21,7 @@ import {
   type PaymentTerms,
   type PaymentTermsKind,
 } from "../../shared/payment-terms";
-import type { RITENUTA_TYPES } from "../../shared/tax";
+import { EMPTY_TAX_OPTIONS, type RITENUTA_TYPES, type TaxOptions } from "../../shared/tax";
 import {
   type CassaType,
   type CausalePagamento,
@@ -217,30 +217,31 @@ export function effectiveDueDate(form: InvoiceForm, today: string): string {
 }
 
 /**
- * Prefills a new invoice from the client's defaults: VAT or
- * exemption on the lines, cassa/rivalsa, ritenuta, bollo, currency and payment terms. The bank
- * account is chosen separately (`withAccount`), so picking a client never overrides it.
+ * Prefills a new invoice for a client: the currency and payment terms from the client, and the
+ * owner's cassa / ritenuta from Tax details when the client's flag for it is on. The values are
+ * copied onto the invoice, which keeps its own editable snapshot. VAT is not prefilled and bollo is
+ * a manual choice. The bank account is chosen separately (`withAccount`), so picking a client never
+ * overrides it.
  */
-export function applyDefaults(form: InvoiceForm, client: ClientRecord | null): InvoiceForm {
+export function applyDefaults(
+  form: InvoiceForm,
+  client: ClientRecord | null,
+  tax: TaxOptions = EMPTY_TAX_OPTIONS,
+): InvoiceForm {
   const next: InvoiceForm = { ...form };
   const defaults = client?.defaults;
   if (client) next.currency = client.currency;
   if (defaults) {
-    const vat = defaults.natura
-      ? `natura:${defaults.natura}`
-      : defaults.vatRateBp
-        ? `rate:${defaults.vatRateBp}`
-        : null;
-    if (vat) next.lines = form.lines.map((line) => ({ ...line, vat }));
-    next.cassaType = defaults.cassa?.type ?? "";
-    next.cassaRate = defaults.cassa ? bpToText(defaults.cassa.rateBp) : "";
-    next.cassaMode = defaults.cassa?.mode ?? "excluded";
-    next.cassaSubjectToRitenuta = defaults.cassa?.subjectToRitenuta ?? false;
-    next.ritenutaType = defaults.ritenuta?.type ?? "";
-    next.ritenutaRate = defaults.ritenuta ? bpToText(defaults.ritenuta.rateBp) : "";
-    next.ritenutaBase = defaults.ritenuta ? bpToText(defaults.ritenuta.baseBp) : "100";
-    next.ritenutaCausale = defaults.ritenuta?.causale ?? "A";
-    next.bollo = defaults.bollo;
+    const cassa = defaults.applyCassa ? tax.cassa : null;
+    next.cassaType = cassa?.type ?? "";
+    next.cassaRate = cassa ? bpToText(cassa.rateBp) : "";
+    next.cassaMode = cassa?.mode ?? "excluded";
+    next.cassaSubjectToRitenuta = cassa?.subjectToRitenuta ?? false;
+    const ritenuta = defaults.applyRitenuta ? tax.ritenuta : null;
+    next.ritenutaType = ritenuta?.type ?? "";
+    next.ritenutaRate = ritenuta ? bpToText(ritenuta.rateBp) : "";
+    next.ritenutaBase = ritenuta ? bpToText(ritenuta.baseBp) : "100";
+    next.ritenutaCausale = ritenuta?.causale ?? "A";
   }
   // Terms prefill from the client default (none = no terms); the due date follows them.
   Object.assign(next, termsToForm(defaults?.terms));

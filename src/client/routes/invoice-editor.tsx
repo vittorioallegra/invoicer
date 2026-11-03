@@ -18,7 +18,7 @@ import {
 } from "../../shared/invoice";
 import type { SendReadiness } from "../../shared/onboarding";
 import { maskIban, type PaymentMethodRecord } from "../../shared/payment-method";
-import { RITENUTA_TYPES } from "../../shared/tax";
+import { RITENUTA_TYPES, type TaxOptions } from "../../shared/tax";
 import {
   CASSA_TYPE_CODES,
   CAUSALE_PAGAMENTO_CODES,
@@ -79,6 +79,7 @@ import {
   onboardingQuery,
   paymentMethodsQuery,
   profileQuery,
+  taxQuery,
 } from "../lib/settings-api";
 import { renderInvoicePdfFor } from "../pdf/generate";
 
@@ -93,6 +94,7 @@ export function InvoiceEditorPage() {
   const profile = useQuery(profileQuery);
   const accounts = useQuery(paymentMethodsQuery);
   const onboarding = useQuery(onboardingQuery);
+  const tax = useQuery(taxQuery);
   const record = useQuery({
     ...invoiceQuery(invoiceId ?? ""),
     enabled: invoiceId !== undefined,
@@ -102,11 +104,13 @@ export function InvoiceEditorPage() {
     clients.isError ||
     profile.isError ||
     accounts.isError ||
+    tax.isError ||
     (invoiceId !== undefined && record.isError);
   const ready =
     clients.data &&
     profile.data &&
     accounts.data &&
+    tax.data &&
     (invoiceId === undefined || record.data) &&
     onboarding.data;
 
@@ -123,6 +127,7 @@ export function InvoiceEditorPage() {
                 void clients.refetch();
                 void profile.refetch();
                 void accounts.refetch();
+                void tax.refetch();
                 void record.refetch();
               }}
             >
@@ -142,12 +147,13 @@ export function InvoiceEditorPage() {
           {t("common.loading")}
         </p>
       ) : null}
-      {ready && clients.data && profile.data && accounts.data && onboarding.data ? (
+      {ready && clients.data && profile.data && accounts.data && tax.data && onboarding.data ? (
         <EditorForm
           key={record.data?.invoice.id ?? "new"}
           record={record.data?.invoice ?? null}
           clients={clients.data.clients}
           accounts={accounts.data.paymentMethods}
+          tax={tax.data.tax}
           send={onboarding.data.send}
         />
       ) : null}
@@ -159,10 +165,11 @@ interface EditorFormProps {
   record: InvoiceRecord | null;
   clients: ClientRecord[];
   accounts: PaymentMethodRecord[];
+  tax: TaxOptions;
   send: SendReadiness;
 }
 
-function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
+function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
   const { t, i18n } = useTranslation();
   const locale: UiLocale = i18n.language.startsWith("it") ? "it" : "en";
   const online = useOnline();
@@ -174,7 +181,7 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
     record
       ? fromRecord(record)
       : withAccount(
-          applyDefaults(emptyForm(), null),
+          applyDefaults(emptyForm(), null, tax),
           accounts.find((account) => account.isDefault) ?? null,
         ),
   );
@@ -231,7 +238,7 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
     setForm((current) => {
       const next = { ...current, clientId: chosen?.id ?? "" };
       // Defaults prefill a new invoice only; an existing one keeps what it has.
-      return record ? next : applyDefaults(next, chosen);
+      return record ? next : applyDefaults(next, chosen, tax);
     });
   }
 

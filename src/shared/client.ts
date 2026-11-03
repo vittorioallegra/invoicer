@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { legacyTerms, paymentTermsSchema } from "./payment-terms";
 import { isValidVatNumber } from "./profile";
-import { cassaDefaultsSchema, ritenutaDefaultsSchema } from "./tax";
-import { NATURA_CODES } from "./totals/types";
 
 export const CLIENT_TYPES = ["it_company", "it_private", "eu_company", "non_eu_company"] as const;
 export type ClientType = (typeof CLIENT_TYPES)[number];
@@ -96,30 +94,28 @@ const emailAddress = z
   .refine((value) => value === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), "invalid_email")
   .transform((value) => value || null);
 
-const rateBp = z.number().int().min(0).max(10000);
-
 /**
- * Defaults that prefill a new invoice for this client (step 9). Reuses the totals engine types.
- * Older stored rows carry `paymentTermsDays` (a plain number); reading maps it to `terms` counted
- * from the invoice date, and only `terms` is written.
+ * Per-client invoice defaults. Cassa and ritenuta values live in Settings > Tax details; a client
+ * only flags whether each applies, and a new invoice for it copies the owner's values. Older stored
+ * rows carry the whole cassa / ritenuta objects (flag = one was set), plus VAT/natura and bollo
+ * defaults that no longer exist; they are read and dropped. Older rows also carry
+ * `paymentTermsDays` (a plain number); reading maps it to `terms` counted from the invoice date,
+ * and only `terms` is written.
  */
 export const clientDefaultsSchema = z
   .object({
-    vatRateBp: rateBp.nullable(),
-    natura: z.enum(NATURA_CODES).nullable(),
-    cassa: cassaDefaultsSchema.nullable(),
-    ritenuta: ritenutaDefaultsSchema.nullable(),
-    bollo: z.boolean(),
+    applyCassa: z.boolean().optional(),
+    applyRitenuta: z.boolean().optional(),
     terms: paymentTermsSchema.nullable().optional(),
+    /** Legacy input only: replaced by `applyCassa` / `applyRitenuta`. */
+    cassa: z.unknown().optional(),
+    ritenuta: z.unknown().optional(),
     /** Legacy input only: replaced by `terms`. */
     paymentTermsDays: z.number().int().min(0).max(365).nullable().optional(),
   })
-  .refine((value) => !(value.vatRateBp !== null && value.natura !== null), {
-    message: "invalid_vat_default",
-    path: ["natura"],
-  })
-  .transform(({ paymentTermsDays, terms, ...rest }) => ({
-    ...rest,
+  .transform(({ applyCassa, applyRitenuta, cassa, ritenuta, paymentTermsDays, terms }) => ({
+    applyCassa: applyCassa ?? Boolean(cassa),
+    applyRitenuta: applyRitenuta ?? Boolean(ritenuta),
     terms:
       terms ??
       (paymentTermsDays !== null && paymentTermsDays !== undefined
@@ -130,13 +126,15 @@ export const clientDefaultsSchema = z
 export type ClientDefaults = z.output<typeof clientDefaultsSchema>;
 
 export const EMPTY_CLIENT_DEFAULTS: ClientDefaults = {
-  vatRateBp: null,
-  natura: null,
-  cassa: null,
-  ritenuta: null,
-  bollo: false,
+  applyCassa: false,
+  applyRitenuta: false,
   terms: null,
 };
+
+/** Defaults of a new client: the cassa applies; the ritenuta only for Italian companies (withholding agents). */
+export function newClientDefaults(type: ClientType): ClientDefaults {
+  return { applyCassa: true, applyRitenuta: type === "it_company", terms: null };
+}
 
 /** Rules per type, applied after the field checks: required fields and fixed values. */
 const clientBaseSchema = z.object({

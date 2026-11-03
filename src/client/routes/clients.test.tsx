@@ -105,13 +105,11 @@ describe("Clients screen", () => {
 
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    expect(screen.queryByLabelText("Rate")).toBeNull();
-    type("Cassa / rivalsa", "rivalsa_inps");
-    expect(screen.getByLabelText("Rate")).toBeTruthy();
+    type("Currency", "EURO");
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
 
-    // Fill a valid client except the cassa rate (hidden while collapsed).
+    // Fill a valid client except the currency (hidden while collapsed).
     type("Company name", "Acme S.r.l.");
     type("Partita IVA", "12345678903");
     type("Street and number", "Via Roma 1");
@@ -119,11 +117,59 @@ describe("Clients screen", () => {
     type("City", "Roma");
     type("Province", "RM");
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    expect(await screen.findByText("This value is not valid.")).toBeTruthy();
+    expect(await screen.findByText("Enter a 3-letter currency code.")).toBeTruthy();
     expect(
       screen.getByRole("button", { name: /Invoice defaults/ }).getAttribute("aria-expanded"),
     ).toBe("true");
-    expect(mocks.api).toHaveBeenCalledTimes(1);
+    expect(mocks.api).not.toHaveBeenCalledWith(
+      "/api/clients",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("offers the cassa and ritenuta flags once the owner has set them up, with the new-client defaults", async () => {
+    const tax = {
+      regimeFiscale: "RF01",
+      cassa: { type: "TC04", rateBp: 400, mode: "excluded", subjectToRitenuta: false },
+      ritenuta: { type: "RT01", rateBp: 2000, baseBp: 10000, causale: "A" },
+    };
+    mocks.api.mockImplementation(async (path: string) =>
+      path === "/api/tax" ? { tax } : { clients: [] },
+    );
+    await renderClients();
+    fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Invoice defaults/ }));
+    const cassa = (await screen.findByLabelText(
+      "Apply the pension fund contribution",
+    )) as HTMLInputElement;
+    const ritenuta = screen.getByLabelText(
+      "Apply the withholding tax (ritenuta)",
+    ) as HTMLInputElement;
+    // Italian company: both on. Other client types: cassa on, ritenuta off.
+    expect([cassa.checked, ritenuta.checked]).toEqual([true, true]);
+    pickType("Private person in Italy");
+    expect([cassa.checked, ritenuta.checked]).toEqual([true, false]);
+    pickType("Company in the EU");
+    expect([cassa.checked, ritenuta.checked]).toEqual([true, false]);
+    // The old per-client fields are gone.
+    expect(screen.queryByLabelText("VAT or exemption")).toBeNull();
+    expect(screen.queryByLabelText("Cassa / rivalsa")).toBeNull();
+    expect(screen.queryByLabelText(/bollo/i)).toBeNull();
+  });
+
+  it("points to Tax details while the cassa and ritenuta are not set up", async () => {
+    mocks.api.mockImplementation(async (path: string) =>
+      path === "/api/tax"
+        ? { tax: { regimeFiscale: "RF01", cassa: null, ritenuta: null } }
+        : { clients: [] },
+    );
+    await renderClients();
+    fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Invoice defaults/ }));
+    expect(await screen.findAllByRole("link", { name: "Set it up in Tax details" })).toHaveLength(
+      2,
+    );
+    expect(screen.queryByLabelText(/Apply the/)).toBeNull();
   });
 
   it("saves the payment terms choice, with days only for a custom one", async () => {
@@ -164,7 +210,11 @@ describe("Clients screen", () => {
       ([path, init]) => path === "/api/clients" && init?.method === "POST",
     );
     const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
-    expect(body.defaults.terms).toEqual({ kind: "custom", days: 60 });
+    expect(body.defaults).toEqual({
+      applyCassa: true,
+      applyRitenuta: true,
+      terms: { kind: "custom", days: 60 },
+    });
     expect(body.defaults).not.toHaveProperty("paymentTermsDays");
   });
 
@@ -208,7 +258,10 @@ describe("Clients screen", () => {
     type("Partita IVA", "12345678904");
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText(/check digit does not match/)).toBeTruthy();
-    expect(mocks.api).toHaveBeenCalledTimes(1);
+    expect(mocks.api).not.toHaveBeenCalledWith(
+      "/api/clients",
+      expect.objectContaining({ method: "POST" }),
+    );
 
     type("Partita IVA", "12345678903");
     type("Street and number", "Via Roma 1");

@@ -23,12 +23,7 @@ const acme = {
   email: "",
   pdfLanguage: "en",
   currency: "EUR",
-  defaults: {
-    ...EMPTY_CLIENT_DEFAULTS,
-    vatRateBp: 2200,
-    cassa: { type: "TC22", rateBp: 400, mode: "included", subjectToRitenuta: true },
-    terms: { kind: "eom_30" },
-  },
+  defaults: { ...EMPTY_CLIENT_DEFAULTS, applyCassa: true, terms: { kind: "eom_30" } },
 };
 
 interface Record_ {
@@ -37,8 +32,8 @@ interface Record_ {
   recipientCode: string;
   pdfLanguage: string;
   defaults: {
-    vatRateBp: number;
-    cassa: { type: string };
+    applyCassa: boolean;
+    applyRitenuta: boolean;
     terms: { kind: string; days?: number } | null;
   };
 }
@@ -66,11 +61,7 @@ describe("clients API", () => {
     expect(created.body.client).toMatchObject({
       recipientCode: "0000000",
       pdfLanguage: "en",
-      defaults: {
-        vatRateBp: 2200,
-        cassa: { type: "TC22" },
-        terms: { kind: "eom_30" },
-      },
+      defaults: { applyCassa: true, applyRitenuta: false, terms: { kind: "eom_30" } },
     });
     const { id } = created.body.client;
 
@@ -104,6 +95,29 @@ describe("clients API", () => {
       .run();
     const read = await owner.json<{ client: Record_ }>(`/api/clients/${id}`);
     expect(read.body.client.defaults.terms).toEqual({ kind: "custom", days: 50 });
+    await owner.json(`/api/clients/${id}`, { method: "DELETE" });
+  });
+
+  it("reads the older stored defaults as flags and drops VAT and bollo", async () => {
+    const created = await owner.json<{ client: Record_ }>("/api/clients", { body: acme });
+    const { id } = created.body.client;
+    const stored = {
+      vatRateBp: 2200,
+      natura: null,
+      cassa: null,
+      ritenuta: { type: "RT01", rateBp: 2000, baseBp: 10000, causale: "A" },
+      bollo: true,
+      terms: null,
+    };
+    await env.DB.prepare("UPDATE clients SET defaults = ? WHERE id = ?")
+      .bind(JSON.stringify(stored), id)
+      .run();
+    const read = await owner.json<{ client: Record_ }>(`/api/clients/${id}`);
+    expect(read.body.client.defaults).toEqual({
+      applyCassa: false,
+      applyRitenuta: true,
+      terms: null,
+    });
     await owner.json(`/api/clients/${id}`, { method: "DELETE" });
   });
 
