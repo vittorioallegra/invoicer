@@ -556,9 +556,7 @@
       "ritenutaCalcShare": "Ritenuta d'acconto {{rate}}% su {{share}}% di {{subject}} ({{base}})",
       "vat": "IVA",
       "stamp": "Bollo",
-      "documentTotal": "Totale documento",
-      "cassaIncluded": "Contributo incluso",
-      "cassaExcluded": "Contributo aggiunto"
+      "documentTotal": "Totale documento"
     },
     "paid": {
       "title": "Stato di pagamento",

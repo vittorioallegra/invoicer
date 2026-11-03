@@ -556,9 +556,7 @@
       "ritenutaCalcShare": "Withholding tax {{rate}}% on {{share}}% of {{subject}} ({{base}})",
       "vat": "VAT",
       "stamp": "Bollo",
-      "documentTotal": "Document total",
-      "cassaIncluded": "Contribution included",
-      "cassaExcluded": "Contribution added"
+      "documentTotal": "Document total"
     },
     "paid": {
       "title": "Payment status",

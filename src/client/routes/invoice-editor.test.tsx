@@ -336,7 +336,7 @@ describe("Invoice editor", () => {
     expect((screen.getByLabelText("Due date") as HTMLInputElement).readOnly).toBe(false);
   });
 
-  it("shows the amount due live, with the cassa chip and an expandable breakdown", async () => {
+  it("shows the amount due live, with no contribution chip and an expandable breakdown", async () => {
     serve();
     await renderEditor();
     await loaded();
@@ -347,7 +347,7 @@ describe("Invoice editor", () => {
     // 1,200.00 + 4% rivalsa 48.00 = 1,248.00 taxable; VAT 22% = 274.56; ritenuta 20% of 1,248.00 = 249.60; due 1,272.96.
     const totals = screen.getByRole("region", { name: "Totals" });
     expect(within(totals).getByText(/1,272\.96/)).toBeTruthy();
-    expect(within(totals).getByText("Contribution added")).toBeTruthy();
+    expect(within(totals).queryByText(/Contribution (added|included)/)).toBeNull();
     fireEvent.click(within(totals).getByRole("button", { name: /Amount due/ }));
     expect(within(totals).getByText("VAT")).toBeTruthy();
     // The ritenuta row shows how it was computed: rate and the amount it applies to.

@@ -12,7 +12,7 @@ export interface InvoiceTotalsProps {
   locale: UiLocale;
 }
 
-/** Sticky footer: amount due, cassa mode chip and an expandable breakdown. */
+/** Sticky footer: amount due and an expandable breakdown. */
 export function InvoiceTotals({ totals, form, locale }: InvoiceTotalsProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -108,15 +108,6 @@ export function InvoiceTotals({ totals, form, locale }: InvoiceTotalsProps) {
             <span className="block text-xl font-semibold tabular-nums">
               {totals ? money(totals.amountDueCents) : "–"}
             </span>
-            {form.cassaType ? (
-              <span className="mt-0.5 inline-block rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium">
-                {t(
-                  form.cassaMode === "included"
-                    ? "invoice.totals.cassaIncluded"
-                    : "invoice.totals.cassaExcluded",
-                )}
-              </span>
-            ) : null}
           </span>
           <ChevronUp
             aria-hidden
