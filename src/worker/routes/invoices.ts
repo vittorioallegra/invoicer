@@ -15,6 +15,7 @@ import {
   issueMap,
   parseInvoiceDraft,
 } from "../../shared/invoice";
+import { invoiceFiltersSchema } from "../../shared/invoice-filters";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
 import {
@@ -26,6 +27,7 @@ import {
 import {
   createInvoice,
   deleteInvoice,
+  listFilteredInvoices,
   listInvoices,
   loadInvoice,
   recordToBody,
@@ -104,6 +106,11 @@ async function requireInvoice(db: D1Database, id: string): Promise<InvoiceRecord
 
 invoices.get("/", async (c) => {
   const scope = c.req.query("scope") ?? "to_issue";
+  if (scope === "all") {
+    const parsed = invoiceFiltersSchema.safeParse(c.req.query());
+    if (!parsed.success) throw makeError("bad_request", "filters: invalid");
+    return c.json(await listFilteredInvoices(c.env.DB, parsed.data));
+  }
   if (!(INVOICE_LIST_SCOPES as readonly string[]).includes(scope)) {
     throw makeError("bad_request", "scope: invalid");
   }

@@ -1,0 +1,54 @@
+import { z } from "zod";
+
+/**
+ * Filters of the Invoices page. They live in the URL search params and in the query string of
+ * `GET /api/invoices?scope=all`, so one schema serves both.
+ */
+export const INVOICE_STATUS_FILTERS = [
+  "to_send",
+  "in_progress",
+  "delivered",
+  "rejected",
+  "paid",
+  "unpaid",
+] as const;
+export type InvoiceStatusFilter = (typeof INVOICE_STATUS_FILTERS)[number];
+
+/** Invoice states behind each status filter (`paid`/`unpaid` also look at the payment flag). */
+export const STATUS_FILTER_STATES: Record<InvoiceStatusFilter, readonly string[]> = {
+  to_send: ["draft", "planned"],
+  in_progress: ["sending", "sent"],
+  // "Not delivered" (the SdI could not reach the client) is delivered to the client's AdE area.
+  delivered: ["delivered", "not_delivered"],
+  rejected: ["rejected", "rejected_expired"],
+  paid: ["sending", "sent", "delivered", "not_delivered"],
+  unpaid: ["sending", "sent", "delivered", "not_delivered"],
+};
+
+/** The year filter is a four-digit year or `all`; absent means the current Europe/Rome year. */
+export const invoiceFiltersSchema = z.object({
+  year: z.union([z.literal("all"), z.string().regex(/^\d{4}$/)]).optional(),
+  status: z.enum(INVOICE_STATUS_FILTERS).optional(),
+  client: z.string().min(1).max(100).optional(),
+  series: z.string().min(1).max(100).optional(),
+  q: z.string().trim().min(1).max(100).optional(),
+});
+export type InvoiceFilters = z.infer<typeof invoiceFiltersSchema>;
+
+/** Totals of the filtered set in one currency, in integer cents (credit notes subtracted). */
+export interface CurrencyRecap {
+  currency: string;
+  /** Finalised invoices, rejected ones excluded. */
+  invoicedCents: number;
+  /** Finalised, not rejected, not paid. */
+  toCollectCents: number;
+  /** Invoices not sent yet. */
+  toSendCents: number;
+}
+
+export interface InvoiceRecap {
+  count: number;
+  toSendCount: number;
+  /** One entry per currency present in the set; EUR is always listed first. */
+  byCurrency: CurrencyRecap[];
+}

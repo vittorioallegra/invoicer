@@ -11,6 +11,12 @@ import {
   rejectionDeadline,
   safeTotals,
 } from "../../shared/invoice";
+import {
+  type CurrencyRecap,
+  type InvoiceFilters,
+  type InvoiceRecap,
+  STATUS_FILTER_STATES,
+} from "../../shared/invoice-filters";
 import type { InvoiceState, PaymentState } from "../../shared/invoice-state";
 import { INVOICE_STATES } from "../../shared/invoice-state";
 import { makeError } from "../problem";
@@ -232,13 +238,22 @@ export async function listInvoices(
   const { results } = await db
     .prepare(`${SELECT} WHERE i.state IN ${SCOPE_STATES[scope]} ORDER BY ${order}`)
     .all<InvoiceRow>();
+  return summarize(db, results, scope === "reserved", now);
+}
+
+async function summarize(
+  db: D1Database,
+  results: InvoiceRow[],
+  reservedOnly: boolean,
+  now: Date,
+): Promise<InvoiceSummary[]> {
   const reserved = await reservedIds(db);
   const rejections = await loadRejections(
     db,
     results.filter((row) => row.state === "rejected").map((row) => row.id),
   );
   const today = romeDateTime(now).date;
-  const shown = results.filter((row) => scope !== "reserved" || reserved.has(row.id));
+  const shown = results.filter((row) => !reservedOnly || reserved.has(row.id));
   // A reserved number can be released only while it is the highest of its series and year.
   const releasable = new Set<string>();
   for (const row of shown) {
@@ -266,6 +281,90 @@ export async function listInvoices(
     linkedInvoiceId: row.linked_invoice_id,
     rejectionDeadline: rejections.get(row.id)?.deadline ?? null,
   }));
+}
+
+const FINALISED_STATES = ["sending", "sent", "delivered", "not_delivered"];
+
+const escapeLike = (text: string) => text.replace(/[\\%_]/g, (char) => `\\${char}`);
+
+/**
+ * All invoices of the owner matching the filters (Invoices page), newest first by invoice date
+ * (issue date, else planned date; an invoice without a date counts as today's), then number.
+ * The year filter reads the same date. The recap is computed over exactly the returned set.
+ */
+export async function listFilteredInvoices(
+  db: D1Database,
+  filters: InvoiceFilters,
+  now = new Date(),
+): Promise<{ invoices: InvoiceSummary[]; recap: InvoiceRecap }> {
+  await expireRejected(db, now);
+  const today = romeDateTime(now).date;
+  const dateExpr = "COALESCE(i.issue_date, i.planned_date, ?1)";
+  const where: string[] = [];
+  const binds: unknown[] = [today];
+  const bind = (value: unknown) => {
+    binds.push(value);
+    return `?${binds.length}`;
+  };
+  const year = filters.year ?? today.slice(0, 4);
+  if (year !== "all") where.push(`substr(${dateExpr}, 1, 4) = ${bind(year)}`);
+  if (filters.status) {
+    const states = STATUS_FILTER_STATES[filters.status].map((state) => `'${state}'`).join(", ");
+    where.push(`i.state IN (${states})`);
+    if (filters.status === "paid") where.push("i.payment_flag = 'paid'");
+    if (filters.status === "unpaid") where.push("i.payment_flag = 'unpaid'");
+  }
+  if (filters.client) where.push(`i.client_id = ${bind(filters.client)}`);
+  if (filters.series) where.push(`i.series_id = ${bind(filters.series)}`);
+  if (filters.q) {
+    const like = bind(`%${escapeLike(filters.q)}%`);
+    where.push(`(i.number_raw LIKE ${like} ESCAPE '\\' OR c.name LIKE ${like} ESCAPE '\\')`);
+  }
+  const { results } = await db
+    .prepare(
+      `${SELECT} ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+       ORDER BY ${dateExpr} DESC, i.number_int DESC, i.created_at DESC`,
+    )
+    .bind(...binds)
+    .all<InvoiceRow>();
+  return { invoices: await summarize(db, results, false, now), recap: recapOf(results) };
+}
+
+/** Recap rules (spec section 6): credit notes subtract; rejected invoices count as not invoiced. */
+function recapOf(rows: InvoiceRow[]): InvoiceRecap {
+  const by = new Map<string, CurrencyRecap>();
+  const entry = (currency: string) => {
+    let found = by.get(currency);
+    if (!found) {
+      found = { currency, invoicedCents: 0, toCollectCents: 0, toSendCents: 0 };
+      by.set(currency, found);
+    }
+    return found;
+  };
+  entry("EUR");
+  let toSendCount = 0;
+  for (const row of rows) {
+    const cents = (row.document_type === "TD04" ? -1 : 1) * (row.total_cents ?? 0);
+    const sums = entry(row.currency);
+    if (row.state === "draft" || row.state === "planned") {
+      toSendCount += 1;
+      sums.toSendCents += cents;
+    } else if (FINALISED_STATES.includes(row.state)) {
+      sums.invoicedCents += cents;
+      if (row.payment_flag !== "paid") sums.toCollectCents += cents;
+    }
+  }
+  const all = [...by.values()];
+  return {
+    count: rows.length,
+    toSendCount,
+    byCurrency: [
+      ...all.filter((sums) => sums.currency === "EUR"),
+      ...all
+        .filter((sums) => sums.currency !== "EUR")
+        .sort((a, b) => a.currency.localeCompare(b.currency)),
+    ],
+  };
 }
 
 /** The stored raw form, or null when there is none or it is not readable. */

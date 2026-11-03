@@ -98,6 +98,19 @@ describe("invoices API", () => {
     expect(unplanned.body.invoice.state).toBe("draft");
   });
 
+  it("lists every invoice with its recap under scope=all and rejects bad filters", async () => {
+    const draft = await create();
+    const all = await owner.json<{
+      invoices: { id: string }[];
+      recap: { count: number; byCurrency: { currency: string }[] };
+    }>("/api/invoices?scope=all");
+    expect(all.status).toBe(200);
+    expect(all.body.invoices.some((i) => i.id === draft.id)).toBe(true);
+    expect(all.body.recap.byCurrency[0]?.currency).toBe("EUR");
+    expect((await owner.json("/api/invoices?scope=all&status=nope")).status).toBe(400);
+    expect((await owner.json("/api/invoices?scope=all&year=20")).status).toBe(400);
+  });
+
   it("stores a line note, and a line without one reads back empty", async () => {
     const saved = await create({ lines: [line({ note: "Phase 1" }), line()] });
     expect(saved.lines.map((l) => l.note)).toEqual(["Phase 1", ""]);
