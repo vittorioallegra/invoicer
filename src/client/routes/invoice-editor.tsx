@@ -871,6 +871,21 @@ function EditorForm({ record, clients, accounts, send }: EditorFormProps) {
                 />
               )}
             </Field>
+            <Field
+              label={t("clients.form.ritenutaBase")}
+              hint={t("clients.form.withholdingBaseHint")}
+              error={err("data.ritenuta.baseBp")}
+            >
+              {(c) => (
+                <Input
+                  {...c}
+                  value={form.ritenutaBase}
+                  inputMode="decimal"
+                  disabled={locked || !form.ritenutaType}
+                  onChange={text("ritenutaBase")}
+                />
+              )}
+            </Field>
             <Field label={t("clients.form.ritenutaCausale")} error={err("data.ritenuta.causale")}>
               {(c) => (
                 <Select

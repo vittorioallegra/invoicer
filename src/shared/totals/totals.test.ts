@@ -145,6 +145,31 @@ describe("rules", () => {
     expect(defaultCassaSubjectToRitenuta("TC04")).toBe(false);
   });
 
+  it("applies the ritenuta rate to the base share of the amount subject to it", () => {
+    const common = {
+      lines: [vat(100000, 2200)],
+      ritenuta: { type: "RT01", rateBp: 2000, baseBp: 1000, causale: "A" as const },
+    };
+    const plain = computeTotals(base(common));
+    expect(plain.ritenutaBaseCents).toBe(10000);
+    expect(plain.ritenutaCents).toBe(2000);
+    expect(plain.amountDueCents).toBe(120000);
+    const rivalsa = computeTotals(
+      base({
+        ...common,
+        cassa: { type: "rivalsa_inps", rateBp: 400, mode: "excluded", subjectToRitenuta: true },
+      }),
+    );
+    expect(rivalsa.ritenutaBaseCents).toBe(10400);
+    expect(rivalsa.ritenutaCents).toBe(2080);
+    // Without a base the rate applies to the whole amount (100%).
+    const whole = computeTotals(
+      base({ ...common, ritenuta: { type: "RT01", rateBp: 2000, causale: "A" } }),
+    );
+    expect(whole.ritenutaBaseCents).toBe(100000);
+    expect(whole.ritenutaCents).toBe(20000);
+  });
+
   it("suggests bollo only when natura lines exceed 77.47, and adds it to the amount due", () => {
     const at = computeTotals(base({ lines: [exempt(7747, "N4")] }));
     const over = computeTotals(base({ lines: [exempt(7748, "N4")], bollo: true }));

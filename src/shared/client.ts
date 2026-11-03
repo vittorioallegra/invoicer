@@ -109,6 +109,8 @@ export const cassaDefaultsSchema = z.object({
 export const ritenutaDefaultsSchema = z.object({
   type: z.enum(RITENUTA_TYPES),
   rateBp: rateBp.min(1),
+  /** Share of the amount subject to ritenuta the rate applies to (10000 = 100%); older rows lack it. */
+  baseBp: rateBp.min(1).default(10000),
   causale: z.enum(CAUSALE_PAGAMENTO_CODES),
 });
 

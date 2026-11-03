@@ -177,7 +177,15 @@ settle the open ones):
     never the typed gross amount as a line price.
   - The mode is a client default and can be changed per invoice; the editor shows which
     mode is active next to the totals.
-- ritenuta d'acconto (type, rate, causale pagamento); bollo virtuale (2.00 EUR, suggested
+- ritenuta d'acconto (type, rate, base, causale pagamento). The rate applies to the amount
+  subject to ritenuta (lines, plus rivalsa INPS when subject), by default in full; the **base**
+  (0.01-100%, default 100) lets it apply to a share of it, for example 10% of the taxable:
+  ritenuta = rate x (base% x amount subject), the reduced base rounded to the cent first, then
+  the rate, half-up. FatturaPA has no element for the base: the XML carries `AliquotaRitenuta`
+  (the rate) and `ImportoRitenuta` (the reduced amount); the PDF states the share when it is
+  not 100% ("Ritenuta d'acconto 20% sul 10% dell'imponibile"). The causale pagamento is a
+  select of the `CausalePagamentoType` codes of the XSD (CU codes, without the retired Z), each
+  shown as "code — short description". Bollo virtuale (2.00 EUR, suggested
   automatically when exempt amounts exceed 77.47 EUR); currency (default EUR); payment
   data (method, due date and the bank account copied from the Payment methods list: IBAN,
   BIC/SWIFT, holder).
@@ -404,6 +412,8 @@ settle the open ones):
    | e | RF01, IT company; 1 x 3,200.00 + 18.5 x 71.30 (1,319.05), 22%; cassa TC04 4% excluded, 22% on the contribution, not subject to ritenuta; ritenuta 20% on 4,519.05 | 180.76 | 4,699.81 | 1,033.96 | 903.81 | 0 | 5,733.77 | 4,829.96 |
    | f1 | RF01, IT company; typed 1,040.00 at 22%; rivalsa INPS 4% included (base 1,000.00 + 40.00) | 40.00 | 1,040.00 | 228.80 | 0 | 0 | 1,268.80 | 1,268.80 |
    | f2 | as f1, typed 999.99 (base 961.53 + 38.46) | 38.46 | 999.99 | 220.00 | 0 | 0 | 1,219.99 | 1,219.99 |
+   | h | RF01, IT company; 1 x 1,000.00, 22%; ritenuta 20% on 10% of the taxable (base 100.00) | 0 | 1,000.00 | 220.00 | 20.00 | 0 | 1,220.00 | 1,200.00 |
+   | i | as h, with rivalsa INPS 4% excluded (40.00) subject to ritenuta; ritenuta 20% on 10% of 1,040.00 (base 104.00) | 40.00 | 1,040.00 | 228.80 | 20.80 | 0 | 1,268.80 | 1,248.00 |
    | g | TD04 linked to (a) (no. 1, 2026-03-15); 3 x 65.30 (195.90), 22%; rivalsa INPS 4% excluded; ritenuta 20% | 7.84 | 203.74 | 44.82 | 40.75 | 0 | 248.56 | 207.81 (signed -207.81) |
 7. Using recorded IMAP/SMTP fixtures and a fake socket (no network), a sent invoice goes to
    `sent` on the PEC delivery receipt and then to `delivered`, `not_delivered` or `rejected`

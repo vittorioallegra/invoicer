@@ -71,6 +71,8 @@ export interface InvoiceForm {
   cassaSubjectToRitenuta: boolean;
   ritenutaType: string;
   ritenutaRate: string;
+  /** Percent of the taxable the ritenuta rate applies to. */
+  ritenutaBase: string;
   ritenutaCausale: string;
   bollo: boolean;
   bolloDismissed: boolean;
@@ -111,6 +113,7 @@ export function emptyForm(): InvoiceForm {
     cassaSubjectToRitenuta: false,
     ritenutaType: "",
     ritenutaRate: "",
+    ritenutaBase: "100",
     ritenutaCausale: "A",
     bollo: false,
     bolloDismissed: false,
@@ -167,6 +170,7 @@ export function fromRecord(record: InvoiceRecord): InvoiceForm {
     cassaSubjectToRitenuta: data.cassa?.subjectToRitenuta ?? false,
     ritenutaType: data.ritenuta?.type ?? "",
     ritenutaRate: data.ritenuta ? bpToText(data.ritenuta.rateBp) : "",
+    ritenutaBase: data.ritenuta ? bpToText(data.ritenuta.baseBp) : "100",
     ritenutaCausale: data.ritenuta?.causale ?? "A",
     bollo: data.bollo,
     bolloDismissed: data.bolloSuggestionDismissed,
@@ -233,6 +237,7 @@ export function applyDefaults(form: InvoiceForm, client: ClientRecord | null): I
     next.cassaSubjectToRitenuta = defaults.cassa?.subjectToRitenuta ?? false;
     next.ritenutaType = defaults.ritenuta?.type ?? "";
     next.ritenutaRate = defaults.ritenuta ? bpToText(defaults.ritenuta.rateBp) : "";
+    next.ritenutaBase = defaults.ritenuta ? bpToText(defaults.ritenuta.baseBp) : "100";
     next.ritenutaCausale = defaults.ritenuta?.causale ?? "A";
     next.bollo = defaults.bollo;
   }
@@ -324,6 +329,13 @@ export function buildInvoice(
   if (form.ritenutaType && Number.isNaN(ritenutaRate)) {
     problems["data.ritenuta.rateBp"] = "invalid_rate";
   }
+  const ritenutaBase = percentToBp(form.ritenutaBase);
+  if (
+    form.ritenutaType &&
+    (Number.isNaN(ritenutaBase) || ritenutaBase < 1 || ritenutaBase > 10000)
+  ) {
+    problems["data.ritenuta.baseBp"] = "invalid_rate";
+  }
   const data: InvoiceInput["data"] = {
     cassa: form.cassaType
       ? {
@@ -337,6 +349,7 @@ export function buildInvoice(
       ? {
           type: form.ritenutaType as (typeof RITENUTA_TYPES)[number],
           rateBp: ritenutaRate,
+          baseBp: ritenutaBase,
           causale: form.ritenutaCausale as CausalePagamento,
         }
       : null,
@@ -433,7 +446,11 @@ function invoiceDataFor(input: InvoiceInput): InvoiceData {
       ? { ...input.data.cassa, rateBp: clean(input.data.cassa.rateBp) }
       : null,
     ritenuta: input.data.ritenuta
-      ? { ...input.data.ritenuta, rateBp: clean(input.data.ritenuta.rateBp) }
+      ? {
+          ...input.data.ritenuta,
+          rateBp: clean(input.data.ritenuta.rateBp),
+          baseBp: clean(input.data.ritenuta.baseBp ?? 10000),
+        }
       : null,
     bollo: input.data.bollo,
     bolloSuggestionDismissed: input.data.bolloSuggestionDismissed,

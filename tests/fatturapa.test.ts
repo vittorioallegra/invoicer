@@ -67,6 +67,18 @@ describe("AC 6: fixtures (a)-(g) produce XML that passes the official XSD", () =
 describe("fixture specifics", () => {
   const build = (id: string) => buildFatturaXml(fixtureToFatturaInput(fixture(id)));
 
+  it("(h)(i) a partial ritenuta base keeps the rate and writes the reduced amount, XSD-valid", async () => {
+    for (const [id, amount] of [
+      ["h", "20.00"],
+      ["i", "20.80"],
+    ] as const) {
+      const { xml } = build(id);
+      expect(xml).toContain(`<ImportoRitenuta>${amount}</ImportoRitenuta>`);
+      expect(xml).toContain("<AliquotaRitenuta>20.00</AliquotaRitenuta>");
+      expect((await validateFatturaXml(xml, assets)).errors).toEqual([]);
+    }
+  });
+
   it("(a) rivalsa INPS is TC22 and the ritenuta is in DatiRitenuta", () => {
     const { xml } = build("a");
     expect(xml).toContain("<TipoCassa>TC22</TipoCassa>");

@@ -389,6 +389,7 @@
       "modeIncluded": "Contribution included",
       "ritenuta": "Ritenuta",
       "ritenutaRate": "Rate (%)",
+      "ritenutaBase": "Ritenuta base (% of the taxable)",
       "ritenutaCausale": "Payment reason",
       "bollo": "Apply bollo (virtual stamp)",
       "save": "Save",
@@ -423,6 +424,8 @@
       "pensionIncluded": "Included in the amount",
       "withholding": "Withholding tax (ritenuta)",
       "withholdingRate": "Rate (%)",
+      "withholdingBase": "Ritenuta base (% of the taxable)",
+      "withholdingBaseHint": "Share of the taxable the rate applies to: 100 unless only part of it is subject.",
       "withholdingReason": "Payment reason (causale)",
       "stampDuty": "Add the bollo (virtual stamp duty)"
     }
@@ -699,6 +702,7 @@
       "excluded": "added to the amounts above"
     },
     "ritenuta": "Withholding tax {{type}} {{rate}}% (reason {{causale}})",
+    "ritenutaShare": "Withholding tax {{type}} {{rate}}% on {{base}}% of the taxable amount (reason {{causale}})",
     "vat": "VAT",
     "stamp": "Stamp duty (bollo)",
     "documentTotal": "Document total",

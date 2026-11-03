@@ -447,6 +447,7 @@ Approved: yes (2026-11-02)
 
 ### Decisions
 - Options show code + description; due date computed at reservation unless set by hand (2026-11-03, owner).
+- Ritenuta base and causale (2026-11-03, owner): the ritenuta rate applies to a configurable share of the amount subject to it (`baseBp`, default 100%, stored in the JSON columns; rows without it read as 100%); the reduced base is rounded to the cent, then the rate; the XML keeps the rate and writes the reduced `ImportoRitenuta`; the causale pagamento is a select of the XSD codes (Z left out, retired in 2021).
 - Payment terms: select of invoice date, 15/30/60 gg FM DF (30/60 = last day of the 1st/2nd month after), custom days from invoice date; owner's choice (2026-11-03).
 - Client form (2026-11-03, owner): type as a segmented choice, only the fields the type needs, fixed codici destinatario not shown as inputs, invoice defaults (VAT/natura, cassa, ritenuta, bollo, terms, PDF language, currency) in a collapsed optional section with descriptive labels.
 - Invoice number on the invoice (2026-11-03, owner): the editor prefills the next free number of the year (highest issued app/imported + 1) and the owner may change it before sending; the Worker accepts a requested number only if it is above the highest issued that year and unique; the Settings 'next number' was removed.

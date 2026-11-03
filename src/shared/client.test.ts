@@ -145,6 +145,19 @@ describe("defaults", () => {
     };
     expect(parse({ defaults }).success).toBe(true);
   });
+  it("reads a ritenuta without a base as 100%", () => {
+    const parsed = clientDefaultsSchema.parse({
+      ...EMPTY_CLIENT_DEFAULTS,
+      ritenuta: { type: "RT01", rateBp: 2000, causale: "A" },
+    });
+    expect(parsed.ritenuta?.baseBp).toBe(10000);
+    expect(
+      clientDefaultsSchema.safeParse({
+        ...EMPTY_CLIENT_DEFAULTS,
+        ritenuta: { type: "RT01", rateBp: 2000, baseBp: 0, causale: "A" },
+      }).success,
+    ).toBe(false);
+  });
   it("maps the older numeric payment terms to the same days from the invoice date", () => {
     const read = (legacy: number | null) => {
       const parsed = clientDefaultsSchema.parse({

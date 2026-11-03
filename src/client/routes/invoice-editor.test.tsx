@@ -54,7 +54,7 @@ const acme: ClientRecord = {
     ...EMPTY_CLIENT_DEFAULTS,
     vatRateBp: 2200,
     cassa: { type: "rivalsa_inps", rateBp: 400, mode: "excluded", subjectToRitenuta: true },
-    ritenuta: { type: "RT01", rateBp: 2000, causale: "A" },
+    ritenuta: { type: "RT01", rateBp: 2000, baseBp: 10000, causale: "A" },
     terms: { kind: "custom", days: 30 },
   },
 };

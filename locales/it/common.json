@@ -389,6 +389,7 @@
       "modeIncluded": "Contributo incluso",
       "ritenuta": "Ritenuta",
       "ritenutaRate": "Aliquota (%)",
+      "ritenutaBase": "Base imponibile ritenuta (%)",
       "ritenutaCausale": "Causale pagamento",
       "bollo": "Applica il bollo virtuale",
       "save": "Salva",
@@ -423,6 +424,8 @@
       "pensionIncluded": "Incluso nell'importo",
       "withholding": "Ritenuta d'acconto",
       "withholdingRate": "Aliquota (%)",
+      "withholdingBase": "Base imponibile ritenuta (%)",
+      "withholdingBaseHint": "Quota dell'imponibile a cui si applica l'aliquota: 100 salvo che ne sia soggetta solo una parte.",
       "withholdingReason": "Causale del pagamento",
       "stampDuty": "Aggiungi il bollo virtuale"
     }
@@ -699,6 +702,7 @@
       "excluded": "aggiunta agli importi sopra"
     },
     "ritenuta": "Ritenuta d'acconto {{type}} {{rate}}% (causale {{causale}})",
+    "ritenutaShare": "Ritenuta d'acconto {{type}} {{rate}}% sul {{base}}% dell'imponibile (causale {{causale}})",
     "vat": "IVA",
     "stamp": "Imposta di bollo",
     "documentTotal": "Totale documento",

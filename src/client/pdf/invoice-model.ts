@@ -159,7 +159,8 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
   });
 
   const ritenuta = data.ritenuta
-    ? t("pdf.ritenuta", {
+    ? t(data.ritenuta.baseBp === 10000 ? "pdf.ritenuta" : "pdf.ritenutaShare", {
+        base: number.format(data.ritenuta.baseBp / 100),
         type: data.ritenuta.type,
         rate: number.format(data.ritenuta.rateBp / 100),
         causale: data.ritenuta.causale,

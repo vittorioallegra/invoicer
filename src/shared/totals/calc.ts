@@ -85,8 +85,13 @@ export function computeTotals(input: TotalsInput): Totals {
   const vatCents = groups.reduce((sum, g) => sum + g.vatCents, 0);
 
   const linesBase = lines.reduce((sum, l) => sum + l.baseCents, 0);
+  // The rate applies to the base share (default 100%) of the amount subject to ritenuta; the
+  // reduced base is rounded to the cent first, as the amount shown on the document.
   const ritenutaBaseCents = input.ritenuta
-    ? linesBase + (cassa?.subjectToRitenuta ? contributionCents : 0)
+    ? mulRate(
+        linesBase + (cassa?.subjectToRitenuta ? contributionCents : 0),
+        input.ritenuta.baseBp ?? 10000,
+      )
     : 0;
   const ritenutaCents = input.ritenuta ? mulRate(ritenutaBaseCents, input.ritenuta.rateBp) : 0;
 

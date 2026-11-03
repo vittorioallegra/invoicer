@@ -322,4 +322,58 @@ const g: InvoiceFixture = {
   },
 };
 
-export const INVOICE_FIXTURES: readonly InvoiceFixture[] = [a, b, c, d, e, f1, f2, g];
+/**
+ * (h) Ritenuta 20% applied to 10% of the taxable (partial base), no cassa. Taxable 1,000.00,
+ * VAT 22% = 220.00, total 1,220.00; ritenuta base 10% of 1,000.00 = 100.00, ritenuta 20% = 20.00.
+ */
+const h: InvoiceFixture = {
+  id: "h",
+  title: "RF01 Italian company, 22% VAT, ritenuta 20% on 10% of the taxable",
+  issuer: { regime: "RF01" },
+  client: itCompany,
+  documentType: "TD01",
+  currency: "EUR",
+  lines: [line("Consulting", 1000, 100000, { vatRateBp: 2200 })],
+  ritenuta: { ...RITENUTA_20, baseBp: 1000 },
+  bollo: false,
+  expected: {
+    contributionCents: 0,
+    taxableCents: 100000,
+    vatCents: 22000,
+    ritenutaCents: 2000,
+    stampCents: 0,
+    documentTotalCents: 122000,
+    amountDueCents: 120000,
+    lines: [{ amountCents: 100000, baseCents: 100000, contributionCents: 0 }],
+  },
+};
+
+/**
+ * (i) Ritenuta 20% on 10% of the amount subject to it, with rivalsa INPS 4% (subject to
+ * ritenuta). Contribution 40.00, taxable 1,040.00, VAT 22% = 228.80, total 1,268.80; ritenuta
+ * base 10% of 1,040.00 = 104.00, ritenuta 20% = 20.80, due 1,248.00.
+ */
+const i: InvoiceFixture = {
+  id: "i",
+  title: "RF01 Italian company, rivalsa INPS 4%, ritenuta 20% on 10% of the taxable",
+  issuer: { regime: "RF01" },
+  client: itCompany,
+  documentType: "TD01",
+  currency: "EUR",
+  lines: [line("Consulting", 1000, 100000, { vatRateBp: 2200 })],
+  cassa: { type: "rivalsa_inps", rateBp: 400, mode: "excluded", subjectToRitenuta: true },
+  ritenuta: { ...RITENUTA_20, baseBp: 1000 },
+  bollo: false,
+  expected: {
+    contributionCents: 4000,
+    taxableCents: 104000,
+    vatCents: 22880,
+    ritenutaCents: 2080,
+    stampCents: 0,
+    documentTotalCents: 126880,
+    amountDueCents: 124800,
+    lines: [{ amountCents: 100000, baseCents: 100000, contributionCents: 0 }],
+  },
+};
+
+export const INVOICE_FIXTURES: readonly InvoiceFixture[] = [a, b, c, d, e, f1, f2, g, h, i];

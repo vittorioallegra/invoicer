@@ -46,7 +46,12 @@ export function fixtureToFatturaInput(fixture: InvoiceFixture, fileProgressive =
     ...EMPTY_INVOICE_DATA,
     cassa: fixture.cassa ?? null,
     // The fixtures' ritenuta type is a plain string; the fixtures only use valid RT codes.
-    ritenuta: (fixture.ritenuta as InvoiceData["ritenuta"]) ?? null,
+    ritenuta: fixture.ritenuta
+      ? ({
+          ...fixture.ritenuta,
+          baseBp: fixture.ritenuta.baseBp ?? 10000,
+        } as InvoiceData["ritenuta"])
+      : null,
     bollo: fixture.bollo,
     naturaTexts: fixture.naturaText
       ? Object.fromEntries(

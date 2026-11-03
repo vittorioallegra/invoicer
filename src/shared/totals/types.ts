@@ -122,6 +122,12 @@ export interface RitenutaInput {
   type: string;
   /** Rate in basis points (2000 = 20%). */
   rateBp: number;
+  /**
+   * Share of the amount subject to ritenuta the rate applies to, in basis points (10000 = 100%,
+   * the default; 1000 = 10%). FatturaPA has no element for it: the XML carries only the rate and
+   * the resulting amount.
+   */
+  baseBp?: number;
   /** FatturaPA `CausalePagamento`, e.g. A. Metadata for the XML. */
   causale: CausalePagamento;
 }
@@ -167,6 +173,7 @@ export interface Totals {
   /** Sum of the group taxable amounts (lines base + contribution). */
   taxableCents: number;
   vatCents: number;
+  /** Amount the ritenuta rate applies to: the base share of the amount subject to ritenuta. */
   ritenutaBaseCents: number;
   ritenutaCents: number;
   stampCents: number;

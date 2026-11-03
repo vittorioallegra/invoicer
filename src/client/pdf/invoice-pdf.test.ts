@@ -158,3 +158,12 @@ describe("invoice PDF content", () => {
     },
   );
 });
+
+describe("invoice PDF ritenuta base", () => {
+  it("states the share of the taxable only when it is not 100%", async () => {
+    const partial = extractText(await renderInvoicePdf(inputFor("h")));
+    expect(partial).toContain("20% sul 10% dell'imponibile");
+    const whole = extractText(await renderInvoicePdf(inputFor("a")));
+    expect(whole).not.toContain("dell'imponibile");
+  });
+});

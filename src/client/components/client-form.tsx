@@ -64,6 +64,7 @@ interface FormState {
   cassaMode: "excluded" | "included";
   ritenutaType: string;
   ritenutaRate: string;
+  ritenutaBase: string;
   ritenutaCausale: string;
   bollo: boolean;
   termsKind: string;
@@ -94,6 +95,7 @@ const EMPTY: FormState = {
   cassaMode: "excluded",
   ritenutaType: "",
   ritenutaRate: "",
+  ritenutaBase: "100",
   ritenutaCausale: "A",
   bollo: false,
   termsKind: "",
@@ -133,6 +135,7 @@ function fromRecord(c: ClientRecord): FormState {
     cassaMode: d.cassa?.mode ?? "excluded",
     ritenutaType: d.ritenuta?.type ?? "",
     ritenutaRate: d.ritenuta ? bpToText(d.ritenuta.rateBp) : "",
+    ritenutaBase: d.ritenuta ? bpToText(d.ritenuta.baseBp) : "100",
     ritenutaCausale: d.ritenuta?.causale ?? "A",
     bollo: d.bollo,
     ...termsToForm(d.terms),
@@ -155,6 +158,7 @@ function toDefaults(f: FormState): ClientDefaults {
       ? {
           type: f.ritenutaType as (typeof RITENUTA_TYPES)[number],
           rateBp: percentToBp(f.ritenutaRate),
+          baseBp: percentToBp(f.ritenutaBase),
           causale: f.ritenutaCausale as CausalePagamento,
         }
       : null,
@@ -619,6 +623,20 @@ export function ClientForm({ client, onSaved, onCancel, onDeleted }: ClientFormP
                       {...c}
                       value={form.ritenutaRate}
                       onChange={set("ritenutaRate")}
+                      inputMode="decimal"
+                    />
+                  )}
+                </Field>
+                <Field
+                  label={t("clients.form.withholdingBase")}
+                  hint={t("clients.form.withholdingBaseHint")}
+                  error={err("defaults.ritenuta.baseBp")}
+                >
+                  {(c) => (
+                    <Input
+                      {...c}
+                      value={form.ritenutaBase}
+                      onChange={set("ritenutaBase")}
                       inputMode="decimal"
                     />
                   )}
