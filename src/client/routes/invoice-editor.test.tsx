@@ -472,6 +472,12 @@ describe("Invoice editor", () => {
     fireEvent.click(toggle());
     expect(toggle().getAttribute("aria-expanded")).toBe("false");
     expect(toggle().textContent).toContain("TC04 4% · RT06 20% of 10% · stamp duty");
+    // Open: one border around the box, the panel set apart from the header by a separator.
+    fireEvent.click(toggle());
+    const panel = document.getElementById("inv-extras-panel") as HTMLElement;
+    expect(panel.className).toContain("border-t");
+    expect(panel.className).toContain("p-4");
+    expect(panel.parentElement?.className).toContain("border");
   });
 
   it("keeps the line note behind a link until it is used, and saves it", async () => {

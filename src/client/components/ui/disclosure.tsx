@@ -45,7 +45,7 @@ export function Disclosure({ id, title, summary, open, onToggle, children }: Dis
         </button>
       </h2>
       {open ? (
-        <div id={panelId} className="flex flex-col gap-4 px-4 pb-4">
+        <div id={panelId} className="flex flex-col gap-4 border-t border-border p-4">
           {children}
         </div>
       ) : null}
