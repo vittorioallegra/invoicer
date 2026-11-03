@@ -1,9 +1,22 @@
 import type { InvoiceListScope, InvoiceRecord, InvoiceSummary } from "../../shared/invoice";
+import type { InvoiceFilters, InvoiceOverview } from "../../shared/invoice-filters";
 import { api } from "./api";
 
 export const invoicesQuery = (scope: InvoiceListScope) => ({
   queryKey: ["invoices", scope],
   queryFn: () => api<{ invoices: InvoiceSummary[] }>(`/api/invoices?scope=${scope}`),
+});
+
+/** Every invoice matching the filters, with the recap of that set (Invoices page). */
+export const invoiceOverviewQuery = (filters: InvoiceFilters) => ({
+  queryKey: ["invoices", "all", filters],
+  queryFn: () => {
+    const params = new URLSearchParams({ scope: "all" });
+    for (const [key, value] of Object.entries(filters)) {
+      if (value !== undefined) params.set(key, value);
+    }
+    return api<InvoiceOverview>(`/api/invoices?${params}`);
+  },
 });
 
 export const invoiceQuery = (id: string) => ({

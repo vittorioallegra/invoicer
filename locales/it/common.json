@@ -5,7 +5,7 @@
   "nav": {
     "label": "Navigazione principale",
     "home": "Home",
-    "issued": "Emesse",
+    "invoices": "Fatture",
     "received": "Ricevute",
     "clients": "Clienti",
     "settings": "Impostazioni",
@@ -36,10 +36,11 @@
       "emptyBodyProfile": "Compila prima i dati dell'azienda, poi crea la tua prima fattura.",
       "profileAction": "Completa i dati dell'azienda"
     },
-    "issued": {
-      "title": "Emesse",
-      "emptyTitle": "Nessuna fattura emessa",
-      "emptyBody": "Le fatture che invii compaiono qui."
+    "invoices": {
+      "title": "Fatture",
+      "emptyTitle": "Nessuna fattura",
+      "emptyBody": "Le tue fatture compaiono qui.",
+      "noMatch": "Nessuna fattura corrisponde ai filtri."
     },
     "received": {
       "title": "Ricevute",
@@ -583,7 +584,6 @@
       "dated": "Del {{date}}",
       "toSendTitle": "Da inviare",
       "toSendEmpty": "Niente da inviare.",
-      "issuedEmpty": "Le fatture che invii compaiono qui.",
       "resendBy": "Reinvia entro il {{date}}"
     },
     "reserved": {
@@ -607,6 +607,29 @@
       "openReissue": "Apri la fattura riemessa",
       "reissues": "Questa fattura riemette una fattura scartata.",
       "openOriginal": "Vedi la fattura scartata"
+    },
+    "filters": {
+      "title": "Filtri",
+      "year": "Anno",
+      "allYears": "Tutti gli anni",
+      "status": "Stato",
+      "allStatuses": "Tutti gli stati",
+      "client": "Cliente",
+      "allClients": "Tutti i clienti",
+      "series": "Numerazione",
+      "allSeries": "Tutte le numerazioni",
+      "search": "Cerca",
+      "searchPlaceholder": "Numero o cliente",
+      "reset": "Azzera filtri"
+    },
+    "recap": {
+      "label": "Riepilogo delle fatture elencate",
+      "count": "Fatture",
+      "invoiced": "Fatturato",
+      "toCollect": "Da incassare",
+      "toSend": "Da inviare",
+      "toSendCount_one": "{{count}} fattura non inviata",
+      "toSendCount_other": "{{count}} fatture non inviate"
     }
   },
   "fatturapa": {

@@ -296,7 +296,7 @@ export async function listFilteredInvoices(
   db: D1Database,
   filters: InvoiceFilters,
   now = new Date(),
-): Promise<{ invoices: InvoiceSummary[]; recap: InvoiceRecap }> {
+): Promise<{ invoices: InvoiceSummary[]; recap: InvoiceRecap; years: number[] }> {
   await expireRejected(db, now);
   const today = romeDateTime(now).date;
   const dateExpr = "COALESCE(i.issue_date, i.planned_date, ?1)";
@@ -327,7 +327,18 @@ export async function listFilteredInvoices(
     )
     .bind(...binds)
     .all<InvoiceRow>();
-  return { invoices: await summarize(db, results, false, now), recap: recapOf(results) };
+  // Every year that has an invoice (plus the current one) for the year filter.
+  const { results: yearRows } = await db
+    .prepare(
+      `SELECT DISTINCT CAST(substr(COALESCE(issue_date, planned_date, ?1), 1, 4) AS INTEGER) AS y
+       FROM invoices`,
+    )
+    .bind(today)
+    .all<{ y: number }>();
+  const years = [...new Set([Number(today.slice(0, 4)), ...yearRows.map((row) => row.y)])].sort(
+    (a, b) => b - a,
+  );
+  return { invoices: await summarize(db, results, false, now), recap: recapOf(results), years };
 }
 
 /** Recap rules (spec section 6): credit notes subtract; rejected invoices count as not invoiced. */

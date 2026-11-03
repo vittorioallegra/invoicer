@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { InvoiceSummary } from "../../shared/invoice";
+import type { InvoiceRecap } from "../../shared/invoice-filters";
 import { createI18n } from "../i18n";
 import { createAppRouter } from "../router";
 
@@ -44,12 +45,35 @@ type Lists = {
   to_issue?: InvoiceSummary[];
   issued?: InvoiceSummary[];
   reserved?: InvoiceSummary[];
+  all?: InvoiceSummary[];
+  years?: number[];
+  recap?: InvoiceRecap;
 };
 
 function serve(lists: Lists) {
   mocks.api.mockImplementation(async (path: string, init?: { method?: string }) => {
     const scope = /scope=(\w+)/.exec(path)?.[1] as keyof Lists | undefined;
+    if (scope === "all") {
+      return {
+        invoices: lists.all ?? [],
+        years: lists.years ?? [new Date().getFullYear()],
+        recap: lists.recap ?? {
+          count: lists.all?.length ?? 0,
+          toSendCount: 0,
+          byCurrency: [{ currency: "EUR", invoicedCents: 0, toCollectCents: 0, toSendCents: 0 }],
+        },
+      };
+    }
     if (scope) return { invoices: lists[scope] ?? [] };
+    if (path === "/api/clients") return { clients: [{ id: "c1", name: "Acme S.r.l." }] };
+    if (path === "/api/numbering-series") {
+      return {
+        series: [
+          { id: "default", name: "Default", isDefault: true },
+          { id: "s2", name: "Credit", isDefault: false },
+        ],
+      };
+    }
     if (path === "/api/onboarding") {
       return { checklist: [], complete: true, send: { ready: true, reasons: [] }, pecTest: null };
     }
@@ -70,6 +94,7 @@ async function renderAt(path: string) {
       </QueryClientProvider>
     </I18nextProvider>,
   );
+  return router;
 }
 
 beforeEach(() => {
@@ -105,9 +130,9 @@ describe("invoice lists", () => {
     expect(screen.queryByText("No invoices yet")).toBeNull();
   });
 
-  it("lists numbered invoices on Issued with their SdI and payment status", async () => {
+  it("calls the nav item Invoices and lists every invoice with its status and payment status", async () => {
     serve({
-      issued: [
+      all: [
         summary({
           id: "a",
           state: "delivered",
@@ -116,21 +141,97 @@ describe("invoice lists", () => {
           paymentFlag: "overdue",
         }),
         summary({ id: "b", documentType: "TD04", state: "sent", number: "8", totalCents: 5000 }),
+        summary({ id: "c", clientName: "Beta Srl" }),
       ],
     });
-    await renderAt("/issued");
+    await renderAt("/invoices");
     expect(await screen.findByText(/No\. 7/)).toBeTruthy();
-    expect(screen.getByText("Delivered")).toBeTruthy();
-    expect(screen.getByText("Overdue")).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "Invoices" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Invoices" })).toBeTruthy();
+    const list = screen.getByText(/No\. 7/).closest("ul") as HTMLElement;
+    expect(within(list).getByText("Delivered")).toBeTruthy();
+    expect(within(list).getByText("Overdue")).toBeTruthy();
     expect(screen.getByText(/Credit note 8/)).toBeTruthy();
+    expect(screen.getByText(/Beta Srl/)).toBeTruthy();
     // A credit note shows as a negative amount.
     expect(screen.getByText(/-€50\.00|−€50\.00|€-50\.00/)).toBeTruthy();
   });
 
-  it("shows an empty state on Issued", async () => {
+  it("keeps the old /issued address working by redirecting to /invoices", async () => {
     serve({});
-    await renderAt("/issued");
-    expect(await screen.findByText("No issued invoices")).toBeTruthy();
+    const router = await renderAt("/issued");
+    expect(await screen.findByText("No invoices yet")).toBeTruthy();
+    expect(router.state.location.pathname).toBe("/invoices");
+  });
+
+  it("shows an empty state on Invoices", async () => {
+    serve({});
+    await renderAt("/invoices");
+    expect(await screen.findByText("No invoices yet")).toBeTruthy();
+  });
+
+  it("asks the server for the filters in the URL and writes changes back to it", async () => {
+    serve({ all: [summary({ id: "a", state: "delivered", number: "1" })] });
+    const router = await renderAt("/invoices?year=all&status=paid&client=c1&series=s2&q=acme");
+    await screen.findByText(/No\. 1/);
+    const call = mocks.api.mock.calls
+      .map(([path]) => String(path))
+      .find((p) => p.includes("scope=all"));
+    const params = new URLSearchParams(call?.split("?")[1]);
+    expect(Object.fromEntries(params)).toEqual({
+      scope: "all",
+      year: "all",
+      status: "paid",
+      client: "c1",
+      series: "s2",
+      q: "acme",
+    });
+    expect((screen.getByLabelText("Status") as HTMLSelectElement).value).toBe("paid");
+    expect((screen.getByLabelText("Search") as HTMLInputElement).value).toBe("acme");
+
+    fireEvent.change(screen.getByLabelText("Status"), { target: { value: "delivered" } });
+    await waitFor(() =>
+      expect(router.state.location.search).toMatchObject({ status: "delivered" }),
+    );
+    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "beta" } });
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ q: "beta" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
+  });
+
+  it("defaults the year to the current Rome year and offers the years with invoices", async () => {
+    serve({ all: [], years: [new Date().getFullYear(), 2024] });
+    await renderAt("/invoices");
+    await screen.findByText("No invoices yet");
+    const year = new Date().getFullYear();
+    expect(mocks.api.mock.calls.some(([p]) => String(p).includes(`year=${year}`))).toBe(true);
+    const options = within(screen.getByLabelText("Year") as HTMLSelectElement)
+      .getAllByRole("option")
+      .map((o) => o.textContent);
+    expect(options).toEqual(["All years", String(year), "2024"]);
+  });
+
+  it("shows the server recap in cards, one amount per currency", async () => {
+    serve({
+      all: [summary({ id: "a" })],
+      recap: {
+        count: 3,
+        toSendCount: 2,
+        byCurrency: [
+          { currency: "EUR", invoicedCents: 1234567, toCollectCents: 70000, toSendCents: 5000 },
+          { currency: "USD", invoicedCents: 7000, toCollectCents: 0, toSendCents: 0 },
+        ],
+      },
+    });
+    await renderAt("/invoices");
+    const recap = await screen.findByRole("region", { name: "Summary of the listed invoices" });
+    const card = (label: string) => within(recap).getByText(label).closest("div") as HTMLElement;
+    expect(within(card("Invoiced")).getByText("€12,345.67")).toBeTruthy();
+    expect(within(card("Invoiced")).getByText("US$70.00")).toBeTruthy();
+    expect(within(card("To collect")).getByText("€700.00")).toBeTruthy();
+    expect(within(card("To send")).getByText("€50.00")).toBeTruthy();
+    expect(within(card("To send")).getByText("2 invoices not sent")).toBeTruthy();
+    expect(within(card("Invoices")).getByText("3")).toBeTruthy();
   });
 
   it("flags a number reserved but not sent and releases the highest one", async () => {

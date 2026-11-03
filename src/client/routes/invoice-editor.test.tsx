@@ -800,16 +800,16 @@ describe("Invoice editor", () => {
     );
   });
 
-  it("starts with a back link to the list the invoice belongs to", async () => {
+  it("starts with a back link to the Invoices list, whatever the invoice state", async () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
     await loaded();
-    expect(backLink("Home").getAttribute("href")).toBe("/");
+    expect(backLink("Invoices").getAttribute("href")).toBe("/invoices");
     cleanup();
     serve({ invoice: record({ state: "delivered", number: "7", year: 2026 }) });
     await renderEditor("/invoices/i1");
     await screen.findByText("Delivered");
-    expect(backLink("Issued").getAttribute("href")).toBe("/issued");
+    expect(backLink("Invoices").getAttribute("href")).toBe("/invoices");
   });
 
   it("offers the stored PDF and XML of a finalised invoice in the Download menu and nothing else", async () => {

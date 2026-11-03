@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { InvoiceSummary } from "./invoice";
 
 /**
  * Filters of the Invoices page. They live in the URL search params and in the query string of
@@ -51,4 +52,11 @@ export interface InvoiceRecap {
   toSendCount: number;
   /** One entry per currency present in the set; EUR is always listed first. */
   byCurrency: CurrencyRecap[];
+}
+
+export interface InvoiceOverview {
+  invoices: InvoiceSummary[];
+  recap: InvoiceRecap;
+  /** Years that have an invoice (the current one always), newest first. */
+  years: number[];
 }

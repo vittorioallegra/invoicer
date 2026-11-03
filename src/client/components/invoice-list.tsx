@@ -109,8 +109,12 @@ export function InvoiceList({ scope, empty }: InvoiceListProps) {
       </Banner>
     );
   }
-  const invoices = query.data.invoices;
-  if (invoices.length === 0) return <>{empty}</>;
+  if (query.data.invoices.length === 0) return <>{empty}</>;
+  return <InvoiceRows invoices={query.data.invoices} />;
+}
+
+/** The bordered rows of an already loaded list. */
+export function InvoiceRows({ invoices }: { invoices: InvoiceSummary[] }) {
   return (
     <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
       {invoices.map((invoice) => (

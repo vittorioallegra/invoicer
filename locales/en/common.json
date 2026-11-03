@@ -5,7 +5,7 @@
   "nav": {
     "label": "Main navigation",
     "home": "Home",
-    "issued": "Issued",
+    "invoices": "Invoices",
     "received": "Received",
     "clients": "Clients",
     "settings": "Settings",
@@ -36,10 +36,11 @@
       "emptyBodyProfile": "Fill in your company details first, then create your first invoice.",
       "profileAction": "Complete your company details"
     },
-    "issued": {
-      "title": "Issued",
-      "emptyTitle": "No issued invoices",
-      "emptyBody": "Invoices you send appear here."
+    "invoices": {
+      "title": "Invoices",
+      "emptyTitle": "No invoices yet",
+      "emptyBody": "Your invoices appear here.",
+      "noMatch": "No invoices match these filters."
     },
     "received": {
       "title": "Received",
@@ -583,7 +584,6 @@
       "dated": "Dated {{date}}",
       "toSendTitle": "To send",
       "toSendEmpty": "Nothing to send.",
-      "issuedEmpty": "Invoices you send appear here.",
       "resendBy": "Resend by {{date}}"
     },
     "reserved": {
@@ -607,6 +607,29 @@
       "openReissue": "Open the reissued invoice",
       "reissues": "This invoice reissues a rejected one.",
       "openOriginal": "View the rejected invoice"
+    },
+    "filters": {
+      "title": "Filters",
+      "year": "Year",
+      "allYears": "All years",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "client": "Client",
+      "allClients": "All clients",
+      "series": "Numbering",
+      "allSeries": "All numberings",
+      "search": "Search",
+      "searchPlaceholder": "Number or client",
+      "reset": "Clear filters"
+    },
+    "recap": {
+      "label": "Summary of the listed invoices",
+      "count": "Invoices",
+      "invoiced": "Invoiced",
+      "toCollect": "To collect",
+      "toSend": "To send",
+      "toSendCount_one": "{{count}} invoice not sent",
+      "toSendCount_other": "{{count}} invoices not sent"
     }
   },
   "fatturapa": {

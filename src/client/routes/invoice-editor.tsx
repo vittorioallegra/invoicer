@@ -149,10 +149,7 @@ export function InvoiceEditorPage() {
   }
 
   return (
-    <Page
-      title={t(invoiceId ? "invoice.editTitle" : "invoice.newTitle")}
-      back={INVOICE_LIST_BACK.unsent}
-    >
+    <Page title={t(invoiceId ? "invoice.editTitle" : "invoice.newTitle")} back={INVOICE_LIST_BACK}>
       {failed ? (
         <Banner
           tone="danger"
@@ -534,7 +531,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
       title={t(record ? "invoice.editTitle" : "invoice.newTitle")}
       subtitle={printedNumber}
       aside={titleActions}
-      back={unsent || !record ? INVOICE_LIST_BACK.unsent : INVOICE_LIST_BACK.issued}
+      back={INVOICE_LIST_BACK}
     >
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
         {record ? (

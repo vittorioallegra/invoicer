@@ -131,6 +131,10 @@ describe("listFilteredInvoices", () => {
     ]);
   });
 
+  it("lists the years that have invoices, newest first", async () => {
+    expect((await listFilteredInvoices(env.DB, {}, NOW)).years).toEqual([2026, 2025]);
+  });
+
   it("reaches other years with year=all or a year, and recaps only what is shown", async () => {
     expect(ids(await listFilteredInvoices(env.DB, { year: "2025" }, NOW))).toEqual(["old"]);
     const all = await listFilteredInvoices(env.DB, { year: "all" }, NOW);
