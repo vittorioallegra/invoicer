@@ -5,6 +5,7 @@ import { useOnline } from "../lib/online";
 import { cn } from "../lib/utils";
 import { Banner } from "./ui/banner";
 import { buttonVariants } from "./ui/button";
+import { Toaster } from "./ui/toast";
 
 const NAV = [
   { to: "/", key: "home", icon: House },
@@ -120,6 +121,7 @@ export function AppShell() {
         </main>
       </div>
       <BottomTabs />
+      <Toaster />
     </div>
   );
 }

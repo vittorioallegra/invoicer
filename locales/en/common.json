@@ -867,5 +867,9 @@
     "bic": "BIC/SWIFT",
     "bankName": "Bank name",
     "accountHolder": "Account holder"
+  },
+  "toast": {
+    "label": "Notifications",
+    "close": "Dismiss"
   }
 }
