@@ -1189,7 +1189,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
               <h2 id="inv-payment" className="text-base font-medium">
                 {t("invoice.payment.title")}
               </h2>
-              <div className="flex flex-wrap items-end gap-4">
+              <div className="grid items-end gap-4 sm:grid-cols-4">
                 <PaymentTermsFields
                   compact
                   kind={form.termsKind}
@@ -1199,7 +1199,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                   daysError={err("data.payment.terms.days")}
                 />
                 {terms ? (
-                  <Field label={t("invoice.document.dueDate")} className="w-44">
+                  <Field label={t("invoice.document.dueDate")}>
                     {(c) => <DatePicker {...c} value={computedDueDate} readOnly />}
                   </Field>
                 ) : null}

@@ -10,7 +10,7 @@ interface PaymentTermsFieldsProps {
   /** Days from the invoice date, as typed; shown only for the custom kind. */
   days: string;
   disabled?: boolean;
-  /** Fit in a one-line row: the days field is narrow and has no hint. */
+  /** Fit in a four-column row (the editor's payment row): no hint under the days. */
   compact?: boolean;
   onChange: (changes: { termsKind?: string; termsDays?: string }) => void;
   kindError?: string | undefined;
@@ -33,12 +33,17 @@ export function PaymentTermsFields({
       <Field
         label={t("paymentTerms.label")}
         error={kindError}
-        // In a two-column grid the choice takes the whole row unless the days field sits beside it.
-        {...(compact
-          ? { className: "min-w-48 flex-1" }
-          : kind === "custom"
-            ? {}
-            : { className: "sm:col-span-2" })}
+        // Compact (a four-column row): half the row with the days beside it, else three quarters.
+        // Otherwise (a two-column grid): the whole row unless the days field sits beside it.
+        className={
+          compact
+            ? kind === "custom"
+              ? "sm:col-span-2"
+              : "sm:col-span-3"
+            : kind === "custom"
+              ? undefined
+              : "sm:col-span-2"
+        }
       >
         {(c) => (
           <Select
@@ -60,7 +65,7 @@ export function PaymentTermsFields({
         <Field
           label={t("paymentTerms.days")}
           error={daysError}
-          {...(compact ? { className: "w-36" } : { hint: t("paymentTerms.daysHint") })}
+          {...(compact ? {} : { hint: t("paymentTerms.daysHint") })}
         >
           {(c) => (
             <Input
