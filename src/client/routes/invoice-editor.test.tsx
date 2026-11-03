@@ -743,6 +743,21 @@ describe("Invoice editor, number on the invoice", () => {
     expect((field("Series") as HTMLSelectElement).options).toHaveLength(1);
   });
 
+  it("lays the document fields out two per row: type and currency, series and number, date", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    const grid = field("Document type").closest("div.grid") as HTMLElement;
+    expect(grid.className).toContain("sm:grid-cols-2");
+    expect(grid.className).not.toContain("grid-cols-3");
+    const order = ["Document type", "Currency", "Series", "Number", "Invoice date"].map((label) =>
+      Array.from(grid.querySelectorAll("label, select, input")).indexOf(field(label)),
+    );
+    expect(order.every((index, i) => index >= 0 && (i === 0 || index > (order[i - 1] ?? 0)))).toBe(
+      true,
+    );
+  });
+
   it("starts in the client's series, proposes its number and sends the series", async () => {
     const swiss = { ...acme, defaults: { ...acme.defaults, seriesId: "ch" } };
     serve({ series: [DEFAULT_SERIES, CH_SERIES], clients: [swiss] });

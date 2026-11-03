@@ -687,7 +687,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           <h2 id="inv-document" className="text-base font-medium">
             {t("invoice.document.title")}
           </h2>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t("invoice.document.type")}>
               {(c) => (
                 <Select
@@ -767,6 +767,21 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 />
               )}
             </Field>
+            <Field
+              label={t("invoice.document.invoiceDate")}
+              hint={t("invoice.document.invoiceDateHint")}
+              error={err("invoiceDate")}
+            >
+              {(c) => (
+                <Input
+                  {...c}
+                  type="date"
+                  value={form.invoiceDate}
+                  disabled={locked || editability === "rejected"}
+                  onChange={text("invoiceDate")}
+                />
+              )}
+            </Field>
             {credit ? (
               <Field label={t("invoice.document.linked")} error={err("linkedInvoiceId")}>
                 {(c) => (
@@ -788,23 +803,6 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 )}
               </Field>
             ) : null}
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field
-              label={t("invoice.document.invoiceDate")}
-              hint={t("invoice.document.invoiceDateHint")}
-              error={err("invoiceDate")}
-            >
-              {(c) => (
-                <Input
-                  {...c}
-                  type="date"
-                  value={form.invoiceDate}
-                  disabled={locked || editability === "rejected"}
-                  onChange={text("invoiceDate")}
-                />
-              )}
-            </Field>
           </div>
         </section>
 
