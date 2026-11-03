@@ -984,6 +984,71 @@ describe("Invoice editor", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
   });
 
+  describe("bollo charge", () => {
+    const natura = [
+      {
+        description: "Consulting",
+        note: "",
+        quantityMilli: 1000,
+        unit: null,
+        unitPriceCents: 10000,
+        vatRateBp: null,
+        natura: "N4" as const,
+      },
+    ];
+
+    it("charges the bollo to the client by default with a read-only generated line, or to the issuer with none", async () => {
+      serve({
+        invoice: record({
+          lines: natura,
+          data: { ...EMPTY_INVOICE_DATA, bollo: true },
+        }),
+      });
+      await renderEditor("/invoices/i1");
+      await loaded();
+      const client = screen.getByRole("radio", { name: "Charged to the client" });
+      expect((client as HTMLInputElement).checked).toBe(true);
+      const line = screen.getByTestId("stamp-line");
+      expect(line.textContent).toContain("Stamp duty");
+      expect(line.textContent).toContain("2.00");
+      expect(line.querySelector("input, button")).toBeNull();
+      fireEvent.click(screen.getByRole("radio", { name: "Borne by me" }));
+      expect(screen.queryByTestId("stamp-line")).toBeNull();
+    });
+
+    it("moves an unsent legacy invoice to the client rule and shows a finalised one as stored", async () => {
+      serve({
+        invoice: record({
+          lines: natura,
+          data: { ...EMPTY_INVOICE_DATA, bollo: true, bolloCharge: "legacy" },
+        }),
+      });
+      await renderEditor("/invoices/i1");
+      await loaded();
+      expect(screen.getByTestId("stamp-line")).toBeTruthy();
+      cleanup();
+      serve({
+        invoice: record({
+          state: "delivered",
+          number: "7",
+          year: 2026,
+          issueDate: "2026-03-01",
+          lines: natura,
+          data: { ...EMPTY_INVOICE_DATA, bollo: true, bolloCharge: "legacy" },
+        }),
+      });
+      await renderEditor("/invoices/i1");
+      await screen.findByText("No. 7/2026");
+      // Stored as the old rule: no generated line, the 2.00 stays in the total.
+      expect(screen.queryByTestId("stamp-line")).toBeNull();
+      expect(
+        (screen.getByRole("radio", { name: "Charged to the client" }) as HTMLInputElement).matches(
+          ":disabled",
+        ),
+      ).toBe(true);
+    });
+  });
+
   it("records a payment from the title row with the date, then updates", async () => {
     serve({
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),

@@ -140,6 +140,22 @@ export interface TotalsInput {
   ritenuta?: RitenutaInput | null;
   /** Whether the virtual stamp (bollo) is applied; see `bolloSuggested` in the result. */
   bollo: boolean;
+  /**
+   * Who bears the stamp (default `client`): `client` adds a generated 2.00 line to the invoice;
+   * `issuer` adds nothing to the totals; `legacy` (stored invoices only, never offered) adds
+   * 2.00 to the document total without a line.
+   */
+  bolloCharge?: BolloCharge;
+}
+
+export const BOLLO_CHARGES = ["client", "issuer", "legacy"] as const;
+export type BolloCharge = (typeof BOLLO_CHARGES)[number];
+
+/** The generated stamp line of an invoice whose bollo is charged to the client. */
+export interface StampLine {
+  natura: Natura;
+  description: string;
+  totals: LineTotals;
 }
 
 export interface LineTotals {
@@ -166,7 +182,12 @@ export interface Totals {
   documentType: DocumentType;
   /** +1 for TD01, -1 for TD04: amounts stay positive, the document type gives the sign. */
   sign: 1 | -1;
+  /** Totals of the invoice's own lines (the generated stamp line is `stampLine`). */
   lines: LineTotals[];
+  /** The stamp line charged to the client, already inside `groups` and the totals; or null. */
+  stampLine: StampLine | null;
+  /** Whether `DatiBollo` is written (the stamp is applied, whoever bears it). */
+  bolloApplied: boolean;
   groups: VatGroup[];
   /** Contribution rate in basis points as applied (0 without a contribution). */
   contributionRateBp: number;
@@ -192,6 +213,7 @@ export interface Totals {
   /** Amount the ritenuta rate applies to: the base share of the amount subject to ritenuta. */
   ritenutaBaseCents: number;
   ritenutaCents: number;
+  /** Stamp added to the total without a line (`legacy` mode of stored invoices only). */
   stampCents: number;
   /** Taxable + VAT + stamp (FatturaPA `ImportoTotaleDocumento`); ritenuta is not deducted. */
   documentTotalCents: number;

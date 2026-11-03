@@ -167,6 +167,23 @@ describe("invoices API", () => {
     expect(copy.lines).toEqual(original.lines);
   });
 
+  it("reads a stored bollo without the charge as legacy, and a duplicate follows the new rule", async () => {
+    const original = await create({
+      lines: [line({ vatRateBp: null, natura: "N4" })],
+      data: { ...EMPTY_INVOICE_DATA, bollo: true },
+    });
+    // Rewrite the stored data as the older shape, without the charge.
+    const { bolloCharge: _gone, ...older } = { ...EMPTY_INVOICE_DATA, bollo: true };
+    await env.DB.prepare("UPDATE invoices SET data = ? WHERE id = ?")
+      .bind(JSON.stringify(older), original.id)
+      .run();
+    const stored = (await owner.json<Invoice>(`/api/invoices/${original.id}`)).body.invoice;
+    expect(stored.data.bolloCharge).toBe("legacy");
+    const copy = (await owner.json<Invoice>(`/api/invoices/${original.id}/duplicate`, { body: {} }))
+      .body.invoice;
+    expect(copy.data.bolloCharge).toBe("client");
+  });
+
   it("keeps its own copy of the bank details when the account is changed or deleted", async () => {
     const account = (
       await owner.json<{ paymentMethod: { id: string } }>("/api/payment-methods", {

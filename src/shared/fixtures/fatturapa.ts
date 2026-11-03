@@ -53,6 +53,7 @@ export function fixtureToFatturaInput(fixture: InvoiceFixture, fileProgressive =
         } as InvoiceData["ritenuta"])
       : null,
     bollo: fixture.bollo,
+    bolloCharge: fixture.bolloCharge ?? "client",
     naturaTexts: fixture.naturaText
       ? Object.fromEntries(
           fixture.lines.flatMap((line) => (line.natura ? [[line.natura, fixture.naturaText]] : [])),

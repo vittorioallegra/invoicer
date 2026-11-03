@@ -74,6 +74,19 @@ describe("invoice PDF (AC 13)", () => {
     expect(text).not.toContain("Fattura");
   });
 
+  it("prints the bollo charged to the client as a line, and nothing when the issuer bears it", async () => {
+    const client = extractText(await renderInvoicePdf(inputFor("b")));
+    expect(client).toContain("Imposta di bollo");
+    expect(client).toContain("927,10");
+    const issuer = extractText(await renderInvoicePdf(inputFor("k")));
+    expect(issuer).not.toContain("Imposta di bollo");
+    expect(issuer).toContain("925,10");
+    // A stored invoice keeps the old summary row with the 2.00 in the total.
+    const legacy = extractText(await renderInvoicePdf(inputFor("l")));
+    expect(legacy).toContain("Imposta di bollo");
+    expect(legacy).toContain("927,10");
+  });
+
   it("fixture (b) is in Italian and shows the payment data", async () => {
     const text = extractText(await renderInvoicePdf(inputFor("b")));
     expect(text).toContain("Fattura");

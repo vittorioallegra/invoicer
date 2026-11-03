@@ -25,6 +25,7 @@ import {
 } from "../../shared/payment-terms";
 import { EMPTY_TAX_OPTIONS, type RITENUTA_TYPES, type TaxOptions } from "../../shared/tax";
 import {
+  type BolloCharge,
   type CassaType,
   type CausalePagamento,
   defaultCassaSubjectToRitenuta,
@@ -76,6 +77,8 @@ export interface InvoiceForm {
   ritenutaBase: string;
   ritenutaCausale: string;
   bollo: boolean;
+  /** Who bears the bollo; `legacy` only on stored issued invoices (never offered). */
+  bolloCharge: BolloCharge;
   bolloDismissed: boolean;
   /** Note printed on the invoice. */
   invoiceNote: string;
@@ -125,6 +128,7 @@ export function emptyForm(): InvoiceForm {
     ritenutaBase: "100",
     ritenutaCausale: "A",
     bollo: false,
+    bolloCharge: "client",
     bolloDismissed: false,
     invoiceNote: "",
     naturaTexts: {},
@@ -157,7 +161,10 @@ export function fromRecord(
 ): InvoiceForm {
   const stored = fromStored(record, clients.find((c) => c.id === record.clientId) ?? null);
   const unsent = record.state === "draft" || record.state === "planned";
-  return unsent ? restoreForm(record.editorForm, stored) : stored;
+  if (!unsent) return stored;
+  const form = restoreForm(record.editorForm, stored);
+  // An unsent invoice was never issued: it moves to the current bollo rule (a line for the client).
+  return form.bolloCharge === "legacy" ? { ...form, bolloCharge: "client" } : form;
 }
 
 function fromStored(record: InvoiceRecord, client: ClientRecord | null): InvoiceForm {
@@ -190,6 +197,7 @@ function fromStored(record: InvoiceRecord, client: ClientRecord | null): Invoice
     ritenutaBase: data.ritenuta ? bpToText(data.ritenuta.baseBp) : "100",
     ritenutaCausale: data.ritenuta?.causale ?? "A",
     bollo: data.bollo,
+    bolloCharge: data.bolloCharge,
     bolloDismissed: data.bolloSuggestionDismissed,
     invoiceNote: data.note,
     naturaTexts: Object.fromEntries(Object.entries(data.naturaTexts)) as Record<string, string>,
@@ -434,6 +442,7 @@ export function buildInvoice(
         }
       : null,
     bollo: form.bollo,
+    bolloCharge: form.bolloCharge,
     bolloSuggestionDismissed: form.bolloDismissed,
     note: form.invoiceNote,
     naturaTexts: naturaTextsFor(form.lines, form.naturaTexts),
@@ -544,6 +553,7 @@ function invoiceDataFor(input: InvoiceInput): InvoiceData {
         }
       : null,
     bollo: input.data.bollo,
+    bolloCharge: input.data.bolloCharge ?? "client",
     bolloSuggestionDismissed: input.data.bolloSuggestionDismissed,
   };
 }

@@ -35,6 +35,8 @@ describe("fixtures (a)-(g) totals to the cent", () => {
       expect(t.vatCents).toBe(f.expected.vatCents);
       expect(t.ritenutaCents).toBe(f.expected.ritenutaCents);
       expect(t.stampCents).toBe(f.expected.stampCents);
+      expect(t.stampLine?.totals.amountCents ?? 0).toBe(f.expected.stampLineCents ?? 0);
+      expect(t.bolloApplied).toBe(f.bollo);
       expect(t.documentTotalCents).toBe(f.expected.documentTotalCents);
       expect(t.amountDueCents).toBe(f.expected.amountDueCents);
       expect(t.lines).toEqual(f.expected.lines);
@@ -215,7 +217,9 @@ describe("rules", () => {
 
   it("suggests bollo only when natura lines exceed 77.47, and adds it to the amount due", () => {
     const at = computeTotals(base({ lines: [exempt(7747, "N4")] }));
-    const over = computeTotals(base({ lines: [exempt(7748, "N4")], bollo: true }));
+    const over = computeTotals(
+      base({ lines: [exempt(7748, "N4")], bollo: true, bolloCharge: "legacy" }),
+    );
     const taxable = computeTotals(base({ lines: [vat(100000, 2200), exempt(7747, "N4")] }));
     expect(at.bolloSuggested).toBe(false);
     expect(over.bolloSuggested).toBe(true);
@@ -229,12 +233,57 @@ describe("rules", () => {
       base({
         lines: [vat(100000, 2200)],
         bollo: true,
+        bolloCharge: "legacy",
         ritenuta: { type: "RT01", rateBp: 2000, causale: "A" as const },
       }),
     );
     expect(t.vatCents).toBe(22000);
     expect(t.ritenutaCents).toBe(20000);
     expect(t.amountDueCents).toBe(122000 + 200 - 20000);
+  });
+
+  it("charges the bollo to the client as a 2.00 line following the largest natura", () => {
+    // N2.1 = 100.00 (first), N4 = 60.00 + 40.00 = 100.00: a tie goes to the first in line order.
+    const tie = computeTotals(
+      base({
+        lines: [exempt(10000, "N2.1"), exempt(6000, "N4"), exempt(4000, "N4")],
+        bollo: true,
+      }),
+    );
+    expect(tie.stampLine?.natura).toBe("N2.1");
+    const larger = computeTotals(
+      base({ lines: [exempt(10000, "N2.1"), exempt(10001, "N4")], bollo: true }),
+    );
+    expect(larger.stampLine?.natura).toBe("N4");
+    expect(larger.groups.map((g) => [g.natura, g.taxableCents])).toEqual([
+      ["N2.1", 10000],
+      ["N4", 10201],
+    ]);
+    // Mixed with VAT lines: the stamp is in the natura group only, VAT is untouched.
+    const mixed = computeTotals(
+      base({ lines: [vat(100000, 2200), exempt(9000, "N4")], bollo: true }),
+    );
+    expect(mixed.vatCents).toBe(22000);
+    expect(mixed.taxableCents).toBe(100000 + 9000 + 200);
+    expect(mixed.documentTotalCents).toBe(131200);
+    // The stamp line is not an invoice line: it never counts for the suggestion threshold.
+    expect(mixed.lines).toHaveLength(2);
+    expect(mixed.naturaAmountCents).toBe(9000);
+  });
+
+  it("adds nothing for a bollo borne by the issuer and no line without a natura line", () => {
+    const issuer = computeTotals(
+      base({ lines: [exempt(10000, "N4")], bollo: true, bolloCharge: "issuer" }),
+    );
+    expect(issuer.stampLine).toBeNull();
+    expect(issuer.bolloApplied).toBe(true);
+    expect(issuer.documentTotalCents).toBe(10000);
+    const vatOnly = computeTotals(base({ lines: [vat(10000, 2200)], bollo: true }));
+    expect(vatOnly.stampLine).toBeNull();
+    expect(vatOnly.documentTotalCents).toBe(12200);
+    const off = computeTotals(base({ lines: [exempt(10000, "N4")] }));
+    expect(off.stampLine).toBeNull();
+    expect(off.bolloApplied).toBe(false);
   });
 
   it("rejects a line with both or neither of VAT rate and natura", () => {

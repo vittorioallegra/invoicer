@@ -2,7 +2,7 @@ import { XMLBuilder } from "fast-xml-parser";
 import { type ClientData, isItalianClientType } from "../client";
 import { type InvoiceBody, invoiceTotalsInput } from "../invoice";
 import type { ProfileData, RegimeFiscale } from "../profile";
-import { computeTotals, type Natura, type Totals } from "../totals";
+import { computeTotals, type Natura, STAMP_CENTS, type Totals } from "../totals";
 import { encodeFileProgressive, fatturaFileName } from "./file-name";
 import { formatBasisPoints, formatCents, formatQuantity, formatUnitPrice } from "./numbers";
 import {
@@ -155,6 +155,12 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
     lineBases.set(key, (lineBases.get(key) ?? 0) + (totals.lines[index]?.baseCents ?? 0));
   });
 
+  const stamp = totals.stampLine;
+  if (stamp) {
+    const key = `natura:${stamp.natura}`;
+    lineBases.set(key, (lineBases.get(key) ?? 0) + stamp.totals.baseCents);
+  }
+
   const lines = invoice.lines.map((line, index) => {
     const planned = totals.lines[index];
     const exactUnitPrice = cassa?.mode !== "included";
@@ -172,6 +178,24 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
       Natura: line.natura ?? undefined,
     });
   });
+
+  if (stamp) {
+    const exactUnitPrice = cassa?.mode !== "included";
+    lines.push(
+      node({
+        NumeroLinea: String(lines.length + 1),
+        Descrizione: stamp.description,
+        Quantita: formatQuantity(1000),
+        PrezzoUnitario: exactUnitPrice
+          ? formatCents(stamp.totals.amountCents)
+          : formatUnitPrice(stamp.totals.baseCents, 1000),
+        PrezzoTotale: formatCents(stamp.totals.baseCents),
+        AliquotaIVA: formatBasisPoints(0),
+        Ritenuta: ritenutaOn ? "SI" : undefined,
+        Natura: stamp.natura,
+      }),
+    );
+  }
 
   const naturaTexts = new Map<Natura, string>();
   for (const line of invoice.lines) {
@@ -260,10 +284,9 @@ export function buildFatturaXml(input: FatturaInput): FatturaResult {
               CausalePagamento: data.ritenuta.causale,
             })
           : undefined,
-        DatiBollo:
-          totals.stampCents > 0
-            ? { BolloVirtuale: "SI", ImportoBollo: formatCents(totals.stampCents) }
-            : undefined,
+        DatiBollo: totals.bolloApplied
+          ? { BolloVirtuale: "SI", ImportoBollo: formatCents(STAMP_CENTS) }
+          : undefined,
         DatiCassaPrevidenziale: cassaBlocks.length > 0 ? cassaBlocks : undefined,
         ImportoTotaleDocumento: formatCents(totals.documentTotalCents),
         Causale: causali.length > 0 ? causali : undefined,

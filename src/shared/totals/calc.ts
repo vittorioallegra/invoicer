@@ -15,6 +15,33 @@ export const STAMP_CENTS = 200;
 /** Natura amounts strictly above this (77.47 EUR) call for the stamp. */
 export const STAMP_THRESHOLD_CENTS = 7747;
 
+/** Description of the generated stamp line in the XML (Italian, like the other legal texts). */
+export const STAMP_LINE_DESCRIPTION = "Imposta di bollo";
+
+/**
+ * The natura of the generated stamp line: that of the no-VAT lines, the one with the largest
+ * total when there are several (first in line order on a tie); null without a natura line.
+ */
+export function stampLineNatura(lines: readonly TotalsLine[]): Natura | null {
+  const totals = new Map<Natura, number>();
+  for (const line of lines) {
+    if (line.natura === null) continue;
+    totals.set(
+      line.natura,
+      (totals.get(line.natura) ?? 0) + divRound(line.quantityMilli * line.unitPriceCents, 1000),
+    );
+  }
+  let best: Natura | null = null;
+  let bestAmount = Number.NEGATIVE_INFINITY;
+  for (const [natura, amount] of totals) {
+    if (amount > bestAmount) {
+      best = natura;
+      bestAmount = amount;
+    }
+  }
+  return best;
+}
+
 /**
  * Rivalsa INPS (TC22, gestione separata) is subject to ritenuta by default; the other casse
  * previdenziali (TC01-TC21) are not.
@@ -42,8 +69,23 @@ function splitIncluded(amount: number, cassa: CassaInput): { base: number; contr
 /** Computes every total of an invoice in integer cents of the document currency. */
 export function computeTotals(input: TotalsInput): Totals {
   const cassa = input.cassa ?? null;
+  const charge = input.bolloCharge ?? "client";
 
-  const lines: LineTotals[] = input.lines.map((line) => {
+  // Bollo charged to the client: a generated line of the stamp amount, with the natura of the
+  // no-VAT lines (the largest total, first in line order on a tie), calculated like any line.
+  const stampNatura = input.bollo && charge === "client" ? stampLineNatura(input.lines) : null;
+  const stampInput: TotalsLine | null = stampNatura
+    ? {
+        description: STAMP_LINE_DESCRIPTION,
+        quantityMilli: 1000,
+        unitPriceCents: STAMP_CENTS,
+        vatRateBp: null,
+        natura: stampNatura,
+      }
+    : null;
+  const allLines: readonly TotalsLine[] = stampInput ? [...input.lines, stampInput] : input.lines;
+
+  const lineTotals: LineTotals[] = allLines.map((line) => {
     const amountCents = divRound(line.quantityMilli * line.unitPriceCents, 1000);
     if (cassa?.mode === "included") {
       const { base, contribution } = splitIncluded(amountCents, cassa);
@@ -54,9 +96,9 @@ export function computeTotals(input: TotalsInput): Totals {
 
   // Group lines by VAT rate / natura, in order of first appearance.
   const byKey = new Map<string, { line: TotalsLine; base: number; contribution: number }>();
-  input.lines.forEach((line, i) => {
+  allLines.forEach((line, i) => {
     const key = groupKey(line);
-    const totals = lines[i] as LineTotals;
+    const totals = lineTotals[i] as LineTotals;
     const group = byKey.get(key) ?? { line, base: 0, contribution: 0 };
     group.base += totals.baseCents;
     group.contribution += totals.contributionCents;
@@ -84,7 +126,7 @@ export function computeTotals(input: TotalsInput): Totals {
   const taxableCents = groups.reduce((sum, g) => sum + g.taxableCents, 0);
   const vatCents = groups.reduce((sum, g) => sum + g.vatCents, 0);
 
-  const linesBase = lines.reduce((sum, l) => sum + l.baseCents, 0);
+  const linesBase = lineTotals.reduce((sum, l) => sum + l.baseCents, 0);
   // The rate applies to the base share (default 100%) of the amount subject to ritenuta; the
   // reduced base is rounded to the cent first, as the amount shown on the document.
   const ritenutaSubjectCents = input.ritenuta
@@ -96,11 +138,13 @@ export function computeTotals(input: TotalsInput): Totals {
   const ritenutaCents = input.ritenuta ? mulRate(ritenutaBaseCents, input.ritenuta.rateBp) : 0;
 
   const naturaAmountCents = input.lines.reduce(
-    (sum, line, i) => sum + (line.natura !== null ? (lines[i] as LineTotals).amountCents : 0),
+    (sum, line, i) => sum + (line.natura !== null ? (lineTotals[i] as LineTotals).amountCents : 0),
     0,
   );
 
-  const stampCents = input.bollo ? STAMP_CENTS : 0;
+  // Stored invoices ("legacy") add the stamp to the total without a line; "client" has its line
+  // in the groups above and "issuer" leaves the total alone.
+  const stampCents = input.bollo && charge === "legacy" ? STAMP_CENTS : 0;
   const documentTotalCents = taxableCents + vatCents + stampCents;
   const amountDueCents = documentTotalCents - ritenutaCents;
   const sign = input.documentType === "TD04" ? -1 : 1;
@@ -109,7 +153,16 @@ export function computeTotals(input: TotalsInput): Totals {
     currency: input.currency,
     documentType: input.documentType,
     sign,
-    lines,
+    lines: lineTotals.slice(0, input.lines.length),
+    stampLine:
+      stampNatura && stampInput
+        ? {
+            natura: stampNatura,
+            description: STAMP_LINE_DESCRIPTION,
+            totals: lineTotals[input.lines.length] as LineTotals,
+          }
+        : null,
+    bolloApplied: input.bollo,
     groups,
     contributionRateBp: cassa?.rateBp ?? 0,
     contributionCents,

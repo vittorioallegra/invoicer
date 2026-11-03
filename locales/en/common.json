@@ -494,6 +494,8 @@
       "series": "Series"
     },
     "lines": {
+      "stampLine": "Stamp duty",
+      "stampLineHint": "Added automatically",
       "title": "Lines",
       "description": "Description",
       "quantity": "Quantity",
@@ -521,7 +523,10 @@
       "summaryBollo": "stamp duty",
       "none": "None applied",
       "cassaSubject": "The contribution is part of the ritenuta base",
-      "bollo": "Apply bollo (virtual stamp)"
+      "bollo": "Apply bollo (virtual stamp)",
+      "bolloCharge": "Who bears the bollo",
+      "bolloClient": "Charged to the client",
+      "bolloIssuer": "Borne by me"
     },
     "payment": {
       "title": "Payment",
@@ -747,6 +752,7 @@
     "taxableWithoutContribution": "Taxable without contribution",
     "taxableTotal": "Taxable total",
     "vat": "VAT",
+    "stampLine": "Stamp duty",
     "stamp": "Stamp duty (bollo)",
     "documentTotal": "Document total",
     "withheldCalc": "Withholding tax {{rate}}% on {{subject}}",

@@ -1083,6 +1083,29 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 />
                 {t("invoice.extras.bollo")}
               </label>
+              {form.bollo ? (
+                <fieldset className="flex flex-col gap-1">
+                  <legend className="text-sm font-medium">{t("invoice.extras.bolloCharge")}</legend>
+                  {(["client", "issuer"] as const).map((option) => (
+                    <label key={option} className="flex min-h-11 items-center gap-3 text-sm">
+                      <input
+                        type="radio"
+                        name="bollo-charge"
+                        className="size-5"
+                        value={option}
+                        // A stored issued invoice (legacy) has the stamp in its total, as charged.
+                        checked={(form.bolloCharge === "issuer") === (option === "issuer")}
+                        onChange={() => patch({ bolloCharge: option })}
+                      />
+                      {t(
+                        option === "client"
+                          ? "invoice.extras.bolloClient"
+                          : "invoice.extras.bolloIssuer",
+                      )}
+                    </label>
+                  ))}
+                </fieldset>
+              ) : null}
             </fieldset>
           </Disclosure>
 
@@ -1100,6 +1123,26 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 onChange={setLines}
                 disabled={locked}
               />
+              {totals?.stampLine ? (
+                <div
+                  data-testid="stamp-line"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-muted px-4 py-3 text-sm"
+                >
+                  <span className="min-w-0">
+                    <span className="block font-medium">{t("invoice.lines.stampLine")}</span>
+                    <span className="block text-muted-foreground">
+                      {t("invoice.lines.stampLineHint")} · {totals.stampLine.natura}
+                    </span>
+                  </span>
+                  <span className="font-medium tabular-nums">
+                    {formatMoney(
+                      totals.stampLine.totals.amountCents,
+                      locale,
+                      form.currency.toUpperCase(),
+                    )}
+                  </span>
+                </div>
+              ) : null}
               {Object.keys(form.naturaTexts).length > 0 ? (
                 <div className="flex flex-col gap-3">
                   <h3 className="text-sm font-medium">{t("invoice.natura.title")}</h3>

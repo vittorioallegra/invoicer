@@ -1,4 +1,10 @@
-import type { CassaInput, DocumentType, RitenutaInput, TotalsLine } from "../totals/types";
+import type {
+  BolloCharge,
+  CassaInput,
+  DocumentType,
+  RitenutaInput,
+  TotalsLine,
+} from "../totals/types";
 
 /**
  * Invoice fixtures (a)-(g) of spec AC 6, shared by the totals tests and, later, the XML (step 10)
@@ -24,7 +30,10 @@ export interface FixtureExpected {
   taxableCents: number;
   vatCents: number;
   ritenutaCents: number;
+  /** Stamp added to the total without a line (the stored `legacy` mode only). */
   stampCents: number;
+  /** The generated stamp line (bollo charged to the client), 0 when there is none. */
+  stampLineCents?: number;
   /** Taxable + VAT + stamp. */
   documentTotalCents: number;
   amountDueCents: number;
@@ -43,6 +52,8 @@ export interface InvoiceFixture {
   cassa?: CassaInput;
   ritenuta?: RitenutaInput;
   bollo: boolean;
+  /** Who bears the bollo; default: the client. */
+  bolloCharge?: BolloCharge;
   /** Natura legal text expected on the document, when lines carry a natura. */
   naturaText?: string;
   /** TD04 only: the linked invoice (DatiFattureCollegate). */
@@ -127,10 +138,11 @@ const b: InvoiceFixture = {
   naturaText: "Operazione effettuata ai sensi dell'art. 1, commi 54-89, L. 190/2014",
   expected: {
     contributionCents: 0,
-    taxableCents: 92510,
+    taxableCents: 92710,
     vatCents: 0,
     ritenutaCents: 0,
-    stampCents: 200,
+    stampCents: 0,
+    stampLineCents: 200,
     documentTotalCents: 92710,
     amountDueCents: 92710,
     lines: [
@@ -163,10 +175,11 @@ const c: InvoiceFixture = {
   naturaText: "Operazione non soggetta a IVA ai sensi dell'art. 7-ter del DPR 633/72",
   expected: {
     contributionCents: 0,
-    taxableCents: 134125,
+    taxableCents: 134325,
     vatCents: 0,
     ritenutaCents: 0,
-    stampCents: 200,
+    stampCents: 0,
+    stampLineCents: 200,
     documentTotalCents: 134325,
     amountDueCents: 134325,
     lines: [
@@ -376,4 +389,80 @@ const i: InvoiceFixture = {
   },
 };
 
-export const INVOICE_FIXTURES: readonly InvoiceFixture[] = [a, b, c, d, e, f1, f2, g, h, i];
+/**
+ * (j) Bollo charged to the client with cassa TC04 4% (excluded, not subject to ritenuta) and
+ * ritenuta 20%. 1 x 1,000.00 N4 plus the generated stamp line 2.00 N4: base 1,002.00; cassa 4% of
+ * 1,002.00 = 40.08; taxable 1,042.08, no VAT, total 1,042.08; ritenuta 20% of 1,002.00 = 200.40;
+ * due 841.68.
+ */
+const j: InvoiceFixture = {
+  id: "j",
+  title: "RF01 Italian company, N4, bollo charged to the client with cassa TC04 and ritenuta 20%",
+  issuer: { regime: "RF01" },
+  client: itCompany,
+  documentType: "TD01",
+  currency: "EUR",
+  lines: [line("Consulting", 1000, 100000, { natura: "N4" })],
+  cassa: { type: "TC04", rateBp: 400, mode: "excluded", subjectToRitenuta: false },
+  ritenuta: RITENUTA_20,
+  bollo: true,
+  bolloCharge: "client",
+  expected: {
+    contributionCents: 4008,
+    taxableCents: 104208,
+    vatCents: 0,
+    ritenutaCents: 20040,
+    stampCents: 0,
+    stampLineCents: 200,
+    documentTotalCents: 104208,
+    amountDueCents: 84168,
+    lines: [{ amountCents: 100000, baseCents: 100000, contributionCents: 0 }],
+  },
+};
+
+/** (k) As (b), bollo borne by the issuer: no stamp line, totals without the 2.00. */
+const k: InvoiceFixture = {
+  ...b,
+  id: "k",
+  title: "RF19 forfettario, Italian private person, N2.2, bollo borne by the issuer",
+  bolloCharge: "issuer",
+  expected: {
+    ...b.expected,
+    taxableCents: 92510,
+    stampLineCents: 0,
+    documentTotalCents: 92510,
+    amountDueCents: 92510,
+  },
+};
+
+/** (l) As (b) stored before the choice existed (`legacy`): 2.00 in the total, no line. */
+const l: InvoiceFixture = {
+  ...b,
+  id: "l",
+  title: "RF19 forfettario, N2.2, bollo of a stored invoice (legacy: 2.00 in the total, no line)",
+  bolloCharge: "legacy",
+  expected: {
+    ...b.expected,
+    taxableCents: 92510,
+    stampCents: 200,
+    stampLineCents: 0,
+    documentTotalCents: 92710,
+    amountDueCents: 92710,
+  },
+};
+
+export const INVOICE_FIXTURES: readonly InvoiceFixture[] = [
+  a,
+  b,
+  c,
+  d,
+  e,
+  f1,
+  f2,
+  g,
+  h,
+  i,
+  j,
+  k,
+  l,
+];

@@ -4,6 +4,7 @@ import {
   bolloSuggestion,
   EMPTY_INVOICE_DATA,
   type InvoiceBody,
+  invoiceDataSchema,
   invoiceEditability,
   invoiceInputSchema,
   invoiceIssuableSchema,
@@ -251,6 +252,16 @@ describe("parseInvoiceDraft", () => {
       vatRateBp: null,
       natura: null,
     });
+  });
+
+  it("reads the bollo of a stored invoice without the charge as legacy, so its totals stay", () => {
+    expect(
+      invoiceDataSchema.parse({ ...EMPTY_INVOICE_DATA, bolloCharge: undefined }).bolloCharge,
+    ).toBe("legacy");
+    expect(parseInvoiceDraft({ lines: [], data: { bollo: true } })?.data.bolloCharge).toBe(
+      "legacy",
+    );
+    expect(EMPTY_INVOICE_DATA.bolloCharge).toBe("client");
   });
 
   it("refuses only what is not an invoice at all", () => {

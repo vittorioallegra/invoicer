@@ -494,6 +494,8 @@
       "series": "Numerazione"
     },
     "lines": {
+      "stampLine": "Imposta di bollo",
+      "stampLineHint": "Aggiunta automaticamente",
       "title": "Righe",
       "description": "Descrizione",
       "quantity": "Quantità",
@@ -521,7 +523,10 @@
       "summaryBollo": "bollo",
       "none": "Nessuno applicato",
       "cassaSubject": "Il contributo fa parte della base della ritenuta",
-      "bollo": "Applica il bollo virtuale"
+      "bollo": "Applica il bollo virtuale",
+      "bolloCharge": "Chi sostiene il bollo",
+      "bolloClient": "Addebitato al cliente",
+      "bolloIssuer": "A carico mio"
     },
     "payment": {
       "title": "Pagamento",
@@ -747,6 +752,7 @@
     "taxableWithoutContribution": "Imponibile senza contributo",
     "taxableTotal": "Totale imponibile",
     "vat": "IVA",
+    "stampLine": "Imposta di bollo",
     "stamp": "Imposta di bollo",
     "documentTotal": "Totale documento",
     "withheldCalc": "Ritenuta d'acconto {{rate}}% su {{subject}}",

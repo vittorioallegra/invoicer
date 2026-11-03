@@ -5,6 +5,7 @@ import { paymentDefaultsSchema } from "./payment-method";
 import { paymentTermsSchema } from "./payment-terms";
 import { cassaDefaultsSchema, ritenutaDefaultsSchema } from "./tax";
 import {
+  BOLLO_CHARGES,
   computeTotals,
   DOCUMENT_TYPES,
   NATURA_CODES,
@@ -118,6 +119,12 @@ export const invoiceDataSchema = z.object({
   cassa: cassaDefaultsSchema.nullable(),
   ritenuta: ritenutaDefaultsSchema.nullable(),
   bollo: z.boolean(),
+  /**
+   * Who bears the bollo: the client (a generated 2.00 line) or the issuer (no line). Invoices
+   * stored before the choice existed read as `legacy` (2.00 in the total, no line) so their
+   * totals never change; the editor never offers it.
+   */
+  bolloCharge: z.enum(BOLLO_CHARGES).default("legacy"),
   /** The owner dismissed the "add bollo" suggestion for this invoice. */
   bolloSuggestionDismissed: z.boolean(),
   /**
@@ -140,6 +147,7 @@ export const EMPTY_INVOICE_DATA: InvoiceData = {
   cassa: null,
   ritenuta: null,
   bollo: false,
+  bolloCharge: "client",
   bolloSuggestionDismissed: false,
   note: "",
   naturaTexts: {},
@@ -224,6 +232,7 @@ function draftData(raw: unknown): InvoiceData {
     cassa: orFallback(cassaDefaultsSchema.nullable(), data.cassa, null),
     ritenuta: orFallback(ritenutaDefaultsSchema.nullable(), data.ritenuta, null),
     bollo: data.bollo === true,
+    bolloCharge: orFallback(z.enum(BOLLO_CHARGES), data.bolloCharge, "legacy"),
     bolloSuggestionDismissed: data.bolloSuggestionDismissed === true,
     note: textOf(data.note),
     language: orFallback(z.enum(INVOICE_LANGUAGES).nullable(), data.language, null),
@@ -300,6 +309,7 @@ export function invoiceTotalsInput(
     cassa: invoice.data.cassa,
     ritenuta: invoice.data.ritenuta,
     bollo: invoice.data.bollo,
+    bolloCharge: invoice.data.bolloCharge,
   };
 }
 

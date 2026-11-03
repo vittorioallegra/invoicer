@@ -79,6 +79,43 @@ describe("fixture specifics", () => {
     }
   });
 
+  it("(b) bollo charged to the client is a generated N2.2 line plus DatiBollo", () => {
+    const { xml } = build("b");
+    expect(xml.match(/<DettaglioLinee>/g)).toHaveLength(3);
+    expect(xml).toContain("<Descrizione>Imposta di bollo</Descrizione>");
+    expect(xml).toContain("<NumeroLinea>3</NumeroLinea>");
+    expect(xml).toContain("<ImponibileImporto>927.10</ImponibileImporto>");
+    expect(xml).toContain("<ImportoTotaleDocumento>927.10</ImportoTotaleDocumento>");
+  });
+
+  it("(j) the stamp line enters the cassa and ritenuta bases, XSD-valid", async () => {
+    const { xml } = build("j");
+    expect(xml).toContain("<ImponibileCassa>1002.00</ImponibileCassa>");
+    expect(xml).toContain("<ImportoContributoCassa>40.08</ImportoContributoCassa>");
+    expect(xml).toContain("<ImportoRitenuta>200.40</ImportoRitenuta>");
+    expect(xml).toContain("<ImportoTotaleDocumento>1042.08</ImportoTotaleDocumento>");
+    const stampLine = xml.slice(xml.indexOf("<Descrizione>Imposta di bollo"));
+    expect(stampLine.slice(0, stampLine.indexOf("</DettaglioLinee>"))).toContain(
+      "<Ritenuta>SI</Ritenuta>",
+    );
+    expect((await validateFatturaXml(xml, assets)).errors).toEqual([]);
+  });
+
+  it("(k) bollo borne by the issuer: DatiBollo only, no line, total without the 2.00", () => {
+    const { xml } = build("k");
+    expect(xml).toContain("<BolloVirtuale>SI</BolloVirtuale>");
+    expect(xml.match(/<DettaglioLinee>/g)).toHaveLength(2);
+    expect(xml).not.toContain("Imposta di bollo");
+    expect(xml).toContain("<ImportoTotaleDocumento>925.10</ImportoTotaleDocumento>");
+  });
+
+  it("(l) a stored invoice (legacy) keeps its total with the 2.00 and no line", () => {
+    const { xml } = build("l");
+    expect(xml).toContain("<BolloVirtuale>SI</BolloVirtuale>");
+    expect(xml.match(/<DettaglioLinee>/g)).toHaveLength(2);
+    expect(xml).toContain("<ImportoTotaleDocumento>927.10</ImportoTotaleDocumento>");
+  });
+
   it("(a) rivalsa INPS is TC22 and the ritenuta is in DatiRitenuta", () => {
     const { xml } = build("a");
     expect(xml).toContain("<TipoCassa>TC22</TipoCassa>");

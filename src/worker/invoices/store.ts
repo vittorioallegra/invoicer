@@ -556,6 +556,10 @@ export function recordToBody(record: InvoiceRecord): InvoiceBody {
     dueDate: null,
     linkedInvoiceId: record.linkedInvoiceId,
     lines: record.lines,
-    data: record.data,
+    // A new invoice follows the current bollo rule, never the stored "legacy" one.
+    data: {
+      ...record.data,
+      bolloCharge: record.data.bolloCharge === "legacy" ? "client" : record.data.bolloCharge,
+    },
   };
 }

@@ -107,7 +107,7 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
   const { data } = invoice;
   const credit = invoice.documentType === "TD04";
 
-  const lines = invoice.lines.map((line, index) => ({
+  const lines: PdfLine[] = invoice.lines.map((line, index) => ({
     description: line.description,
     note: line.note.trim() || null,
     quantity: [number.format(line.quantityMilli / 1000), line.unit].filter(Boolean).join(" "),
@@ -118,6 +118,18 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
         : t("pdf.vatRate", { rate: number.format((line.vatRateBp ?? 0) / 100) }),
     amount: money(totals.lines[index]?.amountCents ?? 0),
   }));
+
+  // Bollo charged to the client: the generated line follows the others.
+  if (totals.stampLine) {
+    lines.push({
+      description: t("pdf.stampLine"),
+      note: null,
+      quantity: number.format(1),
+      unitPrice: money(totals.stampLine.totals.amountCents),
+      vat: t("pdf.exempt", { code: totals.stampLine.natura }),
+      amount: money(totals.stampLine.totals.amountCents),
+    });
+  }
 
   const groups = totals.groups.map((group) => ({
     taxable: money(group.taxableCents),
