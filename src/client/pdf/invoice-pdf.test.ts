@@ -13,8 +13,13 @@ import { renderInvoicePdf } from "./render";
  * stream and decode the hex strings of the text-showing operators (WinAnsi, one byte per glyph).
  */
 function extractText(pdf: Uint8Array): string {
+  return extractPages(pdf).join("\n");
+}
+
+/** The text of each page content stream, in page order. */
+function extractPages(pdf: Uint8Array): string[] {
   const raw = Buffer.from(pdf).toString("latin1");
-  const parts: string[] = [];
+  const pages: string[] = [];
   for (const match of raw.matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)) {
     let content: string;
     try {
@@ -22,6 +27,7 @@ function extractText(pdf: Uint8Array): string {
     } catch {
       continue;
     }
+    const parts: string[] = [];
     for (const op of content.matchAll(
       /\[((?:<[0-9a-fA-F]*>|[-\d.\s])*)\]\s*TJ|<([0-9a-fA-F]*)>\s*Tj/g,
     )) {
@@ -35,8 +41,9 @@ function extractText(pdf: Uint8Array): string {
           .join(""),
       );
     }
+    if (parts.length > 0) pages.push(parts.join("\n").replaceAll(" ", " "));
   }
-  return parts.join("\n").replaceAll(" ", " ");
+  return pages;
 }
 
 function inputFor(id: string): InvoicePdfInput {
@@ -56,6 +63,53 @@ function inputFor(id: string): InvoicePdfInput {
     language: fixture.client.pdfLanguage,
   };
 }
+
+describe("invoice PDF layout", () => {
+  it("labels the parties From/To (Mittente/Destinatario) and drops the regime, currency and VAT summary", async () => {
+    const en = extractText(await renderInvoicePdf(inputFor("c")));
+    // The labels are printed in capitals.
+    expect(en).toMatch(/^FROM$/m);
+    expect(en).toMatch(/^TO$/m);
+    for (const gone of ["Billed to", "Tax regime", "Currency", "VAT summary"]) {
+      expect(en).not.toContain(gone);
+    }
+    const it = extractText(await renderInvoicePdf(inputFor("b")));
+    expect(it).toMatch(/^MITTENTE$/m);
+    expect(it).toMatch(/^DESTINATARIO$/m);
+    for (const gone of ["cedente", "cessionario", "regime fiscale", "valuta", "riepilogo iva"]) {
+      expect(it.toLowerCase()).not.toContain(gone);
+    }
+  });
+
+  it("prints the due date once, in the payment block, and no amount line there", async () => {
+    const text = extractText(await renderInvoicePdf(inputFor("c")));
+    expect(text.match(/20 May 2026/g)).toHaveLength(1);
+    expect(text).not.toMatch(/Amount: /);
+    expect(text.match(/Due date/g)).toHaveLength(1);
+  });
+
+  it("anchors payment and totals to the bottom of the last page only on a long invoice", async () => {
+    const input = inputFor("b");
+    const base = input.invoice.lines[0];
+    if (!base) throw new Error("fixture b has no line");
+    const lines = Array.from({ length: 60 }, (_, i) => ({
+      ...base,
+      description: `Line ${i + 1} description`,
+    }));
+    const pages = extractPages(
+      await renderInvoicePdf({ ...input, invoice: { ...input.invoice, lines } }),
+    );
+    expect(pages.length).toBeGreaterThanOrEqual(2);
+    const last = pages[pages.length - 1] ?? "";
+    expect(last).toContain("IT60X0542811101000000123456");
+    expect(last).toContain("Importo dovuto");
+    for (const page of pages.slice(0, -1)) {
+      expect(page).not.toContain("IT60X0542811101000000123456");
+      expect(page).not.toContain("Importo dovuto");
+    }
+    expect(pages[0]).toContain("Line 1 description");
+  });
+});
 
 describe("invoice PDF (AC 13)", () => {
   it("fixture (c) is in English and shows the payment data, the natura text and the legal note", async () => {

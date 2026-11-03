@@ -729,16 +729,13 @@
     "invoice": "Fattura",
     "creditNote": "Nota di credito",
     "numberLine": "N. {{number}} del {{date}}",
-    "issuer": "Cedente/prestatore",
-    "client": "Cessionario/committente",
+    "sender": "Mittente",
+    "recipient": "Destinatario",
     "vatNumber": "P. IVA: {{value}}",
     "taxCode": "Codice fiscale: {{value}}",
     "foreignTaxId": "Identificativo fiscale: {{value}}",
     "recipientCode": "Codice destinatario SdI: {{value}}",
     "pec": "PEC: {{value}}",
-    "regime": "Regime fiscale: {{code}}",
-    "dueDate": "Scadenza",
-    "currency": "Valuta",
     "linked": "Rettifica la fattura {{number}} del {{date}}",
     "columns": {
       "description": "Descrizione",
@@ -749,12 +746,6 @@
     },
     "vatRate": "{{rate}}%",
     "exempt": "Senza IVA ({{code}})",
-    "summary": {
-      "title": "Riepilogo IVA",
-      "taxable": "Imponibile",
-      "rate": "Aliquota IVA",
-      "vat": "IVA"
-    },
     "naturaTitle": "Riferimento normativo per le operazioni senza IVA",
     "noteTitle": "Note",
     "cassa": {
@@ -781,8 +772,7 @@
       "bank": "Banca",
       "iban": "IBAN",
       "bic": "BIC/SWIFT",
-      "dueDate": "Scadenza",
-      "amount": "Importo"
+      "dueDate": "Scadenza"
     },
     "methods": {
       "MP01": "Contanti",

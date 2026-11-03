@@ -729,16 +729,13 @@
     "invoice": "Invoice",
     "creditNote": "Credit note",
     "numberLine": "No. {{number}} of {{date}}",
-    "issuer": "From",
-    "client": "Billed to",
+    "sender": "From",
+    "recipient": "To",
     "vatNumber": "VAT number: {{value}}",
     "taxCode": "Tax code: {{value}}",
     "foreignTaxId": "Tax ID: {{value}}",
     "recipientCode": "SdI recipient code: {{value}}",
     "pec": "PEC: {{value}}",
-    "regime": "Tax regime: {{code}}",
-    "dueDate": "Due date",
-    "currency": "Currency",
     "linked": "Corrects invoice {{number}} of {{date}}",
     "columns": {
       "description": "Description",
@@ -749,12 +746,6 @@
     },
     "vatRate": "{{rate}}%",
     "exempt": "No VAT ({{code}})",
-    "summary": {
-      "title": "VAT summary",
-      "taxable": "Taxable",
-      "rate": "VAT rate",
-      "vat": "VAT"
-    },
     "naturaTitle": "Legal reference for transactions without VAT",
     "noteTitle": "Notes",
     "cassa": {
@@ -781,8 +772,7 @@
       "bank": "Bank",
       "iban": "IBAN",
       "bic": "BIC/SWIFT",
-      "dueDate": "Due date",
-      "amount": "Amount"
+      "dueDate": "Due date"
     },
     "methods": {
       "MP01": "Cash",

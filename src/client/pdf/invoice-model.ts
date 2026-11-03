@@ -23,12 +23,6 @@ export interface PdfLine {
   amount: string;
 }
 
-export interface PdfVatGroup {
-  taxable: string;
-  rate: string;
-  vat: string;
-}
-
 export interface InvoicePdfModel {
   language: UiLocale;
   title: string;
@@ -37,10 +31,8 @@ export interface InvoicePdfModel {
   issuerLines: string[];
   clientName: string;
   clientLines: string[];
-  meta: PdfRow[];
   linked: string | null;
   lines: PdfLine[];
-  groups: PdfVatGroup[];
   naturaTexts: { code: Natura; text: string }[];
   /** The invoice note, one entry per line; empty when there is none. */
   noteLines: string[];
@@ -72,7 +64,6 @@ function issuerLines(issuer: FatturaIssuer, t: TFunction): string[] {
     ...addressLines(issuer),
     t("pdf.vatNumber", { value: `${issuer.country}${issuer.vatNumber}` }),
     ...(issuer.taxCode ? [t("pdf.taxCode", { value: issuer.taxCode })] : []),
-    t("pdf.regime", { code: issuer.regimeFiscale }),
   ];
 }
 
@@ -130,15 +121,6 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
       amount: money(totals.stampLine.totals.amountCents),
     });
   }
-
-  const groups = totals.groups.map((group) => ({
-    taxable: money(group.taxableCents),
-    rate:
-      group.natura !== null
-        ? t("pdf.exempt", { code: group.natura })
-        : t("pdf.vatRate", { rate: number.format((group.vatRateBp ?? 0) / 100) }),
-    vat: money(group.vatCents),
-  }));
 
   const naturaCodes = [
     ...new Set(invoice.lines.flatMap((line) => (line.natura ? [line.natura] : []))),
@@ -217,25 +199,16 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
     if (pay.bankName) payment.push({ label: t("pdf.payment.bank"), value: pay.bankName });
     if (pay.iban) payment.push({ label: t("pdf.payment.iban"), value: pay.iban });
     if (pay.bic) payment.push({ label: t("pdf.payment.bic"), value: pay.bic });
-    if (invoice.dueDate) {
-      payment.push({
-        label: t("pdf.payment.dueDate"),
-        value: formatDate(invoice.dueDate, language),
-      });
-    }
-    payment.push({ label: t("pdf.payment.amount"), value: money(totals.amountDueCents) });
   }
-
-  const meta: PdfRow[] = [{ label: t("pdf.currency"), value: currency }];
   const terms = pay.terms;
   if (terms) {
-    meta.push({
+    payment.push({
       label: t("pdf.terms.label"),
       value: t(`pdf.terms.${terms.kind}`, { days: terms.kind === "custom" ? terms.days : 0 }),
     });
   }
   if (invoice.dueDate) {
-    meta.push({ label: t("pdf.dueDate"), value: formatDate(invoice.dueDate, language) });
+    payment.push({ label: t("pdf.payment.dueDate"), value: formatDate(invoice.dueDate, language) });
   }
 
   return {
@@ -249,7 +222,6 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
     issuerLines: issuerLines(issuer, t),
     clientName: client.name,
     clientLines: clientLines(client, t),
-    meta,
     linked: input.linked
       ? t("pdf.linked", {
           number: input.linked.number,
@@ -257,7 +229,6 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
         })
       : null,
     lines,
-    groups,
     naturaTexts,
     noteLines: data.note ? data.note.split(/\r?\n/) : [],
     totals: rows,

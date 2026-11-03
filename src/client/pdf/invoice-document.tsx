@@ -4,14 +4,13 @@ import type { InvoicePdfModel } from "./invoice-model";
 
 const styles = StyleSheet.create({
   page: { padding: 36, paddingBottom: 64, fontSize: 9, fontFamily: "Helvetica", color: "#111" },
-  header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 18 },
+  header: { marginBottom: 18 },
   title: { fontSize: 18, fontFamily: "Helvetica-Bold" },
   muted: { color: "#555" },
   bold: { fontFamily: "Helvetica-Bold" },
   parties: { flexDirection: "row", gap: 24, marginBottom: 14 },
   party: { flex: 1 },
   partyLabel: { fontSize: 8, color: "#555", marginBottom: 2, textTransform: "uppercase" },
-  meta: { flexDirection: "row", gap: 18, marginBottom: 12 },
   tableHead: {
     flexDirection: "row",
     borderBottomWidth: 1,
@@ -28,7 +27,9 @@ const styles = StyleSheet.create({
   cAmount: { flex: 2, textAlign: "right" },
   section: { marginTop: 14 },
   sectionTitle: { fontFamily: "Helvetica-Bold", marginBottom: 3 },
-  totals: { marginTop: 12, alignSelf: "flex-end", width: 260 },
+  bottom: { marginTop: "auto", paddingTop: 16, flexDirection: "row", gap: 24 },
+  paymentBlock: { flex: 1 },
+  totals: { width: 260 },
   totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 1.5 },
   due: { fontSize: 11, fontFamily: "Helvetica-Bold", marginTop: 2 },
   footer: { position: "absolute", left: 36, right: 36, bottom: 24, fontSize: 7.5, color: "#555" },
@@ -41,30 +42,20 @@ export function InvoiceDocument({ model, t }: { model: InvoicePdfModel; t: TFunc
     <Document title={`${model.title} ${model.numberLine}`} author={model.issuerName}>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>{model.title}</Text>
-            <Text>{model.numberLine}</Text>
-          </View>
-          <View>
-            {model.meta.map((row) => (
-              <Text key={row.label}>
-                <Text style={styles.muted}>{row.label}: </Text>
-                {row.value}
-              </Text>
-            ))}
-          </View>
+          <Text style={styles.title}>{model.title}</Text>
+          <Text>{model.numberLine}</Text>
         </View>
 
         <View style={styles.parties}>
           <View style={styles.party}>
-            <Text style={styles.partyLabel}>{t("pdf.issuer")}</Text>
+            <Text style={styles.partyLabel}>{t("pdf.sender")}</Text>
             <Text style={styles.bold}>{model.issuerName}</Text>
             {model.issuerLines.map((line) => (
               <Text key={line}>{line}</Text>
             ))}
           </View>
           <View style={styles.party}>
-            <Text style={styles.partyLabel}>{t("pdf.client")}</Text>
+            <Text style={styles.partyLabel}>{t("pdf.recipient")}</Text>
             <Text style={styles.bold}>{model.clientName}</Text>
             {model.clientLines.map((line) => (
               <Text key={line}>{line}</Text>
@@ -95,22 +86,6 @@ export function InvoiceDocument({ model, t }: { model: InvoicePdfModel; t: TFunc
           </View>
         ))}
 
-        <View style={styles.section} wrap={false}>
-          <Text style={styles.sectionTitle}>{t("pdf.summary.title")}</Text>
-          <View style={styles.tableHead}>
-            <Text style={styles.cVat}>{t("pdf.summary.rate")}</Text>
-            <Text style={styles.cPrice}>{t("pdf.summary.taxable")}</Text>
-            <Text style={styles.cAmount}>{t("pdf.summary.vat")}</Text>
-          </View>
-          {model.groups.map((group) => (
-            <View key={group.rate} style={styles.row}>
-              <Text style={styles.cVat}>{group.rate}</Text>
-              <Text style={styles.cPrice}>{group.taxable}</Text>
-              <Text style={styles.cAmount}>{group.vat}</Text>
-            </View>
-          ))}
-        </View>
-
         {model.naturaTexts.length > 0 ? (
           <View style={styles.section} wrap={false}>
             <Text style={styles.sectionTitle}>{t("pdf.naturaTitle")}</Text>
@@ -132,27 +107,31 @@ export function InvoiceDocument({ model, t }: { model: InvoicePdfModel; t: TFunc
           </View>
         ) : null}
 
-        <View style={styles.totals} wrap={false}>
-          {model.totals.map((row) => (
-            <View key={row.label} style={styles.totalRow}>
-              <Text style={row.strong ? styles.due : undefined}>{row.label}</Text>
-              <Text style={row.strong ? styles.due : undefined}>{row.value}</Text>
-            </View>
-          ))}
-          {model.ritenuta ? <Text style={styles.muted}>{model.ritenuta}</Text> : null}
-        </View>
-
-        {model.payment.length > 0 ? (
-          <View style={styles.section} wrap={false}>
-            <Text style={styles.sectionTitle}>{t("pdf.payment.title")}</Text>
-            {model.payment.map((row) => (
-              <Text key={row.label}>
-                <Text style={styles.muted}>{row.label}: </Text>
-                {row.value}
-              </Text>
-            ))}
+        {/* Payment and totals sit at the bottom of the last page and never split across pages. */}
+        <View style={styles.bottom} wrap={false}>
+          <View style={styles.paymentBlock}>
+            {model.payment.length > 0 ? (
+              <>
+                <Text style={styles.sectionTitle}>{t("pdf.payment.title")}</Text>
+                {model.payment.map((row) => (
+                  <Text key={row.label}>
+                    <Text style={styles.muted}>{row.label}: </Text>
+                    {row.value}
+                  </Text>
+                ))}
+              </>
+            ) : null}
           </View>
-        ) : null}
+          <View style={styles.totals}>
+            {model.totals.map((row) => (
+              <View key={row.label} style={styles.totalRow}>
+                <Text style={row.strong ? styles.due : undefined}>{row.label}</Text>
+                <Text style={row.strong ? styles.due : undefined}>{row.value}</Text>
+              </View>
+            ))}
+            {model.ritenuta ? <Text style={styles.muted}>{model.ritenuta}</Text> : null}
+          </View>
+        </View>
 
         <View style={styles.footer} fixed>
           <Text>{model.legalNote}</Text>
