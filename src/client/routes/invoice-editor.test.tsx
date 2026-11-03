@@ -1159,6 +1159,28 @@ describe("Invoice editor, number on the invoice", () => {
     expect(body.data.language).toBe("it");
   });
 
+  it("applies everything inherited from the client when a saved invoice changes client", async () => {
+    const beta: ClientRecord = {
+      ...acme,
+      id: "c3",
+      name: "Beta Ltd",
+      pdfLanguage: "en",
+      defaults: { ...EMPTY_CLIENT_DEFAULTS, terms: { kind: "eom_30" } },
+    };
+    serve({ clients: [acme, beta], invoice: record({ clientId: "c3", clientName: "Beta Ltd" }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    type("Client", "c1");
+    expect((field("Language") as HTMLSelectElement).value).toBe("it");
+    expect((field("Payment terms") as HTMLSelectElement).value).toBe("custom");
+    expect((field("Days from invoice date") as HTMLInputElement).value).toBe("30");
+    expect(screen.getByText(/RT01/)).toBeTruthy();
+    type("Client", "c3");
+    expect((field("Language") as HTMLSelectElement).value).toBe("en");
+    expect((field("Payment terms") as HTMLSelectElement).value).toBe("eom_30");
+    expect(screen.queryByText(/RT01/)).toBeNull();
+  });
+
   it("opens a stored invoice without a language in the client's language", async () => {
     serve({ clients: [{ ...acme, pdfLanguage: "en" }], invoice: record() });
     await renderEditor("/invoices/i1");

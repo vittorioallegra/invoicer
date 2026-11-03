@@ -286,7 +286,7 @@ settle the open ones):
   stored terms (days + basis + days after the end of month) are read into these choices. Dates
   are plain `YYYY-MM-DD` on the
   Europe/Rome calendar. A client may
-  have default terms (none by default; Company and Tax details have none) that prefill a new invoice.
+  have default terms (none by default; Company and Tax details have none) applied when the client is chosen.
   The invoice stores its terms in its payment data. The editor's payment section has one row:
   the terms select (its "Personalizzato" option reveals the days input inline, in the same row)
   and the due date, read-only. The due date is always computed from the terms and the invoice
@@ -307,6 +307,10 @@ settle the open ones):
   client), stays editable, and is stored in the invoice data (`data.language`; an invoice stored
   without it follows its client's language). It sets the language of that invoice's PDF and
   courtesy email, not the client's setting.
+  Choosing a client, on a new or a saved unsent invoice, applies everything the invoice inherits
+  from it: currency, language, numbering series (unless a number is already reserved), cassa and
+  ritenuta from Tax details per the client's flags, and payment terms (so the due date). All of it
+  stays editable afterwards; choosing another client applies that client's values again.
 - Editor layout of the optional extras: contribution (cassa or rivalsa), ritenuta and bollo sit
   in one collapsible section placed before the lines, titled "Contributo, ritenuta e bollo"
   (an accessible disclosure: a button with `aria-expanded`). It starts closed unless one of the

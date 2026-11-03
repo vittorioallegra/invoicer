@@ -314,11 +314,19 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   function selectClient(chosen: ClientRecord | null) {
     setForm((current) => {
       const next = { ...current, clientId: chosen?.id ?? "" };
-      // Defaults prefill a new invoice only; an existing one keeps what it has, except the
-      // language, which follows the client chosen (and stays editable).
-      if (record) return chosen ? { ...next, language: chosen.pdfLanguage } : next;
-      return applyDefaults(next, chosen, tax);
+      if (!chosen && record) return next;
+      // Choosing a client applies everything the invoice inherits from it (currency, language,
+      // series, cassa and ritenuta, terms and so the due date), on new and saved invoices alike;
+      // all of it stays editable. A number already reserved (a rejected invoice) keeps its series.
+      const applied = applyDefaults(next, chosen, tax);
+      if (record?.number) return { ...applied, seriesId: current.seriesId };
+      return applied.seriesId === current.seriesId ? applied : { ...applied, requestedNumber: "" };
     });
+    // A new series proposes its own number, as when the series select changes.
+    if (chosen && !record?.number && (chosen.defaults?.seriesId ?? "") !== form.seriesId) {
+      setNumberTouched(false);
+      setNumberTaken(false);
+    }
   }
 
   // The account select shows the account whose details the invoice carries; details that match
