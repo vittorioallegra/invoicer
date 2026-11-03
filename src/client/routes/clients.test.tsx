@@ -55,6 +55,7 @@ async function renderClients() {
   );
 }
 
+const pickType = (name: string) => fireEvent.click(screen.getByRole("radio", { name }));
 const type = (label: string, value: string) =>
   fireEvent.change(screen.getByLabelText(label), { target: { value } });
 
@@ -69,25 +70,99 @@ describe("Clients screen", () => {
     expect(screen.getAllByRole("button", { name: "Add client" })).toHaveLength(1);
   });
 
-  it("adapts the form to the client type", async () => {
+  it("shows only the fields the client type needs", async () => {
     mocks.api.mockResolvedValue({ clients: [] });
     await renderClients();
     fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
     expect(await screen.findByLabelText("Codice destinatario")).toBeTruthy();
+    expect(screen.getByLabelText("Company name")).toBeTruthy();
     expect(screen.getByLabelText("Province")).toBeTruthy();
+    expect(screen.getByLabelText("Partita IVA")).toBeTruthy();
+    expect(screen.getAllByRole("radio")).toHaveLength(4);
 
-    type("Client type", "eu_company");
+    pickType("Private person in Italy");
+    expect(screen.getByLabelText("Full name")).toBeTruthy();
+    expect(screen.getByLabelText("Codice fiscale")).toBeTruthy();
+    expect(screen.queryByLabelText("Partita IVA")).toBeNull();
     expect(screen.queryByLabelText("Codice destinatario")).toBeNull();
+    expect(screen.getByText(/0000000 is set automatically/)).toBeTruthy();
+
+    pickType("Company in the EU");
     expect(screen.queryByLabelText("Province")).toBeNull();
+    expect(screen.queryByLabelText("Codice fiscale")).toBeNull();
     expect(screen.getByLabelText("VAT / tax ID")).toBeTruthy();
-    expect(screen.getByText(/XXXXXXX is used for foreign clients/)).toBeTruthy();
+    expect(screen.getByLabelText("Country")).toBeTruthy();
+    expect(screen.getByText(/XXXXXXX is set automatically/)).toBeTruthy();
+  });
+
+  it("keeps the invoice defaults collapsed and opens them on a validation error", async () => {
+    mocks.api.mockResolvedValue({ clients: [] });
+    await renderClients();
+    fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
+    const toggle = await screen.findByRole("button", { name: /Invoice defaults/ });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByLabelText("Payment due after (days)")).toBeNull();
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.queryByLabelText("Rate (%)")).toBeNull();
+    type("Pension fund contribution (cassa/rivalsa)", "rivalsa_inps");
+    expect(screen.getByLabelText("Rate (%)")).toBeTruthy();
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    // Fill a valid client except the cassa rate (hidden while collapsed).
+    type("Company name", "Acme S.r.l.");
+    type("Partita IVA", "12345678903");
+    type("Street and number", "Via Roma 1");
+    type("Postal code", "00100");
+    type("City", "Roma");
+    type("Province", "RM");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("This value is not valid.")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Invoice defaults/ }).getAttribute("aria-expanded"),
+    ).toBe("true");
+    expect(mocks.api).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the fixed delivery code and country for each client type", async () => {
+    mocks.api.mockResolvedValue({ clients: [] });
+    await renderClients();
+    fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
+    pickType("Company in the EU");
+    type("Company name", "Beta GmbH");
+    type("Country", "DE");
+    type("VAT / tax ID", "DE123456789");
+    type("Street and number", "Hauptstrasse 1");
+    type("Postal code", "10115");
+    type("City", "Berlin");
+    mocks.api.mockResolvedValue({ client: saved, clients: [saved] });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(mocks.api).toHaveBeenCalledWith(
+        "/api/clients",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    const call = mocks.api.mock.calls.find(([, init]) => init?.method === "POST");
+    const body = JSON.parse(call?.[1].body as string);
+    expect(body).toMatchObject({
+      type: "eu_company",
+      countryCode: "DE",
+      foreignTaxId: "DE123456789",
+      pdfLanguage: "en",
+      currency: "EUR",
+      recipientCode: "",
+      province: "",
+    });
   });
 
   it("marks type rule errors without calling the server, then saves a valid client", async () => {
     mocks.api.mockResolvedValue({ clients: [] });
     await renderClients();
     fireEvent.click(await screen.findByRole("button", { name: "Add client" }));
-    type("Name or company name", "Acme S.r.l.");
+    type("Company name", "Acme S.r.l.");
     type("Partita IVA", "12345678904");
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText(/check digit does not match/)).toBeTruthy();
