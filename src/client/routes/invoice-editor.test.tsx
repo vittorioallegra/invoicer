@@ -480,16 +480,20 @@ describe("Invoice editor", () => {
     expect(panel.parentElement?.className).toContain("border");
   });
 
-  it("keeps the line note behind a link until it is used, and saves it", async () => {
+  it("keeps the line note behind an icon until it is used, and saves it", async () => {
     serve();
     await renderEditor();
     await loaded();
-    expect(screen.queryByLabelText("Line note")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Add note to line 1" }));
-    expect(screen.queryByRole("button", { name: "Add note to line 1" })).toBeNull();
+    const icon = () => screen.getByRole("button", { name: "Line note" });
+    const editor = () => screen.queryByRole("textbox", { name: "Line note" });
+    expect(editor()).toBeNull();
+    expect(icon().getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(icon());
+    expect(editor()).toBeTruthy();
     type("Client", "c1");
     type("Description", "Consulting");
-    type("Line note", "Phase 1");
+    fireEvent.change(editor() as HTMLElement, { target: { value: "Phase 1" } });
+    expect(icon().getAttribute("aria-pressed")).toBe("true");
     type("Unit price", "50");
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await waitFor(() =>
@@ -501,6 +505,41 @@ describe("Invoice editor", () => {
     const call = mocks.api.mock.calls.find(([path]) => path === "/api/invoices");
     const body = JSON.parse(((call?.[1] ?? {}) as { body?: string }).body ?? "{}");
     expect(body.lines[0]).toMatchObject({ description: "Consulting", note: "Phase 1" });
+  });
+
+  it("closes an empty line note on blur or with the control, and keeps a written one as muted text", async () => {
+    serve();
+    await renderEditor();
+    await loaded();
+    const icon = () => screen.getByRole("button", { name: "Line note" });
+    const editor = () => screen.queryByRole("textbox", { name: "Line note" });
+    const line = screen.getByTestId("invoice-line");
+    const columns = line.className;
+    // An empty note closes on blur.
+    fireEvent.click(icon());
+    fireEvent.blur(editor() as HTMLElement);
+    expect(editor()).toBeNull();
+    // ... or through the toggle icon.
+    fireEvent.click(icon());
+    fireEvent.click(icon());
+    expect(editor()).toBeNull();
+    // A written note stays as compact text under the line; the text reopens the editor.
+    fireEvent.click(icon());
+    fireEvent.change(editor() as HTMLElement, { target: { value: "Phase 1" } });
+    fireEvent.blur(editor() as HTMLElement);
+    expect(editor()).toBeNull();
+    const muted = screen.getByText("Phase 1");
+    expect(muted.className).toContain("text-muted-foreground");
+    expect(icon().getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(muted);
+    expect((editor() as HTMLTextAreaElement).value).toBe("Phase 1");
+    // The remove control clears and closes it.
+    fireEvent.click(screen.getByRole("button", { name: "Remove note" }));
+    expect(editor()).toBeNull();
+    expect(screen.queryByText("Phase 1")).toBeNull();
+    expect(icon().getAttribute("aria-pressed")).toBe("false");
+    // The line keeps the same grid classes, so the table columns do not move.
+    expect(screen.getByTestId("invoice-line").className).toBe(columns);
   });
 
   it("saves the invoice note", async () => {
@@ -529,9 +568,11 @@ describe("Invoice editor", () => {
     serve();
     await renderEditor();
     await loaded();
-    fireEvent.click(screen.getByRole("button", { name: "Add note to line 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "Line note" }));
     type("Description", "D".repeat(600));
-    type("Line note", "N".repeat(500));
+    fireEvent.change(screen.getByRole("textbox", { name: "Line note" }), {
+      target: { value: "N".repeat(500) },
+    });
     type("Unit price", "50");
     type("VAT", "rate:2200");
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));

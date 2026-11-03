@@ -504,8 +504,7 @@
       "amount": "Importo",
       "chooseVat": "Scegli l'IVA",
       "note": "Nota della riga",
-      "addNote": "Aggiungi nota",
-      "addNoteTo": "Aggiungi nota alla riga {{n}}",
+      "removeNote": "Rimuovi nota",
       "add": "Aggiungi riga",
       "remove": "Rimuovi riga {{n}}"
     },

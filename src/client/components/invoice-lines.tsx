@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, StickyNote, Trash2, X } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatMoney, type UiLocale } from "../../shared/format";
@@ -73,8 +73,16 @@ export function InvoiceLines({
 }: InvoiceLinesProps) {
   const { t } = useTranslation();
   const currency = form.currency.toUpperCase();
-  // A note stays behind the "Add note" link until it is used (or already has text).
+  // The note editor of a line is closed until its icon is used; a note that has text then shows
+  // as compact text under the line.
   const [noteOpen, setNoteOpen] = useState<ReadonlySet<string>>(new Set());
+  const setNote = (key: string, open: boolean) =>
+    setNoteOpen((current) => {
+      const next = new Set(current);
+      if (open) next.add(key);
+      else next.delete(key);
+      return next;
+    });
 
   const update = (key: string, patch: Partial<LineForm>) =>
     onChange(form.lines.map((line) => (line.key === key ? { ...line, ...patch } : line)));
@@ -187,14 +195,30 @@ export function InvoiceLines({
                 )}
               </Cell>
               <div className="flex items-center justify-between gap-3 md:contents">
-                <p className="text-sm md:pt-2.5 md:text-right">
-                  <span className="text-muted-foreground md:sr-only">
-                    {t("invoice.lines.amount")}{" "}
-                  </span>
-                  <span className="font-medium tabular-nums">
-                    {amount === undefined ? "–" : formatMoney(amount, locale, currency)}
-                  </span>
-                </p>
+                <div className="flex min-w-0 flex-1 items-center justify-between gap-2 md:items-start">
+                  <p className="text-sm md:pt-2.5 md:text-right md:order-2 md:ml-auto">
+                    <span className="text-muted-foreground md:sr-only">
+                      {t("invoice.lines.amount")}{" "}
+                    </span>
+                    <span className="font-medium tabular-nums">
+                      {amount === undefined ? "–" : formatMoney(amount, locale, currency)}
+                    </span>
+                  </p>
+                  {disabled && line.note === "" ? null : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="md:order-1 md:size-8 md:min-h-0"
+                      disabled={disabled}
+                      aria-label={t("invoice.lines.note")}
+                      aria-pressed={line.note !== ""}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => setNote(line.key, !noteOpen.has(line.key))}
+                    >
+                      <StickyNote aria-hidden />
+                    </Button>
+                  )}
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -205,34 +229,54 @@ export function InvoiceLines({
                   <Trash2 aria-hidden />
                 </Button>
               </div>
-              {line.note !== "" || noteOpen.has(line.key) ? (
-                <Cell
-                  label={t("invoice.lines.note")}
-                  error={error(path("note"))}
-                  className="md:col-span-full"
-                  labelVisible
-                >
-                  {(c) => (
-                    <Textarea
-                      {...c}
-                      value={line.note}
-                      rows={2}
-                      className="min-h-16"
-                      disabled={disabled}
-                      onChange={(e) => update(line.key, { note: e.target.value })}
-                    />
-                  )}
-                </Cell>
-              ) : disabled ? null : (
+              {noteOpen.has(line.key) && !disabled ? (
+                <div className="flex flex-col gap-1 md:col-span-full">
+                  <Cell label={t("invoice.lines.note")} error={error(path("note"))} labelVisible>
+                    {(c) => (
+                      <fieldset
+                        aria-label={t("invoice.lines.note")}
+                        className="flex min-w-0 items-start gap-2"
+                        onBlur={(e) => {
+                          // Leaving the editor closes it; focus moving to its own button does not.
+                          if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+                          setNote(line.key, false);
+                        }}
+                      >
+                        <Textarea
+                          {...c}
+                          autoFocus
+                          value={line.note}
+                          rows={2}
+                          className="min-h-16 flex-1"
+                          onChange={(e) => update(line.key, { note: e.target.value })}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t("invoice.lines.removeNote")}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            update(line.key, { note: "" });
+                            setNote(line.key, false);
+                          }}
+                        >
+                          <X aria-hidden />
+                        </Button>
+                      </fieldset>
+                    )}
+                  </Cell>
+                </div>
+              ) : line.note !== "" ? (
                 <button
                   type="button"
-                  aria-label={t("invoice.lines.addNoteTo", { n: index + 1 })}
-                  className="min-h-11 w-fit text-sm underline underline-offset-4 md:col-span-full md:min-h-9"
-                  onClick={() => setNoteOpen((open) => new Set(open).add(line.key))}
+                  disabled={disabled}
+                  title={t("invoice.lines.note")}
+                  className="min-h-9 w-full whitespace-pre-line break-words text-left text-sm text-muted-foreground disabled:cursor-default md:col-span-full"
+                  onClick={() => setNote(line.key, true)}
                 >
-                  {t("invoice.lines.addNote")}
+                  {line.note}
                 </button>
-              )}
+              ) : null}
             </li>
           );
         })}

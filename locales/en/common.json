@@ -504,8 +504,7 @@
       "amount": "Amount",
       "chooseVat": "Choose VAT",
       "note": "Line note",
-      "addNote": "Add note",
-      "addNoteTo": "Add note to line {{n}}",
+      "removeNote": "Remove note",
       "add": "Add line",
       "remove": "Remove line {{n}}"
     },
