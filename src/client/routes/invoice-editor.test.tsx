@@ -230,7 +230,13 @@ const patchBody = () => {
   return call ? JSON.parse((call[1] as { body: string }).body) : null;
 };
 const loaded = () => screen.findByRole("combobox", { name: "Client" });
-const edit = () => fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+const openActions = () => fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+const action = (name: string) => fireEvent.click(screen.getByRole("menuitem", { name }));
+const edit = () => {
+  openActions();
+  action("Edit");
+};
+const menuItems = () => screen.getAllByRole("menuitem").map((item) => item.textContent);
 const cancel = () => fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
 beforeEach(() => {
@@ -735,28 +741,30 @@ describe("Invoice editor", () => {
     expect(screen.getByRole("region", { name: "Client" })).toBeTruthy();
   });
 
-  it("opens a saved unsent invoice in view mode: Duplicate, Delete, Edit, Finalize on the title row and no bottom buttons", async () => {
+  it("opens a saved unsent invoice in view mode: More actions then Finalize on the title row, the rest in the menu", async () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
     await loaded();
     expect(screen.queryByRole("toolbar")).toBeNull();
     const title = screen.getByRole("heading", { level: 1 });
-    const duplicate = screen.getByRole("button", { name: "Duplicate" });
-    const remove = screen.getByRole("button", { name: "Delete" });
-    const editButton = screen.getByRole("button", { name: "Edit" });
+    const more = screen.getByRole("button", { name: "More actions" });
+    expect(more.getAttribute("aria-haspopup")).toBe("menu");
     const finalize = screen.getByRole("button", { name: "Finalize" });
     expect(finalize.className).toContain("bg-primary");
-    expect(remove.className).toContain("text-danger");
-    // Nothing to download or pay before finalising.
-    expect(screen.queryByRole("button", { name: "Download" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Record payment" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Send" })).toBeNull();
+    // The other actions live in the menu only.
+    for (const name of ["Edit", "Duplicate", "Delete", "Download", "Record payment", "Send"]) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
     const follows = (a: HTMLElement, b: HTMLElement) =>
       Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(follows(title, duplicate)).toBe(true);
-    expect(follows(duplicate, remove)).toBe(true);
-    expect(follows(remove, editButton)).toBe(true);
-    expect(follows(editButton, finalize)).toBe(true);
+    expect(follows(title, more)).toBe(true);
+    expect(follows(more, finalize)).toBe(true);
+    // Nothing to download or pay before finalising; Delete comes last.
+    fireEvent.click(more);
+    expect(menuItems()).toEqual(["Edit", "Duplicate", "Delete"]);
+    expect(
+      within(screen.getByRole("menuitem", { name: "Delete" })).getByText("Delete").className,
+    ).toContain("text-danger");
     // No save or cancel in view mode, and every field is read-only.
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
@@ -767,8 +775,10 @@ describe("Invoice editor", () => {
     const totals = screen.getByRole("region", { name: "Totals" });
     expect(within(totals).getAllByRole("button")).toHaveLength(1);
     // Deleting still asks for a confirmation first.
-    fireEvent.click(remove);
-    expect(screen.getByRole("button", { name: "Confirm delete" })).toBeTruthy();
+    action("Delete");
+    const dialog = await screen.findByRole("dialog", { name: "Delete the invoice?" });
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: "Confirm delete" })).toBeTruthy();
   });
 
   it("edits a saved invoice: Edit shows Cancel and Save instead of the title actions, Save returns to view mode", async () => {
@@ -776,7 +786,7 @@ describe("Invoice editor", () => {
     await renderEditor("/invoices/i1");
     await loaded();
     edit();
-    for (const name of ["Duplicate", "Delete", "Edit", "Finalize"]) {
+    for (const name of ["More actions", "Finalize"]) {
       expect(screen.queryByRole("button", { name })).toBeNull();
     }
     const cancelButton = screen.getByRole("button", { name: "Cancel" });
@@ -795,8 +805,8 @@ describe("Invoice editor", () => {
         expect.objectContaining({ method: "PUT" }),
       ),
     );
-    // Back in view mode with the new text, and the focus on Edit.
-    const editButton = await screen.findByRole("button", { name: "Edit" });
+    // Back in view mode with the new text, and the focus on More actions.
+    const editButton = await screen.findByRole("button", { name: "More actions" });
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
     expect((field("Description") as HTMLInputElement).disabled).toBe(true);
     expect((field("Description") as HTMLInputElement).value).toBe("Consulting, edited");
@@ -810,14 +820,14 @@ describe("Invoice editor", () => {
     // Nothing changed: Cancel leaves at once.
     edit();
     cancel();
-    expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "More actions" })).toBeTruthy();
     // Changed: the first click asks, the second discards.
     edit();
     type("Description", "Typed and abandoned");
     cancel();
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
-    const editButton = screen.getByRole("button", { name: "Edit" });
+    const editButton = screen.getByRole("button", { name: "More actions" });
     expect((field("Description") as HTMLInputElement).value).toBe("Consulting");
     expect((field("Description") as HTMLInputElement).disabled).toBe(true);
     expect(document.activeElement).toBe(editButton);
@@ -835,8 +845,7 @@ describe("Invoice editor", () => {
     await renderEditor();
     await loaded();
     expect(screen.queryByRole("button", { name: "Finalize" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Duplicate" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "More actions" })).toBeNull();
     expect((field("Description") as HTMLInputElement).disabled).toBe(false);
     type("Description", "Consulting");
     cancel();
@@ -856,7 +865,8 @@ describe("Invoice editor", () => {
     });
     await renderEditor("/invoices/i1");
     await loaded();
-    fireEvent.click(screen.getByRole("button", { name: "Duplicate" }));
+    openActions();
+    action("Duplicate");
     await screen.findByRole("button", { name: "Cancel" });
     expect((field("Description") as HTMLInputElement).disabled).toBe(false);
     expect(screen.queryByRole("button", { name: "Finalize" })).toBeNull();
@@ -867,11 +877,12 @@ describe("Invoice editor", () => {
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
     await renderEditor("/invoices/i1");
-    await screen.findByRole("button", { name: "Download" });
-    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+    await screen.findByRole("button", { name: "More actions" });
+    openActions();
+    expect(screen.queryByRole("menuitem", { name: "Edit" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Delete" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Duplicate" })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: "Duplicate" })).toBeTruthy();
   });
 
   it("keeps Save disabled until the form differs from what was loaded or last saved", async () => {
@@ -895,7 +906,7 @@ describe("Invoice editor", () => {
       ),
     );
     // Saved: back in view mode; editing again starts disabled.
-    await screen.findByRole("button", { name: "Edit" });
+    await screen.findByRole("button", { name: "More actions" });
     edit();
     expect(save().disabled).toBe(true);
   });
@@ -923,45 +934,40 @@ describe("Invoice editor", () => {
     expect(backLink("Invoices").getAttribute("href")).toBe("/invoices");
   });
 
-  it("offers the stored PDF and XML of a finalised invoice in the Download menu and nothing else", async () => {
+  it("lists Duplicate, credit note, payment and the stored PDF and XML of a finalised invoice in the menu", async () => {
     serve({
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
     await renderEditor("/invoices/i1");
     await screen.findByText("No. 7/2026");
     expect(screen.queryByRole("button", { name: "Finalize" })).toBeNull();
-    const trigger = screen.getByRole("button", { name: "Download" });
+    const trigger = screen.getByRole("button", { name: "More actions" });
     expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
     fireEvent.click(trigger);
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
-    const items = screen.getAllByRole("menuitem").map((item) => item.textContent);
-    expect(items).toEqual(["PDF", "XML"]);
-    fireEvent.click(screen.getByRole("menuitem", { name: "XML" }));
+    expect(menuItems()).toEqual([
+      "Duplicate",
+      "Create credit note",
+      "Record payment",
+      "Download PDF",
+      "Download XML",
+    ]);
+    fireEvent.click(screen.getByRole("menuitem", { name: "Download XML" }));
     expect(mocks.downloadUrl).toHaveBeenCalledWith("/api/invoices/i1/xml");
-    // The title row has Duplicate, credit note, payment and Download, in that order.
-    const order = ["Duplicate", "Create credit note", "Record payment", "Download"].map((name) =>
-      screen.getByRole("button", { name }),
-    );
-    for (let i = 1; i < order.length; i++) {
-      expect(
-        (order[i - 1] as Element).compareDocumentPosition(order[i] as Element) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
-    }
-    // Nothing is left at the bottom: no Delete, no Save, no buttons row.
+    // Nothing else sits on the page: no Delete, no Save, no separate buttons.
     expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
-    expect(screen.getAllByRole("button", { name: "Duplicate" })).toHaveLength(1);
-    expect(screen.getAllByRole("button", { name: "Create credit note" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Duplicate" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Create credit note" })).toBeNull();
   });
 
-  it("closes the Download menu with Escape", async () => {
+  it("closes the actions menu with Escape", async () => {
     serve({
       invoice: record({ state: "sent", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
     await renderEditor("/invoices/i1");
     await screen.findByText("No. 7/2026");
-    const trigger = screen.getByRole("button", { name: "Download" });
+    const trigger = screen.getByRole("button", { name: "More actions" });
     fireEvent.click(trigger);
     fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
     expect(screen.queryByRole("menu")).toBeNull();
@@ -1139,12 +1145,14 @@ describe("Invoice editor", () => {
     });
   });
 
-  it("records a payment from the title row with the date, then updates", async () => {
+  it("records a payment from the actions menu with the date, then updates", async () => {
     serve({
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
     await renderEditor("/invoices/i1");
-    fireEvent.click(await screen.findByRole("button", { name: "Record payment" }));
+    await screen.findByText("No. 7/2026");
+    openActions();
+    action("Record payment");
     const dialog = await screen.findByRole("dialog");
     const date = within(dialog).getByLabelText("Payment date") as HTMLInputElement;
     expect(date.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -1176,8 +1184,9 @@ describe("Invoice editor", () => {
     await renderEditor("/invoices/i1");
     const chip = await screen.findByTitle("Paid on 12 Dec 2026");
     expect(chip.textContent).toContain("Paid");
-    expect(screen.queryByRole("button", { name: "Record payment" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Undo payment" }));
+    openActions();
+    expect(screen.queryByRole("menuitem", { name: "Record payment" })).toBeNull();
+    action("Undo payment");
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Undo payment" }));
     await waitFor(() => {

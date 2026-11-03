@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CircleCheck, CircleX } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { InvoiceRecord } from "../../shared/invoice";
 import { patchInvoice } from "../lib/invoices-api";
@@ -14,16 +13,29 @@ import { toast } from "./ui/toast";
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * The payment action of a finalised invoice, for the title row: "Record payment" (a small dialog
- * with the payment date) while it is unpaid, "Undo payment" (after a confirmation) once it is paid.
+ * The payment dialog of a finalised invoice, opened from its actions menu: "Record payment" (the
+ * payment date, today by default) while it is unpaid, "Undo payment" (a confirmation) once paid.
  */
-export function PaymentAction({ record, today }: { record: InvoiceRecord; today: string }) {
+export function PaymentDialog({
+  record,
+  today,
+  open,
+  onOpenChange,
+}: {
+  record: InvoiceRecord;
+  today: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const { t } = useTranslation();
   const online = useOnline();
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
   const [date, setDate] = useState(today);
   const paid = record.paymentFlag === "paid";
+
+  useEffect(() => {
+    if (open) setDate(today);
+  }, [open, today]);
 
   const save = useMutation({
     mutationFn: () =>
@@ -32,7 +44,7 @@ export function PaymentAction({ record, today }: { record: InvoiceRecord; today:
         paid ? { paymentFlag: "unpaid" } : { paymentFlag: "paid", paidDate: date },
       ),
     onSuccess: async () => {
-      setOpen(false);
+      onOpenChange(false);
       await queryClient.invalidateQueries({ queryKey: ["invoices"] });
       await queryClient.invalidateQueries({ queryKey: ["invoice", record.id] });
       toast.success(t(paid ? "invoice.paid.undone" : "invoice.paid.recorded"));
@@ -42,53 +54,39 @@ export function PaymentAction({ record, today }: { record: InvoiceRecord; today:
 
   const valid = paid || DATE_ONLY.test(date);
   return (
-    <>
-      <Button
-        variant="secondary"
-        disabled={!online}
-        title={online ? undefined : t("offline.reason")}
-        onClick={() => {
-          setDate(today);
-          setOpen(true);
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      side="responsive"
+      title={t(paid ? "invoice.paid.undoTitle" : "invoice.paid.recordTitle")}
+      {...(paid ? { description: t("invoice.paid.undoBody") } : {})}
+    >
+      <form
+        noValidate
+        className="flex flex-col gap-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (valid && online && !save.isPending) save.mutate();
         }}
       >
-        {paid ? <CircleX aria-hidden /> : <CircleCheck aria-hidden />}
-        {t(paid ? "invoice.paid.undo" : "invoice.paid.record")}
-      </Button>
-      <Sheet
-        open={open}
-        onOpenChange={setOpen}
-        side="responsive"
-        title={t(paid ? "invoice.paid.undoTitle" : "invoice.paid.recordTitle")}
-        {...(paid ? { description: t("invoice.paid.undoBody") } : {})}
-      >
-        <form
-          noValidate
-          className="flex flex-col gap-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (valid && online && !save.isPending) save.mutate();
-          }}
-        >
-          {paid ? null : (
-            <Field label={t("invoice.paid.date")} className="max-w-xs">
-              {(c) => <DatePicker {...c} value={date} onChange={(e) => setDate(e.target.value)} />}
-            </Field>
-          )}
-          <SheetFooter>
-            <Button variant="secondary" onClick={() => setOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              type="submit"
-              variant={paid ? "destructive" : "default"}
-              disabled={!online || !valid || save.isPending}
-            >
-              {t(paid ? "invoice.paid.undoConfirm" : "invoice.paid.save")}
-            </Button>
-          </SheetFooter>
-        </form>
-      </Sheet>
-    </>
+        {paid ? null : (
+          <Field label={t("invoice.paid.date")} className="max-w-xs">
+            {(c) => <DatePicker {...c} value={date} onChange={(e) => setDate(e.target.value)} />}
+          </Field>
+        )}
+        <SheetFooter>
+          <Button variant="secondary" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="submit"
+            variant={paid ? "destructive" : "default"}
+            disabled={!online || !valid || save.isPending}
+          >
+            {t(paid ? "invoice.paid.undoConfirm" : "invoice.paid.save")}
+          </Button>
+        </SheetFooter>
+      </form>
+    </Sheet>
   );
 }

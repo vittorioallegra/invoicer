@@ -593,6 +593,10 @@
       "discardConfirm": "Discard changes",
       "delete": "Delete",
       "deleteConfirm": "Confirm delete",
+      "more": "More actions",
+      "downloadAs": "Download {{format}}",
+      "deleteTitle": "Delete the invoice?",
+      "deleteBody": "The unsent invoice is deleted for good.",
       "fixResend": "Fix & resend",
       "finalize": "Finalize"
     },

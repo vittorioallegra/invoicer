@@ -201,13 +201,15 @@ settle the open ones):
   sends (below). The Worker repeats the issuing rules before it reserves the number.
 - Editor modes. A saved invoice opens in view mode: every field is read-only (no disabled
   add-line or client buttons, the extras accordion opens, no line controls). Before finalisation
-  (and for a rejected invoice that can still be fixed) the title row has "Duplicate" (first,
-  leftmost), "Delete" (ghost, red, with a confirmation; unsent invoices only), "Edit" and the
-  primary "Finalize" ("Fix & resend" when rejected); there are no buttons under the form. A
-  finalised invoice has Duplicate, Create credit note, Record/Undo payment and Download, and no
-  Edit or Delete. "Edit" enters edit mode: the title actions disappear, the fields become
+  (and for a rejected invoice that can still be fixed) the title row has an icon-only "⋯" menu
+  button ("More actions") and the primary "Finalize" button ("Fix & resend" when rejected), which
+  stays visible; there are no buttons under the form. The menu lists "Edit", "Duplicate", and
+  "Delete" last (red, separated, unsent invoices only; it opens a confirmation dialog "Delete the
+  invoice?" with Cancel and "Confirm delete"). A finalised invoice has no Finalize; its menu has
+  Duplicate, Create credit note (issued invoices), Record/Undo payment, Download PDF and Download
+  XML, and no Edit or Delete. "Edit" enters edit mode: the title actions disappear, the fields become
   editable (the focus goes to the first field) and under the form are Cancel (secondary) and Save
-  (primary, right). Save stores and returns to view mode (toast), with the focus back on Edit.
+  (primary, right). Save stores and returns to view mode (toast), with the focus back on the "⋯" button.
   Cancel returns to view mode with the stored values; when something changed it first asks
   ("Discard changes"). A new invoice and a just duplicated one open directly in edit mode; Cancel
   on a new invoice leads back to the Invoices list, and its first Save moves to the invoice's own
@@ -229,13 +231,13 @@ settle the open ones):
   and store XML and PDF, passkey or authenticator code, send). The channel is the PEC when it is
   ready; otherwise the manual AdE channel: the invoice is numbered and finalised, the XML is
   stored for the owner to upload on the AdE portal (the invoice page offers it) and nothing is
-  sent by the app. After finalisation the Finalize button is gone and the title row has, in this
+  sent by the app. After finalisation the Finalize button is gone and the "⋯" menu has, in this
   order, "Duplicate", "Create credit note" (issued invoices), "Record payment" (not for credit
-  notes) and "Download" (PDF and XML, the stored files); the bottom has no buttons. Payment:
+  notes), "Download PDF" and "Download XML" (the stored files); the bottom has no buttons. Payment:
   next to the state badge a finalised invoice shows a "Paid" chip (with "Paid on <date>" as its
   tooltip and accessible detail) or an "Unpaid" chip; "Record payment" opens a small dialog with
   the payment date (default today, Europe/Rome) and Cancel / Save (disabled until the date is
-  valid); for a paid invoice the button is "Undo payment", with a confirmation, and sets it back
+  valid); for a paid invoice the menu item is "Undo payment", with a confirmation, and sets it back
   to unpaid. A finalised invoice shows no "read-only" banner (the disabled fields say it) and no disabled controls: the "Add line" and the client "New"/"Edit" buttons are absent, while the "Contributo, ritenuta e bollo" disclosure still opens and shows its content read-only (its toggle is never disabled, only the fields inside); only
   the state message of the sending flow (waiting for the receipt or the SdI outcome) is shown. There is no payment section and no transmission section on the invoice page (the
   attempts are not listed); only what needs an action stays, such as a send that was not completed
@@ -426,7 +428,7 @@ settle the open ones):
   and requested number rules, the date order check and the release rule all apply per series
   and year.
 - Sent, delivered and not_delivered invoices are read-only (only the payment status, recorded
-  from the title row, changes).
+  from the actions menu, changes).
 - Duplicate an existing invoice into a new unsent invoice: everything on it is editable, the document type included (the type is locked only from finalisation on, and on a rejected invoice).
 
 ### 3a. Credit notes (TD04)

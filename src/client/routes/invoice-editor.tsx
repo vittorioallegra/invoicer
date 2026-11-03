@@ -1,6 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { Copy, Download, FileMinus, Pencil, Send, Trash2 } from "lucide-react";
+import {
+  CircleCheck,
+  CircleX,
+  Copy,
+  Download,
+  Ellipsis,
+  FileMinus,
+  Pencil,
+  Send,
+  Trash2,
+} from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ClientRecord } from "../../shared/client";
@@ -34,7 +44,7 @@ import { InvoiceDetail } from "../components/invoice-detail";
 import { InvoiceLines } from "../components/invoice-lines";
 import { InvoiceTotals } from "../components/invoice-totals";
 import { Page } from "../components/page";
-import { PaymentAction } from "../components/payment-action";
+import { PaymentDialog } from "../components/payment-action";
 import { PaymentTermsFields } from "../components/payment-terms-fields";
 import { type Preflight, SendSheet } from "../components/send-sheet";
 import { Banner } from "../components/ui/banner";
@@ -44,8 +54,9 @@ import { Disclosure } from "../components/ui/disclosure";
 import { Field } from "../components/ui/field";
 import { GroupBox } from "../components/ui/group-box";
 import { Input } from "../components/ui/input";
-import { MenuButton } from "../components/ui/menu-button";
+import { MenuButton, type MenuItem } from "../components/ui/menu-button";
 import { Select } from "../components/ui/select";
+import { Sheet, SheetFooter } from "../components/ui/sheet";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Textarea } from "../components/ui/textarea";
 import { toast } from "../components/ui/toast";
@@ -242,6 +253,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     if (record) OPEN_IN_EDIT.delete(record.id);
   }, [record]);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  // The "⋯" actions menu (where Edit lives) gets the focus back after Save or Cancel.
   const editButton = useRef<HTMLButtonElement>(null);
   const focusEditButton = useRef(false);
   useEffect(() => {
@@ -254,6 +266,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const [serverErrors, setServerErrors] = useState<Record<string, string>>({});
   const [clientSheet, setClientSheet] = useState<"new" | "edit" | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   const editability = record ? invoiceEditability(record.state) : "full";
   const locked = editability === "locked";
@@ -591,60 +604,77 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     (record.state === "delivered" || record.state === "not_delivered");
   // View mode of an unsent (or rejected) invoice: Duplicate, Delete, Edit, Finalize. Edit mode has
   // no title actions: Cancel and Save are under the form.
+  // View mode: Finalize stays a button (the main step for an unsent invoice); every other action
+  // is in the "⋯" menu. Edit mode has no title actions: Cancel and Save are under the form.
+  const menuItems: MenuItem[] = [];
+  if (finalizable) {
+    menuItems.push({
+      key: "edit",
+      label: t("invoice.actions.edit"),
+      icon: <Pencil aria-hidden />,
+      onSelect: startEdit,
+    });
+  }
+  if (record) {
+    menuItems.push({
+      key: "duplicate",
+      label: t("invoice.actions.duplicate"),
+      icon: <Copy aria-hidden />,
+      disabled: !online || duplicate.isPending,
+      reason: online ? undefined : t("offline.reason"),
+      onSelect: () => duplicate.mutate(record.id),
+    });
+  }
+  if (record && issuedCreditable) {
+    menuItems.push({
+      key: "credit-note",
+      label: t("invoice.actions.creditNote"),
+      icon: <FileMinus aria-hidden />,
+      disabled: !online || creditNote.isPending,
+      reason: online ? undefined : t("offline.reason"),
+      onSelect: () => creditNote.mutate(record.id),
+    });
+  }
+  if (record && payable) {
+    const paid = record.paymentFlag === "paid";
+    menuItems.push({
+      key: "payment",
+      label: t(paid ? "invoice.paid.undo" : "invoice.paid.record"),
+      icon: paid ? <CircleX aria-hidden /> : <CircleCheck aria-hidden />,
+      disabled: !online,
+      reason: online ? undefined : t("offline.reason"),
+      onSelect: () => setPaymentOpen(true),
+    });
+  }
+  if (record && !unsent) {
+    downloadItems.forEach((item, index) => {
+      menuItems.push({
+        ...item,
+        label: t("invoice.actions.downloadAs", { format: item.label }),
+        icon: <Download aria-hidden />,
+        separated: index === 0,
+      });
+    });
+  }
+  if (record && unsent) {
+    menuItems.push({
+      key: "delete",
+      label: <span className="text-danger">{t("invoice.actions.delete")}</span>,
+      icon: <Trash2 aria-hidden className="text-danger" />,
+      separated: true,
+      onSelect: () => setConfirmDelete(true),
+    });
+  }
   const titleActions = editing ? undefined : (
     <>
-      {record ? (
-        <Button
-          variant="secondary"
-          disabled={!online || duplicate.isPending}
-          title={online ? undefined : t("offline.reason")}
-          onClick={() => duplicate.mutate(record.id)}
-        >
-          <Copy aria-hidden />
-          {t("invoice.actions.duplicate")}
-        </Button>
-      ) : null}
-      {record && unsent && !confirmDelete ? (
-        <Button variant="ghost" className="text-danger" onClick={() => setConfirmDelete(true)}>
-          <Trash2 aria-hidden />
-          {t("invoice.actions.delete")}
-        </Button>
-      ) : null}
-      {record && unsent && confirmDelete ? (
-        <Button
-          variant="destructive"
-          disabled={!online || remove.isPending}
-          onClick={() => remove.mutate(record.id)}
-        >
-          {t("invoice.actions.deleteConfirm")}
-        </Button>
-      ) : null}
-      {record && issuedCreditable ? (
-        <Button
-          variant="secondary"
-          disabled={!online || creditNote.isPending}
-          title={online ? undefined : t("offline.reason")}
-          onClick={() => creditNote.mutate(record.id)}
-        >
-          <FileMinus aria-hidden />
-          {t("invoice.actions.creditNote")}
-        </Button>
-      ) : null}
-      {record && payable ? (
-        <PaymentAction key={record.paymentFlag} record={record} today={today} />
-      ) : null}
-      {record && !unsent ? (
+      {menuItems.length > 0 ? (
         <MenuButton
-          label={t("invoice.actions.download")}
-          icon={<Download aria-hidden />}
-          items={downloadItems}
+          label={t("invoice.actions.more")}
+          icon={<Ellipsis aria-hidden />}
+          items={menuItems}
+          iconOnly
+          triggerRef={editButton}
         />
-      ) : null}
-      {finalizable ? (
-        <Button ref={editButton} type="button" variant="secondary" onClick={startEdit}>
-          <Pencil aria-hidden />
-          {t("invoice.actions.edit")}
-        </Button>
       ) : null}
       {finalizable ? (
         <Button
@@ -1405,6 +1435,37 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
         />
 
         <UnsavedChangesGuard shouldBlock={shouldBlock} />
+        {record && payable ? (
+          <PaymentDialog
+            key={record.paymentFlag}
+            record={record}
+            today={today}
+            open={paymentOpen}
+            onOpenChange={setPaymentOpen}
+          />
+        ) : null}
+        {record && unsent ? (
+          <Sheet
+            open={confirmDelete}
+            onOpenChange={setConfirmDelete}
+            side="responsive"
+            title={t("invoice.actions.deleteTitle")}
+            description={t("invoice.actions.deleteBody")}
+          >
+            <SheetFooter>
+              <Button variant="secondary" onClick={() => setConfirmDelete(false)}>
+                {t("common.cancel")}
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={!online || remove.isPending}
+                onClick={() => remove.mutate(record.id)}
+              >
+                {t("invoice.actions.deleteConfirm")}
+              </Button>
+            </SheetFooter>
+          </Sheet>
+        ) : null}
 
         <ClientSheet
           open={clientSheet !== null}

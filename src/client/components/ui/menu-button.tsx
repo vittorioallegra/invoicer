@@ -1,5 +1,13 @@
 import { ChevronDown } from "lucide-react";
-import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
+import {
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
 import { cn } from "../../lib/utils";
 import { buttonVariants } from "./button";
 
@@ -22,6 +30,10 @@ export interface MenuButtonProps {
   items: MenuItem[];
   disabled?: boolean;
   variant?: "default" | "secondary" | "ghost";
+  /** Only the icon shows (e.g. the "⋯" actions menu); the label stays as the accessible name. */
+  iconOnly?: boolean;
+  /** Receives the trigger button, e.g. to move the focus back to it. */
+  triggerRef?: RefObject<HTMLButtonElement | null>;
 }
 
 /**
@@ -35,6 +47,8 @@ export function MenuButton({
   items,
   disabled = false,
   variant = "secondary",
+  iconOnly = false,
+  triggerRef,
 }: MenuButtonProps) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -96,14 +110,17 @@ export function MenuButton({
   return (
     <div ref={root} className="relative">
       <button
-        ref={trigger}
+        ref={(el) => {
+          trigger.current = el;
+          if (triggerRef) triggerRef.current = el;
+        }}
         type="button"
         id={`${id}-trigger`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? `${id}-menu` : undefined}
         disabled={disabled}
-        className={buttonVariants({ variant })}
+        className={buttonVariants({ variant, ...(iconOnly ? { size: "icon" } : {}) })}
         onClick={() => {
           setOpen((value) => !value);
           setPendingFocus(null);
@@ -111,8 +128,8 @@ export function MenuButton({
         onKeyDown={onTriggerKeyDown}
       >
         {icon}
-        {label}
-        <ChevronDown aria-hidden />
+        {iconOnly ? <span className="sr-only">{label}</span> : label}
+        {iconOnly ? null : <ChevronDown aria-hidden />}
       </button>
       {open ? (
         <div

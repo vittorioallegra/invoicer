@@ -593,6 +593,10 @@
       "discardConfirm": "Scarta le modifiche",
       "delete": "Elimina",
       "deleteConfirm": "Conferma eliminazione",
+      "more": "Altre azioni",
+      "downloadAs": "Scarica {{format}}",
+      "deleteTitle": "Eliminare la fattura?",
+      "deleteBody": "La fattura non inviata viene eliminata definitivamente.",
       "fixResend": "Correggi e reinvia",
       "finalize": "Finalizza"
     },
