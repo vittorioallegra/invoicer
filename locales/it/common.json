@@ -131,7 +131,6 @@
   },
   "settings": {
     "language": "Lingua",
-    "languageLabel": "Lingua dell'interfaccia",
     "languageHint": "Vale per questo dispositivo. PDF ed email seguono la lingua del cliente.",
     "pecTitle": "Casella PEC",
     "pecIntro": "Le credenziali PEC sono segreti del Worker e non vengono mai mostrate qui. Danno accesso completo alla casella, quindi ogni invio richiede la tua passkey o un codice dell'app di autenticazione. Impostale con wrangler secret put PEC_USERNAME e PEC_PASSWORD.",

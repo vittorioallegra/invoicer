@@ -131,7 +131,6 @@
   },
   "settings": {
     "language": "Language",
-    "languageLabel": "Interface language",
     "languageHint": "Applies to this device. PDFs and emails follow the client's language.",
     "pecTitle": "PEC mailbox",
     "pecIntro": "The PEC login is stored as Worker secrets and is never shown here. It gives full access to the mailbox, so each send needs your passkey or an authenticator code. Set it with wrangler secret put PEC_USERNAME and PEC_PASSWORD.",

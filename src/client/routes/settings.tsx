@@ -6,7 +6,6 @@ import type { UiLocale } from "../../shared/format";
 import { DataExport } from "../components/data-export";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
-import { Field } from "../components/ui/field";
 import { Select } from "../components/ui/select";
 import { UnmatchedMessages } from "../components/unmatched-messages";
 import { persistLocale } from "../i18n";
@@ -33,27 +32,25 @@ function LanguageSection() {
       <h2 id="language" className="text-base font-medium">
         {t("settings.language")}
       </h2>
-      <Field
-        label={t("settings.languageLabel")}
-        hint={t("settings.languageHint")}
-        className="max-w-xs"
-      >
-        {(c) => (
-          <Select
-            {...c}
-            value={i18n.language.startsWith("it") ? "it" : "en"}
-            onChange={(event) => {
-              const lng = event.target.value as UiLocale;
-              persistLocale(lng);
-              document.documentElement.lang = lng;
-              void i18n.changeLanguage(lng);
-            }}
-          >
-            <option value="en">English</option>
-            <option value="it">Italiano</option>
-          </Select>
-        )}
-      </Field>
+      <div className="max-w-xs">
+        <Select
+          aria-labelledby="language"
+          aria-describedby="language-hint"
+          value={i18n.language.startsWith("it") ? "it" : "en"}
+          onChange={(event) => {
+            const lng = event.target.value as UiLocale;
+            persistLocale(lng);
+            document.documentElement.lang = lng;
+            void i18n.changeLanguage(lng);
+          }}
+        >
+          <option value="en">English</option>
+          <option value="it">Italiano</option>
+        </Select>
+      </div>
+      <p id="language-hint" className="text-sm text-muted-foreground">
+        {t("settings.languageHint")}
+      </p>
     </section>
   );
 }
