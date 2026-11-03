@@ -147,10 +147,9 @@ export function TaxPage() {
   }
 
   const grid = "grid grid-cols-1 items-start gap-4 sm:grid-cols-2";
-  // A select with the fields that belong to it: a bordered group, dependents indented.
+  // A select with the fields that belong to it: a bordered group, dependents below it.
   const group = "flex flex-col gap-3 rounded-card border border-border p-4";
   const groupLegend = "px-1 text-sm font-semibold";
-  const nested = "border-s-2 border-border ps-4";
   const noProfile = query.data !== undefined && query.data.tax.regimeFiscale === null;
 
   return (
@@ -207,7 +206,7 @@ export function TaxPage() {
               )}
             </Field>
             {form.cassaType ? (
-              <div className={`${grid} ${nested}`}>
+              <div className={grid}>
                 <Field label={t("tax.rate")} error={err("cassa.rateBp")}>
                   {(c) => (
                     <Input
@@ -246,7 +245,7 @@ export function TaxPage() {
               )}
             </Field>
             {form.ritenutaType ? (
-              <div className={`${grid} ${nested}`}>
+              <div className={grid}>
                 <Field label={t("tax.rate")} error={err("ritenuta.rateBp")}>
                   {(c) => (
                     <Input

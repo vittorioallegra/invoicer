@@ -826,7 +826,7 @@ function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
               )}
             </Field>
             {form.cassaType ? (
-              <div className="flex flex-col gap-4 border-s-2 border-border ps-4">
+              <div className="flex flex-col gap-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label={t("clients.form.cassaRate")} error={err("data.cassa.rateBp")}>
                     {(c) => (
@@ -883,7 +883,7 @@ function EditorForm({ record, clients, accounts, tax, send }: EditorFormProps) {
               )}
             </Field>
             {form.ritenutaType ? (
-              <div className="grid gap-4 border-s-2 border-border ps-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <Field label={t("clients.form.ritenutaRate")} error={err("data.ritenuta.rateBp")}>
                   {(c) => (
                     <Input
