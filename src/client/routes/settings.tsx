@@ -81,7 +81,7 @@ export function SettingsPage() {
       ) : null}
       <nav
         aria-label={t("pages.settings.title")}
-        className="max-w-2xl divide-y divide-border overflow-hidden rounded-card border border-border bg-surface"
+        className="divide-y divide-border overflow-hidden rounded-card border border-border bg-surface"
       >
         {SECTIONS.map(({ to, key }) => (
           <Link
