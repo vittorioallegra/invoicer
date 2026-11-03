@@ -162,9 +162,12 @@ describe("invoice PDF content", () => {
 describe("invoice PDF ritenuta base", () => {
   it("states the share of the taxable only when it is not 100%", async () => {
     const partial = extractText(await renderInvoicePdf(inputFor("h")));
-    expect(partial).toContain("20% sul 10% dell'imponibile");
+    // Fixture (h): 20% on 10% of 1,000.00, base 100.00, withheld 20.00.
+    expect(partial).toContain("Ritenuta d'acconto 20% su 10% di 1000,00");
+    expect(partial).toContain("(100,00");
     const whole = extractText(await renderInvoicePdf(inputFor("a")));
-    expect(whole).not.toContain("dell'imponibile");
+    expect(whole).not.toContain("% di ");
+    expect(whole).toMatch(/Ritenuta d'acconto 20% su \d{4},\d{2}/);
   });
 });
 
@@ -194,5 +197,31 @@ describe("invoice PDF note", () => {
     expect(text).toContain("Payment by bank transfer only.");
     expect(text).toContain("Thank you.");
     expect(extractText(await renderInvoicePdf(input))).not.toContain("Thank you.");
+  });
+});
+
+describe("invoice PDF contribution and ritenuta breakdown", () => {
+  it("lists the subject amount of a ritenuta that includes the rivalsa (fixture i)", async () => {
+    const text = extractText(await renderInvoicePdf(inputFor("i")));
+    // 20% on 10% of 1,040.00 (rivalsa subject to ritenuta), base 104.00.
+    expect(text).toContain("Ritenuta d'acconto 20% su 10% di 1040,00");
+    expect(text).toContain("(104,00");
+    expect(text).toContain("20,80");
+  });
+
+  it("shows the taxable amount without the contribution, the contribution and their sum when included (fixture f1)", async () => {
+    const text = extractText(await renderInvoicePdf(inputFor("f1")));
+    expect(text).toContain("Imponibile senza contributo");
+    expect(text).toContain("1000,00");
+    expect(text).toMatch(/4%/);
+    expect(text).toContain("40,00");
+    expect(text).toContain("Totale imponibile");
+    expect(text).toContain("1040,00");
+  });
+
+  it("only names the contribution with its percentage when added on top (fixture a)", async () => {
+    const text = extractText(await renderInvoicePdf(inputFor("a")));
+    expect(text).toContain("Rivalsa INPS 4% (aggiunta agli importi sopra)");
+    expect(text).not.toContain("Imponibile senza contributo");
   });
 });

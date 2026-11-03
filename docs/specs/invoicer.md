@@ -258,7 +258,19 @@ settle the open ones):
   three is on or has an error; closed, it shows a one-line summary of what is active (for
   example "TC04 4% · RT06 20% su 10% · bollo").
 - Totals (taxable per rate, VAT, contribution, withholding, stamp, amount due) are computed
-  live and shown before sending.
+  live and shown before sending. The summary (editor breakdown and PDF) explains the figures,
+  all taken from the totals engine in integer cents (`taxableWithoutContributionCents`,
+  `contributionRateBp`, `ritenutaSubjectCents`, `ritenutaRateBp`, `ritenutaShareBp`), never
+  recomputed in the UI:
+  - contribution in `included` mode: the taxable amount without the contribution, the
+    contribution with its percentage ("Contributo Inarcassa 4%"), then their sum; with one VAT
+    rate the editor does not repeat the sum as a "taxable at rate" row. In `excluded` mode the
+    contribution row also carries its percentage and says it is added on top.
+  - ritenuta: always how it was computed, "Ritenuta d'acconto 20% su 10% di 1.040,00 €
+    (104,00 €)": rate, the base share when not 100%, the amount subject to ritenuta (lines plus
+    the contribution when subject) and the resulting base; at 100% "Ritenuta d'acconto 20% su
+    1.040,00 €". The withheld amount is the row value; the PDF adds a muted line with the
+    ritenuta type and the causale pagamento.
 - States:
   - `draft` — saved, editable, no number assigned.
   - `planned` — draft with an invoice date set; listed under "To issue".

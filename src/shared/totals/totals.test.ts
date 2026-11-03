@@ -53,6 +53,49 @@ describe("fixtures (a)-(g) totals to the cent", () => {
     expect((f2?.baseCents ?? 0) + (f2?.contributionCents ?? 0)).toBe(99999);
   });
 
+  it("fixture f1 (included): taxable without the contribution plus the contribution is the typed amount", () => {
+    const f = INVOICE_FIXTURES.find((x) => x.id === "f1");
+    if (!f) throw new Error("f1");
+    const t = computeTotals(f);
+    // Typed 1,040.00 at 4%: base 1,000.00 + contribution 40.00.
+    expect(t.taxableWithoutContributionCents).toBe(100000);
+    expect(t.contributionCents).toBe(4000);
+    expect(t.taxableCents).toBe(104000);
+    expect(t.contributionRateBp).toBe(400);
+  });
+
+  it("fixtures h and i: the ritenuta breakdown shows the subject amount and the reduced base", () => {
+    const [h, i] = ["h", "i"].map((id) => {
+      const f = INVOICE_FIXTURES.find((x) => x.id === id);
+      if (!f) throw new Error(id);
+      return computeTotals(f);
+    });
+    // (h) 20% on 10% of 1,000.00: base 100.00, ritenuta 20.00.
+    expect(h?.taxableWithoutContributionCents).toBe(100000);
+    expect(h?.ritenutaSubjectCents).toBe(100000);
+    expect(h?.ritenutaBaseCents).toBe(10000);
+    expect(h?.ritenutaCents).toBe(2000);
+    expect([h?.ritenutaRateBp, h?.ritenutaShareBp]).toEqual([2000, 1000]);
+    // (i) rivalsa 40.00 subject to ritenuta: 10% of 1,040.00 = base 104.00, ritenuta 20.80.
+    expect(i?.taxableWithoutContributionCents).toBe(100000);
+    expect(i?.ritenutaSubjectCents).toBe(104000);
+    expect(i?.ritenutaBaseCents).toBe(10400);
+    expect(i?.ritenutaCents).toBe(2080);
+    expect([i?.contributionRateBp, i?.ritenutaRateBp, i?.ritenutaShareBp]).toEqual([
+      400, 2000, 1000,
+    ]);
+  });
+
+  it("ritenuta subject amount leaves out a contribution that is not subject, and is 0 without ritenuta", () => {
+    const e = INVOICE_FIXTURES.find((x) => x.id === "e");
+    if (!e) throw new Error("e");
+    const t = computeTotals(e);
+    // Fixture (e): lines 4,519.05, cassa TC04 not subject: the ritenuta covers the lines only.
+    expect(t.ritenutaSubjectCents).toBe(451905);
+    expect(t.ritenutaBaseCents).toBe(451905);
+    expect(computeTotals({ ...e, ritenuta: null }).ritenutaSubjectCents).toBe(0);
+  });
+
   it("fixture g: credit note carries a negative sign, amounts stay positive", () => {
     const g = INVOICE_FIXTURES.find((x) => x.id === "g");
     if (!g) throw new Error("g");

@@ -3,6 +3,7 @@ import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatMoney, type UiLocale } from "../../shared/format";
 import type { Totals } from "../../shared/totals";
+import { type CassaType, cassaTypeLabel } from "../../shared/totals";
 import { bpToText, type InvoiceForm } from "../lib/invoice-form";
 
 export interface InvoiceTotalsProps {
@@ -20,6 +21,14 @@ export function InvoiceTotals({ totals, form, locale, actions }: InvoiceTotalsPr
   const currency = form.currency.toUpperCase();
   const money = (cents: number) => formatMoney(cents, locale, currency);
   const credit = form.documentType === "TD04";
+  const included = form.cassaMode === "included";
+  const contributionLabel = t("invoice.totals.contribution", {
+    label:
+      form.cassaType === "rivalsa_inps"
+        ? t("invoice.totals.rivalsa")
+        : cassaTypeLabel(form.cassaType as CassaType, locale),
+    rate: totals ? bpToText(totals.contributionRateBp) : "",
+  });
 
   return (
     <section
@@ -31,24 +40,33 @@ export function InvoiceTotals({ totals, form, locale, actions }: InvoiceTotalsPr
           id="invoice-breakdown"
           className="mb-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-b border-border pb-3 text-sm"
         >
-          {totals.groups.map((group) => (
+          {included && totals.contributionCents > 0 ? (
+            <>
+              <Row
+                label={t("invoice.totals.taxableWithout")}
+                value={money(totals.taxableWithoutContributionCents)}
+              />
+              <Row label={contributionLabel} value={money(totals.contributionCents)} />
+              <Row label={t("invoice.totals.taxableTotal")} value={money(totals.taxableCents)} />
+            </>
+          ) : null}
+          {/* One VAT group would only repeat the sum above. */}
+          {!(included && totals.contributionCents > 0 && totals.groups.length === 1)
+            ? totals.groups.map((group) => (
+                <Row
+                  key={group.key}
+                  label={
+                    group.vatRateBp === null
+                      ? t("invoice.totals.taxableNatura", { code: group.natura })
+                      : t("invoice.totals.taxableRate", { rate: bpToText(group.vatRateBp) })
+                  }
+                  value={money(group.taxableCents)}
+                />
+              ))
+            : null}
+          {!included && totals.contributionCents > 0 ? (
             <Row
-              key={group.key}
-              label={
-                group.vatRateBp === null
-                  ? t("invoice.totals.taxableNatura", { code: group.natura })
-                  : t("invoice.totals.taxableRate", { rate: bpToText(group.vatRateBp) })
-              }
-              value={money(group.taxableCents)}
-            />
-          ))}
-          {totals.contributionCents > 0 ? (
-            <Row
-              label={t(
-                form.cassaMode === "included"
-                  ? "invoice.totals.contributionIncluded"
-                  : "invoice.totals.contributionExcluded",
-              )}
+              label={`${contributionLabel} (${t("invoice.totals.addedOnTop")})`}
               value={money(totals.contributionCents)}
             />
           ) : null}
@@ -58,7 +76,22 @@ export function InvoiceTotals({ totals, form, locale, actions }: InvoiceTotalsPr
           ) : null}
           <Row label={t("invoice.totals.documentTotal")} value={money(totals.documentTotalCents)} />
           {totals.ritenutaCents > 0 ? (
-            <Row label={t("invoice.totals.ritenuta")} value={`−${money(totals.ritenutaCents)}`} />
+            <Row
+              label={
+                totals.ritenutaShareBp === 10000
+                  ? t("invoice.totals.ritenutaCalc", {
+                      rate: bpToText(totals.ritenutaRateBp),
+                      subject: money(totals.ritenutaSubjectCents),
+                    })
+                  : t("invoice.totals.ritenutaCalcShare", {
+                      rate: bpToText(totals.ritenutaRateBp),
+                      share: bpToText(totals.ritenutaShareBp),
+                      subject: money(totals.ritenutaSubjectCents),
+                      base: money(totals.ritenutaBaseCents),
+                    })
+              }
+              value={`−${money(totals.ritenutaCents)}`}
+            />
           ) : null}
         </dl>
       ) : null}

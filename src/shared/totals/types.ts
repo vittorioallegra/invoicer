@@ -168,11 +168,27 @@ export interface Totals {
   sign: 1 | -1;
   lines: LineTotals[];
   groups: VatGroup[];
+  /** Contribution rate in basis points as applied (0 without a contribution). */
+  contributionRateBp: number;
   /** Total cassa/rivalsa contribution (already inside the group taxable amounts). */
   contributionCents: number;
   /** Sum of the group taxable amounts (lines base + contribution). */
   taxableCents: number;
+  /**
+   * Taxable amount without the contribution (the lines' base). In `included` mode this is the
+   * typed amount minus the contribution; `taxableCents` = this + `contributionCents`.
+   */
+  taxableWithoutContributionCents: number;
   vatCents: number;
+  /** Ritenuta rate in basis points (0 without ritenuta). */
+  ritenutaRateBp: number;
+  /** Share of the subject amount the rate applies to in basis points (10000 = all; 0 without ritenuta). */
+  ritenutaShareBp: number;
+  /**
+   * Amount subject to ritenuta before the base share is applied: the lines' base plus the
+   * contribution when it is subject (for example 1,040.00 for 1,000.00 and a 4% rivalsa).
+   */
+  ritenutaSubjectCents: number;
   /** Amount the ritenuta rate applies to: the base share of the amount subject to ritenuta. */
   ritenutaBaseCents: number;
   ritenutaCents: number;

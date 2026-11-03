@@ -351,12 +351,19 @@ describe("Invoice editor", () => {
     expect(within(totals).getByText("Contribution added")).toBeTruthy();
     fireEvent.click(within(totals).getByRole("button", { name: /Amount due/ }));
     expect(within(totals).getByText("VAT")).toBeTruthy();
-    expect(within(totals).getByText("Ritenuta")).toBeTruthy();
-    // The contribution row names the active mode, in both modes.
-    expect(within(totals).getByText("Contribution (added on top)")).toBeTruthy();
+    // The ritenuta row shows how it was computed: rate and the amount it applies to.
+    expect(within(totals).getByText("Withholding tax 20% on €1,248.00")).toBeTruthy();
+    // The contribution row names its percentage and the active mode, in both modes.
+    expect(within(totals).getByText("Contribution INPS rivalsa 4% (added on top)")).toBeTruthy();
+    expect(within(totals).queryByText("Taxable without contribution")).toBeNull();
     type("Applies", "included");
-    expect(within(totals).getByText("Contribution (included above)")).toBeTruthy();
-    expect(within(totals).queryByText("Contribution (added on top)")).toBeNull();
+    // Typed 1,200.00 with the contribution inside: base 1,153.85 + 46.15 = 1,200.00.
+    expect(within(totals).getByText("Taxable without contribution")).toBeTruthy();
+    expect(within(totals).getByText("€1,153.85")).toBeTruthy();
+    expect(within(totals).getByText("Contribution INPS rivalsa 4%")).toBeTruthy();
+    expect(within(totals).getByText("€46.15")).toBeTruthy();
+    expect(within(totals).getByText("Taxable total")).toBeTruthy();
+    expect(within(totals).queryByText(/added on top/)).toBeNull();
   });
 
   it("starts every line without VAT and flags it once the line has content", async () => {

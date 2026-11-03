@@ -142,12 +142,27 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
       cassa.type === "rivalsa_inps"
         ? t("pdf.cassa.rivalsa_inps")
         : t("pdf.cassa.other", { label: cassaTypeLabel(cassa.type, language) });
-    rows.push({
-      label: `${t("pdf.cassa.line", { label, rate: number.format(cassa.rateBp / 100) })} (${t(
-        cassa.mode === "included" ? "pdf.cassa.included" : "pdf.cassa.excluded",
-      )})`,
-      value: money(totals.contributionCents),
+    const contribution = t("pdf.cassa.line", {
+      label,
+      rate: number.format(totals.contributionRateBp / 100),
     });
+    if (cassa.mode === "included") {
+      // Prices include the contribution: show the taxable amount without it, the contribution
+      // with its percentage, then their sum.
+      rows.push(
+        {
+          label: t("pdf.taxableWithoutContribution"),
+          value: money(totals.taxableWithoutContributionCents),
+        },
+        { label: contribution, value: money(totals.contributionCents) },
+        { label: t("pdf.taxableTotal"), value: money(totals.taxableCents) },
+      );
+    } else {
+      rows.push({
+        label: `${contribution} (${t("pdf.cassa.excluded")})`,
+        value: money(totals.contributionCents),
+      });
+    }
   }
   rows.push({ label: t("pdf.vat"), value: money(totals.vatCents) });
   if (totals.stampCents > 0) {
@@ -155,7 +170,19 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
   }
   rows.push({ label: t("pdf.documentTotal"), value: money(totals.documentTotalCents) });
   if (totals.ritenutaCents > 0) {
-    rows.push({ label: t("pdf.withheld"), value: `-${money(totals.ritenutaCents)}` });
+    const calc = {
+      rate: number.format(totals.ritenutaRateBp / 100),
+      share: number.format(totals.ritenutaShareBp / 100),
+      subject: money(totals.ritenutaSubjectCents),
+      base: money(totals.ritenutaBaseCents),
+    };
+    rows.push({
+      label: t(
+        totals.ritenutaShareBp === 10000 ? "pdf.withheldCalc" : "pdf.withheldCalcShare",
+        calc,
+      ),
+      value: `-${money(totals.ritenutaCents)}`,
+    });
   }
   rows.push({
     label: t(credit ? "pdf.creditDue" : "pdf.amountDue"),
@@ -164,12 +191,7 @@ export function buildInvoicePdfModel(input: InvoicePdfInput, t: TFunction): Invo
   });
 
   const ritenuta = data.ritenuta
-    ? t(data.ritenuta.baseBp === 10000 ? "pdf.ritenuta" : "pdf.ritenutaShare", {
-        base: number.format(data.ritenuta.baseBp / 100),
-        type: data.ritenuta.type,
-        rate: number.format(data.ritenuta.rateBp / 100),
-        causale: data.ritenuta.causale,
-      })
+    ? t("pdf.ritenuta", { type: data.ritenuta.type, causale: data.ritenuta.causale })
     : null;
 
   const payment: PdfRow[] = [];

@@ -43,7 +43,7 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
 - Errors: API failures are problem+json built with `ApiError` (`src/shared/errors.ts`); a missing
   secret names the variable and its `wrangler secret put` fix. Every error code has a README anchor.
 - Routes are code-based TanStack Router in `src/client/router.tsx`; status label/colour/icon live
-  only in `src/client/lib/status.ts`; use the base components in `components/ui/`.
+  only in `src/client/lib/status.ts`; use the base components in `components/ui/` (`Disclosure` for collapsible sections).
 - Transient feedback (saved, action failed) goes through `toast()` from `components/ui/toast.tsx`, never a page banner; `Banner` is for persistent page messages.
 - Security: the CSP in `src/shared/csp.ts` must equal `public/_headers` (tested); no inline script,
   `connect-src 'self'`; state-changing `/api/*` calls need a matching `Origin`.
