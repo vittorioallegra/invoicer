@@ -867,7 +867,7 @@
       "unsupported": "not supported by the server",
       "skipped": "not reached"
     },
-    "quota": "Mailbox use: {{used}} MB of {{limit}} MB."
+    "quotaUsed": "{{used}} MB used of {{limit}} MB"
   },
   "finalize": {
     "title": "Finalize invoice",

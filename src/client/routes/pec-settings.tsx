@@ -20,13 +20,21 @@ interface Features {
 
 const STAGES = ["imapLogin", "mailbox", "quota", "smtpLogin"] as const;
 
-function StageList({ stages }: { stages: PecTestStages }) {
+function StageList({ stages, quota }: { stages: PecTestStages; quota?: PecTestResult["quota"] }) {
   const { t } = useTranslation();
   return (
     <ul className="space-y-1 text-sm" aria-label={t("pec.stagesLabel")}>
       {STAGES.map((stage) => (
         <li key={stage}>
-          {t(`pec.stages.${stage}`)}: <strong>{t(`pec.stageResult.${stages[stage]}`)}</strong>
+          {t(`pec.stages.${stage}`)}:{" "}
+          <strong>
+            {stage === "quota" && quota && stages.quota === "ok"
+              ? t("pec.quotaUsed", {
+                  used: Math.round(quota.usedKb / 1024),
+                  limit: Math.round(quota.limitKb / 1024),
+                })
+              : t(`pec.stageResult.${stages[stage]}`)}
+          </strong>
         </li>
       ))}
     </ul>
@@ -40,7 +48,6 @@ function TestResult({ result }: { result: PecTestResult | null }) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(result.at));
-  const quota = result.quota;
   return (
     <div className="space-y-2">
       {result.ok ? (
@@ -51,15 +58,7 @@ function TestResult({ result }: { result: PecTestResult | null }) {
           {t(`settings.pecErrors.${result.error ?? "connection_failed"}`)}
         </Banner>
       )}
-      <StageList stages={result.stages ?? stagesFromTest(result)} />
-      {quota ? (
-        <p className="text-sm text-muted-foreground">
-          {t("pec.quota", {
-            used: Math.round(quota.usedKb / 1024),
-            limit: Math.round(quota.limitKb / 1024),
-          })}
-        </p>
-      ) : null}
+      <StageList stages={result.stages ?? stagesFromTest(result)} quota={result.quota} />
     </div>
   );
 }

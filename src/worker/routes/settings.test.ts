@@ -259,7 +259,11 @@ describe("PEC connection test and the send gate", () => {
     ]);
     const onboarding = (await owner.json<Onboarding>("/api/onboarding")).body;
     expect(onboarding.send).toEqual({ ready: true, reasons: [] });
-    expect(onboarding.pecTest).toMatchObject({ ok: true, error: null });
+    expect(onboarding.pecTest).toMatchObject({
+      ok: true,
+      error: null,
+      quota: { usedKb: 12288, limitKb: 1048576 },
+    });
     expect(await doneIds()).toContain("pec");
     expect((await loadSendReadiness(bindings)).ready).toBe(true);
   });

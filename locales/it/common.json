@@ -867,7 +867,7 @@
       "unsupported": "non supportato dal server",
       "skipped": "non raggiunto"
     },
-    "quota": "Spazio usato: {{used}} MB su {{limit}} MB."
+    "quotaUsed": "{{used}} MB usati su {{limit}} MB"
   },
   "finalize": {
     "title": "Finalizza la fattura",

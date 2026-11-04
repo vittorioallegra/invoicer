@@ -30,10 +30,17 @@ export function isProfileComplete(
 }
 
 export function pecTestFromRow(
-  row: Pick<typeof schema.settings.$inferSelect, "pecTestAt" | "pecTestOk" | "pecTestError"> | null,
+  row: Pick<
+    typeof schema.settings.$inferSelect,
+    "pecTestAt" | "pecTestOk" | "pecTestError" | "pecTestQuotaUsedKb" | "pecTestQuotaLimitKb"
+  > | null,
 ): PecTestResult | null {
   if (!row?.pecTestAt || row.pecTestOk === null) return null;
-  return { ok: row.pecTestOk, at: row.pecTestAt.getTime(), error: row.pecTestError };
+  const quota =
+    row.pecTestQuotaUsedKb !== null && row.pecTestQuotaLimitKb !== null
+      ? { usedKb: row.pecTestQuotaUsedKb, limitKb: row.pecTestQuotaLimitKb }
+      : null;
+  return { ok: row.pecTestOk, at: row.pecTestAt.getTime(), error: row.pecTestError, quota };
 }
 
 async function loadFacts(env: Bindings, userId: string | null): Promise<OnboardingFacts> {

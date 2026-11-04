@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildChecklist, type OnboardingFacts, sendReadiness } from "./onboarding";
+import { buildChecklist, type OnboardingFacts, sendReadiness, stagesFromTest } from "./onboarding";
 
 const done: OnboardingFacts = {
   passkeyCount: 1,
@@ -69,5 +69,14 @@ describe("buildChecklist", () => {
     const items = buildChecklist({ ...done, profileComplete: false });
     expect(items.find((i) => i.id === "pec")?.done).toBe(true);
     expect(items.find((i) => i.id === "profile")?.done).toBe(false);
+  });
+});
+
+describe("stagesFromTest", () => {
+  it("marks the quota stage ok only when the stored test kept the mailbox space", () => {
+    const quota = { usedKb: 12288, limitKb: 1048576 };
+    expect(stagesFromTest({ ok: true, error: null, quota }).quota).toBe("ok");
+    expect(stagesFromTest({ ok: true, error: null, quota: null }).quota).toBe("skipped");
+    expect(stagesFromTest({ ok: true, error: null }).quota).toBe("skipped");
   });
 });

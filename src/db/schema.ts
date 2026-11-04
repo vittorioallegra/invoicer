@@ -139,6 +139,9 @@ export const settings = sqliteTable(
     pecTestAt: integer("pec_test_at", { mode: "timestamp_ms" }),
     pecTestOk: integer("pec_test_ok", { mode: "boolean" }),
     pecTestError: text("pec_test_error"),
+    /** Mailbox space in KiB the last test read from the server (null: not reported). */
+    pecTestQuotaUsedKb: integer("pec_test_quota_used_kb"),
+    pecTestQuotaLimitKb: integer("pec_test_quota_limit_kb"),
     /** Setup checklist items the owner confirms by hand (set when done, null when pending). */
     adeGuideDoneAt: integer("ade_guide_done_at", { mode: "timestamp_ms" }),
     emailConfiguredAt: integer("email_configured_at", { mode: "timestamp_ms" }),

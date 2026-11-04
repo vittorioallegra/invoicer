@@ -34,19 +34,29 @@ export interface PecTestResult {
   error: string | null;
   /** Per-stage results; present on a fresh run, rebuilt from the error code when stored. */
   stages?: PecTestStages;
-  /** Mailbox quota in KiB when the server reports it (fresh run only). */
+  /** Mailbox space in KiB when the server reported it on the last test. */
   quota?: { usedKb: number; limitKb: number } | null;
 }
 
 /** Stage results for a stored test, which keeps only the first failing stage's code. */
-export function stagesFromTest(result: Pick<PecTestResult, "ok" | "error">): PecTestStages {
+export function stagesFromTest(
+  result: Pick<PecTestResult, "ok" | "error" | "quota">,
+): PecTestStages {
   const skipped: PecTestStages = {
     imapLogin: "skipped",
     mailbox: "skipped",
     quota: "skipped",
     smtpLogin: "skipped",
   };
-  if (result.ok) return { ...skipped, imapLogin: "ok", mailbox: "ok", smtpLogin: "ok" };
+  if (result.ok) {
+    return {
+      ...skipped,
+      imapLogin: "ok",
+      mailbox: "ok",
+      quota: result.quota ? "ok" : "skipped",
+      smtpLogin: "ok",
+    };
+  }
   switch (result.error) {
     case "login_failed":
     case "connection_failed":

@@ -115,6 +115,8 @@ settings.put("/pec-servers", async (c) => {
     pecTestAt: null,
     pecTestOk: null,
     pecTestError: null,
+    pecTestQuotaUsedKb: null,
+    pecTestQuotaLimitKb: null,
   });
   return c.json({ servers: await loadPecServers(c.env) });
 });
@@ -127,6 +129,8 @@ settings.post("/pec-test", async (c) => {
     pecTestAt: at,
     pecTestOk: result.ok,
     pecTestError: result.error,
+    pecTestQuotaUsedKb: result.quota?.usedKb ?? null,
+    pecTestQuotaLimitKb: result.quota?.limitKb ?? null,
   });
   return c.json({ ...result, at: at.getTime() });
 });
