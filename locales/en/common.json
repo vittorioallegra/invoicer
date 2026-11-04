@@ -1002,5 +1002,64 @@
     "emptyBody": "Add a series to number invoices.",
     "conflict_series_in_use": "This series numbered an invoice and cannot be deleted. You can rename it.",
     "conflict_series_default": "The default series cannot be deleted."
+  },
+  "received": {
+    "markPaid": "Mark as paid",
+    "markUnpaid": "Mark as unpaid",
+    "download": "Download original",
+    "list": {
+      "number": "No. {{number}}",
+      "reading": "Reading the invoice…",
+      "readingCount_one": "Reading {{count}} invoice…",
+      "readingCount_other": "Reading {{count}} invoices…",
+      "failed": "This file could not be read",
+      "unreadTitle": "Received invoice"
+    },
+    "docType": {
+      "TD01": "Invoice",
+      "TD02": "Advance invoice",
+      "TD03": "Advance on fees",
+      "TD04": "Credit note",
+      "TD05": "Debit note",
+      "TD06": "Fee invoice",
+      "TD16": "Reverse charge invoice (internal)",
+      "TD17": "Services from abroad",
+      "TD18": "Goods from the EU",
+      "TD19": "Goods from abroad",
+      "TD20": "Self-invoice",
+      "TD24": "Deferred invoice",
+      "TD25": "Deferred invoice (triangular)",
+      "TD26": "Sale of assets",
+      "TD27": "Self-consumption"
+    },
+    "view": {
+      "reading": "Reading the invoice file…",
+      "unreadable": "This file could not be read as an invoice. You can still download the original.",
+      "supplier": "Supplier",
+      "customer": "Customer",
+      "vat": "VAT number",
+      "taxCode": "Tax code",
+      "number": "No. {{number}}",
+      "dated": "Dated {{date}}",
+      "causali": "Notes",
+      "lines": "Lines",
+      "vatOf": "VAT {{vat}}",
+      "vatSummary": "VAT summary",
+      "vatSummaryRow": "{{vat}} on {{taxable}}",
+      "totals": "Totals",
+      "stamp": "Stamp duty",
+      "withholding": "Withholding tax {{type}}",
+      "total": "Total",
+      "payment": "Payment",
+      "method": "Method",
+      "amount": "Amount",
+      "dueDate": "Due date",
+      "bank": "Bank",
+      "linked": "Related invoices",
+      "linkedRow": "No. {{number}} dated {{date}}"
+    }
+  },
+  "import": {
+    "badge": "Imported"
   }
 }

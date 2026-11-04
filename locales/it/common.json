@@ -1002,5 +1002,64 @@
     "emptyBody": "Aggiungi una numerazione per numerare le fatture.",
     "conflict_series_in_use": "Questa numerazione ha già numerato una fattura e non si può eliminare. Puoi rinominarla.",
     "conflict_series_default": "La numerazione predefinita non si può eliminare."
+  },
+  "received": {
+    "markPaid": "Segna come pagata",
+    "markUnpaid": "Segna come non pagata",
+    "download": "Scarica l'originale",
+    "list": {
+      "number": "n. {{number}}",
+      "reading": "Lettura della fattura…",
+      "readingCount_one": "Lettura di {{count}} fattura…",
+      "readingCount_other": "Lettura di {{count}} fatture…",
+      "failed": "Impossibile leggere questo file",
+      "unreadTitle": "Fattura ricevuta"
+    },
+    "docType": {
+      "TD01": "Fattura",
+      "TD02": "Fattura di acconto",
+      "TD03": "Acconto su parcella",
+      "TD04": "Nota di credito",
+      "TD05": "Nota di debito",
+      "TD06": "Parcella",
+      "TD16": "Integrazione fattura reverse charge interno",
+      "TD17": "Integrazione servizi dall'estero",
+      "TD18": "Integrazione beni intracomunitari",
+      "TD19": "Integrazione beni dall'estero",
+      "TD20": "Autofattura",
+      "TD24": "Fattura differita",
+      "TD25": "Fattura differita (triangolare)",
+      "TD26": "Cessione di beni ammortizzabili",
+      "TD27": "Autoconsumo"
+    },
+    "view": {
+      "reading": "Lettura del file della fattura…",
+      "unreadable": "Impossibile leggere questo file come fattura. Puoi comunque scaricare l'originale.",
+      "supplier": "Fornitore",
+      "customer": "Cliente",
+      "vat": "Partita IVA",
+      "taxCode": "Codice fiscale",
+      "number": "n. {{number}}",
+      "dated": "del {{date}}",
+      "causali": "Note",
+      "lines": "Righe",
+      "vatOf": "IVA {{vat}}",
+      "vatSummary": "Riepilogo IVA",
+      "vatSummaryRow": "{{vat}} su {{taxable}}",
+      "totals": "Totali",
+      "stamp": "Bollo",
+      "withholding": "Ritenuta {{type}}",
+      "total": "Totale",
+      "payment": "Pagamento",
+      "method": "Modalità",
+      "amount": "Importo",
+      "dueDate": "Scadenza",
+      "bank": "Banca",
+      "linked": "Fatture collegate",
+      "linkedRow": "n. {{number}} del {{date}}"
+    }
+  },
+  "import": {
+    "badge": "Importata"
   }
 }

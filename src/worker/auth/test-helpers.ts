@@ -41,7 +41,12 @@ export class TestClient {
 
   async request(
     path: string,
-    init: { method?: string; body?: unknown; contentType?: string } = {},
+    init: {
+      method?: string;
+      body?: unknown;
+      contentType?: string;
+      headers?: Record<string, string>;
+    } = {},
   ): Promise<Response> {
     const method = init.method ?? (init.body === undefined ? "GET" : "POST");
     const headers: Record<string, string> = {
@@ -49,6 +54,7 @@ export class TestClient {
       Cookie: [...this.cookies].map(([name, value]) => `${name}=${value}`).join("; "),
     };
     if (method !== "GET") headers.Origin = ORIGIN;
+    Object.assign(headers, init.headers);
     if (init.body !== undefined) headers["Content-Type"] = init.contentType ?? "application/json";
     const response = await createApp().request(
       `${ORIGIN}${path}`,
@@ -73,7 +79,12 @@ export class TestClient {
 
   async json<T = Record<string, unknown>>(
     path: string,
-    init: { method?: string; body?: unknown; contentType?: string } = {},
+    init: {
+      method?: string;
+      body?: unknown;
+      contentType?: string;
+      headers?: Record<string, string>;
+    } = {},
   ): Promise<{ status: number; body: T }> {
     const response = await this.request(path, init);
     return { status: response.status, body: (await response.json().catch(() => null)) as T };

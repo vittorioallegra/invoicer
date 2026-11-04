@@ -11,3 +11,10 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (response.status === 204) return null as T;
   return (await response.json()) as T;
 }
+
+/** Same-origin download of a stored file as bytes (the viewer reads originals in the browser). */
+export async function apiBytes(path: string): Promise<Uint8Array> {
+  const response = await fetch(path, { credentials: "same-origin" });
+  if (!response.ok) throw await readApiError(response);
+  return new Uint8Array(await response.arrayBuffer());
+}

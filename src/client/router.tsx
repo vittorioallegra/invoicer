@@ -16,10 +16,12 @@ import { InvoiceEditorPage } from "./routes/invoice-editor";
 import { InvoicesPage, validateInvoicesSearch } from "./routes/invoices";
 import { LoginPage } from "./routes/login";
 import { NumberingPage } from "./routes/numbering";
-import { NotFoundPage, ReceivedPage } from "./routes/pages";
+import { NotFoundPage } from "./routes/pages";
 import { PaymentMethodsPage } from "./routes/payment-methods";
 import { PecSettingsPage } from "./routes/pec-settings";
 import { ProfilePage } from "./routes/profile";
+import { ReceivedPage } from "./routes/received";
+import { ReceivedDetailPage } from "./routes/received-detail";
 import { SettingsPage } from "./routes/settings";
 import { SetupPage } from "./routes/setup";
 import { SpikePage } from "./routes/spike";
@@ -59,6 +61,11 @@ const routeTree = rootRoute.addChildren([
     },
   }),
   createRoute({ getParentRoute: () => rootRoute, path: "/received", component: ReceivedPage }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/received/$receivedId",
+    component: ReceivedDetailPage,
+  }),
   createRoute({ getParentRoute: () => rootRoute, path: "/clients", component: ClientsPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: SettingsPage }),
   createRoute({

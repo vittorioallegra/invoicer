@@ -10,9 +10,9 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { INVOICE_STATES, PAYMENT_STATES } from "../shared/invoice-state";
+import { MAX_FILE_BYTES } from "../shared/limits";
 
-/** Maximum size of one stored file (D1 row limit headroom); see the storage interface. */
-export const MAX_FILE_BYTES = 2 * 1024 * 1024;
+export { MAX_FILE_BYTES };
 
 export const DOCUMENT_TYPES = ["TD01", "TD04"] as const;
 export const INVOICE_SOURCES = ["app", "imported"] as const;
@@ -378,8 +378,13 @@ export const receivedInvoices = sqliteTable(
     parseStatus: text("parse_status", { enum: PARSE_STATUSES }).notNull().default("pending"),
     fileId: text("file_id").references(() => files.id),
     supplierName: text("supplier_name"),
+    /** Supplier tax identifier (VAT id with country, else codice fiscale) as read from the file. */
+    supplierVat: text("supplier_vat"),
     number: text("number"),
     issueDate: text("issue_date"),
+    /** SdI document type of the first document (TD01, TD04, ...); null until the file is read. */
+    documentType: text("document_type"),
+    currency: text("currency").notNull().default("EUR"),
     totalCents: integer("total_cents"),
     paymentFlag: text("payment_flag", { enum: PAYMENT_STATES }).notNull().default("unpaid"),
     paidDate: text("paid_date"),
