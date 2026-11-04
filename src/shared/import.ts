@@ -32,8 +32,10 @@ export const IMPORT_REASONS = [
   "unreadable",
   "unsupported_document_type",
   "multiple_documents",
-  /** An issued-invoice import file whose supplier is not the owner (or a received one that is). */
-  "wrong_party",
+  /** An issued-invoice file whose supplier is not the owner. */
+  "not_issued_by_owner",
+  /** A received-invoice file whose supplier is the owner (it belongs with the issued invoices). */
+  "issued_by_owner",
   "too_large",
   "empty_archive",
   "server_error",

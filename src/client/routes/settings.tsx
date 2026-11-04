@@ -25,6 +25,7 @@ const SECTIONS = [
   { to: "/settings/pec", key: "pec" },
   { to: "/settings/email", key: "email" },
   { to: "/settings/ade-guide", key: "ade" },
+  { to: "/import", key: "import" },
 ] as const;
 
 function LanguageSection() {

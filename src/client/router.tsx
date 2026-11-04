@@ -12,7 +12,9 @@ import { AdeGuidePage } from "./routes/ade-guide";
 import { ClientsPage } from "./routes/clients";
 import { EmailSettingsPage } from "./routes/email-settings";
 import { HomePage } from "./routes/home";
+import { ImportPage, validateImportSearch } from "./routes/import";
 import { InvoiceEditorPage } from "./routes/invoice-editor";
+import { InvoicePage } from "./routes/invoice-page";
 import { InvoicesPage, validateInvoicesSearch } from "./routes/invoices";
 import { LoginPage } from "./routes/login";
 import { NumberingPage } from "./routes/numbering";
@@ -67,6 +69,12 @@ const routeTree = rootRoute.addChildren([
     component: ReceivedDetailPage,
   }),
   createRoute({ getParentRoute: () => rootRoute, path: "/clients", component: ClientsPage }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/import",
+    validateSearch: validateImportSearch,
+    component: ImportPage,
+  }),
   createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: SettingsPage }),
   createRoute({
     getParentRoute: () => rootRoute,
@@ -119,7 +127,7 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/invoices/$invoiceId",
-    component: InvoiceEditorPage,
+    component: InvoicePage,
   }),
 ]);
 

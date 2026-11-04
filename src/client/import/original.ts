@@ -1,5 +1,5 @@
 import type { ReceivedInvoice } from "../../shared/fatturapa";
-import { apiBytes } from "../lib/api";
+import { apiFile } from "../lib/api";
 import { invoiceAttachments } from "./eml";
 import { parseInvoiceFile } from "./read";
 
@@ -19,11 +19,11 @@ export async function loadOriginal(
   fileName: string,
   kind: string,
 ): Promise<OriginalInvoice> {
-  const stored = await apiBytes(url);
-  let name = fileName;
-  let bytes = stored;
+  const stored = await apiFile(url);
+  let name = stored.fileName ?? fileName;
+  let bytes = stored.bytes;
   if (kind === "pec_raw") {
-    const [attachment] = await invoiceAttachments(stored);
+    const [attachment] = await invoiceAttachments(stored.bytes);
     if (!attachment) throw new Error("no_invoice_in_message");
     name = attachment.name;
     bytes = attachment.bytes;

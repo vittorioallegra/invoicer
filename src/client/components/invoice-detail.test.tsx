@@ -11,6 +11,7 @@ vi.mock("../lib/api", () => ({ api: mocks.api }));
 
 const base: InvoiceRecord = {
   id: "i1",
+  source: "app",
   documentType: "TD01",
   state: "sending",
   paymentFlag: "unpaid",

@@ -1,14 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Inbox, LoaderCircle } from "lucide-react";
+import { FileUp, Inbox, LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
 import type { ReceivedInvoiceRecord } from "../../shared/received";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
-import { Button } from "../components/ui/button";
+import { Button, buttonVariants } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
-import { StatusBadge } from "../components/ui/status-badge";
+import { ImportedBadge, StatusBadge } from "../components/ui/status-badge";
 import { receivedListQuery } from "../lib/received-api";
 import { useReadPending } from "../lib/use-read-pending";
 
@@ -48,11 +48,7 @@ function Row({ item, locale }: { item: ReceivedInvoiceRecord; locale: UiLocale }
               : formatMoney(credit ? -item.totalCents : item.totalCents, locale, item.currency)}
           </span>
           <span className="flex flex-wrap justify-end gap-1">
-            {item.source === "import" ? (
-              <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                {t("import.badge")}
-              </span>
-            ) : null}
+            {item.source === "import" ? <ImportedBadge /> : null}
             {item.parseStatus === "parsed" && !credit ? (
               <StatusBadge status={item.paymentFlag} />
             ) : null}
@@ -69,8 +65,18 @@ export function ReceivedPage() {
   const query = useQuery(receivedListQuery);
   const { reading, remaining } = useReadPending(query.data?.received);
   const items = query.data?.received ?? [];
+  const importLink = (
+    <Link
+      to="/import"
+      search={{ kind: "received" }}
+      className={buttonVariants({ variant: "secondary", size: "sm", className: "w-fit" })}
+    >
+      <FileUp aria-hidden />
+      {t("received.import")}
+    </Link>
+  );
   return (
-    <Page title={t("pages.received.title")}>
+    <Page title={t("pages.received.title")} aside={importLink}>
       {query.isPending ? (
         <p role="status" className="text-sm text-muted-foreground">
           {t("common.loading")}

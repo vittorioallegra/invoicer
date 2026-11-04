@@ -184,6 +184,10 @@
       "numbering": {
         "title": "Numerazioni",
         "body": "Serie separate di numeri di fattura"
+      },
+      "import": {
+        "title": "Importa",
+        "body": "Porta fatture ricevute, fatture emesse in passato e clienti da file."
       }
     },
     "unmatched": {
@@ -1057,9 +1061,56 @@
       "bank": "Banca",
       "linked": "Fatture collegate",
       "linkedRow": "n. {{number}} del {{date}}"
-    }
+    },
+    "import": "Importa file"
   },
   "import": {
-    "badge": "Importata"
+    "badge": "Importata",
+    "title": "Importa",
+    "kinds": {
+      "received": "Fatture ricevute",
+      "issued": "Fatture emesse",
+      "clients": "Clienti"
+    },
+    "received": {
+      "intro": "Importa le fatture dei fornitori ricevute prima di usare l'app: file XML FatturaPA o P7M firmati, oppure lo ZIP scaricabile dal portale dell'Agenzia delle Entrate."
+    },
+    "issued": {
+      "intro": "Importa le fatture emesse in precedenza (per esempio l'esportazione di Fatture in Cloud o lo ZIP del portale dell'Agenzia delle Entrate) come XML, P7M o ZIP. Vengono salvate come consegnate e non si possono modificare; i loro numeri non si possono riutilizzare.",
+      "markPaid": "Segna le fatture importate come pagate",
+      "markPaidHint": "Le fatture precedenti di solito sono già saldate. Disattiva per lasciarle non pagate."
+    },
+    "files": "File",
+    "selected_one": "{{count}} file selezionato",
+    "selected_other": "{{count}} file selezionati",
+    "start": "Importa",
+    "running": "Importazione {{done}} di {{total}}",
+    "noProfile": "Compila prima i dati dell'azienda: servono a distinguere le tue fatture da quelle dei fornitori.",
+    "result": {
+      "summary": "{{imported}} importate, {{skipped}} saltate",
+      "imported": "Importata",
+      "again": "Importa altri file",
+      "open": "Apri"
+    },
+    "detail": {
+      "no_client": "nessun cliente collegato, i dati del cliente nel file sono incompleti"
+    },
+    "reason": {
+      "duplicate": "Già importata.",
+      "number_conflict": "Il numero {{number}} è già usato da un'altra fattura nella stessa serie e nello stesso anno.",
+      "unreadable": "Non è una fattura FatturaPA leggibile.",
+      "unsupported_document_type": "Il tipo documento {{detail}} non si può importare: solo fatture e note di credito.",
+      "multiple_documents": "Il file contiene più fatture. Importale un file alla volta.",
+      "not_issued_by_owner": "Il fornitore non è la tua azienda, quindi non è una tua fattura emessa.",
+      "issued_by_owner": "Il fornitore è la tua azienda: importala con le fatture emesse.",
+      "too_large": "Il file supera 2 MB, il limite per i file salvati.",
+      "empty_archive": "L'archivio non contiene file di fatture.",
+      "server_error": "Non è stato possibile salvare il file. Riprova."
+    },
+    "view": {
+      "invoice": "Fattura {{number}}",
+      "creditNote": "Nota di credito {{number}}",
+      "readOnly": "Questa fattura è stata importata da un file. Si vede come scritta nel file e non si può modificare; puoi registrare il pagamento."
+    }
   }
 }

@@ -24,6 +24,7 @@ vi.mock("../lib/api", () => ({ api: mocks.api }));
 
 const summary = (over: Partial<InvoiceSummary>): InvoiceSummary => ({
   id: "i1",
+  source: "app",
   documentType: "TD01",
   state: "draft",
   paymentFlag: "unpaid",

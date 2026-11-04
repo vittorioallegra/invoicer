@@ -5,6 +5,7 @@ import type { ZodError } from "zod";
 import * as schema from "../../db/schema";
 import type { ClientRecord } from "../../shared/client";
 import { romeDateTime } from "../../shared/cron";
+import { decodeImportMeta, IMPORT_META_HEADER, issuedImportMetaSchema } from "../../shared/import";
 import {
   INVOICE_LIST_SCOPES,
   type InvoiceBody,
@@ -16,9 +17,11 @@ import {
   parseInvoiceDraft,
 } from "../../shared/invoice";
 import { invoiceFiltersSchema } from "../../shared/invoice-filters";
+import { MAX_FILE_BYTES } from "../../shared/limits";
 import { invoicePdfFileName } from "../../shared/pdf-name";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
+import { importIssuedInvoice } from "../invoices/import";
 import {
   defaultSeriesId,
   lastIssueDate,
@@ -143,6 +146,24 @@ invoices.get("/next-number", async (c) => {
   });
 });
 
+/**
+ * Import of a historic issued invoice the browser read from an XML/P7M file: the body is the
+ * original file, the summary travels in a header. Stored `delivered` and read-only; its number
+ * blocks reuse. Answers 200 with the outcome (`imported`, `duplicate` or `number_conflict`).
+ */
+invoices.post("/import", async (c) => {
+  if (Number(c.req.header("Content-Length") ?? 0) > MAX_FILE_BYTES) {
+    throw makeError("payload_too_large");
+  }
+  const content = new Uint8Array(await c.req.arrayBuffer());
+  if (content.byteLength > MAX_FILE_BYTES) throw makeError("payload_too_large");
+  if (content.byteLength === 0) throw makeError("bad_request", "body: invalid");
+  const meta = issuedImportMetaSchema.safeParse(decodeImportMeta(c.req.header(IMPORT_META_HEADER)));
+  if (!meta.success) throw makeError("bad_request", `${IMPORT_META_HEADER}: invalid`);
+  const outcome = await importIssuedInvoice(c.env.DB, content, meta.data);
+  return c.json(outcome, outcome.outcome === "imported" ? 201 : 200);
+});
+
 invoices.post("/", async (c) => {
   const { body, editorForm } = await readBody(c);
   const id = await createInvoice(c.env.DB, await resolveReferences(c.env.DB, body), { editorForm });
@@ -196,9 +217,29 @@ invoices.patch("/:id", async (c) => {
   return c.json({ invoice: await requireInvoice(c.env.DB, id) });
 });
 
+/** The original file of an imported invoice (the XML or P7M it was read from). */
+invoices.get("/:id/original", async (c) => {
+  const row = await c.env.DB.prepare(
+    "SELECT id FROM files WHERE invoice_id = ? AND kind = 'import' ORDER BY created_at DESC LIMIT 1",
+  )
+    .bind(c.req.param("id"))
+    .first<{ id: string }>();
+  const file = row ? await createD1FileStorage(c.env.DB).get(row.id) : null;
+  if (!file) throw makeError("not_found");
+  return new Response(file.content, {
+    headers: {
+      "Content-Type": file.contentType,
+      "Content-Disposition": `attachment; filename="${file.filename.replaceAll('"', "")}"`,
+      "Content-Length": String(file.size),
+      "Cache-Control": "private, no-store",
+    },
+  });
+});
+
 /** A new draft with the content of this invoice (no number, no dates, unpaid). */
 invoices.post("/:id/duplicate", async (c) => {
   const source = await requireInvoice(c.env.DB, c.req.param("id"));
+  if (source.source === "imported") throw makeError("conflict", "imported_invoice_readonly");
   const id = await createInvoice(c.env.DB, recordToBody(source));
   return c.json({ invoice: await requireInvoice(c.env.DB, id) }, 201);
 });
@@ -206,6 +247,7 @@ invoices.post("/:id/duplicate", async (c) => {
 /** A credit note (TD04) draft for an issued invoice, with its lines for a partial credit. */
 invoices.post("/:id/credit-note", async (c) => {
   const source = await requireInvoice(c.env.DB, c.req.param("id"));
+  if (source.source === "imported") throw makeError("conflict", "imported_invoice_readonly");
   if (source.documentType !== "TD01") throw makeError("conflict", "credit_note_of_credit_note");
   if (source.state !== "delivered" && source.state !== "not_delivered") {
     throw makeError("conflict", "invoice_not_issued");

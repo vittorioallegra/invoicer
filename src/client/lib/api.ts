@@ -12,9 +12,18 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await response.json()) as T;
 }
 
-/** Same-origin download of a stored file as bytes (the viewer reads originals in the browser). */
-export async function apiBytes(path: string): Promise<Uint8Array> {
+/**
+ * Same-origin download of a stored file: its bytes and the file name the Worker gave it
+ * (`Content-Disposition`), when it sent one. The viewer reads originals in the browser.
+ */
+export async function apiFile(
+  path: string,
+): Promise<{ bytes: Uint8Array; fileName: string | null }> {
   const response = await fetch(path, { credentials: "same-origin" });
   if (!response.ok) throw await readApiError(response);
-  return new Uint8Array(await response.arrayBuffer());
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  return {
+    bytes: new Uint8Array(await response.arrayBuffer()),
+    fileName: /filename="([^"]+)"/.exec(disposition)?.[1] ?? null,
+  };
 }

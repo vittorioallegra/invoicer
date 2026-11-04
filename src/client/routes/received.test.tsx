@@ -9,7 +9,7 @@ import type { ReceivedInvoiceRecord } from "../../shared/received";
 import { createI18n } from "../i18n";
 import { createAppRouter } from "../router";
 
-const mocks = vi.hoisted(() => ({ api: vi.fn(), apiBytes: vi.fn() }));
+const mocks = vi.hoisted(() => ({ api: vi.fn(), apiFile: vi.fn() }));
 
 vi.mock("../lib/auth-client", () => ({
   authClient: {
@@ -21,7 +21,7 @@ vi.mock("../lib/auth-client", () => ({
     }),
   },
 }));
-vi.mock("../lib/api", () => ({ api: mocks.api, apiBytes: mocks.apiBytes }));
+vi.mock("../lib/api", () => ({ api: mocks.api, apiFile: mocks.apiFile }));
 
 const fixture = (name: string) =>
   new Uint8Array(readFileSync(resolve(process.cwd(), "src/client/import/fixtures", name)));
@@ -60,13 +60,16 @@ async function renderAt(path: string) {
 
 beforeEach(() => {
   mocks.api.mockReset();
-  mocks.apiBytes.mockReset();
+  mocks.apiFile.mockReset();
 });
 afterEach(cleanup);
 
 describe("received invoices (AC 10)", () => {
   it("reads a P7M delivered by the mailbox poll and lists supplier, number, date and total of the source XML", async () => {
-    mocks.apiBytes.mockResolvedValue(fixture("IT01234567890_FPR01.xml.p7m"));
+    mocks.apiFile.mockResolvedValue({
+      bytes: fixture("IT01234567890_FPR01.xml.p7m"),
+      fileName: null,
+    });
     let stored = record({});
     const reported: unknown[] = [];
     mocks.api.mockImplementation(
@@ -104,7 +107,10 @@ describe("received invoices (AC 10)", () => {
   });
 
   it("marks a file that is not an invoice as failed instead of retrying", async () => {
-    mocks.apiBytes.mockResolvedValue(new TextEncoder().encode("not an invoice"));
+    mocks.apiFile.mockResolvedValue({
+      bytes: new TextEncoder().encode("not an invoice"),
+      fileName: null,
+    });
     const reported: unknown[] = [];
     let stored = record({ original: { fileName: "x.xml", kind: "received", size: 14 } });
     mocks.api.mockImplementation(
@@ -124,7 +130,10 @@ describe("received invoices (AC 10)", () => {
   });
 
   it("shows the readable invoice and a download of the original", async () => {
-    mocks.apiBytes.mockResolvedValue(fixture("IT01234567890_FPR01.xml.p7m"));
+    mocks.apiFile.mockResolvedValue({
+      bytes: fixture("IT01234567890_FPR01.xml.p7m"),
+      fileName: null,
+    });
     mocks.api.mockImplementation(async (path: string) => {
       if (path === "/api/received/r1") {
         return {

@@ -8,7 +8,7 @@ import { invoicesQuery, releaseNumber } from "../lib/invoices-api";
 import { useOnline } from "../lib/online";
 import { Banner } from "./ui/banner";
 import { Button } from "./ui/button";
-import { StatusBadge } from "./ui/status-badge";
+import { ImportedBadge, StatusBadge } from "./ui/status-badge";
 import { toast } from "./ui/toast";
 
 function useLocale(): UiLocale {
@@ -70,6 +70,7 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
                 )}
           </span>
           <span className="flex flex-wrap justify-end gap-1">
+            {invoice.source === "imported" ? <ImportedBadge /> : null}
             <StatusBadge status={invoice.state} />
             {payable ? <StatusBadge status={invoice.paymentFlag} /> : null}
           </span>

@@ -23,6 +23,7 @@ import { makeError } from "../problem";
 
 interface InvoiceRow {
   id: string;
+  source: "app" | "imported";
   document_type: "TD01" | "TD04";
   state: InvoiceState;
   payment_flag: "unpaid" | "paid";
@@ -45,7 +46,7 @@ interface InvoiceRow {
   reissues_invoice_id: string | null;
 }
 
-const SELECT = `SELECT i.id, i.document_type, i.state, i.payment_flag, i.paid_date, i.client_id,
+const SELECT = `SELECT i.id, i.source, i.document_type, i.state, i.payment_flag, i.paid_date, i.client_id,
   c.name AS client_name, i.number_raw, i.number_int, i.requested_number_int, i.series_id, i.year, i.issue_date, i.planned_date,
   i.due_date, i.currency, i.data, i.total_cents, i.editor_form, i.linked_invoice_id,
   i.reissues_invoice_id
@@ -183,6 +184,7 @@ export async function loadInvoice(
   const data = invoiceDataSchema.safeParse(row.data ? JSON.parse(row.data) : null);
   return {
     id: row.id,
+    source: row.source,
     documentType: row.document_type,
     state: row.state,
     paymentFlag: effectivePayment(row, romeDateTime(now).date),
@@ -266,6 +268,7 @@ async function summarize(
   }
   return shown.map((row) => ({
     id: row.id,
+    source: row.source,
     documentType: row.document_type,
     state: row.state,
     paymentFlag: effectivePayment(row, today),

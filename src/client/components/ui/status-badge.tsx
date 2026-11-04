@@ -32,3 +32,18 @@ export function StatusBadge({
     </span>
   );
 }
+
+/** Marks an invoice that was read from a file instead of being issued in the app. */
+export function ImportedBadge({ className }: { className?: string }) {
+  const { t } = useTranslation();
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground",
+        className,
+      )}
+    >
+      {t("import.badge")}
+    </span>
+  );
+}

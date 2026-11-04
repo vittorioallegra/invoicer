@@ -428,6 +428,8 @@ export const SDI_ERROR_FIELDS: Readonly<Record<string, "client" | "lines">> = {
 /** An invoice as the API returns it. */
 export interface InvoiceRecord {
   id: string;
+  /** `imported` = a historic invoice read from a file: stored `delivered` and read-only. */
+  source: "app" | "imported";
   documentType: "TD01" | "TD04";
   state: InvoiceState;
   /** Stored flag with `overdue` derived: unpaid, issued and past its due date. */
@@ -468,6 +470,7 @@ export interface InvoiceRecord {
 export type InvoiceSummary = Pick<
   InvoiceRecord,
   | "id"
+  | "source"
   | "documentType"
   | "state"
   | "paymentFlag"

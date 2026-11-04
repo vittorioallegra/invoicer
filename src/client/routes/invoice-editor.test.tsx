@@ -130,6 +130,7 @@ const ready = { ready: true, reasons: [] };
 function record(over: Partial<InvoiceRecord> = {}): InvoiceRecord {
   return {
     id: "i1",
+    source: "app",
     documentType: "TD01",
     state: "draft",
     paymentFlag: "unpaid",

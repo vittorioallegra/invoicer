@@ -184,6 +184,10 @@
       "numbering": {
         "title": "Numbering series",
         "body": "Separate series of invoice numbers"
+      },
+      "import": {
+        "title": "Import",
+        "body": "Bring in received invoices, historic issued invoices and clients from files."
       }
     },
     "unmatched": {
@@ -1057,9 +1061,56 @@
       "bank": "Bank",
       "linked": "Related invoices",
       "linkedRow": "No. {{number}} dated {{date}}"
-    }
+    },
+    "import": "Import files"
   },
   "import": {
-    "badge": "Imported"
+    "badge": "Imported",
+    "title": "Import",
+    "kinds": {
+      "received": "Received invoices",
+      "issued": "Issued invoices",
+      "clients": "Clients"
+    },
+    "received": {
+      "intro": "Import supplier invoices you received before you started using the app: FatturaPA XML or signed P7M files, or the ZIP you can download from the Agenzia delle Entrate portal."
+    },
+    "issued": {
+      "intro": "Import your earlier issued invoices (for example the export from Fatture in Cloud or the ZIP from the Agenzia delle Entrate portal) as XML, P7M or ZIP. They are stored as delivered and cannot be changed; their numbers cannot be used again.",
+      "markPaid": "Mark the imported invoices as paid",
+      "markPaidHint": "Earlier invoices are usually settled. Turn this off to keep them unpaid."
+    },
+    "files": "Files",
+    "selected_one": "{{count}} file selected",
+    "selected_other": "{{count}} files selected",
+    "start": "Import",
+    "running": "Importing {{done}} of {{total}}",
+    "noProfile": "Fill in your company details first: they tell your own invoices from your suppliers' ones.",
+    "result": {
+      "summary": "{{imported}} imported, {{skipped}} skipped",
+      "imported": "Imported",
+      "again": "Import more files",
+      "open": "Open"
+    },
+    "detail": {
+      "no_client": "no client was linked, the customer in the file is incomplete"
+    },
+    "reason": {
+      "duplicate": "Already imported.",
+      "number_conflict": "Number {{number}} is already used by another invoice in the same series and year.",
+      "unreadable": "This is not a readable FatturaPA invoice.",
+      "unsupported_document_type": "Document type {{detail}} cannot be imported: only invoices and credit notes.",
+      "multiple_documents": "The file holds several invoices. Import them one file at a time.",
+      "not_issued_by_owner": "The supplier is not your company, so this is not one of your issued invoices.",
+      "issued_by_owner": "The supplier is your company: import it with the issued invoices.",
+      "too_large": "The file is larger than 2 MB, the limit for stored files.",
+      "empty_archive": "The archive has no invoice files.",
+      "server_error": "The file could not be stored. Try again."
+    },
+    "view": {
+      "invoice": "Invoice {{number}}",
+      "creditNote": "Credit note {{number}}",
+      "readOnly": "This invoice was imported from a file. It is shown as written in the file and cannot be changed; you can record its payment."
+    }
   }
 }
