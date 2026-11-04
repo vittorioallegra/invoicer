@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
 import {
   addVirtualAuthenticator,
+  auditLayout,
   CLIENT,
   configureEmail,
   createClient,
@@ -119,4 +120,79 @@ test("flow: rejected by the SdI, fixed and resent with a new file name, then del
   await deliver(page, origin, [{ type: "RC", fileName: secondFile }]);
   await page.reload();
   await expect(page.getByText("Delivered", { exact: true })).toBeVisible();
+});
+
+// protects=every main screen is usable at 375 px: no horizontal scroll, every control has an
+// accessible name, tap targets are at least 24 x 24 px (AC 18); fails_when=a screen overflows,
+// an icon-only control has no name or a control is too small to tap; no_claim=nothing about
+// real devices, Safari, safe areas or how the screens look (only these three measurable rules).
+test("at 375 px every main screen has no overflow, named controls and tappable targets", async ({
+  browser,
+}) => {
+  const phone = await browser.newContext({
+    baseURL: origin,
+    viewport: { width: 375, height: 812 },
+    deviceScaleFactor: 2,
+    isMobile: true,
+    hasTouch: true,
+    storageState: await context.storageState(),
+  });
+  const view = await phone.newPage();
+  const problems: string[] = [];
+  const check = async (label: string) => {
+    const found = await auditLayout(view);
+    for (const [kind, list] of Object.entries(found)) {
+      for (const item of list) problems.push(`${label} (${kind}): ${item}`);
+    }
+  };
+
+  // Phone pointers get native selects and date inputs; an unsent invoice shows the editor.
+  const draft = await saveInvoice(page, "Draft for the phone check");
+  const screens = [
+    "/",
+    "/invoices",
+    "/invoices/new",
+    `/invoices/${draft}`,
+    `/invoices/${firstInvoiceId}`,
+    "/received",
+    "/clients",
+    "/import",
+    "/recurring",
+    "/notifications",
+    "/settings",
+    "/settings/company",
+    "/settings/tax",
+    "/settings/payment-methods",
+    "/settings/numbering",
+    "/settings/pec",
+    "/settings/email",
+    "/settings/ade-guide",
+    "/settings/notifications",
+  ];
+  for (const path of screens) {
+    await view.goto(path);
+    await expect(view.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(view.getByText("Loading", { exact: true })).toHaveCount(0);
+    await check(path);
+  }
+
+  await view.goto(`/invoices/${draft}`);
+  await view.getByRole("button", { name: "More actions" }).click();
+  await check("invoice menu");
+  await view.keyboard.press("Escape");
+  await view.getByRole("button", { name: "Finalize" }).click();
+  await expect(view.getByRole("dialog", { name: "Finalize invoice" })).toBeVisible();
+  await check("finalize dialog");
+  await view.keyboard.press("Escape");
+
+  await view.goto("/clients");
+  await view
+    .getByRole("button", { name: /add|new/i })
+    .first()
+    .click();
+  await expect(view.getByRole("dialog", { name: "New client" })).toBeVisible();
+  await check("client sheet");
+
+  await phone.close();
+  expect(problems).toEqual([]);
 });

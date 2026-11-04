@@ -157,3 +157,67 @@ export async function deliver(page: Page, origin: string, deliveries: Delivery[]
   });
   expect(response.ok()).toBe(true);
 }
+
+export interface LayoutProblems {
+  overflow: string[];
+  unnamed: string[];
+  small: string[];
+}
+
+/**
+ * Looks at the current screen for what breaks at phone width: horizontal page overflow (and the
+ * elements that stick out), interactive controls without an accessible name, and tap targets
+ * under 24 x 24 px (WCAG 2.2 AA minimum; inline links inside a sentence are exempt).
+ */
+export async function auditLayout(page: Page): Promise<LayoutProblems> {
+  return page.evaluate(() => {
+    const doc = document.documentElement;
+    const width = doc.clientWidth;
+    const nameOf = (el: Element) => {
+      const text = (el.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 30);
+      const cls =
+        typeof el.className === "string" ? el.className.split(" ").slice(0, 3).join(".") : "";
+      return `${el.tagName.toLowerCase()}${cls ? `.${cls}` : ""}${text ? ` "${text}"` : ""}`;
+    };
+    const visible = (el: Element) => {
+      const rect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden";
+    };
+    const overflow: string[] = [];
+    if (doc.scrollWidth > width) {
+      overflow.push(`page scrollWidth ${doc.scrollWidth} > ${width}`);
+      for (const el of document.body.querySelectorAll("*")) {
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 0 && rect.right > width + 1) overflow.push(nameOf(el));
+        if (overflow.length > 8) break;
+      }
+    }
+    const controls = document.querySelectorAll(
+      "button, a[href], input:not([type=hidden]), select, textarea, [role=button], [role=combobox], [role=menuitem], [role=radio], [role=checkbox], [role=switch]",
+    );
+    const unnamed: string[] = [];
+    const small: string[] = [];
+    for (const el of controls) {
+      if (!visible(el) || el.closest("[aria-hidden=true]")) continue;
+      const labelled = (el as HTMLInputElement).labels?.length;
+      const name =
+        el.getAttribute("aria-label") ||
+        el.getAttribute("title") ||
+        (el.getAttribute("aria-labelledby") &&
+          document.getElementById(el.getAttribute("aria-labelledby") as string)?.textContent) ||
+        labelled ||
+        (el.textContent ?? "").trim();
+      if (!name) unnamed.push(nameOf(el));
+      // A checkbox or radio is tapped through its label row.
+      const isToggle = el.matches("input[type=checkbox], input[type=radio]");
+      const target = (isToggle && (el as HTMLInputElement).labels?.[0]) || el;
+      const rect = target.getBoundingClientRect();
+      const inline = el.tagName === "A" && getComputedStyle(el).display === "inline";
+      if (!inline && (rect.width < 24 || rect.height < 24)) {
+        small.push(`${Math.round(rect.width)}x${Math.round(rect.height)} ${nameOf(el)}`);
+      }
+    }
+    return { overflow, unnamed, small };
+  });
+}
