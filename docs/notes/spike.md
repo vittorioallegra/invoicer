@@ -6,7 +6,7 @@ the `/spike` route, `SPIKE_SECRET`); this note is the historical record of what 
 file paths and the owner checklist below refer to code that no longer exists. The PEC IMAP client
 (`src/worker/pec/imap.ts`), `envelope.ts` and `message-fixtures.ts` are not spike code: step 13 builds on
 them. The SdI channel is the owner's PEC mailbox (decision 2026-11-02, replacing Openapi); the app is
-reachable at `https://invoicer.vittorioallegra.com/spike` (custom domain, no workers.dev).
+reachable at `https://<app-domain>/spike` (custom domain, no workers.dev).
 `public/push-sw.js` (push and notification-click handlers) stays: step 18 builds on it.
 
 ## What was built
@@ -96,7 +96,7 @@ tracked files permanently (the temporary config edit is reverted in step 3).
    pnpm run deploy
    git checkout wrangler.jsonc        # drop the local edit afterwards
    ```
-   The Worker is served at the custom domain, `https://invoicer.vittorioallegra.com` (workers.dev is
+   The Worker is served at the custom domain, `https://<app-domain>` (workers.dev is
    disabled). Passkeys are bound to that host name, so they already match the production domain.
 4. **Set the secrets** (after the first deploy; each prompts for the value, then paste):
    ```sh
@@ -112,7 +112,7 @@ tracked files permanently (the temporary config edit is reverted in step 3).
    Hosts and ports default to Aruba's (`imaps.pec.aruba.it:993`, `smtps.pec.aruba.it:465`); override
    with the vars `PEC_IMAP_HOST`, `PEC_IMAP_PORT`, `PEC_SMTP_HOST`, `PEC_SMTP_PORT` only if needed.
    The single PEC password reads the whole mailbox and sends PEC as you: see the security model.
-5. **Mac Safari:** open `https://invoicer.vittorioallegra.com/spike`, paste `SPIKE_SECRET`, tap **Check gate**: expect
+5. **Mac Safari:** open `https://<app-domain>/spike`, paste `SPIKE_SECRET`, tap **Check gate**: expect
    `PASS Gate / ping`. A wrong secret gives 404, an unset secret 503 naming `SPIKE_SECRET`.
 6. **iPhone:** open the URL in Safari, Share > **Add to Home Screen**, then open the app from the
    Home screen icon (push only works there). Paste the secret, tap **Check gate**.
@@ -166,7 +166,7 @@ tracked files permanently (the temporary config edit is reverted in step 3).
 
 ### Results (2026-11-02)
 
-Device checks, run by the owner on the deployed Worker (`https://invoicer.vittorioallegra.com/spike`):
+Device checks, run by the owner on the deployed Worker (`https://<app-domain>/spike`):
 
 | Check | iPhone Home screen PWA (iOS 27) | Mac Safari | Notes |
 |-------|---------------------------------|------------|-------|

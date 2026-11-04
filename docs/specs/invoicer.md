@@ -31,13 +31,13 @@ real invoices in December 2026, so the owner can decide whether to cancel FiC.
 ## Deployment model
 
 - **Single-user, self-hosted.** One deployment serves one issuer (one partita IVA). The
-  owner runs it at `invoicer.vittorioallegra.com` on their own Cloudflare account, with
+  owner runs it on their own subdomain and Cloudflare account, with
   their own PEC mailbox. Nobody else's data or credentials ever reach it.
 - **Generic code.** The repository is public and contains no owner data: issuer profile,
   domain, sender address and secrets are configuration. Anyone can deploy their own copy
   on their own Cloudflare account, PEC mailbox and domain by following the README.
 - **Running cost:** 0 EUR (Cloudflare free plan, Resend free plan, and the owner's existing
-  PEC mailbox, which the Ordine degli Ingegneri provides on Aruba infrastructure, tied to the
+  PEC mailbox, which a professional association provides on Aruba infrastructure, tied to the
   partita IVA and used for nothing else). No intermediary, no top-up, no per-invoice fee.
 
 ## Architecture (agreed in discussion, details in the plan)
@@ -50,7 +50,7 @@ real invoices in December 2026, so the owner can decide whether to cancel FiC.
 | Files | Cloudflare D1 (BLOBs, max 2 MB each) | Invoice XML, PDF, received invoice files, imports |
 | Scheduled jobs | Cloudflare Cron Triggers | One `*/10 * * * *` trigger: mailbox polling every run; daily jobs (reminders, recurring invoices, quota) at 09:00 Europe/Rome |
 | SdI channel | The owner's PEC mailbox: SMTP send and IMAP polling over `cloudflare:sockets` (`worker-mailer`, `postal-mime`, a minimal in-repo IMAP client); defaults are Aruba's `smtps.pec.aruba.it:465` and `imaps.pec.aruba.it:993` | Send, SdI receipts, received invoices |
-| Email | Resend | Courtesy email from `no-reply@invoicer.vittorioallegra.com` (configurable) |
+| Email | Resend | Courtesy email from `no-reply@<app-domain>` (configurable) |
 | Push | Web Push (VAPID) | Notifications on iPhone (Home screen PWA, iOS 16.4+) and Mac browsers |
 
 The PEC mailbox is reached through a **channel interface**, so other channels can sit
