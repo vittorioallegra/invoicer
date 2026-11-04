@@ -27,11 +27,16 @@ let context: BrowserContext;
 let page: Page;
 let origin: string;
 let firstInvoiceId = "";
+const cspViolations: string[] = [];
 
 test.beforeAll(async ({ browser }, info) => {
   origin = info.project.use.baseURL as string;
   context = await browser.newContext({ baseURL: origin });
   page = await context.newPage();
+  page.on("console", (message) => {
+    // Only blocked requests (connect-src): the dialogs' inline-style warnings are a known, separate issue.
+    if (/connect-src|refused to connect/i.test(message.text())) cspViolations.push(message.text());
+  });
   await addVirtualAuthenticator(page);
 });
 
@@ -75,6 +80,8 @@ test("flow: client, invoice, send with the passkey, receipt, PDF and courtesy em
 
   const pdf = await download("Download PDF");
   expect(pdf.subarray(0, 5).toString()).toBe("%PDF-");
+  // Finalizing rendered the PDF in the browser: its engine must not make a request the CSP blocks.
+  expect(cspViolations).toEqual([]);
   const xml = await download("Download XML");
   expect(xml.toString()).toContain("FatturaElettronica");
 

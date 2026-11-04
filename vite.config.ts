@@ -1,13 +1,35 @@
 import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+
+/**
+ * yoga-layout (the layout engine of @react-pdf/renderer) inlines its WebAssembly as a base64
+ * `data:` URL that Emscripten then fetches, which `connect-src 'self'` blocks (CSP console error).
+ * Hand Emscripten the decoded bytes (`wasmBinary`) so it never fetches the data URL: no network
+ * request, nothing new to precache, and the CSP stays strict.
+ */
+function yogaWasmFromBytes(): Plugin {
+  const dataUrl = /H="data:application\/octet-stream;base64,[A-Za-z0-9+/=]+";/;
+  return {
+    name: "yoga-wasm-from-bytes",
+    transform(code, id) {
+      if (!id.includes("yoga-wasm-base64-esm")) return null;
+      const match = dataUrl.exec(code);
+      if (!match) this.error("yoga-layout no longer inlines its WebAssembly as a data: URL");
+      const decode =
+        "w||(w=Uint8Array.from(atob(H.slice(37)),function(c){return c.charCodeAt(0)}));";
+      return { code: code.replace(match[0], match[0] + decode), map: null };
+    },
+  };
+}
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    yogaWasmFromBytes(),
     // E2E builds swap in tests/e2e/worker/entry.ts (the app plus fake mailbox and Resend routes).
     cloudflare(
       process.env.E2E_WORKER
