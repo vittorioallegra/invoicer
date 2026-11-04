@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { problemSchema } from "../../shared/errors";
 import { type Bindings, pecCredentialStatus } from "../env";
-import { type SendAnswer, verifySendAuthorization } from "./send-authorization";
+import { type SendAnswer, TOTP_MAX_FAILURES, verifySendAuthorization } from "./send-authorization";
 import {
   applyMigrations,
   ORIGIN,
@@ -220,6 +220,44 @@ describe("TOTP fallback", () => {
       ok: false,
       reason: "already_used",
     });
+  });
+
+  it("locks the TOTP after repeated wrong codes, like the sign-in lockout", async () => {
+    await env.DB.prepare("UPDATE two_factor SET failed_verification_count = 0").run();
+    for (let i = 0; i < TOTP_MAX_FAILURES; i++) {
+      const c = await challenge();
+      expect(await verify({ challengeId: c.challengeId, totp: "000000" })).toEqual({
+        ok: false,
+        reason: "invalid_totp",
+      });
+    }
+    // Even the right code is refused while locked.
+    const locked = await challenge();
+    expect(
+      await verify({ challengeId: locked.challengeId, totp: await totpCode(totpUri) }),
+    ).toEqual({ ok: false, reason: "totp_locked" });
+
+    // After the lock the count starts again and a right code clears it.
+    await env.DB.prepare("UPDATE two_factor SET locked_until = ?")
+      .bind(Date.now() - 1)
+      .run();
+    const wrong = await challenge();
+    expect(await verify({ challengeId: wrong.challengeId, totp: "000000" })).toEqual({
+      ok: false,
+      reason: "invalid_totp",
+    });
+    const row = await env.DB.prepare(
+      "SELECT failed_verification_count AS n, locked_until AS until FROM two_factor",
+    ).first<{ n: number; until: number | null }>();
+    expect(row).toEqual({ n: 1, until: null });
+    const ok = await challenge();
+    expect(await verify({ challengeId: ok.challengeId, totp: await totpCode(totpUri) })).toEqual({
+      ok: true,
+      method: "totp",
+    });
+    expect(
+      await env.DB.prepare("SELECT failed_verification_count AS n FROM two_factor").first(),
+    ).toEqual({ n: 0 });
   });
 });
 

@@ -50,7 +50,8 @@ export type RefusalReason =
   | "wrong_xml"
   | "no_answer"
   | "invalid_passkey"
-  | "invalid_totp";
+  | "invalid_totp"
+  | "totp_locked";
 
 export type SendAuthorization =
   | { ok: true; method: "passkey" | "totp" }
@@ -156,7 +157,7 @@ export async function verifySendAuthorization(
   if (input.answer.passkey) {
     return verifyPasskey(env, request, input.userId, claimed.challenge, input.answer.passkey);
   }
-  if (input.answer.totp) return verifyTotp(env, request, input.answer.totp);
+  if (input.answer.totp) return verifyTotp(env, request, input.userId, input.answer.totp);
   return refuse("no_answer");
 }
 
@@ -200,21 +201,57 @@ async function verifyPasskey(
   }
 }
 
-/** Reuses Better Auth's own TOTP check (it decrypts the stored secret), on the owner's session. */
+/** Consecutive wrong send codes that lock the TOTP, and for how long (Better Auth's defaults). */
+export const TOTP_MAX_FAILURES = 10;
+export const TOTP_LOCK_MS = 15 * 60 * 1000;
+
+/**
+ * Reuses Better Auth's own TOTP check (it decrypts the stored secret), on the owner's session.
+ * Called with a session, Better Auth applies neither its rate limit nor its lockout, so a stolen
+ * session could guess codes one challenge at a time; the send keeps the same account lockout on
+ * the `two_factor` row that the sign-in uses (shared counter), and only a verified TOTP counts.
+ */
 async function verifyTotp(
   env: Bindings,
   request: Request,
+  userId: string,
   code: string,
 ): Promise<SendAuthorization> {
+  const now = Date.now();
+  const row = await env.DB.prepare(
+    "SELECT id, verified, locked_until FROM two_factor WHERE user_id = ? LIMIT 1",
+  )
+    .bind(userId)
+    .first<{ id: string; verified: number | null; locked_until: number | null }>();
+  if (!row || row.verified === 0) return refuse("invalid_totp");
+  if (row.locked_until !== null && row.locked_until > now) return refuse("totp_locked");
   try {
     await createAuth(env, request.url).api.verifyTOTP({
       body: { code },
       headers: request.headers,
     });
-    return { ok: true, method: "totp" };
   } catch {
+    // An expired lock starts a fresh count; the failure that reaches the budget locks.
+    await env.DB.prepare(
+      `UPDATE two_factor SET
+         failed_verification_count = (CASE WHEN locked_until IS NOT NULL AND locked_until <= ?2
+           THEN 0 ELSE COALESCE(failed_verification_count, 0) END) + 1,
+         locked_until = CASE
+           WHEN (CASE WHEN locked_until IS NOT NULL AND locked_until <= ?2
+                  THEN 0 ELSE COALESCE(failed_verification_count, 0) END) + 1 >= ?3
+           THEN ?4 ELSE NULL END
+       WHERE id = ?1`,
+    )
+      .bind(row.id, now, TOTP_MAX_FAILURES, now + TOTP_LOCK_MS)
+      .run();
     return refuse("invalid_totp");
   }
+  await env.DB.prepare(
+    "UPDATE two_factor SET failed_verification_count = 0, locked_until = NULL WHERE id = ?",
+  )
+    .bind(row.id)
+    .run();
+  return { ok: true, method: "totp" };
 }
 
 export const sendAuthorization = new Hono<{ Bindings: Bindings; Variables: SessionVariables }>();
