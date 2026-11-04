@@ -119,7 +119,7 @@ export function Toaster() {
           bottom-right on desktop. */}
       <ToastPrimitive.Viewport
         className={cn(
-          "pointer-events-none fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] z-[60] mx-auto flex w-full max-w-sm list-none flex-col gap-2 px-4 outline-none",
+          "pointer-events-none fixed inset-x-0 top-[calc(1rem+env(safe-area-inset-top))] z-[60] mx-auto flex w-full max-w-sm list-none flex-col gap-2 px-4 outline-none",
           "md:inset-x-auto md:top-auto md:right-4 md:bottom-4 md:mx-0 md:w-96 md:max-w-none md:px-0",
         )}
       />
