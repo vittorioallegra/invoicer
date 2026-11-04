@@ -1,3 +1,5 @@
+import { formatDate, type UiLocale } from "./format";
+
 /**
  * Notification kinds the Worker writes. A notification row stores the i18n key of its title
  * (`notifications.<type>.title`) and the interpolation values as JSON in `body`; the client and
@@ -48,4 +50,22 @@ export function notificationPath(type: string, invoiceId: string | null): string
 /** Fills `{{name}}` placeholders (the Worker has no i18n library); missing values become empty. */
 export function fillTemplate(template: string, values: Record<string, unknown>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => String(values[key] ?? ""));
+}
+
+/**
+ * Interpolation values ready to show: a calendar date (`YYYY-MM-DD`, how the Worker stores the
+ * dates in a notification) is written in the reader's language like every other date in the app.
+ */
+export function displayValues(
+  values: Record<string, unknown>,
+  locale: UiLocale,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [
+      key,
+      typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+        ? formatDate(value, locale)
+        : value,
+    ]),
+  );
 }

@@ -1,6 +1,6 @@
 import { notifications as enNotifications } from "../../../locales/en/common.json";
 import { notifications as itNotifications } from "../../../locales/it/common.json";
-import { fillTemplate } from "../../shared/notifications";
+import { displayValues, fillTemplate } from "../../shared/notifications";
 
 export type PushLanguage = "en" | "it";
 
@@ -29,5 +29,5 @@ export function pushText(language: PushLanguage, type: string, body: string | nu
     // Unreadable values: the placeholders are left empty.
   }
   if (!entry) return { title: "Invoicer", body: "" };
-  return { title: entry.title, body: fillTemplate(entry.body, values) };
+  return { title: entry.title, body: fillTemplate(entry.body, displayValues(values, language)) };
 }

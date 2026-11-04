@@ -436,6 +436,7 @@ Approved: yes (2026-11-02)
 - qa: in progress
   - dialogs and sheets did not lock the page scroll: the CSP blocks the inline style react-remove-scroll injects — `fix(client): keep the page from scrolling behind a dialog despite the CSP blocking the scroll lock style`
   - courtesy email ask banner squeezed its text into a narrow column beside the buttons at 375 px — `fix(ui): let a banner's action wrap under its text so the courtesy email ask is readable at 375 px`
+  - notification texts showed dates as 2026-10-01 (list and push) unlike every other date in the app — `fix(notifications): write the dates in a notification in the reader's language instead of as stored`
 - review: pending
 - walkthrough (2026-11-03): done
   - mock channel could not send — `fix(send): treat the mock channel as ready to send`

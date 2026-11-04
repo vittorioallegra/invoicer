@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Bell, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { MAILBOX_NOTIFICATION_TYPES } from "../../shared/notifications";
+import { resolveLocale } from "../../shared/format";
+import { displayValues, MAILBOX_NOTIFICATION_TYPES } from "../../shared/notifications";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button, buttonVariants } from "../components/ui/button";
@@ -37,7 +38,10 @@ function Item({ item, onOpen }: { item: NotificationItem; onOpen: () => void }) 
           {unread ? <span className="sr-only"> ({t("notificationsPage.unread")})</span> : null}
         </span>
         <span className="block text-sm text-muted-foreground">
-          {t(`notifications.${item.type}.body`, { ...item.params, defaultValue: "" })}
+          {t(`notifications.${item.type}.body`, {
+            ...displayValues(item.params, resolveLocale([i18n.language])),
+            defaultValue: "",
+          })}
         </span>
         <span className="block text-xs text-muted-foreground">{when}</span>
       </span>

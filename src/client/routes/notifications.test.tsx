@@ -104,6 +104,22 @@ describe("notification list", () => {
     expect(text).toContain("billing@acme.test");
   });
 
+  // Regression: dates in a notification were shown as stored (2026-06-09), unlike every other date.
+  it.each([
+    ["en", "9 Jun 2026"],
+    ["it", "9 giu 2026"],
+  ] as const)(
+    "writes the dates of a notification like the rest of the app in %s",
+    async (lng, shown) => {
+      list = [item("invoice_overdue")];
+      await renderAt("/notifications", lng);
+      await screen.findAllByText("5/2026", { exact: false });
+      const text = document.body.textContent ?? "";
+      expect(text).toContain(shown);
+      expect(text).not.toContain("2026-06-09");
+    },
+  );
+
   it("links the courtesy email offer to its invoice, where the Review and send card is", async () => {
     list = [
       item("courtesy_email_ask", { invoiceId: "inv-7" }),
