@@ -24,7 +24,6 @@ export interface Bindings {
   /** PEC mailbox login: one password for IMAP, SMTP and webmail (no read/write split). */
   PEC_USERNAME?: string;
   PEC_PASSWORD?: string;
-  SPIKE_SECRET?: string;
   RESEND_API_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
 }
@@ -40,8 +39,6 @@ export const REQUIRED_SECRETS = {
   email: ["RESEND_API_KEY"],
   // Push: required by the actions that subscribe or send (the feature is otherwise off).
   push: ["VAPID_PRIVATE_KEY", "VAPID_PUBLIC_KEY", "VAPID_SUBJECT"],
-  // Temporary risk spike (step 2, removed in step 21).
-  spike: ["SPIKE_SECRET"],
 } as const satisfies Record<string, readonly (keyof Bindings)[]>;
 
 /** Optional features: when their secrets are missing they are "off" (settings banner). */

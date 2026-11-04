@@ -29,17 +29,15 @@ import { ReceivedDetailPage } from "./routes/received-detail";
 import { RecurringPage } from "./routes/recurring";
 import { SettingsPage } from "./routes/settings";
 import { SetupPage } from "./routes/setup";
-import { SpikePage } from "./routes/spike";
 import { TaxPage } from "./routes/tax";
 
 /** Screens without the app shell and without a session: login and first-run setup. */
 const BARE_PATHS = new Set(["/login", "/setup"]);
 
-/** Every other screen needs a session; the temporary spike page has its own secret header. */
+/** Every other screen needs a session. */
 function Root() {
   const pathname = useLocation({ select: (location) => location.pathname });
   if (BARE_PATHS.has(pathname)) return <Outlet />;
-  if (pathname === "/spike") return <AppShell />;
   return (
     <SessionGate>
       <AppShell />
@@ -131,8 +129,6 @@ const routeTree = rootRoute.addChildren([
     path: "/settings/notifications",
     component: NotificationSettingsPage,
   }),
-  // Hidden risk-spike page (step 2), removed in step 21.
-  createRoute({ getParentRoute: () => rootRoute, path: "/spike", component: SpikePage }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/invoices/new",

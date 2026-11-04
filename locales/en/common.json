@@ -53,8 +53,7 @@
       "emptyBody": "Add a client to invoice them."
     },
     "settings": {
-      "title": "Settings",
-      "diagnostics": "Diagnostics"
+      "title": "Settings"
     },
     "notFound": {
       "title": "Page not found",

@@ -111,13 +111,6 @@ export function SettingsPage() {
       <JobsStatus />
       <UnmatchedMessages />
       <DataExport online={online} />
-      {/* Temporary: removed together with the spike page (plan step 21). A plain anchor, not
-          a router link: /spike is a separate hidden page outside the app shell. */}
-      <p className="pt-4 text-sm">
-        <a href="/spike" className="text-muted-foreground underline underline-offset-4">
-          {t("pages.settings.diagnostics")}
-        </a>
-      </p>
     </Page>
   );
 }

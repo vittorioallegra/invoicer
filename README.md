@@ -33,7 +33,6 @@ Worker secrets (set with `wrangler secret put <NAME>`, never committed):
 | `PEC_USERNAME`, `PEC_PASSWORD` | PEC mailbox (IMAP polling, SMTP send); one password for everything, so it can read the whole mailbox and send PEC: use a unique generated one |
 | `RESEND_API_KEY` | courtesy email (optional) |
 | `VAPID_PRIVATE_KEY` | push notifications (optional); one-line JWK from `pnpm exec pushforge vapid` |
-| `SPIKE_SECRET` | temporary risk-spike page `/spike` (step 2, removed in step 21) |
 
 Plain variables: `APP_ORIGIN`, `MAIL_FROM_ADDRESS`, `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, and the
 optional PEC server overrides `PEC_IMAP_HOST`/`PEC_IMAP_PORT` (default `imaps.pec.aruba.it`:993) and
@@ -127,10 +126,6 @@ Skeleton: this section grows with every step; the complete guide is written in s
 - Repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. Repository variables:
   `D1_DATABASE_ID`, `APP_DOMAIN`, `APP_ORIGIN`, `MAIL_FROM_ADDRESS`,
   `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`.
-- First manual deploy (before CI is set up) and the step 2 device checks: follow the owner
-  checklist in `docs/notes/spike.md` (create D1, set secrets, generate VAPID keys, deploy, open
-  `/spike`). The Worker is served on the custom domain (workers.dev is disabled), e.g.
-  `https://invoicer.vittorioallegra.com/spike`.
 - First run (the deploy is public before onboarding): set `BETTER_AUTH_SECRET` (a long random
   string, `openssl rand -base64 32`) and `SETUP_TOKEN` (another one) with `wrangler secret put`,
   open the app (on a fresh database it redirects to `/setup`; locally `pnpm dev`

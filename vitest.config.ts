@@ -23,7 +23,6 @@ export default defineConfig({
                 APP_ORIGIN: "http://localhost",
                 // Hermetic: a local .dev.vars with SEND_CHANNEL=mock must not change the channel.
                 SEND_CHANNEL: "",
-                SPIKE_SECRET: "test-spike-secret",
               },
             },
           }),

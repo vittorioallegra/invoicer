@@ -4,8 +4,7 @@
 //
 // Secrets (set with `wrangler secret put <NAME>`, never in this file):
 //   BETTER_AUTH_SECRET, SETUP_TOKEN, PEC_USERNAME, PEC_PASSWORD,
-//   RESEND_API_KEY (optional: courtesy email), VAPID_PRIVATE_KEY (optional: push),
-//   SPIKE_SECRET (temporary risk spike, step 2)
+//   RESEND_API_KEY (optional: courtesy email), VAPID_PRIVATE_KEY (optional: push)
 // Plain vars (owner-specific, set in the Cloudflare dashboard or via CI):
 //   APP_ORIGIN, MAIL_FROM_ADDRESS, VAPID_PUBLIC_KEY, VAPID_SUBJECT,
 //   PEC_IMAP_HOST / PEC_IMAP_PORT (default imaps.pec.aruba.it:993),

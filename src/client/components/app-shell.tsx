@@ -101,7 +101,6 @@ function BottomTabs() {
       )}
       <nav
         aria-label={t("nav.label")}
-        data-diagnostics="tab-bar"
         className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 transform-gpu border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         {NAV.map(({ to, key, icon: Icon }) => (
@@ -136,10 +135,7 @@ function OfflineBanner() {
 
 export function AppShell() {
   return (
-    <div
-      data-diagnostics="shell-root"
-      className="flex min-h-dvh pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]"
-    >
+    <div className="flex min-h-dvh pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <div
@@ -152,10 +148,7 @@ export function AppShell() {
         </div>
         <OfflineBanner />
         <MailboxAlerts />
-        <main
-          data-diagnostics="main"
-          className="flex-1 px-4 py-6 pb-[calc(8rem+env(safe-area-inset-bottom))] md:px-8 md:pb-8"
-        >
+        <main className="flex-1 px-4 py-6 pb-[calc(8rem+env(safe-area-inset-bottom))] md:px-8 md:pb-8">
           <div className="mx-auto w-full max-w-4xl">
             <Outlet />
           </div>

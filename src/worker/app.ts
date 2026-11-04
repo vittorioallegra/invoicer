@@ -25,7 +25,6 @@ import { send } from "./routes/send";
 import { settings } from "./routes/settings";
 import { tax } from "./routes/tax";
 import { originCheck, securityHeaders } from "./security";
-import { spike } from "./spike/routes";
 
 export function createApp() {
   const app = new Hono<{ Bindings: Bindings }>();
@@ -63,8 +62,6 @@ export function createApp() {
     if (retryAfter) limited.headers.set("Retry-After", retryAfter);
     return limited;
   });
-  // Temporary risk-spike routes (gated by SPIKE_SECRET); removed in step 21.
-  app.route("/api/spike", spike);
 
   // Which optional features and PEC credentials are configured (never returns values).
   app.get("/api/features", (c) =>

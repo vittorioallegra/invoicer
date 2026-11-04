@@ -1,8 +1,9 @@
 # Step 2 — risk spike
 
 Status: code and desk research done (2026-11-02, revised for PEC); device checks pending (owner checklist below).
-The spike page and routes are temporary and are removed in step 21 (`src/worker/spike/`,
-`src/client/routes/spike.tsx`, the `/spike` route, `SPIKE_SECRET`). The PEC IMAP client
+The spike page and routes were removed in step 21 (`src/worker/spike/`, `src/client/routes/spike.tsx`,
+the `/spike` route, `SPIKE_SECRET`); this note is the historical record of what they measured, and the
+file paths and the owner checklist below refer to code that no longer exists. The PEC IMAP client
 (`src/worker/pec/imap.ts`), `envelope.ts` and `message-fixtures.ts` are not spike code: step 13 builds on
 them. The SdI channel is the owner's PEC mailbox (decision 2026-11-02, replacing Openapi); the app is
 reachable at `https://invoicer.vittorioallegra.com/spike` (custom domain, no workers.dev).

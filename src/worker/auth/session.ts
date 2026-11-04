@@ -9,8 +9,6 @@ const PUBLIC_PATHS = [
   // Better Auth's own endpoints (login, passkey, TOTP) and first-run setup (SETUP_TOKEN).
   /^\/api\/auth(\/|$)/,
   /^\/api\/setup(\/|$)/,
-  // Temporary risk spike, gated by SPIKE_SECRET (removed in step 21).
-  /^\/api\/spike(\/|$)/,
 ];
 
 export interface SessionVariables {

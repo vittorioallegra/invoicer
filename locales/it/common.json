@@ -53,8 +53,7 @@
       "emptyBody": "Aggiungi un cliente per fatturargli."
     },
     "settings": {
-      "title": "Impostazioni",
-      "diagnostics": "Diagnostica"
+      "title": "Impostazioni"
     },
     "notFound": {
       "title": "Pagina non trovata",

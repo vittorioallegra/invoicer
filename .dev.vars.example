@@ -17,9 +17,6 @@ RESEND_API_KEY=
 # Optional: Web Push. Off when empty. Private key as one-line JWK JSON; generate the pair with
 # `pnpm exec pushforge vapid` (docs/notes/spike.md).
 VAPID_PRIVATE_KEY=
-# Temporary risk spike (step 2, removed in step 20): gate for /spike, any long random string
-# (`openssl rand -base64 32`). Leave empty to keep the spike routes off.
-SPIKE_SECRET=
 
 # --- Plain vars (owner-specific) ------------------------------------------------------------
 # `mock` sends nothing and marks the invoice sent (local dev only: ignored unless APP_ORIGIN is
