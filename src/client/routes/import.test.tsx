@@ -126,3 +126,44 @@ describe("imported invoice", () => {
     expect(screen.queryByText("Edit")).toBeNull();
   });
 });
+
+describe("clients CSV import (AC 17)", () => {
+  it("previews the rows, imports the valid ones and lists the others with their reason", async () => {
+    const csv = readFileSync(
+      resolve(process.cwd(), "src/client/import/fixtures/fic-clients.csv"),
+      "utf8",
+    );
+    const sent: unknown[][] = [];
+    mocks.api.mockImplementation(async (path: string, init?: { body?: string }) => {
+      if (path === "/api/clients/import") {
+        const rows = (JSON.parse(init?.body ?? "{}") as { rows: unknown[] }).rows;
+        sent.push(rows);
+        return {
+          results: rows.map((_, index) =>
+            index === 1
+              ? { status: "skipped", reason: "duplicate", id: "c9" }
+              : { status: "imported", id: `c${index}` },
+          ),
+        };
+      }
+      throw new Error(`unexpected ${path}`);
+    });
+    await renderAt("/import?kind=clients");
+    const input = (await screen.findByLabelText("CSV file")) as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File([csv], "clienti.csv", { type: "text/csv" })] },
+    });
+    // The preview names the rows with problems before anything is sent.
+    expect(
+      await screen.findByText("4 rows ready to import, 2 with problems (skipped)."),
+    ).toBeTruthy();
+    expect(screen.getByText(/Row 5 · Delta S\.r\.l\./)).toBeTruthy();
+    expect(screen.getByText(/VAT number: Enter the 11-digit partita IVA/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Import 4 clients" }));
+    expect(await screen.findByText("3 imported, 3 skipped")).toBeTruthy();
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toHaveLength(4);
+    expect(screen.getByText("Already imported.")).toBeTruthy();
+    expect(screen.getAllByText(/Not imported\./)).toHaveLength(2);
+  });
+});

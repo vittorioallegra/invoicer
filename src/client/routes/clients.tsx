@@ -1,13 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import type { TFunction } from "i18next";
-import { Plus, Users } from "lucide-react";
+import { FileUp, Plus, Users } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type ClientRecord, clientKind } from "../../shared/client";
 import { ClientSheet } from "../components/client-form";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
-import { Button } from "../components/ui/button";
+import { Button, buttonVariants } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
 import { clientsQuery } from "../lib/clients-api";
 import { countryName } from "../lib/countries";
@@ -56,7 +57,17 @@ export function ClientsPage() {
       ) : null}
       {clients.length > 0 ? (
         <>
-          <div>{addButton}</div>
+          <div className="flex flex-wrap gap-2">
+            {addButton}
+            <Link
+              to="/import"
+              search={{ kind: "clients" }}
+              className={buttonVariants({ variant: "secondary" })}
+            >
+              <FileUp aria-hidden />
+              {t("clients.import")}
+            </Link>
+          </div>
           <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
             {clients.map((client) => (
               <li key={client.id}>

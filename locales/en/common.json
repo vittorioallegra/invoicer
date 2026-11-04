@@ -462,7 +462,8 @@
       "private_it": "Italian private person",
       "company_foreign": "Company · {{country}}",
       "private_foreign": "Private person · {{country}}"
-    }
+    },
+    "import": "Import from CSV"
   },
   "invoice": {
     "newTitle": "New invoice",
@@ -1105,12 +1106,50 @@
       "issued_by_owner": "The supplier is your company: import it with the issued invoices.",
       "too_large": "The file is larger than 2 MB, the limit for stored files.",
       "empty_archive": "The archive has no invoice files.",
-      "server_error": "The file could not be stored. Try again."
+      "server_error": "The file could not be stored. Try again.",
+      "invalid_row": "Not imported. {{detail}}"
     },
     "view": {
       "invoice": "Invoice {{number}}",
       "creditNote": "Credit note {{number}}",
       "readOnly": "This invoice was imported from a file. It is shown as written in the file and cannot be changed; you can record its payment."
+    },
+    "clients": {
+      "intro": "Import clients from a Fatture in Cloud CSV export. You see which column feeds each field and every row with a problem before anything is saved. Clients you already have (same VAT number, tax code or name) are skipped."
+    },
+    "csv": {
+      "file": "CSV file",
+      "unreadable": "This file could not be read as a CSV with a header row and at least one client.",
+      "columns": "Columns",
+      "columnsHint": "Each field is filled from the column shown. Change a match if the file uses other names.",
+      "noColumn": "(not imported)",
+      "preview": "Preview of {{file}}",
+      "counts": "{{ready}} rows ready to import, {{problems}} with problems (skipped).",
+      "more": "and {{count}} more ready rows",
+      "start_one": "Import {{count}} client",
+      "start_other": "Import {{count}} clients",
+      "importing": "Importing…",
+      "rowLabel": "Row {{line}} · {{name}}",
+      "fields": {
+        "name": "Name",
+        "vatNumber": "VAT number",
+        "taxCode": "Tax code",
+        "address": "Address",
+        "postalCode": "Postal code",
+        "city": "City",
+        "province": "Province",
+        "country": "Country",
+        "language": "Language",
+        "currency": "Currency",
+        "recipientCode": "Recipient code",
+        "pec": "PEC",
+        "email": "Email",
+        "foreignTaxId": "Foreign tax ID",
+        "countryCode": "Country",
+        "type": "Type",
+        "defaults": "Defaults",
+        "pdfLanguage": "Language"
+      }
     }
   }
 }

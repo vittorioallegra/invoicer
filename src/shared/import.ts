@@ -39,6 +39,8 @@ export const IMPORT_REASONS = [
   "too_large",
   "empty_archive",
   "server_error",
+  /** A CSV row that fails the client rules (see the row's `problems`). */
+  "invalid_row",
 ] as const;
 export type ImportReason = (typeof IMPORT_REASONS)[number];
 
@@ -131,7 +133,22 @@ export type ImportFileOutcome =
   | { outcome: "duplicate"; id: string }
   | { outcome: "number_conflict"; id: string; number: string };
 
-/** Body of `POST /api/clients/import`: rows already mapped by the browser. */
+/** Body of `POST /api/clients/import`: rows already mapped by the browser (client records as typed). */
 export const clientsImportSchema = z.object({
   rows: z.array(z.unknown()).min(1).max(500),
 });
+
+/** A field of a client row and the stable code of the rule it breaks (`validation.<code>`). */
+export interface RowProblem {
+  field: string;
+  code: string;
+}
+
+/** One answer per submitted row, in order. */
+export interface ClientRowResult {
+  status: "imported" | "skipped";
+  reason?: ImportReason;
+  problems?: RowProblem[];
+  /** The stored client, or the existing one a duplicate matches. */
+  id?: string;
+}

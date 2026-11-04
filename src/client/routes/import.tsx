@@ -4,6 +4,7 @@ import { LoaderCircle } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ImportItemResult } from "../../shared/import";
+import { ClientsImport } from "../components/clients-import";
 import { ImportResult } from "../components/import-result";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
@@ -19,7 +20,7 @@ import { useOnline } from "../lib/online";
 import { profileQuery } from "../lib/settings-api";
 import { cn } from "../lib/utils";
 
-export const IMPORT_KINDS = ["received", "issued"] as const;
+export const IMPORT_KINDS = ["received", "issued", "clients"] as const;
 export type ImportPageKind = (typeof IMPORT_KINDS)[number];
 
 /** Search params of `/import`: which import is shown (default: received invoices). */
@@ -198,7 +199,7 @@ export function ImportPage() {
           </Link>
         ))}
       </nav>
-      <InvoiceImport key={kind} kind={kind} />
+      {kind === "clients" ? <ClientsImport /> : <InvoiceImport key={kind} kind={kind} />}
     </Page>
   );
 }

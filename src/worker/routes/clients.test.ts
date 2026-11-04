@@ -144,3 +144,66 @@ describe("clients API", () => {
     expect(refused.status).toBe(409);
   });
 });
+
+describe("POST /api/clients/import", () => {
+  const importRows = (rows: unknown[]) =>
+    owner.json<{
+      results: { status: string; reason?: string; id?: string; problems?: unknown[] }[];
+    }>("/api/clients/import", { body: { rows } });
+
+  it("stores the valid rows and skips each other row with its reason (AC 17)", async () => {
+    const beta = { ...acme, name: "Beta S.p.A.", vatNumber: "01234567897" };
+    const stored = await owner.json<{ client: { id: string } }>("/api/clients", { body: acme });
+    const res = await importRows([
+      beta,
+      { ...beta, name: "Beta again" },
+      acme,
+      { ...acme, name: "No VAT", vatNumber: "" },
+      { ...acme, name: "Gamma", vatNumber: "12345678904" },
+    ]);
+    expect(res.status).toBe(200);
+    expect(res.body.results.map((r) => [r.status, r.reason])).toEqual([
+      ["imported", undefined],
+      ["skipped", "duplicate"],
+      ["skipped", "duplicate"],
+      ["skipped", "invalid_row"],
+      ["skipped", "invalid_row"],
+    ]);
+    // A duplicate of a stored client points at it; the invalid rows say which rule they break.
+    expect(res.body.results[2]?.id).toBe(stored.body.client.id);
+    expect(res.body.results[3]?.problems).toEqual([{ field: "vatNumber", code: "required" }]);
+    expect(res.body.results[4]?.problems).toEqual([
+      { field: "vatNumber", code: "invalid_vat_number" },
+    ]);
+    const names = await owner.json<{ clients: { name: string }[] }>("/api/clients");
+    expect(names.body.clients.map((c) => c.name)).toContain("Beta S.p.A.");
+    expect(names.body.clients.filter((c) => c.name.startsWith("Beta"))).toHaveLength(1);
+  });
+
+  it("matches clients without a tax id by name and country, and refuses a bad body", async () => {
+    const swiss = {
+      type: "foreign_private",
+      name: "Hans Muster",
+      vatNumber: "",
+      taxCode: "",
+      foreignTaxId: "",
+      countryCode: "CH",
+      address: "Bahnhofstrasse 1",
+      postalCode: "8001",
+      city: "Zurich",
+      province: "",
+      recipientCode: "",
+      pec: "",
+      email: "",
+      pdfLanguage: "en",
+      currency: "CHF",
+      defaults: {},
+    };
+    const first = await importRows([swiss]);
+    expect(first.body.results[0]?.status).toBe("imported");
+    const again = await importRows([{ ...swiss, name: "  HANS muster " }]);
+    expect(again.body.results[0]).toMatchObject({ status: "skipped", reason: "duplicate" });
+    expect((await owner.json("/api/clients/import", { body: { rows: [] } })).status).toBe(400);
+    expect((await owner.json("/api/clients/import", { body: {} })).status).toBe(400);
+  });
+});

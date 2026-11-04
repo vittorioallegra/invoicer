@@ -1,0 +1,7 @@
+Nome;Referente;Indirizzo via;Indirizzo CAP;Indirizzo città;Indirizzo provincia;Indirizzo extra;Paese;Paese ISO;Lingua;Valuta;Email;PEC;Tel.;Partita IVA;Codice fiscale;Codice destinatario
+Acme S.r.l.;Anna Bianchi;Via Roma 1;00100;Roma;RM;;Italia;IT;Italiano;EUR;info@acme.example;acme@pec.example;06 123456;12345678903;12345678903;ABC1234
+Beta S.p.A.;;Corso Italia 10;10100;Torino;TO;;Italia;IT;Italiano;EUR;;;;01234567897;01234567897;
+Mario Rossi;;Via Verdi 5;20100;Milano;MI;;Italia;IT;;EUR;mario@example.com;;;;RSSMRA80A01H501U;
+Delta S.r.l.;;Via Napoli 3;80100;Napoli;NA;;Italia;IT;Italiano;EUR;;;;12345678904;;
+Hans Muster;;Bahnhofstrasse 1;8001;Zürich;;;Svizzera;CH;Inglese;CHF;hans@example.ch;;;;;
+;;Via Senza Nome 9;00100;Roma;RM;;Italia;IT;;EUR;;;;;;

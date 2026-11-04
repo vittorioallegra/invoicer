@@ -462,7 +462,8 @@
       "private_it": "Privato italiano",
       "company_foreign": "Azienda · {{country}}",
       "private_foreign": "Privato · {{country}}"
-    }
+    },
+    "import": "Importa da CSV"
   },
   "invoice": {
     "newTitle": "Nuova fattura",
@@ -1105,12 +1106,50 @@
       "issued_by_owner": "Il fornitore è la tua azienda: importala con le fatture emesse.",
       "too_large": "Il file supera 2 MB, il limite per i file salvati.",
       "empty_archive": "L'archivio non contiene file di fatture.",
-      "server_error": "Non è stato possibile salvare il file. Riprova."
+      "server_error": "Non è stato possibile salvare il file. Riprova.",
+      "invalid_row": "Non importata. {{detail}}"
     },
     "view": {
       "invoice": "Fattura {{number}}",
       "creditNote": "Nota di credito {{number}}",
       "readOnly": "Questa fattura è stata importata da un file. Si vede come scritta nel file e non si può modificare; puoi registrare il pagamento."
+    },
+    "clients": {
+      "intro": "Importa i clienti da un'esportazione CSV di Fatture in Cloud. Prima di salvare vedi quale colonna riempie ogni campo e ogni riga con un problema. I clienti che hai già (stessa partita IVA, codice fiscale o nome) vengono saltati."
+    },
+    "csv": {
+      "file": "File CSV",
+      "unreadable": "Impossibile leggere questo file come CSV con una riga di intestazione e almeno un cliente.",
+      "columns": "Colonne",
+      "columnsHint": "Ogni campo si compila dalla colonna indicata. Cambia l'abbinamento se il file usa altri nomi.",
+      "noColumn": "(non importato)",
+      "preview": "Anteprima di {{file}}",
+      "counts": "{{ready}} righe pronte da importare, {{problems}} con problemi (saltate).",
+      "more": "e altre {{count}} righe pronte",
+      "start_one": "Importa {{count}} cliente",
+      "start_other": "Importa {{count}} clienti",
+      "importing": "Importazione…",
+      "rowLabel": "Riga {{line}} · {{name}}",
+      "fields": {
+        "name": "Nome",
+        "vatNumber": "Partita IVA",
+        "taxCode": "Codice fiscale",
+        "address": "Indirizzo",
+        "postalCode": "CAP",
+        "city": "Città",
+        "province": "Provincia",
+        "country": "Paese",
+        "language": "Lingua",
+        "currency": "Valuta",
+        "recipientCode": "Codice destinatario",
+        "pec": "PEC",
+        "email": "Email",
+        "foreignTaxId": "ID fiscale estero",
+        "countryCode": "Paese",
+        "type": "Tipo",
+        "defaults": "Predefiniti",
+        "pdfLanguage": "Lingua"
+      }
     }
   }
 }
