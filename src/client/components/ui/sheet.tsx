@@ -8,13 +8,15 @@ import { cn } from "../../lib/utils";
 const sheetVariants = cva("fixed z-50 flex flex-col gap-4 bg-surface p-4 shadow-xl outline-none", {
   variants: {
     side: {
-      // Bottom sheet on iPhone: respects the home-indicator safe area.
+      // Bottom sheet on iPhone: respects the home-indicator safe area, and its height is capped
+      // below the status bar so the title and the close button are always visible.
       bottom:
-        "inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-card border-t border-border pb-[calc(1rem+env(safe-area-inset-bottom))]",
+        "inset-x-0 bottom-0 max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-1rem))] overflow-y-auto rounded-t-card border-t border-border pb-[calc(1rem+env(safe-area-inset-bottom))]",
       // Bottom sheet on phones, centered modal dialog from md up (confirm and short-form dialogs).
       responsive:
-        "inset-x-0 bottom-0 max-h-[90dvh] overflow-y-auto rounded-t-card border-t border-border pb-[calc(1rem+env(safe-area-inset-bottom))] md:inset-x-auto md:bottom-auto md:left-1/2 md:top-1/2 md:w-[calc(100%-2rem)] md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-card md:border md:p-6",
-      right: "inset-y-0 right-0 w-full max-w-md overflow-y-auto border-l border-border",
+        "inset-x-0 bottom-0 max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-top)-1rem))] overflow-y-auto rounded-t-card border-t border-border pb-[calc(1rem+env(safe-area-inset-bottom))] md:inset-x-auto md:bottom-auto md:left-1/2 md:top-1/2 md:w-[calc(100%-2rem)] md:max-w-lg md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-card md:border md:p-6",
+      right:
+        "inset-y-0 right-0 w-full max-w-md overflow-y-auto border-l border-border pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))]",
     },
   },
   defaultVariants: { side: "bottom" },
