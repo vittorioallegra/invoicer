@@ -115,7 +115,9 @@ describe("Home", () => {
       ),
     });
     await renderAt("/");
-    const list = await screen.findByRole("region", { name: "Finish setting up" });
+    const toggle = await screen.findByRole("button", { name: /Finish setting up/ });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    const list = document.getElementById("setup-checklist-panel") as HTMLElement;
     expect(within(list).getByText("2 of 6 done")).toBeTruthy();
     const rows = within(list).getAllByRole("link");
     expect(rows).toHaveLength(6);
@@ -127,6 +129,26 @@ describe("Home", () => {
     expect(
       screen.getByText("The PEC username and password are not set on the server."),
     ).toBeTruthy();
+  });
+
+  it("collapses the checklist and remembers the choice on this device", async () => {
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => void store.set(key, value),
+    });
+    respond({ "/api/onboarding": status(["passkey"], ["profile_incomplete"]) });
+    await renderAt("/");
+    const toggle = await screen.findByRole("button", { name: /Finish setting up/ });
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(document.getElementById("setup-checklist-panel")).toBeNull();
+    expect(store.get("invoicer.setupChecklistOpen")).toBe("closed");
+    cleanup();
+    await renderAt("/");
+    const again = await screen.findByRole("button", { name: /Finish setting up/ });
+    expect(again.getAttribute("aria-expanded")).toBe("false");
+    vi.unstubAllGlobals();
   });
 
   it("leads a first-run owner with no profile to the profile form", async () => {
@@ -141,7 +163,7 @@ describe("Home", () => {
     await renderAt("/");
     const action = await screen.findAllByRole("link", { name: "New invoice" });
     expect(action.length).toBeGreaterThan(0);
-    expect(screen.queryByRole("region", { name: "Finish setting up" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Finish setting up/ })).toBeNull();
     expect(screen.queryByText("You cannot send invoices yet:")).toBeNull();
   });
 });

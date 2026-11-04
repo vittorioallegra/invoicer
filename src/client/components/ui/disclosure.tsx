@@ -11,13 +11,23 @@ export interface DisclosureProps {
   open: boolean;
   onToggle: () => void;
   children: ReactNode;
+  /** No padding or gap in the panel, for content that brings its own (full-width rows). */
+  flush?: boolean;
 }
 
 /**
  * A collapsible section in one bordered box: a heading with a full-width button (aria-expanded)
  * and, when open, the panel inside the same border.
  */
-export function Disclosure({ id, title, summary, open, onToggle, children }: DisclosureProps) {
+export function Disclosure({
+  id,
+  title,
+  summary,
+  open,
+  onToggle,
+  children,
+  flush,
+}: DisclosureProps) {
   const panelId = `${id}-panel`;
   return (
     <section className="rounded-card border border-border">
@@ -45,7 +55,10 @@ export function Disclosure({ id, title, summary, open, onToggle, children }: Dis
         </button>
       </h2>
       {open ? (
-        <div id={panelId} className="flex flex-col gap-4 border-t border-border p-4">
+        <div
+          id={panelId}
+          className={cn("flex flex-col border-t border-border", !flush && "gap-4 p-4")}
+        >
           {children}
         </div>
       ) : null}

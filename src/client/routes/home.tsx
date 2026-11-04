@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Check, Circle, FileText, Plus } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ChecklistItemId, OnboardingStatus } from "../../shared/onboarding";
 import { DashboardStrip } from "../components/dashboard-strip";
@@ -8,6 +9,7 @@ import { InvoiceList, ReservedList } from "../components/invoice-list";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button, buttonVariants } from "../components/ui/button";
+import { Disclosure } from "../components/ui/disclosure";
 import { EmptyState } from "../components/ui/empty-state";
 import { invoicesQuery } from "../lib/invoices-api";
 import { onboardingQuery } from "../lib/settings-api";
@@ -22,22 +24,41 @@ const TARGETS: Record<ChecklistItemId, string> = {
   email: "/settings/email",
 };
 
+const CHECKLIST_OPEN_KEY = "invoicer.setupChecklistOpen";
+
+/** The remembered open state of this device; open while there is no (readable) choice. */
+function readChecklistOpen(): boolean {
+  try {
+    return localStorage.getItem(CHECKLIST_OPEN_KEY) !== "closed";
+  } catch {
+    return true;
+  }
+}
+
 function Checklist({ status }: { status: OnboardingStatus }) {
   const { t } = useTranslation();
+  const [open, setOpen] = useState(readChecklistOpen);
   const done = status.checklist.filter((item) => item.done).length;
+  const progress = t("onboarding.progress", { done, total: status.checklist.length });
+  function toggle() {
+    const next = !open;
+    setOpen(next);
+    try {
+      localStorage.setItem(CHECKLIST_OPEN_KEY, next ? "open" : "closed");
+    } catch {
+      // Private mode or blocked storage: the choice just is not remembered.
+    }
+  }
   return (
-    <section
-      aria-labelledby="setup-checklist"
-      className="max-w-2xl rounded-card border border-border bg-surface"
+    <Disclosure
+      id="setup-checklist"
+      title={t("onboarding.title")}
+      summary={progress}
+      open={open}
+      onToggle={toggle}
+      flush
     >
-      <div className="border-b border-border px-4 py-3">
-        <h2 id="setup-checklist" className="text-base font-semibold">
-          {t("onboarding.title")}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {t("onboarding.progress", { done, total: status.checklist.length })}
-        </p>
-      </div>
+      <p className="px-4 py-2 text-sm text-muted-foreground">{progress}</p>
       <ul className="divide-y divide-border">
         {status.checklist.map((item) => (
           <li key={item.id}>
@@ -67,7 +88,7 @@ function Checklist({ status }: { status: OnboardingStatus }) {
           </li>
         ))}
       </ul>
-    </section>
+    </Disclosure>
   );
 }
 
