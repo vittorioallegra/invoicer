@@ -24,14 +24,14 @@ export function Banner({ tone = "info", children, action, className }: BannerPro
     <div
       role={tone === "danger" || tone === "warning" ? "alert" : "status"}
       className={cn(
-        "flex items-start gap-3 rounded-control border px-3 py-2.5 text-sm",
+        "flex flex-wrap items-start gap-3 rounded-control border px-3 py-2.5 text-sm",
         classes,
         className,
       )}
     >
       <Icon aria-hidden className="mt-0.5 size-4 shrink-0" />
-      <div className="min-w-0 flex-1">{children}</div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      <div className="min-w-[12rem] flex-1">{children}</div>
+      {action ? <div className="ml-7 shrink-0 sm:ml-0">{action}</div> : null}
     </div>
   );
 }

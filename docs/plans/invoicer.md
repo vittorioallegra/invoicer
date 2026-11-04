@@ -435,6 +435,7 @@ Approved: yes (2026-11-02)
 ### Verification
 - qa: in progress
   - dialogs and sheets did not lock the page scroll: the CSP blocks the inline style react-remove-scroll injects — `fix(client): keep the page from scrolling behind a dialog despite the CSP blocking the scroll lock style`
+  - courtesy email ask banner squeezed its text into a narrow column beside the buttons at 375 px — `fix(ui): let a banner's action wrap under its text so the courtesy email ask is readable at 375 px`
 - review: pending
 - walkthrough (2026-11-03): done
   - mock channel could not send — `fix(send): treat the mock channel as ready to send`
