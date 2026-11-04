@@ -273,3 +273,10 @@ export function clientRecordToInput(client: ClientRecord): ClientInput {
     email: client.email ?? "",
   };
 }
+
+const nameCollator = new Intl.Collator("it", { sensitivity: "base" });
+
+/** Alphabetical order of client names, ignoring case and accents (Italian locale). */
+export function compareClientNames(a: string, b: string): number {
+  return nameCollator.compare(a, b);
+}

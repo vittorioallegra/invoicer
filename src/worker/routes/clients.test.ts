@@ -79,6 +79,27 @@ describe("clients API", () => {
     expect((await owner.json(`/api/clients/${id}`)).status).toBe(404);
   });
 
+  it("lists clients alphabetically, ignoring case and accents", async () => {
+    const names = ["zeta srl", "Élan srl", "beta srl", "Alfa srl", "Zorro srl"];
+    const ids: string[] = [];
+    for (const name of names) {
+      const made = await owner.json<{ client: Record_ }>("/api/clients", {
+        body: { ...acme, name },
+      });
+      expect(made.status).toBe(201);
+      ids.push(made.body.client.id);
+    }
+    const list = await owner.json<{ clients: Record_[] }>("/api/clients");
+    expect(list.body.clients.map((c) => c.name)).toEqual([
+      "Alfa srl",
+      "beta srl",
+      "Élan srl",
+      "zeta srl",
+      "Zorro srl",
+    ]);
+    for (const id of ids) await owner.json(`/api/clients/${id}`, { method: "DELETE" });
+  });
+
   it("reads the older numeric payment terms of a stored client as terms from the invoice date", async () => {
     const created = await owner.json<{ client: Record_ }>("/api/clients", { body: acme });
     const { id } = created.body.client;

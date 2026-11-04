@@ -3,6 +3,7 @@ import {
   clientDefaultsSchema,
   clientInputSchema,
   clientKind,
+  compareClientNames,
   deriveClientType,
   EMPTY_CLIENT_DEFAULTS,
   isValidClientTaxCode,
@@ -251,5 +252,19 @@ describe("defaults", () => {
     expect(bad({ kind: "month" })).toBe(false);
     expect(bad({ kind: "custom", days: 45 })).toBe(true);
     expect(bad({ kind: "eom_60" })).toBe(true);
+  });
+});
+
+describe("compareClientNames", () => {
+  it("sorts ignoring case and accents", () => {
+    const names = ["zeta", "Èlite", "beta", "Alfa", "elite due", "Zorro"];
+    expect([...names].sort(compareClientNames)).toEqual([
+      "Alfa",
+      "beta",
+      "Èlite",
+      "elite due",
+      "zeta",
+      "Zorro",
+    ]);
   });
 });

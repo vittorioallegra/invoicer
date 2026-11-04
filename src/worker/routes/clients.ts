@@ -7,6 +7,7 @@ import {
   type ClientRecord,
   clientDefaultsSchema,
   clientInputSchema,
+  compareClientNames,
   EMPTY_CLIENT_DEFAULTS,
 } from "../../shared/client";
 import { type ClientRowResult, clientsImportSchema } from "../../shared/import";
@@ -51,10 +52,12 @@ async function readBody(c: { req: { json: () => Promise<unknown> } }) {
 }
 
 clients.get("/", async (c) => {
+  // SQLite orders by code point (uppercase first, accents last): sort the names here instead.
   const rows = await drizzle(c.env.DB, { schema })
     .select()
     .from(schema.clients)
-    .orderBy(asc(schema.clients.name));
+    .orderBy(asc(schema.clients.name), asc(schema.clients.id));
+  rows.sort((a, b) => compareClientNames(a.name, b.name));
   return c.json({ clients: rows.map(toRecord) });
 });
 
