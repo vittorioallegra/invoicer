@@ -29,7 +29,6 @@ let origin: string;
 let firstInvoiceId = "";
 
 test.beforeAll(async ({ browser }, info) => {
-  test.skip(info.project.name !== "desktop", "needs a Chromium virtual authenticator");
   origin = info.project.use.baseURL as string;
   context = await browser.newContext({ baseURL: origin });
   page = await context.newPage();

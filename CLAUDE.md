@@ -14,7 +14,7 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
 - All unit/integration tests (dot reporter): `pnpm test`
 - One Vitest project: `pnpm vitest run --project shared|worker|client --reporter=dot`
 - Single test file, failures only: `pnpm vitest run <path/to/file.test.ts> --reporter=dot`
-- E2E: `pnpm test:e2e` (Playwright, builds and serves `vite preview`)
+- E2E: `pnpm test:e2e` (Playwright; builds with `E2E_WORKER=1` and serves `vite preview` on a throwaway D1 in `.wrangler/e2e-state`; overwrites `dist/`, so run `pnpm build && pnpm check:bundle` after it). One flow file: `pnpm exec playwright test tests/e2e/flows.spec.ts --project=flows --no-deps`
 - Lint (Biome): `pnpm lint`; auto-fix and format: `pnpm format`
 - Typecheck: `pnpm typecheck` (client, worker and node tsconfigs)
 - Bundle check (Worker size, client-only libraries): `pnpm check:bundle` (after `pnpm build`)
@@ -31,7 +31,7 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
 - `public/` — static assets, icons, `_headers` (CSP for the SPA)
 - `scripts/` — CI helpers (bundle check, wrangler config rendering)
 - `assets/xsd/` — vendored official FatturaPA XSD v1.2.3 (`Schema_VFPR12_v1.2.3.xsd`, SHA-256 and source in its README) and the W3C xmldsig schema it imports
-- `tests/` — Playwright E2E (`e2e/`), cross-cutting tests, PEC/IMAP fixtures live next to the code (`src/worker/pec/*fixtures.ts`)
+- `tests/` — Playwright E2E (`e2e/`: `flows.spec.ts`, `support.ts`, and `worker/entry.ts`, the E2E-only Worker entry with a fake PEC mailbox and captured Resend behind `/api/e2e/*`, never in the production bundle), cross-cutting tests (CSP, browser error reporting), PEC/IMAP fixtures live next to the code (`src/worker/pec/*fixtures.ts`)
 - `docs/` — specs, plans, notes; `.github/workflows/` — CI and deploy
 
 ## Conventions
@@ -71,4 +71,5 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
 - Send flow: the Worker hashes the stored XML itself and verifies the assertion before `channelDeps.create` (`src/worker/channel.ts`) can open any socket; the attempt is claimed `unknown` (with its Message-ID) before the SMTP session and set back to `none` only on a definite refusal. Retries after an unknown outcome need 15 minutes and a new file progressive. Test seams: `channelDeps`, `smtpDeps` (`pec/smtp.ts`). `SEND_CHANNEL=mock` is localhost-only. The live PEC test (`pec/live.test.ts`) runs only with `PEC_LIVE=1`.
 - Courtesy email: the Worker calls Resend with plain `fetch` (`resendDeps.fetch` is the test seam; no automated test reaches Resend). One `email` outbox row per invoice and attempt; `RESEND_API_KEY` is read through `requireSecrets(env, "email")`. A row is `skipped` (off, not configured, queued before enabling, no recipient), `asked` (mode ask, waits for Send / Skip) or sent with the row id as `Idempotency-Key`; a failure is logged, notified and never retried automatically.
 - Mailbox polling (`pec/poll.ts`): one D1 batch per message (row, guarded state-rank transition for the latest attempt only, events, outbox, cursor); a retry after an unknown send also needs a successful poll after the quiet period. Tests use `pec/fake-mailbox.ts` (stateful fake IMAP), `receipt-fixtures.ts` builders and `test-support.ts`.
+- Secrets audit: `src/worker/secrets-audit.test.ts` searches API responses, D1 rows, the export and logs for every secret value; a new place that stores, returns or logs data from a server, Resend or push must keep it green. The browser has no error-reporting channel (`tests/browser-error-reports.test.ts`).
 - No automated test talks to the real SdI; use recorded IMAP/SMTP fixtures and the fake socket (`src/worker/pec/fake-socket.ts`).

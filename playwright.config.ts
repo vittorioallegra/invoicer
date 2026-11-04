@@ -11,8 +11,17 @@ export default defineConfig({
   reporter: process.env.CI ? "dot" : "list",
   use: { baseURL: `http://localhost:${port}`, trace: "retain-on-failure" },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "iphone", use: { ...devices["iPhone 14"] } },
+    // The smoke checks need the empty first-run database, so the flows (which create the owner)
+    // run only after both smoke projects are done.
+    { name: "desktop", testIgnore: /flows\.spec/, use: { ...devices["Desktop Chrome"] } },
+    { name: "iphone", testIgnore: /flows\.spec/, use: { ...devices["iPhone 14"] } },
+    {
+      // Chromium only: the flows need a virtual passkey authenticator (CDP).
+      name: "flows",
+      testMatch: /flows\.spec/,
+      dependencies: ["desktop", "iphone"],
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
   webServer: {
     // E2E_WORKER=1 builds with the E2E Worker entry (tests/e2e/worker/entry.ts) and a fresh
