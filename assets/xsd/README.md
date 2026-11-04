@@ -12,6 +12,8 @@ Downloaded on 2026-11-02. The FatturaPA schema imports the xmldsig schema from t
 `xmllint-wasm` does no network access, so `validateFatturaXml` rewrites that `schemaLocation` in
 memory to the preloaded local copy.
 
+Last checked against the AdE site on 2026-11-04: the formato page still lists FatturaPA schema 1.2.3 (valid from 2025-04-01, technical specifications 1.4) as the current one, and the file downloaded from the source URL above has the SHA-256 in the table (68,619 bytes). No newer version exists; nothing to upgrade. Repeat this check before each year-end and when the AdE announces a schema change.
+
 To update: download the new files from the official page above, replace them, update this table,
 the version in `CLAUDE.md` and the file names used in `tests/fatturapa*.test.ts` and in the client
 loader, then run `pnpm vitest run tests/fatturapa.test.ts --reporter=dot`.
