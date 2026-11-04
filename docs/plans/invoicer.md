@@ -433,7 +433,8 @@ Approved: yes (2026-11-02)
 - [x] 21. Hardening and release — `docs: record hardening and release results and move to verification`
 
 ### Verification
-- qa: pending
+- qa: in progress
+  - dialogs and sheets did not lock the page scroll: the CSP blocks the inline style react-remove-scroll injects — `fix(client): keep the page from scrolling behind a dialog despite the CSP blocking the scroll lock style`
 - review: pending
 - walkthrough (2026-11-03): done
   - mock channel could not send — `fix(send): treat the mock channel as ready to send`

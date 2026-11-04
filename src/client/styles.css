@@ -106,6 +106,19 @@
     min-height: 100dvh;
   }
 
+  /*
+   * Dialogs and sheets lock the page scroll through `react-remove-scroll`, which injects an inline
+   * <style> the CSP (`style-src 'self'`) blocks. It still sets this attribute, so the rule lives
+   * here. The scrollbar gutter is reserved so the page does not shift when the lock applies.
+   */
+  html {
+    scrollbar-gutter: stable;
+  }
+
+  body[data-scroll-locked] {
+    overflow: hidden;
+  }
+
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;

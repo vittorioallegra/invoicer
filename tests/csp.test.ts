@@ -17,3 +17,14 @@ describe("static asset headers", () => {
     expect(SPA_CSP).not.toMatch(/script-src[^;]*'unsafe-inline'/);
   });
 });
+
+describe("scroll lock under the CSP", () => {
+  // protects=a dialog or sheet stops the page behind it from scrolling; fails_when=the stylesheet
+  // loses the `body[data-scroll-locked]` rule (react-remove-scroll's own <style> is blocked by
+  // `style-src 'self'`); no_claim=nothing about how the browser renders the lock (source check).
+  it("keeps the scroll lock rule in the stylesheet", () => {
+    const css = readFileSync(new URL("../src/client/styles.css", import.meta.url), "utf8");
+    expect(SPA_CSP).toContain("style-src 'self';");
+    expect(css).toMatch(/body\[data-scroll-locked\]\s*\{\s*overflow:\s*hidden;/);
+  });
+});
