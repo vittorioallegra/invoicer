@@ -1,3 +1,21 @@
+CREATE TABLE `account` (
+	`id` text PRIMARY KEY NOT NULL,
+	`account_id` text NOT NULL,
+	`provider_id` text NOT NULL,
+	`user_id` text NOT NULL,
+	`access_token` text,
+	`refresh_token` text,
+	`id_token` text,
+	`access_token_expires_at` integer,
+	`refresh_token_expires_at` integer,
+	`scope` text,
+	`password` text,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `account_user_idx` ON `account` (`user_id`);--> statement-breakpoint
 CREATE TABLE `clients` (
 	`id` text PRIMARY KEY NOT NULL,
 	`type` text NOT NULL,
@@ -23,7 +41,10 @@ CREATE TABLE `clients` (
 CREATE TABLE `email_log` (
 	`id` text PRIMARY KEY NOT NULL,
 	`invoice_id` text,
+	`attempt` integer,
+	`trigger` text,
 	`recipient` text NOT NULL,
+	`subject` text,
 	`provider_message_id` text,
 	`status` text NOT NULL,
 	`error` text,
@@ -74,6 +95,7 @@ CREATE TABLE `invoice_lines` (
 	`invoice_id` text NOT NULL,
 	`position` integer NOT NULL,
 	`description` text NOT NULL,
+	`note` text,
 	`quantity_milli` integer DEFAULT 1000 NOT NULL,
 	`unit` text,
 	`unit_price_cents` integer NOT NULL,
@@ -94,6 +116,8 @@ CREATE TABLE `invoices` (
 	`client_id` text,
 	`number_raw` text,
 	`number_int` integer,
+	`requested_number_int` integer,
+	`series_id` text DEFAULT 'default' NOT NULL,
 	`year` integer,
 	`issue_date` text,
 	`planned_date` text,
@@ -102,6 +126,7 @@ CREATE TABLE `invoices` (
 	`currency` text DEFAULT 'EUR' NOT NULL,
 	`data` text,
 	`total_cents` integer,
+	`editor_form` text,
 	`linked_invoice_id` text,
 	`reissues_invoice_id` text,
 	`recurring_template_id` text,
@@ -116,7 +141,7 @@ CREATE TABLE `invoices` (
 	CONSTRAINT "invoices_source_valid" CHECK(source IN ('app', 'imported'))
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `invoices_year_number_unique` ON `invoices` (`year`,`number_int`) WHERE "invoices"."number_int" IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX `invoices_series_year_number_unique` ON `invoices` (`series_id`,`year`,`number_int`) WHERE "invoices"."number_int" IS NOT NULL;--> statement-breakpoint
 CREATE INDEX `invoices_state_idx` ON `invoices` (`state`);--> statement-breakpoint
 CREATE INDEX `invoices_client_idx` ON `invoices` (`client_id`);--> statement-breakpoint
 CREATE TABLE `job_runs` (
@@ -139,15 +164,29 @@ CREATE TABLE `notifications` (
 	`body` text,
 	`invoice_id` text,
 	`read_at` integer,
+	`push_sent_at` integer,
 	`created_at` integer NOT NULL,
 	FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE TABLE `number_sequences` (
-	`year` integer PRIMARY KEY NOT NULL,
-	`last_number` integer DEFAULT 0 NOT NULL
+	`series_id` text NOT NULL,
+	`year` integer NOT NULL,
+	`last_number` integer DEFAULT 0 NOT NULL,
+	PRIMARY KEY(`series_id`, `year`)
 );
 --> statement-breakpoint
+CREATE TABLE `numbering_series` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`prefix` text,
+	`suffix` text,
+	`is_default` integer DEFAULT false NOT NULL,
+	`created_at` integer NOT NULL,
+	`updated_at` integer
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `numbering_series_single_default` ON `numbering_series` (`is_default`) WHERE "numbering_series"."is_default" = 1;--> statement-breakpoint
 CREATE TABLE `outbox` (
 	`id` text PRIMARY KEY NOT NULL,
 	`invoice_id` text NOT NULL,
@@ -160,10 +199,39 @@ CREATE TABLE `outbox` (
 	`sent_at` integer,
 	FOREIGN KEY (`invoice_id`) REFERENCES `invoices`(`id`) ON UPDATE no action ON DELETE no action,
 	CONSTRAINT "outbox_kind_valid" CHECK(kind IN ('email', 'push', 'notification')),
-	CONSTRAINT "outbox_status_valid" CHECK(status IN ('pending', 'sent', 'failed'))
+	CONSTRAINT "outbox_status_valid" CHECK(status IN ('pending', 'sent', 'failed', 'asked', 'skipped'))
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `outbox_invoice_attempt_kind_unique` ON `outbox` (`invoice_id`,`attempt`,`kind`);--> statement-breakpoint
+CREATE TABLE `passkey` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text,
+	`public_key` text NOT NULL,
+	`user_id` text NOT NULL,
+	`credential_id` text NOT NULL,
+	`counter` integer NOT NULL,
+	`device_type` text NOT NULL,
+	`backed_up` integer NOT NULL,
+	`transports` text,
+	`created_at` integer,
+	`aaguid` text,
+	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `passkey_user_idx` ON `passkey` (`user_id`);--> statement-breakpoint
+CREATE INDEX `passkey_credential_idx` ON `passkey` (`credential_id`);--> statement-breakpoint
+CREATE TABLE `payment_methods` (
+	`id` text PRIMARY KEY NOT NULL,
+	`label` text NOT NULL,
+	`iban` text NOT NULL,
+	`bic` text,
+	`account_holder` text,
+	`is_default` integer DEFAULT false NOT NULL,
+	`created_at` integer NOT NULL,
+	`updated_at` integer
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `payment_methods_single_default` ON `payment_methods` (`is_default`) WHERE "payment_methods"."is_default" = 1;--> statement-breakpoint
 CREATE TABLE `pec_messages` (
 	`id` text PRIMARY KEY NOT NULL,
 	`message_id` text NOT NULL,
@@ -194,8 +262,8 @@ CREATE TABLE `profile` (
 	`province` text,
 	`country` text DEFAULT 'IT' NOT NULL,
 	`regime_fiscale` text DEFAULT 'RF01' NOT NULL,
-	`payment_defaults` text,
-	`default_payment_terms_days` integer,
+	`email` text,
+	`phone` text,
 	`updated_at` integer,
 	CONSTRAINT "profile_single_row" CHECK("profile"."id" = 1)
 );
@@ -210,14 +278,25 @@ CREATE TABLE `push_subscriptions` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `push_subscriptions_endpoint_unique` ON `push_subscriptions` (`endpoint`);--> statement-breakpoint
+CREATE TABLE `rate_limit` (
+	`id` text PRIMARY KEY NOT NULL,
+	`key` text NOT NULL,
+	`count` integer NOT NULL,
+	`last_request` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `rate_limit_key_unique` ON `rate_limit` (`key`);--> statement-breakpoint
 CREATE TABLE `received_invoices` (
 	`id` text PRIMARY KEY NOT NULL,
 	`pec_message_id` text,
 	`parse_status` text DEFAULT 'pending' NOT NULL,
 	`file_id` text,
 	`supplier_name` text,
+	`supplier_vat` text,
 	`number` text,
 	`issue_date` text,
+	`document_type` text,
+	`currency` text DEFAULT 'EUR' NOT NULL,
 	`total_cents` integer,
 	`payment_flag` text DEFAULT 'unpaid' NOT NULL,
 	`paid_date` text,
@@ -265,6 +344,20 @@ CREATE TABLE `send_challenges` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `send_challenges_challenge_unique` ON `send_challenges` (`challenge`);--> statement-breakpoint
+CREATE TABLE `session` (
+	`id` text PRIMARY KEY NOT NULL,
+	`token` text NOT NULL,
+	`expires_at` integer NOT NULL,
+	`ip_address` text,
+	`user_agent` text,
+	`user_id` text NOT NULL,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `session_token_unique` ON `session` (`token`);--> statement-breakpoint
+CREATE INDEX `session_user_idx` ON `session` (`user_id`);--> statement-breakpoint
 CREATE TABLE `settings` (
 	`id` integer PRIMARY KEY DEFAULT 1 NOT NULL,
 	`pec_imap_host` text,
@@ -280,7 +373,16 @@ CREATE TABLE `settings` (
 	`email_reply_to` text,
 	`email_bcc` text,
 	`courtesy_email_mode` text DEFAULT 'ask' NOT NULL,
+	`ui_language` text,
+	`push_disabled_types` text,
 	`recurring_lead_days` integer DEFAULT 3 NOT NULL,
+	`pec_test_at` integer,
+	`pec_test_ok` integer,
+	`pec_test_error` text,
+	`ade_guide_done_at` integer,
+	`email_configured_at` integer,
+	`tax_cassa` text,
+	`tax_ritenuta` text,
 	`updated_at` integer,
 	CONSTRAINT "settings_single_row" CHECK("settings"."id" = 1),
 	CONSTRAINT "settings_courtesy_mode" CHECK(courtesy_email_mode IN ('automatic', 'ask', 'off'))
@@ -309,4 +411,39 @@ CREATE TABLE `transmissions` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX `transmissions_file_name_unique` ON `transmissions` (`file_name`);--> statement-breakpoint
 CREATE UNIQUE INDEX `transmissions_progressive_unique` ON `transmissions` (`file_progressive`);--> statement-breakpoint
-CREATE UNIQUE INDEX `transmissions_invoice_attempt_unique` ON `transmissions` (`invoice_id`,`attempt`);
+CREATE UNIQUE INDEX `transmissions_invoice_attempt_unique` ON `transmissions` (`invoice_id`,`attempt`);--> statement-breakpoint
+CREATE TABLE `two_factor` (
+	`id` text PRIMARY KEY NOT NULL,
+	`secret` text NOT NULL,
+	`backup_codes` text NOT NULL,
+	`user_id` text NOT NULL,
+	`verified` integer DEFAULT true,
+	`failed_verification_count` integer DEFAULT 0,
+	`locked_until` integer,
+	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `two_factor_user_idx` ON `two_factor` (`user_id`);--> statement-breakpoint
+CREATE INDEX `two_factor_secret_idx` ON `two_factor` (`secret`);--> statement-breakpoint
+CREATE TABLE `user` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`email` text NOT NULL,
+	`email_verified` integer DEFAULT false NOT NULL,
+	`image` text,
+	`two_factor_enabled` integer DEFAULT false,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `user_email_unique` ON `user` (`email`);--> statement-breakpoint
+CREATE TABLE `verification` (
+	`id` text PRIMARY KEY NOT NULL,
+	`identifier` text NOT NULL,
+	`value` text NOT NULL,
+	`expires_at` integer NOT NULL,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE INDEX `verification_identifier_idx` ON `verification` (`identifier`);

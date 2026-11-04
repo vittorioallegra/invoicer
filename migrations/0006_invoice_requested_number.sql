@@ -1,1 +1,0 @@
-ALTER TABLE `invoices` ADD `requested_number_int` integer;

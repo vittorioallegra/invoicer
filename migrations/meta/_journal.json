@@ -5,113 +5,15 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1793629485737,
+      "when": 1793792927843,
       "tag": "0000_init",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "6",
-      "when": 1793629696798,
-      "tag": "0001_auth",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1793631008644,
-      "tag": "0002_settings_onboarding",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1793692117424,
-      "tag": "0003_payment_methods",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1793692898811,
-      "tag": "0004_drop_profile_payment_terms",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1793693965507,
-      "tag": "0005_drop_payment_method_bank_name",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1793694634491,
-      "tag": "0006_invoice_requested_number",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1793706071736,
-      "tag": "0007_settings_tax_options",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "6",
-      "when": 1793709083405,
-      "tag": "0008_numbering_series",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "6",
-      "when": 1793710403864,
-      "tag": "0009_sleepy_sway",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "6",
-      "when": 1793711440262,
-      "tag": "0010_rename_default_series",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "6",
-      "when": 1793715520039,
-      "tag": "0011_sleepy_pete_wisdom",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "6",
-      "when": 1793742753741,
-      "tag": "0012_sparkling_zaladane",
-      "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "6",
-      "when": 1793772673290,
-      "tag": "0013_vengeful_pestilence",
-      "breakpoints": true
-    },
-    {
-      "idx": 14,
-      "version": "6",
-      "when": 1793774222366,
-      "tag": "0014_bored_turbo",
-      "breakpoints": true
-    },
-    {
-      "idx": 15,
-      "version": "6",
-      "when": 1793774835781,
-      "tag": "0015_sparkling_sleepwalker",
+      "when": 1793792952569,
+      "tag": "0001_default_series",
       "breakpoints": true
     }
   ]

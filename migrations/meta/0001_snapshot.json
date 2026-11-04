@@ -1,8 +1,8 @@
 {
+  "id": "1fb4dfac-9c0a-401f-a6ef-0efb9ca9da7c",
+  "prevId": "dff521e9-a837-46fe-87a4-0d5cbf705b90",
   "version": "6",
   "dialect": "sqlite",
-  "id": "c2e6ecd5-3a5a-4e73-8c62-7764e12b2946",
-  "prevId": "aff821ce-0b4f-474f-ba2f-3400048defd2",
   "tables": {
     "account": {
       "name": "account",
@@ -112,15 +112,15 @@
         "account_user_id_user_id_fk": {
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
-          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -290,11 +290,32 @@
           "notNull": false,
           "autoincrement": false
         },
+        "attempt": {
+          "name": "attempt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "trigger": {
+          "name": "trigger",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "recipient": {
           "name": "recipient",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "provider_message_id": {
@@ -331,15 +352,15 @@
         "email_log_invoice_id_invoices_id_fk": {
           "name": "email_log_invoice_id_invoices_id_fk",
           "tableFrom": "email_log",
-          "tableTo": "invoices",
           "columnsFrom": [
             "invoice_id"
           ],
+          "tableTo": "invoices",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -426,28 +447,28 @@
         "events_invoice_id_invoices_id_fk": {
           "name": "events_invoice_id_invoices_id_fk",
           "tableFrom": "events",
-          "tableTo": "invoices",
           "columnsFrom": [
             "invoice_id"
           ],
+          "tableTo": "invoices",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "events_transmission_id_transmissions_id_fk": {
           "name": "events_transmission_id_transmissions_id_fk",
           "tableFrom": "events",
-          "tableTo": "transmissions",
           "columnsFrom": [
             "transmission_id"
           ],
+          "tableTo": "transmissions",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -620,6 +641,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "quantity_milli": {
           "name": "quantity_milli",
           "type": "integer",
@@ -671,15 +699,15 @@
         "invoice_lines_invoice_id_invoices_id_fk": {
           "name": "invoice_lines_invoice_id_invoices_id_fk",
           "tableFrom": "invoice_lines",
-          "tableTo": "invoices",
           "columnsFrom": [
             "invoice_id"
           ],
+          "tableTo": "invoices",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -764,6 +792,21 @@
           "notNull": false,
           "autoincrement": false
         },
+        "requested_number_int": {
+          "name": "requested_number_int",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "series_id": {
+          "name": "series_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'default'"
+        },
         "year": {
           "name": "year",
           "type": "integer",
@@ -821,6 +864,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "editor_form": {
+          "name": "editor_form",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "linked_invoice_id": {
           "name": "linked_invoice_id",
           "type": "text",
@@ -865,14 +915,15 @@
         }
       },
       "indexes": {
-        "invoices_year_number_unique": {
-          "name": "invoices_year_number_unique",
+        "invoices_series_year_number_unique": {
+          "name": "invoices_series_year_number_unique",
           "columns": [
+            "series_id",
             "year",
             "number_int"
           ],
-          "isUnique": true,
-          "where": "\"invoices\".\"number_int\" IS NOT NULL"
+          "where": "\"invoices\".\"number_int\" IS NOT NULL",
+          "isUnique": true
         },
         "invoices_state_idx": {
           "name": "invoices_state_idx",
@@ -893,28 +944,28 @@
         "invoices_client_id_clients_id_fk": {
           "name": "invoices_client_id_clients_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "clients",
           "columnsFrom": [
             "client_id"
           ],
+          "tableTo": "clients",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "invoices_recurring_template_id_recurring_templates_id_fk": {
           "name": "invoices_recurring_template_id_recurring_templates_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "recurring_templates",
           "columnsFrom": [
             "recurring_template_id"
           ],
+          "tableTo": "recurring_templates",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1064,6 +1115,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "push_sent_at": {
+          "name": "push_sent_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -1077,15 +1135,15 @@
         "notifications_invoice_id_invoices_id_fk": {
           "name": "notifications_invoice_id_invoices_id_fk",
           "tableFrom": "notifications",
-          "tableTo": "invoices",
           "columnsFrom": [
             "invoice_id"
           ],
+          "tableTo": "invoices",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1095,10 +1153,17 @@
     "number_sequences": {
       "name": "number_sequences",
       "columns": {
+        "series_id": {
+          "name": "series_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "year": {
           "name": "year",
           "type": "integer",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -1112,6 +1177,83 @@
         }
       },
       "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "number_sequences_series_id_year_pk": {
+          "columns": [
+            "series_id",
+            "year"
+          ],
+          "name": "number_sequences_series_id_year_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "numbering_series": {
+      "name": "numbering_series",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "prefix": {
+          "name": "prefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "suffix": {
+          "name": "suffix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "numbering_series_single_default": {
+          "name": "numbering_series_single_default",
+          "columns": [
+            "is_default"
+          ],
+          "where": "\"numbering_series\".\"is_default\" = 1",
+          "isUnique": true
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -1201,15 +1343,15 @@
         "outbox_invoice_id_invoices_id_fk": {
           "name": "outbox_invoice_id_invoices_id_fk",
           "tableFrom": "outbox",
-          "tableTo": "invoices",
           "columnsFrom": [
             "invoice_id"
           ],
+          "tableTo": "invoices",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1221,7 +1363,7 @@
         },
         "outbox_status_valid": {
           "name": "outbox_status_valid",
-          "value": "status IN ('pending', 'sent', 'failed')"
+          "value": "status IN ('pending', 'sent', 'failed', 'asked', 'skipped')"
         }
       }
     },
@@ -1326,17 +1468,93 @@
         "passkey_user_id_user_id_fk": {
           "name": "passkey_user_id_user_id_fk",
           "tableFrom": "passkey",
-          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "payment_methods": {
+      "name": "payment_methods",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "iban": {
+          "name": "iban",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bic": {
+          "name": "bic",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "account_holder": {
+          "name": "account_holder",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "payment_methods_single_default": {
+          "name": "payment_methods_single_default",
+          "columns": [
+            "is_default"
+          ],
+          "where": "\"payment_methods\".\"is_default\" = 1",
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -1450,15 +1668,15 @@
         "pec_messages_raw_file_id_files_id_fk": {
           "name": "pec_messages_raw_file_id_files_id_fk",
           "tableFrom": "pec_messages",
-          "tableTo": "files",
           "columnsFrom": [
             "raw_file_id"
           ],
+          "tableTo": "files",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1546,16 +1764,16 @@
           "autoincrement": false,
           "default": "'RF01'"
         },
-        "payment_defaults": {
-          "name": "payment_defaults",
+        "email": {
+          "name": "email",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "default_payment_terms_days": {
-          "name": "default_payment_terms_days",
-          "type": "integer",
+        "phone": {
+          "name": "phone",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -1724,6 +1942,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "supplier_vat": {
+          "name": "supplier_vat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "number": {
           "name": "number",
           "type": "text",
@@ -1737,6 +1962,21 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "document_type": {
+          "name": "document_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'EUR'"
         },
         "total_cents": {
           "name": "total_cents",
@@ -1781,28 +2021,28 @@
         "received_invoices_pec_message_id_pec_messages_id_fk": {
           "name": "received_invoices_pec_message_id_pec_messages_id_fk",
           "tableFrom": "received_invoices",
-          "tableTo": "pec_messages",
           "columnsFrom": [
             "pec_message_id"
           ],
+          "tableTo": "pec_messages",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "received_invoices_file_id_files_id_fk": {
           "name": "received_invoices_file_id_files_id_fk",
           "tableFrom": "received_invoices",
-          "tableTo": "files",
           "columnsFrom": [
             "file_id"
           ],
+          "tableTo": "files",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1867,28 +2107,28 @@
         "recurring_occurrences_template_id_recurring_templates_id_fk": {
           "name": "recurring_occurrences_template_id_recurring_templates_id_fk",
           "tableFrom": "recurring_occurrences",
-          "tableTo": "recurring_templates",
           "columnsFrom": [
             "template_id"
           ],
+          "tableTo": "recurring_templates",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "recurring_occurrences_invoice_id_invoices_id_fk": {
           "name": "recurring_occurrences_invoice_id_invoices_id_fk",
           "tableFrom": "recurring_occurrences",
-          "tableTo": "invoices",
           "columnsFrom": [
             "invoice_id"
           ],
+          "tableTo": "invoices",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -1975,15 +2215,15 @@
         "recurring_templates_client_id_clients_id_fk": {
           "name": "recurring_templates_client_id_clients_id_fk",
           "tableFrom": "recurring_templates",
-          "tableTo": "clients",
           "columnsFrom": [
             "client_id"
           ],
+          "tableTo": "clients",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2056,15 +2296,15 @@
         "send_challenges_invoice_id_invoices_id_fk": {
           "name": "send_challenges_invoice_id_invoices_id_fk",
           "tableFrom": "send_challenges",
-          "tableTo": "invoices",
           "columnsFrom": [
             "invoice_id"
           ],
+          "tableTo": "invoices",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2151,15 +2391,15 @@
         "session_user_id_user_id_fk": {
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
-          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2269,6 +2509,20 @@
           "autoincrement": false,
           "default": "'ask'"
         },
+        "ui_language": {
+          "name": "ui_language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "push_disabled_types": {
+          "name": "push_disabled_types",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "recurring_lead_days": {
           "name": "recurring_lead_days",
           "type": "integer",
@@ -2276,6 +2530,55 @@
           "notNull": true,
           "autoincrement": false,
           "default": 3
+        },
+        "pec_test_at": {
+          "name": "pec_test_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "pec_test_ok": {
+          "name": "pec_test_ok",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "pec_test_error": {
+          "name": "pec_test_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "ade_guide_done_at": {
+          "name": "ade_guide_done_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "email_configured_at": {
+          "name": "email_configured_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "tax_cassa": {
+          "name": "tax_cassa",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "tax_ritenuta": {
+          "name": "tax_ritenuta",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "updated_at": {
           "name": "updated_at",
@@ -2424,41 +2727,41 @@
         "transmissions_invoice_id_invoices_id_fk": {
           "name": "transmissions_invoice_id_invoices_id_fk",
           "tableFrom": "transmissions",
-          "tableTo": "invoices",
           "columnsFrom": [
             "invoice_id"
           ],
+          "tableTo": "invoices",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "transmissions_xml_file_id_files_id_fk": {
           "name": "transmissions_xml_file_id_files_id_fk",
           "tableFrom": "transmissions",
-          "tableTo": "files",
           "columnsFrom": [
             "xml_file_id"
           ],
+          "tableTo": "files",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "transmissions_pdf_file_id_files_id_fk": {
           "name": "transmissions_pdf_file_id_files_id_fk",
           "tableFrom": "transmissions",
-          "tableTo": "files",
           "columnsFrom": [
             "pdf_file_id"
           ],
+          "tableTo": "files",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -2549,15 +2852,15 @@
         "two_factor_user_id_user_id_fk": {
           "name": "two_factor_user_id_user_id_fk",
           "tableFrom": "two_factor",
-          "tableTo": "user",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "user",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -2704,9 +3007,9 @@
   "views": {},
   "enums": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
+    "tables": {}
   },
   "internal": {
     "indexes": {}

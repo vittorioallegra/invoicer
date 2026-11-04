@@ -93,8 +93,8 @@ export const paymentMethods = sqliteTable(
 /**
  * Numbering series (sezionali). Each series has its own yearly progressive; the printed number is
  * prefix + progressive + suffix. Exactly one series is the default (partial unique index; the
- * Worker keeps it so). The migration creates the default series (`id = 'default'`) for the
- * invoices that existed before series.
+ * Worker keeps it so). Migration 0001 creates the default series (`id = 'default'`) in every
+ * new database.
  */
 export const numberingSeries = sqliteTable(
   "numbering_series",
