@@ -57,6 +57,19 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+describe("idle sign-out notice", () => {
+  it("tells the owner why the login screen is shown", async () => {
+    await renderAt("/login?reason=idle");
+    expect(await screen.findByText(/signed out after 10 minutes of inactivity/)).toBeTruthy();
+  });
+
+  it("shows no notice on a plain visit", async () => {
+    await renderAt("/login");
+    await screen.findByRole("button", { name: "Sign in with passkey" });
+    expect(screen.queryByText(/inactivity/)).toBeNull();
+  });
+});
+
 describe("session gate", () => {
   it("sends an anonymous visitor to the login screen", async () => {
     const router = await renderAt("/invoices");

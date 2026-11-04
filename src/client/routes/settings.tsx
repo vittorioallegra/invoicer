@@ -6,6 +6,7 @@ import type { UiLocale } from "../../shared/format";
 import { DataExport } from "../components/data-export";
 import { JobsStatus } from "../components/jobs-status";
 import { Page } from "../components/page";
+import { SignOutButton } from "../components/sign-out-button";
 import { Banner } from "../components/ui/banner";
 import { Select } from "../components/ui/select";
 import { UnmatchedMessages } from "../components/unmatched-messages";
@@ -110,6 +111,7 @@ export function SettingsPage() {
       <JobsStatus />
       <UnmatchedMessages />
       <DataExport online={online} />
+      <SignOutButton className="w-fit" />
     </Page>
   );
 }

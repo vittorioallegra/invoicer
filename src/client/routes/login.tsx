@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { KeyRound } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,12 +9,16 @@ import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { authClient } from "../lib/auth-client";
 import { authErrorMessage } from "../lib/auth-errors";
+import { IDLE_TIMEOUT_MS } from "../lib/sign-out";
+
+const route = getRouteApi("/login");
 
 type Stage = "credentials" | "totp" | "recovery";
 
 export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { reason } = route.useSearch();
   const [stage, setStage] = useState<Stage>("credentials");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -121,6 +125,11 @@ export function LoginPage() {
   return (
     <AuthLayout title={t("auth.loginTitle")}>
       <div className="flex flex-col gap-4">
+        {reason === "idle" ? (
+          <Banner tone="info">
+            {t("auth.signedOutIdle", { minutes: IDLE_TIMEOUT_MS / 60_000 })}
+          </Banner>
+        ) : null}
         {errorBanner}
         <Button onClick={signInWithPasskey} disabled={busy}>
           <KeyRound aria-hidden />

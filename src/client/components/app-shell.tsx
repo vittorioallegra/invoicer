@@ -4,9 +4,11 @@ import { Bell, FileText, House, Inbox, Settings, Users, WifiOff } from "lucide-r
 import { useTranslation } from "react-i18next";
 import { notificationsQuery } from "../lib/notifications-api";
 import { useOnline } from "../lib/online";
+import { useIdleSignOut } from "../lib/sign-out";
 import { cn } from "../lib/utils";
 import { MailboxAlerts } from "./mailbox-alerts";
 import { NewInvoiceLink } from "./new-invoice-link";
+import { SignOutButton } from "./sign-out-button";
 import { Banner } from "./ui/banner";
 import { Toaster } from "./ui/toast";
 
@@ -73,6 +75,7 @@ function Sidebar() {
           </Link>
         ))}
       </nav>
+      <SignOutButton className="mt-auto" />
     </aside>
   );
 }
@@ -115,6 +118,7 @@ function OfflineBanner() {
 }
 
 export function AppShell() {
+  useIdleSignOut();
   return (
     <div className="flex min-h-dvh pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
       <Sidebar />

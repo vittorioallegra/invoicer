@@ -115,7 +115,14 @@ const routeTree = rootRoute.addChildren([
     path: "/settings/ade-guide",
     component: AdeGuidePage,
   }),
-  createRoute({ getParentRoute: () => rootRoute, path: "/login", component: LoginPage }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/login",
+    // `reason=idle`: the owner was signed out for inactivity (see `lib/sign-out.ts`).
+    validateSearch: (search: Record<string, unknown>): { reason?: "idle" } =>
+      search.reason === "idle" ? { reason: "idle" } : {},
+    component: LoginPage,
+  }),
   createRoute({ getParentRoute: () => rootRoute, path: "/setup", component: SetupPage }),
   createRoute({
     getParentRoute: () => rootRoute,

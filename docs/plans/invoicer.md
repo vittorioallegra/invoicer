@@ -458,6 +458,7 @@ Approved: yes (2026-11-02)
   - the import page's back link always led to Settings, even when opened from Invoices, Received or Clients — `fix(import): return from the import page to the page it was opened from`
 
 ### Decisions
+- Sign out and idle timeout (2026-11-04, owner): a "Sign out" button (Better Auth `signOut`, then `/login`) in the sidebar and at the bottom of Settings (`components/sign-out-button.tsx`); the app shell signs the owner out after `IDLE_TIMEOUT_MS` (10 minutes, `lib/sign-out.ts`) without pointer, key, touch, scroll or focus activity (polling does not count), also checked against the clock on `visibilitychange`/focus so a resumed phone tab signs out at once, and `/login?reason=idle` explains why. The bare `/setup` and `/login` screens have no timer.
 - No floating "New invoice" button on phones (2026-11-04, owner): a "New invoice" button (`components/new-invoice-link.tsx`) sits in the title row of Home and Invoices below `md`; the sidebar keeps it on wide screens.
 - Setup checklist is a full-width, collapsible `Disclosure` (2026-11-04, owner): open while items remain by default; the open/closed choice is kept per device in `localStorage` (`invoicer.setupChecklistOpen`, always in try/catch).
 - The import page goes back to the page it was opened from (2026-11-04, owner): the "Import files" buttons pass `from=invoices|received|clients` in the `/import` search (validated in `validateImportSearch`, kept when switching the import kind); no or unknown `from` means Settings. `importBackLink` in `src/client/lib/back-links.ts`.
