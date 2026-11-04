@@ -10,6 +10,7 @@ import {
   FileMinus,
   Mail,
   Pencil,
+  Repeat,
   Send,
   Trash2,
 } from "lucide-react";
@@ -50,6 +51,7 @@ import { InvoiceTotals } from "../components/invoice-totals";
 import { Page } from "../components/page";
 import { PaymentDialog } from "../components/payment-action";
 import { PaymentTermsFields } from "../components/payment-terms-fields";
+import { RecurringSheet } from "../components/recurring-sheet";
 import { type Preflight, SendSheet } from "../components/send-sheet";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
@@ -272,6 +274,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [repeatOpen, setRepeatOpen] = useState(false);
 
   const editability = record ? invoiceEditability(record.state) : "full";
   const locked = editability === "locked";
@@ -672,6 +675,19 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
       disabled: !online || duplicate.isPending,
       reason: online ? undefined : t("offline.reason"),
       onSelect: () => duplicate.mutate(record.id),
+    });
+  }
+  // Only an invoice made in the app, with a client, can become a recurring template.
+  const repeatable =
+    record && record.source === "app" && record.documentType === "TD01" && record.clientId;
+  if (record && repeatable) {
+    menuItems.push({
+      key: "repeat",
+      label: t("invoice.actions.repeat"),
+      icon: <Repeat aria-hidden />,
+      disabled: !online,
+      reason: online ? undefined : t("offline.reason"),
+      onSelect: () => setRepeatOpen(true),
     });
   }
   if (record && issuedCreditable) {
@@ -1498,6 +1514,14 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
         />
 
         <UnsavedChangesGuard shouldBlock={shouldBlock} />
+        {record && repeatable ? (
+          <RecurringSheet
+            key={record.id}
+            invoiceId={record.id}
+            open={repeatOpen}
+            onOpenChange={setRepeatOpen}
+          />
+        ) : null}
         {record && payable ? (
           <PaymentDialog
             key={record.paymentFlag}

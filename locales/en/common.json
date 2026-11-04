@@ -192,6 +192,10 @@
       "notifications": {
         "title": "Notifications",
         "body": "Push on this device and what you are notified about"
+      },
+      "recurring": {
+        "title": "Recurring invoices",
+        "body": "Invoices created on a schedule, ready for you to send"
       }
     },
     "unmatched": {
@@ -645,7 +649,8 @@
       "deleteBody": "The unsent invoice is deleted for good.",
       "fixResend": "Fix & resend",
       "finalize": "Finalize",
-      "sendEmail": "Send email"
+      "sendEmail": "Send email",
+      "repeat": "Repeat on a schedule"
     },
     "list": {
       "invoice": "Invoice",
@@ -1301,6 +1306,73 @@
       "save": "Save",
       "saved": "Threshold saved.",
       "invalid": "The threshold must be a whole number of MB from 1 to {{max}}."
+    }
+  },
+  "recurring": {
+    "title": "Recurring invoices",
+    "intro": "A recurring template creates the same invoice on a schedule. Each one appears under To send a few days before its date, with its notification. Nothing is ever sent by itself: you review and finalize every invoice.",
+    "emptyTitle": "No recurring invoices yet",
+    "emptyBody": "Open an invoice, choose Repeat on a schedule in its menu, and pick how often it repeats. The client, lines and settings of that invoice are copied.",
+    "intervals": {
+      "m1": "Every month",
+      "m2": "Every 2 months",
+      "m3": "Every 3 months",
+      "m4": "Every 4 months",
+      "m6": "Every 6 months",
+      "m12": "Every year"
+    },
+    "cadence_one": "Every month on day {{day}}",
+    "cadence_other": "Every {{count}} months on day {{day}}",
+    "until": "until {{date}}",
+    "limit_one": "{{count}} invoice at most",
+    "limit_other": "{{count}} invoices at most",
+    "paused": "Paused: no invoice is created until you resume it.",
+    "finished": "Finished: no more invoices to create.",
+    "next": "Next invoice dated {{date}}",
+    "createdCount_one": "{{count}} invoice created so far",
+    "createdCount_other": "{{count}} invoices created so far",
+    "actions": {
+      "edit": "Edit schedule",
+      "pause": "Pause",
+      "resume": "Resume",
+      "delete": "Delete"
+    },
+    "fields": {
+      "every": "Repeats",
+      "day": "Day of the month",
+      "dayHint": "1 to 31. A shorter month uses its last day.",
+      "start": "First date",
+      "end": "Last date",
+      "optional": "Optional.",
+      "count": "Number of invoices",
+      "countHint": "Optional, up to {{max}}. Leave empty to repeat until you stop it."
+    },
+    "invalid": "Check the schedule: the day must be 1 to 31, the dates valid and the last date not before the first.",
+    "sheet": {
+      "title": "Repeat this invoice",
+      "body": "A copy of this invoice is created on the schedule below. It is a normal unsent invoice each time.",
+      "create": "Create schedule"
+    },
+    "created": "Recurring invoice scheduled.",
+    "createFailed": "The schedule could not be created. Only saved invoices with a client can repeat.",
+    "edit": {
+      "title": "Schedule for {{client}}",
+      "body": "Changes apply to future invoices only; the ones already created stay as they are.",
+      "save": "Save"
+    },
+    "saved": "Schedule saved.",
+    "saveFailed": "The schedule could not be saved.",
+    "delete": {
+      "title": "Delete this recurring invoice?",
+      "body": "No more invoices are created for {{client}}. The ones already created stay.",
+      "confirm": "Delete"
+    },
+    "deleted": "Recurring invoice deleted.",
+    "lead": {
+      "label": "Create each invoice this many days ahead",
+      "hint": "0 to {{max}}. The invoice appears under To send this many days before its date.",
+      "save": "Save",
+      "saved": "Saved."
     }
   }
 }

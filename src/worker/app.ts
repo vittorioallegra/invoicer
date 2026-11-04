@@ -20,6 +20,7 @@ import { paymentMethods } from "./routes/payment-methods";
 import { profile } from "./routes/profile";
 import { push } from "./routes/push";
 import { received } from "./routes/received";
+import { recurring } from "./routes/recurring";
 import { send } from "./routes/send";
 import { settings } from "./routes/settings";
 import { tax } from "./routes/tax";
@@ -47,6 +48,7 @@ export function createApp() {
   app.route("/api/tax", tax);
   app.route("/api/mailbox", mailbox);
   app.route("/api/jobs", jobs);
+  app.route("/api/recurring", recurring);
   app.route("/api/received", received);
   app.route("/api/notifications", notifications);
   app.route("/api/push", push);

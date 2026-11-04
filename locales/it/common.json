@@ -192,6 +192,10 @@
       "notifications": {
         "title": "Notifiche",
         "body": "Push su questo dispositivo e cosa ricevere"
+      },
+      "recurring": {
+        "title": "Fatture ricorrenti",
+        "body": "Fatture create a scadenza fissa, pronte da inviare"
       }
     },
     "unmatched": {
@@ -645,7 +649,8 @@
       "deleteBody": "La fattura non inviata viene eliminata definitivamente.",
       "fixResend": "Correggi e reinvia",
       "finalize": "Finalizza",
-      "sendEmail": "Invia email"
+      "sendEmail": "Invia email",
+      "repeat": "Ripeti periodicamente"
     },
     "list": {
       "invoice": "Fattura",
@@ -1301,6 +1306,73 @@
       "save": "Salva",
       "saved": "Soglia salvata.",
       "invalid": "La soglia deve essere un numero intero di MB da 1 a {{max}}."
+    }
+  },
+  "recurring": {
+    "title": "Fatture ricorrenti",
+    "intro": "Un modello ricorrente crea la stessa fattura a intervalli regolari. Ognuna compare tra le fatture da inviare qualche giorno prima della sua data, con la sua notifica. Non viene mai inviato nulla da solo: controlli e finalizzi ogni fattura.",
+    "emptyTitle": "Nessuna fattura ricorrente",
+    "emptyBody": "Apri una fattura, scegli Ripeti periodicamente nel suo menu e indica ogni quanto si ripete. Cliente, righe e impostazioni di quella fattura vengono copiati.",
+    "intervals": {
+      "m1": "Ogni mese",
+      "m2": "Ogni 2 mesi",
+      "m3": "Ogni 3 mesi",
+      "m4": "Ogni 4 mesi",
+      "m6": "Ogni 6 mesi",
+      "m12": "Ogni anno"
+    },
+    "cadence_one": "Ogni mese il giorno {{day}}",
+    "cadence_other": "Ogni {{count}} mesi il giorno {{day}}",
+    "until": "fino al {{date}}",
+    "limit_one": "al massimo {{count}} fattura",
+    "limit_other": "al massimo {{count}} fatture",
+    "paused": "In pausa: non viene creata nessuna fattura finché non la riprendi.",
+    "finished": "Terminata: non ci sono altre fatture da creare.",
+    "next": "Prossima fattura con data {{date}}",
+    "createdCount_one": "{{count}} fattura creata finora",
+    "createdCount_other": "{{count}} fatture create finora",
+    "actions": {
+      "edit": "Modifica pianificazione",
+      "pause": "Metti in pausa",
+      "resume": "Riprendi",
+      "delete": "Elimina"
+    },
+    "fields": {
+      "every": "Si ripete",
+      "day": "Giorno del mese",
+      "dayHint": "Da 1 a 31. Un mese più corto usa il suo ultimo giorno.",
+      "start": "Prima data",
+      "end": "Ultima data",
+      "optional": "Facoltativa.",
+      "count": "Numero di fatture",
+      "countHint": "Facoltativo, fino a {{max}}. Lascia vuoto per ripetere finché non la fermi."
+    },
+    "invalid": "Controlla la pianificazione: il giorno va da 1 a 31, le date devono essere valide e l'ultima non precedere la prima.",
+    "sheet": {
+      "title": "Ripeti questa fattura",
+      "body": "Una copia di questa fattura viene creata secondo la pianificazione qui sotto. Ogni volta è una normale fattura da inviare.",
+      "create": "Crea pianificazione"
+    },
+    "created": "Fattura ricorrente pianificata.",
+    "createFailed": "Non è stato possibile creare la pianificazione. Possono ripetersi solo fatture salvate con un cliente.",
+    "edit": {
+      "title": "Pianificazione per {{client}}",
+      "body": "Le modifiche valgono solo per le fatture future; quelle già create restano come sono.",
+      "save": "Salva"
+    },
+    "saved": "Pianificazione salvata.",
+    "saveFailed": "Non è stato possibile salvare la pianificazione.",
+    "delete": {
+      "title": "Eliminare questa fattura ricorrente?",
+      "body": "Non vengono più create fatture per {{client}}. Quelle già create restano.",
+      "confirm": "Elimina"
+    },
+    "deleted": "Fattura ricorrente eliminata.",
+    "lead": {
+      "label": "Crea ogni fattura con questi giorni di anticipo",
+      "hint": "Da 0 a {{max}}. La fattura compare tra quelle da inviare con questi giorni di anticipo sulla sua data.",
+      "save": "Salva",
+      "saved": "Salvato."
     }
   }
 }

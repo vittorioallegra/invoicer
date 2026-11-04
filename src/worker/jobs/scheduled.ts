@@ -6,6 +6,7 @@ import { processPushNotifications } from "../push/deliver";
 import { remindUnsentInvoices } from "./invoice-due";
 import { notifyOverdueInvoices } from "./invoice-overdue";
 import { DAILY_JOB, finishJobRun, type JobCounts, startJobRun } from "./job-runs";
+import { createRecurringInvoices } from "./recurring";
 
 type Handler = (env: Bindings) => Promise<void>;
 
@@ -28,6 +29,7 @@ export interface DailyTask {
 export const dailyTasks: DailyTask[] = [
   { name: "unsent", run: remindUnsentInvoices },
   { name: "overdue", run: notifyOverdueInvoices },
+  { name: "recurring", run: createRecurringInvoices },
   { name: "quota", run: dailyQuotaCheck },
 ];
 

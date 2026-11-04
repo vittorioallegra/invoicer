@@ -457,13 +457,21 @@ function parseEditorForm(text: string | null): unknown {
 
 type Extra = { reissuesInvoiceId?: string | null; editorForm?: string | null };
 
-function lineStatements(db: D1Database, id: string, lines: InvoiceBody["lines"]) {
+/**
+ * Insert statements for the lines of invoice `id`. `guarded` makes each one a no-op unless the
+ * invoice row exists (the batch that creates it may have been skipped).
+ */
+function lineStatements(db: D1Database, id: string, lines: InvoiceBody["lines"], guarded = false) {
   return lines.map((line, index) =>
     db
       .prepare(
         `INSERT INTO invoice_lines
            (id, invoice_id, position, description, note, quantity_milli, unit, unit_price_cents, vat_rate_bp, natura)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         ${
+           guarded
+             ? "SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ?2)"
+             : "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+         }`,
       )
       .bind(
         crypto.randomUUID(),
@@ -530,6 +538,73 @@ export async function createInvoice(
     ...lineStatements(db, id, body.lines),
   ]);
   return id;
+}
+
+/**
+ * Creates the invoice of one recurring occurrence, exactly once: the invoice, its lines, the
+ * occurrence row and the "recurring invoice created" notification are one batch, each part
+ * conditional on the occurrence (template and date) not being recorded yet. A repeated call, a
+ * retry after a crash or a second run on the same day therefore changes nothing. The invoice is
+ * a normal unsent one (draft, or planned when its date is still ahead); it is never sent.
+ * Returns the new invoice id, or null when the occurrence already existed.
+ */
+export async function createRecurringInvoice(
+  db: D1Database,
+  occurrence: { templateId: string; date: string; clientName: string },
+  body: InvoiceBody,
+  now = new Date(),
+): Promise<string | null> {
+  const id = crypto.randomUUID();
+  const state = openState(body.invoiceDate, now);
+  const results = await db.batch([
+    db
+      .prepare(
+        `INSERT INTO invoices
+           (id, document_type, state, state_rank, payment_flag, source, client_id, planned_date,
+            due_date, currency, data, total_cents, series_id, recurring_template_id, created_at,
+            updated_at)
+         SELECT ?1, ?2, ?3, ?4, 'unpaid', 'app', ?5, ?6, ?7, ?8, ?9, ?10,
+                COALESCE(?11, (SELECT id FROM numbering_series WHERE is_default = 1)), ?12, ?13, ?13
+         WHERE NOT EXISTS (
+           SELECT 1 FROM recurring_occurrences WHERE template_id = ?12 AND occurrence_date = ?14)`,
+      )
+      .bind(
+        id,
+        body.documentType,
+        state,
+        rank(state),
+        body.clientId,
+        body.invoiceDate,
+        body.dueDate,
+        body.currency,
+        JSON.stringify(body.data),
+        totalCents(body),
+        body.seriesId,
+        occurrence.templateId,
+        now.getTime(),
+        occurrence.date,
+      ),
+    db
+      .prepare(
+        `INSERT INTO recurring_occurrences (id, template_id, occurrence_date, invoice_id, created_at)
+         SELECT ?1, ?2, ?3, ?4, ?5 WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ?4)`,
+      )
+      .bind(crypto.randomUUID(), occurrence.templateId, occurrence.date, id, now.getTime()),
+    ...lineStatements(db, id, body.lines, true),
+    db
+      .prepare(
+        `INSERT INTO notifications (id, type, title, body, invoice_id, created_at)
+         SELECT ?1, 'recurring_created', 'notifications.recurring_created.title', ?2, ?3, ?4
+         WHERE EXISTS (SELECT 1 FROM invoices WHERE id = ?3)`,
+      )
+      .bind(
+        crypto.randomUUID(),
+        JSON.stringify({ client: occurrence.clientName, date: occurrence.date }),
+        id,
+        now.getTime(),
+      ),
+  ]);
+  return (results[1]?.meta.changes ?? 0) > 0 ? id : null;
 }
 
 /**
@@ -604,15 +679,29 @@ export async function updateInvoice(
   }
 }
 
-/** Deletes an invoice that never got a number; a numbered one is kept for good. */
+/**
+ * Deletes an invoice that never got a number; a numbered one is kept for good. Its notifications
+ * go with it, and the recurring occurrence it came from stays recorded without an invoice, so the
+ * deleted occurrence is skipped for good and not created again.
+ */
 export async function deleteInvoice(db: D1Database, id: string): Promise<void> {
-  const result = await db
-    .prepare(
-      `DELETE FROM invoices WHERE id = ? AND state IN ('draft', 'planned') AND number_int IS NULL`,
-    )
-    .bind(id)
-    .run();
-  if (result.meta.changes > 0) return;
+  const deletable = "id = ?1 AND state IN ('draft', 'planned') AND number_int IS NULL";
+  const [, , result] = await db.batch([
+    db
+      .prepare(
+        `UPDATE recurring_occurrences SET invoice_id = NULL
+         WHERE invoice_id = ?1 AND EXISTS (SELECT 1 FROM invoices WHERE ${deletable})`,
+      )
+      .bind(id),
+    db
+      .prepare(
+        `DELETE FROM notifications
+         WHERE invoice_id = ?1 AND EXISTS (SELECT 1 FROM invoices WHERE ${deletable})`,
+      )
+      .bind(id),
+    db.prepare(`DELETE FROM invoices WHERE ${deletable}`).bind(id),
+  ]);
+  if (result && result.meta.changes > 0) return;
   const exists = await db.prepare("SELECT 1 AS hit FROM invoices WHERE id = ?").bind(id).first();
   throw exists ? makeError("conflict", "numbered_invoice_undeletable") : makeError("not_found");
 }

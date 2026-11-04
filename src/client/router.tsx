@@ -26,6 +26,7 @@ import { PecSettingsPage } from "./routes/pec-settings";
 import { ProfilePage } from "./routes/profile";
 import { ReceivedPage } from "./routes/received";
 import { ReceivedDetailPage } from "./routes/received-detail";
+import { RecurringPage } from "./routes/recurring";
 import { SettingsPage } from "./routes/settings";
 import { SetupPage } from "./routes/setup";
 import { SpikePage } from "./routes/spike";
@@ -107,6 +108,7 @@ const routeTree = rootRoute.addChildren([
     path: "/settings/pec",
     component: PecSettingsPage,
   }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/recurring", component: RecurringPage }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/settings/email",
