@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { BackLink } from "../lib/back-links";
 import { cn } from "../lib/utils";
+import { NotificationsLink } from "./notifications-link";
 import { buttonVariants } from "./ui/button";
 
 export function Page({
@@ -34,21 +35,21 @@ export function Page({
           {t(back.labelKey)}
         </Link>
       ) : null}
-      {aside || subtitle ? (
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-            {subtitle ? (
-              <p className="mt-1 text-lg font-medium tabular-nums text-muted-foreground">
-                {subtitle}
-              </p>
-            ) : null}
-          </div>
-          {aside ? <div className="flex flex-wrap items-center gap-2">{aside}</div> : null}
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          {subtitle ? (
+            <p className="mt-1 text-lg font-medium tabular-nums text-muted-foreground">
+              {subtitle}
+            </p>
+          ) : null}
         </div>
-      ) : (
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-      )}
+        {/* Phones: the bell ends the title row; the page actions wrap onto their own row. */}
+        <NotificationsLink className="-mt-1.5 -mr-2 shrink-0 md:hidden" />
+        {aside ? (
+          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">{aside}</div>
+        ) : null}
+      </div>
       {children}
     </div>
   );

@@ -1,13 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link, Outlet } from "@tanstack/react-router";
-import { Bell, FileText, House, Inbox, Settings, Users, WifiOff } from "lucide-react";
+import { FileText, House, Inbox, Settings, Users, WifiOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { notificationsQuery } from "../lib/notifications-api";
 import { useOnline } from "../lib/online";
 import { useIdleSignOut } from "../lib/sign-out";
-import { cn } from "../lib/utils";
 import { MailboxAlerts } from "./mailbox-alerts";
 import { NewInvoiceLink } from "./new-invoice-link";
+import { NotificationsLink } from "./notifications-link";
 import { SignOutButton } from "./sign-out-button";
 import { Banner } from "./ui/banner";
 import { Toaster } from "./ui/toast";
@@ -19,37 +17,6 @@ const NAV = [
   { to: "/clients", key: "clients", icon: Users },
   { to: "/settings", key: "settings", icon: Settings },
 ] as const;
-
-/** Link to the notification list with the unread count (the same query keeps it fresh). */
-function NotificationsLink({ className }: { className?: string }) {
-  const { t } = useTranslation();
-  const unread = useQuery(notificationsQuery).data?.unread ?? 0;
-  return (
-    <Link
-      to="/notifications"
-      aria-label={
-        unread > 0
-          ? t("notificationsPage.linkUnread", { count: unread })
-          : t("notificationsPage.title")
-      }
-      className={cn(
-        "relative flex size-11 items-center justify-center rounded-control text-muted-foreground hover:bg-muted",
-        className,
-      )}
-      activeProps={{ className: "bg-muted text-foreground", "aria-current": "page" }}
-    >
-      <Bell aria-hidden className="size-5" />
-      {unread > 0 ? (
-        <span
-          aria-hidden
-          className="absolute top-1 right-1 min-w-4 rounded-full bg-primary px-1 text-center text-[0.625rem] leading-4 font-semibold text-primary-foreground"
-        >
-          {unread > 99 ? "99+" : unread}
-        </span>
-      ) : null}
-    </Link>
-  );
-}
 
 /** Mac / wide screens: sidebar. */
 function Sidebar() {
@@ -128,9 +95,6 @@ export function AppShell() {
           data-testid="safe-area-top"
           className="h-[env(safe-area-inset-top)] shrink-0"
         />
-        <div className="flex justify-end px-4 pt-1 md:hidden">
-          <NotificationsLink />
-        </div>
         <OfflineBanner />
         <MailboxAlerts />
         <main className="flex-1 px-4 py-6 pb-[calc(8rem+env(safe-area-inset-bottom))] md:px-8 md:pb-8">

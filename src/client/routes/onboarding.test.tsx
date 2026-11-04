@@ -230,7 +230,8 @@ describe("Settings", () => {
     respond({ "/api/features": features, "/api/settings": settings });
     await renderAt("/settings/pec");
     const heading = await screen.findByRole("heading", { level: 1 });
-    const back = heading.previousElementSibling;
+    // The back link is above the title row (title block, then row).
+    const back = heading.parentElement?.parentElement?.previousElementSibling;
     expect(back?.textContent).toBe("Settings");
     expect(back?.getAttribute("href")).toBe("/settings");
   });

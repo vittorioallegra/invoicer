@@ -91,10 +91,10 @@ describe("import page back link", () => {
   beforeEach(() => {
     mocks.api.mockResolvedValue(profile);
   });
-  // The back link is the first link of the page content (the sidebar also has these labels).
+  // The back link is the first link of the page (the sidebar also has these labels).
   const backLink = async () => {
     const heading = await screen.findByRole("heading", { level: 1, name: "Import" });
-    return heading.parentElement?.parentElement?.querySelector("a") ?? null;
+    return heading.parentElement?.parentElement?.parentElement?.querySelector("a") ?? null;
   };
   const backHref = async () => (await backLink())?.getAttribute("href");
 

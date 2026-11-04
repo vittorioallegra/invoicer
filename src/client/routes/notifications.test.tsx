@@ -81,6 +81,23 @@ async function renderAt(path: string, lng: "en" | "it" = "en") {
   );
 }
 
+describe("notification bell on phones", () => {
+  it("ends the page title row with the unread count in its name", async () => {
+    list = [item("poll_failed"), item("received_invoice")];
+    await renderAt("/clients");
+    const title = await screen.findByRole("heading", { level: 1, name: "Clients" });
+    const row = title.parentElement?.parentElement as HTMLElement;
+    await waitFor(() =>
+      expect(row.querySelector('a[href="/notifications"]')?.getAttribute("aria-label")).toContain(
+        "2",
+      ),
+    );
+    const bell = row.querySelector('a[href="/notifications"]') as HTMLElement;
+    expect(bell.className).toContain("md:hidden");
+    expect(row.lastElementChild).toBe(bell);
+  });
+});
+
 describe("notification list", () => {
   it("shows an empty state", async () => {
     await renderAt("/notifications");
