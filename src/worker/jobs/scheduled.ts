@@ -1,6 +1,7 @@
 import { jobForCron, romeDateTime, shouldRunDaily } from "../../shared/cron";
 import type { Bindings } from "../env";
 import { pollMailbox } from "../pec/poll";
+import { dailyQuotaCheck } from "../pec/quota";
 import { processPushNotifications } from "../push/deliver";
 import { remindUnsentInvoices } from "./invoice-due";
 import { notifyOverdueInvoices } from "./invoice-overdue";
@@ -27,6 +28,7 @@ export interface DailyTask {
 export const dailyTasks: DailyTask[] = [
   { name: "unsent", run: remindUnsentInvoices },
   { name: "overdue", run: notifyOverdueInvoices },
+  { name: "quota", run: dailyQuotaCheck },
 ];
 
 /**

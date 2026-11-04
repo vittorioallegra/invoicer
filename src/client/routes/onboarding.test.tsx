@@ -7,6 +7,9 @@ import type { ChecklistItemId, OnboardingStatus } from "../../shared/onboarding"
 import { createI18n } from "../i18n";
 import { createAppRouter } from "../router";
 
+/** Requests the app shell makes on its own (notification bell, mailbox warnings). */
+const SHELL_CALLS = ["/api/notifications", "/api/mailbox/status"];
+
 const mocks = vi.hoisted(() => ({ api: vi.fn() }));
 
 vi.mock("../lib/auth-client", () => ({
@@ -160,8 +163,8 @@ describe("Profile form", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText(/11-digit partita IVA/)).toBeTruthy();
     expect(screen.getAllByText("This field is required.").length).toBeGreaterThan(0);
-    // The shell's notification bell polls on its own; only the page's calls count.
-    expect(mocks.api.mock.calls.filter(([path]) => path !== "/api/notifications")).toHaveLength(1);
+    // The shell's bell and mailbox warnings poll on their own; only the page's calls count.
+    expect(mocks.api.mock.calls.filter(([path]) => !SHELL_CALLS.includes(path))).toHaveLength(1);
   });
 });
 

@@ -90,8 +90,15 @@ and not fetched in full.
   browser when opened. SdI messages that match no invoice are kept and listed in Settings.
 - Settings has **Download all data**, a JSON export of every business table (files as hex; the
   login and push keys are left out).
-- Errors: a failed poll (wrong password, mailbox unreachable) leaves a failed `job_runs` row and one
+- Errors: a failed poll (mailbox unreachable) leaves a failed `job_runs` row and one
   notification until you read it. With the PEC secrets unset the poll does nothing.
+- A refused login (password changed or expired) stops polling and sending: the app shows a red
+  warning on every screen and sends a push (`mailbox_login_failed`) until a poll works again. Update
+  `PEC_PASSWORD` (`wrangler secret put PEC_PASSWORD`) and run the connection test.
+- Mailbox space: the daily job (and "Check now" in the PEC settings) asks the server for its quota
+  (`GETQUOTAROOT`, read-only). A server without QUOTA gets an estimate from the stored messages
+  against an assumed 1,000 MB. Less free space than the threshold (default 50 MB, configurable)
+  shows a banner and sends one push until you read it.
 
 ### Cutover runbook
 

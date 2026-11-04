@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { notificationsQuery } from "../lib/notifications-api";
 import { useOnline } from "../lib/online";
 import { cn } from "../lib/utils";
+import { MailboxAlerts } from "./mailbox-alerts";
 import { Banner } from "./ui/banner";
 import { buttonVariants } from "./ui/button";
 import { Toaster } from "./ui/toast";
@@ -150,6 +151,7 @@ export function AppShell() {
           <NotificationsLink />
         </div>
         <OfflineBanner />
+        <MailboxAlerts />
         <main
           data-diagnostics="main"
           className="flex-1 px-4 py-6 pb-[calc(8rem+env(safe-area-inset-bottom))] md:px-8 md:pb-8"

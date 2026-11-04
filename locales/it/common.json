@@ -1273,5 +1273,34 @@
       "ask": "Confermata da te",
       "manual": "Inviata a mano"
     }
+  },
+  "mailbox": {
+    "alerts": {
+      "open": "Apri impostazioni PEC",
+      "loginTitle": "L'accesso alla casella PEC non funziona",
+      "loginBody": "Ricevute e fatture ricevute non vengono lette e non è possibile inviare fatture. La password potrebbe essere cambiata o scaduta: aggiorna PEC_PASSWORD, poi esegui il test di connessione.",
+      "quotaTitle": "La casella PEC è quasi piena",
+      "quotaBody": "Restano circa {{free}} MB (avviso sotto {{threshold}} MB). Una casella piena blocca fatture e ricevute in arrivo: libera spazio dalla webmail."
+    },
+    "quota": {
+      "title": "Spazio della casella",
+      "intro": "Una casella piena blocca fatture e ricevute in arrivo. Lo spazio viene controllato una volta al giorno; ricevi un avviso e una notifica quando ne resta meno della soglia.",
+      "never": "Lo spazio non è ancora stato controllato. Lo fa il controllo giornaliero, oppure controlla ora.",
+      "low": "Restano liberi solo circa {{free}} MB (avviso sotto {{threshold}} MB). Libera spazio dalla webmail PEC.",
+      "usage": "{{used}} MB usati su {{limit}} MB, {{free}} MB liberi.",
+      "source": {
+        "server": "Indicato dal server della casella.",
+        "estimate": "Il server non indica la sua quota: è una stima dai messaggi che l'app ha salvato, quindi l'uso reale potrebbe essere maggiore."
+      },
+      "checked": "Controllato {{when}}.",
+      "check": "Controlla ora",
+      "checking": "Controllo in corso...",
+      "checkFailed": "Non è stato possibile controllare la casella. Esegui il test di connessione per capire perché.",
+      "threshold": "Avvisa quando restano liberi meno di (MB)",
+      "thresholdHint": "Megabyte interi, da 1 a 1000.",
+      "save": "Salva",
+      "saved": "Soglia salvata.",
+      "invalid": "La soglia deve essere un numero intero di MB da 1 a {{max}}."
+    }
   }
 }

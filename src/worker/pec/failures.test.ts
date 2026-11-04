@@ -56,7 +56,7 @@ describe("a failing poll raises a notification", () => {
     await pollMailbox(pollEnv);
     await pollMailbox(pollEnv);
     expect(await all("SELECT type, body FROM notifications")).toEqual([
-      { type: "poll_failed", body: JSON.stringify({ code: "login_failed" }) },
+      { type: "mailbox_login_failed", body: "{}" },
     ]);
     // Read, and it fails again: a new notification.
     await env.DB.prepare("UPDATE notifications SET read_at = 1").run();

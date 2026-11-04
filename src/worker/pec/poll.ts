@@ -396,9 +396,15 @@ export async function pollMailbox(
     const errorCode = pollErrorCode(error);
     console.error("poll_failed", errorCode);
     await finishJobRun(env.DB, runId, { status: "failed", counts, errorCode });
-    await notificationStatement(env.DB, "poll_failed", { code: errorCode }, Date.now(), {
-      unlessUnread: true,
-    })
+    // A refused login stops polling and sending alike: its own, more urgent notification.
+    const loginFailed = errorCode === "login_failed";
+    await notificationStatement(
+      env.DB,
+      loginFailed ? "mailbox_login_failed" : "poll_failed",
+      loginFailed ? {} : { code: errorCode },
+      Date.now(),
+      { unlessUnread: true },
+    )
       .run()
       .catch(() => undefined);
     await deliverOutbox(env);

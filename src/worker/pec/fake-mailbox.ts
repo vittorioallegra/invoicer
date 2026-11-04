@@ -1,8 +1,8 @@
 import { type FakeSocket, fakeServer, literal } from "./fake-socket";
 
 /**
- * A stateful fake IMAP server over a list of messages: LOGIN, EXAMINE, UID SEARCH, UID FETCH
- * (summaries and `BODY.PEEK[]`) and LOGOUT. Anything else, including every command that would
+ * A stateful fake IMAP server over a list of messages: LOGIN, EXAMINE, GETQUOTAROOT, UID SEARCH,
+ * UID FETCH (summaries and `BODY.PEEK[]`) and LOGOUT. Anything else, including every command that would
  * change the mailbox, is answered `BAD` and stays visible in `received`, so tests can assert the
  * poller is read-only. Test support only: never imported by Worker code.
  */
@@ -16,6 +16,8 @@ export interface FakeMailbox {
   messages: FakeMessage[];
   /** `false` answers LOGIN with NO (wrong password). */
   loginOk?: boolean;
+  /** STORAGE quota in KiB for GETQUOTAROOT; unset = a server without QUOTA (the command is refused). */
+  quota?: { usedKb: number; limitKb: number };
 }
 
 const encoder = new TextEncoder();
@@ -87,6 +89,13 @@ export function fakeMailbox(
           }
         });
         return `${out}${ok("Fetch completed")}`;
+      }
+      if (command === "GETQUOTAROOT") {
+        if (!mailbox.quota) return `${tag} BAD Error in IMAP command GETQUOTAROOT\r\n`;
+        return (
+          `* QUOTAROOT ${args} ""\r\n* QUOTA "" (STORAGE ${mailbox.quota.usedKb} ${mailbox.quota.limitKb})\r\n` +
+          ok("Getquotaroot completed")
+        );
       }
       if (command === "LOGOUT") return `* BYE Logging out\r\n${ok("Logout completed")}`;
       return `${tag} BAD command not allowed in the fake mailbox\r\n`;

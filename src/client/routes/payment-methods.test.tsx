@@ -7,6 +7,9 @@ import type { PaymentMethodRecord } from "../../shared/payment-method";
 import { createI18n } from "../i18n";
 import { createAppRouter } from "../router";
 
+/** Requests the app shell makes on its own (notification bell, mailbox warnings). */
+const SHELL_CALLS = ["/api/notifications", "/api/mailbox/status"];
+
 const mocks = vi.hoisted(() => ({ api: vi.fn() }));
 
 vi.mock("../lib/auth-client", () => ({
@@ -119,8 +122,8 @@ describe("Payment methods page", () => {
     fireEvent.change(screen.getByLabelText("IBAN"), { target: { value: "IT00" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText("This IBAN is not valid.")).toBeTruthy();
-    // The shell's notification bell polls on its own; only the page's calls count.
-    expect(mocks.api.mock.calls.filter(([path]) => path !== "/api/notifications")).toHaveLength(1);
+    // The shell's bell and mailbox warnings poll on their own; only the page's calls count.
+    expect(mocks.api.mock.calls.filter(([path]) => !SHELL_CALLS.includes(path))).toHaveLength(1);
   });
 
   it("creates an account with the typed details", async () => {
@@ -145,8 +148,8 @@ describe("Payment methods page", () => {
     await renderPage();
     fireEvent.click(await screen.findByRole("button", { name: /Fineco/ }));
     fireEvent.click(await screen.findByRole("button", { name: "Delete account" }));
-    // The shell's notification bell polls on its own; only the page's calls count.
-    expect(mocks.api.mock.calls.filter(([path]) => path !== "/api/notifications")).toHaveLength(1);
+    // The shell's bell and mailbox warnings poll on their own; only the page's calls count.
+    expect(mocks.api.mock.calls.filter(([path]) => !SHELL_CALLS.includes(path))).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith("/api/payment-methods/pm1", { method: "DELETE" }),
