@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { FileUp, Inbox, LoaderCircle } from "lucide-react";
+import { Inbox, LoaderCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
 import type { ReceivedInvoiceRecord } from "../../shared/received";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
-import { Button, buttonVariants } from "../components/ui/button";
+import { Button } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
 import { ListSkeleton } from "../components/ui/skeleton";
 import { ImportedBadge, StatusBadge } from "../components/ui/status-badge";
@@ -66,18 +66,8 @@ export function ReceivedPage() {
   const query = useQuery(receivedListQuery);
   const { reading, remaining } = useReadPending(query.data?.received);
   const items = query.data?.received ?? [];
-  const importLink = (
-    <Link
-      to="/import"
-      search={{ kind: "received", from: "received" }}
-      className={buttonVariants({ variant: "secondary", size: "sm", className: "w-fit" })}
-    >
-      <FileUp aria-hidden />
-      {t("received.import")}
-    </Link>
-  );
   return (
-    <Page title={t("pages.received.title")} aside={importLink}>
+    <Page title={t("pages.received.title")}>
       {query.isPending ? <ListSkeleton /> : null}
       {query.isError ? (
         <Banner

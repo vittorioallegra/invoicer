@@ -15,7 +15,7 @@ import {
   type PickedFile,
   runInvoiceImport,
 } from "../import/run";
-import { IMPORT_ORIGINS, type ImportOrigin, importBackLink } from "../lib/back-links";
+import { SETTINGS_BACK } from "../lib/back-links";
 import { useOnline } from "../lib/online";
 import { profileQuery } from "../lib/settings-api";
 import { cn } from "../lib/utils";
@@ -23,17 +23,10 @@ import { cn } from "../lib/utils";
 export const IMPORT_KINDS = ["received", "issued", "clients"] as const;
 export type ImportPageKind = (typeof IMPORT_KINDS)[number];
 
-/**
- * Search params of `/import`: which import is shown (default: received invoices) and the page it
- * was opened from, which the back link returns to (default: Settings). Unknown values are dropped.
- */
-export function validateImportSearch(search: Record<string, unknown>): {
-  kind?: ImportPageKind;
-  from?: ImportOrigin;
-} {
+/** Search params of `/import`: which import is shown (default: received invoices). */
+export function validateImportSearch(search: Record<string, unknown>): { kind?: ImportPageKind } {
   const kind = IMPORT_KINDS.find((value) => value === search.kind);
-  const from = IMPORT_ORIGINS.find((value) => value === search.from);
-  return { ...(kind ? { kind } : {}), ...(from ? { from } : {}) };
+  return kind ? { kind } : {};
 }
 
 function FilePicker({
@@ -192,13 +185,13 @@ export function ImportPage() {
   const search = validateImportSearch(useSearch({ strict: false }) as Record<string, unknown>);
   const kind = search.kind ?? "received";
   return (
-    <Page title={t("import.title")} back={importBackLink(search.from)}>
+    <Page title={t("import.title")} back={SETTINGS_BACK}>
       <nav aria-label={t("import.title")} className="flex flex-wrap gap-2">
         {IMPORT_KINDS.map((value) => (
           <Link
             key={value}
             to="/import"
-            search={{ kind: value, ...(search.from ? { from: search.from } : {}) }}
+            search={{ kind: value }}
             aria-current={value === kind ? "page" : undefined}
             className={cn(
               buttonVariants({ variant: value === kind ? "default" : "secondary", size: "sm" }),

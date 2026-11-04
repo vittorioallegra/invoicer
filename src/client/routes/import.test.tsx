@@ -99,27 +99,22 @@ describe("import page back link", () => {
   const backHref = async () => (await backLink())?.getAttribute("href");
 
   it.each([
-    ["/import?kind=issued&from=invoices", "/invoices", "Invoices"],
-    ["/import?kind=received&from=received", "/received", "Received"],
-    ["/import?kind=clients&from=clients", "/clients", "Clients"],
-    ["/import?from=settings", "/settings", "Settings"],
-  ])("returns from %s to %s", async (path, href, label) => {
+    "/import?kind=issued",
+    "/import?kind=received&from=received",
+    "/import?kind=clients&from=clients",
+    "/import",
+  ])("always goes back to Settings (%s)", async (path) => {
     await renderAt(path);
-    expect(await backHref()).toBe(href);
-    expect((await backLink())?.textContent).toBe(label);
-  });
-
-  it("goes back to Settings without an origin or with an unknown one", async () => {
-    await renderAt("/import?from=nowhere");
     expect(await backHref()).toBe("/settings");
+    expect((await backLink())?.textContent).toBe("Settings");
   });
 
-  it("keeps the origin when switching between the import kinds", async () => {
-    await renderAt("/import?kind=issued&from=invoices");
+  it("keeps the Settings back link when switching between the import kinds", async () => {
+    await renderAt("/import?kind=issued");
     const kinds = await screen.findByRole("navigation", { name: "Import" });
     fireEvent.click(within(kinds).getByRole("link", { name: "Clients" }));
     await screen.findByRole("heading", { level: 1, name: "Import" });
-    await waitFor(async () => expect(await backHref()).toBe("/invoices"));
+    await waitFor(async () => expect(await backHref()).toBe("/settings"));
   });
 });
 

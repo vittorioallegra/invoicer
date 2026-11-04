@@ -488,8 +488,7 @@
       "private_it": "Privato italiano",
       "company_foreign": "Azienda · {{country}}",
       "private_foreign": "Privato · {{country}}"
-    },
-    "import": "Importa da CSV"
+    }
   },
   "invoice": {
     "newTitle": "Nuova fattura",
@@ -1140,8 +1139,7 @@
       "bank": "Banca",
       "linked": "Fatture collegate",
       "linkedRow": "n. {{number}} del {{date}}"
-    },
-    "import": "Importa file"
+    }
   },
   "import": {
     "badge": "Importata",

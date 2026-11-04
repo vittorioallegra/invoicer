@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
-import { FileText, FileUp } from "lucide-react";
+import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import { FileText } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { romeDateTime } from "../../shared/cron";
@@ -15,7 +15,7 @@ import { InvoiceRows } from "../components/invoice-list";
 import { NewInvoiceLink } from "../components/new-invoice-link";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
-import { Button, buttonVariants } from "../components/ui/button";
+import { Button } from "../components/ui/button";
 import { Disclosure } from "../components/ui/disclosure";
 import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
@@ -181,22 +181,7 @@ export function InvoicesPage() {
     search.year !== undefined;
 
   return (
-    <Page
-      title={t("pages.invoices.title")}
-      aside={
-        <>
-          <NewInvoiceLink className="md:hidden" />
-          <Link
-            to="/import"
-            search={{ kind: "issued", from: "invoices" }}
-            className={buttonVariants({ variant: "secondary", size: "sm" })}
-          >
-            <FileUp aria-hidden />
-            {t("received.import")}
-          </Link>
-        </>
-      }
-    >
+    <Page title={t("pages.invoices.title")} aside={<NewInvoiceLink className="md:hidden" />}>
       <Disclosure
         id="invoice-filters"
         title={t("invoice.filters.title")}

@@ -488,8 +488,7 @@
       "private_it": "Italian private person",
       "company_foreign": "Company · {{country}}",
       "private_foreign": "Private person · {{country}}"
-    },
-    "import": "Import from CSV"
+    }
   },
   "invoice": {
     "newTitle": "New invoice",
@@ -1140,8 +1139,7 @@
       "bank": "Bank",
       "linked": "Related invoices",
       "linkedRow": "No. {{number}} dated {{date}}"
-    },
-    "import": "Import files"
+    }
   },
   "import": {
     "badge": "Imported",
