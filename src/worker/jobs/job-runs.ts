@@ -55,10 +55,17 @@ export async function finishJobRun(
     .run();
 }
 
-/** When the last mailbox poll that completed successfully started (epoch ms), or null. */
+/**
+ * When the last mailbox poll that completed successfully and drained the mailbox started (epoch
+ * ms), or null. A run stopped by its per-run caps (`counts.more`) left newer mail unread, which
+ * may hold the receipt of an unknown send, so it does not count.
+ */
 export async function lastSuccessfulPollAt(db: D1Database): Promise<number | null> {
   const row = await db
-    .prepare("SELECT MAX(started_at) AS at FROM job_runs WHERE job = ? AND status = 'success'")
+    .prepare(
+      `SELECT MAX(started_at) AS at FROM job_runs WHERE job = ? AND status = 'success'
+         AND COALESCE(json_extract(counts, '$.more'), 0) = 0`,
+    )
     .bind(POLL_JOB)
     .first<{ at: number | null }>();
   return row?.at ?? null;

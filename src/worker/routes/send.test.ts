@@ -380,6 +380,17 @@ describe("sending and the stored outcome", () => {
     });
     expect(waiting.status).toBe(409);
     expect(waiting.body.detail).toContain("awaiting_poll");
+    // A poll stopped by its caps left mail unread (maybe this attempt's receipt): still locked.
+    await env.DB.prepare(
+      "INSERT INTO job_runs (id, job, run_date, started_at, finished_at, status, counts) VALUES (?, 'poll', '2026-11-02', ?, ?, 'success', ?)",
+    )
+      .bind(crypto.randomUUID(), Date.now() - 900, Date.now() - 400, JSON.stringify({ more: true }))
+      .run();
+    const capped = await owner.json<{ detail: string }>(`/api/invoices/${a.id}/new-attempt`, {
+      body: {},
+    });
+    expect(capped.status).toBe(409);
+    expect(capped.body.detail).toContain("awaiting_poll");
     await env.DB.prepare(
       "INSERT INTO job_runs (id, job, run_date, started_at, finished_at, status) VALUES (?, 'poll', '2026-11-02', ?, ?, 'success')",
     )
