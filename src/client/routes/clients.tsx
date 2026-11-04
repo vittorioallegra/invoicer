@@ -39,7 +39,7 @@ export function ClientsPage() {
   );
 
   return (
-    <Page title={t("pages.clients.title")}>
+    <Page title={t("pages.clients.title")} aside={clients.length > 0 ? addButton : undefined}>
       {query.isPending ? (
         <p role="status" className="text-sm text-muted-foreground">
           {t("common.loading")}
@@ -55,25 +55,22 @@ export function ClientsPage() {
         />
       ) : null}
       {clients.length > 0 ? (
-        <>
-          <div className="flex flex-wrap gap-2">{addButton}</div>
-          <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
-            {clients.map((client) => (
-              <li key={client.id}>
-                <button
-                  type="button"
-                  onClick={() => open(client)}
-                  className="flex min-h-14 w-full flex-col items-start gap-0.5 px-4 py-3 text-left hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
-                >
-                  <span className="font-medium">{client.name}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {clientSummary(client, t, i18n.language)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
+        <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
+          {clients.map((client) => (
+            <li key={client.id}>
+              <button
+                type="button"
+                onClick={() => open(client)}
+                className="flex min-h-14 w-full flex-col items-start gap-0.5 px-4 py-3 text-left hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+              >
+                <span className="font-medium">{client.name}</span>
+                <span className="text-sm text-muted-foreground">
+                  {clientSummary(client, t, i18n.language)}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       ) : null}
       <ClientSheet
         open={editing !== null}
