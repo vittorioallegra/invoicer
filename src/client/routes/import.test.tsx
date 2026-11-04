@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { InvoiceRecord } from "../../shared/invoice";
@@ -84,6 +84,42 @@ describe("import page", () => {
     expect(screen.getByText("Imported")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Import more files" }));
     expect(await screen.findByLabelText("Files")).toBeTruthy();
+  });
+});
+
+describe("import page back link", () => {
+  beforeEach(() => {
+    mocks.api.mockResolvedValue(profile);
+  });
+  // The back link is the first link of the page content (the sidebar also has these labels).
+  const backLink = async () => {
+    const heading = await screen.findByRole("heading", { level: 1, name: "Import" });
+    return heading.parentElement?.parentElement?.querySelector("a") ?? null;
+  };
+  const backHref = async () => (await backLink())?.getAttribute("href");
+
+  it.each([
+    ["/import?kind=issued&from=invoices", "/invoices", "Invoices"],
+    ["/import?kind=received&from=received", "/received", "Received"],
+    ["/import?kind=clients&from=clients", "/clients", "Clients"],
+    ["/import?from=settings", "/settings", "Settings"],
+  ])("returns from %s to %s", async (path, href, label) => {
+    await renderAt(path);
+    expect(await backHref()).toBe(href);
+    expect((await backLink())?.textContent).toBe(label);
+  });
+
+  it("goes back to Settings without an origin or with an unknown one", async () => {
+    await renderAt("/import?from=nowhere");
+    expect(await backHref()).toBe("/settings");
+  });
+
+  it("keeps the origin when switching between the import kinds", async () => {
+    await renderAt("/import?kind=issued&from=invoices");
+    const kinds = await screen.findByRole("navigation", { name: "Import" });
+    fireEvent.click(within(kinds).getByRole("link", { name: "Clients" }));
+    await screen.findByRole("heading", { level: 1, name: "Import" });
+    await waitFor(async () => expect(await backHref()).toBe("/invoices"));
   });
 });
 

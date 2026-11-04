@@ -185,7 +185,7 @@ export function InvoicesPage() {
       aside={
         <Link
           to="/import"
-          search={{ kind: "issued" }}
+          search={{ kind: "issued", from: "invoices" }}
           className={buttonVariants({ variant: "secondary", size: "sm" })}
         >
           <FileUp aria-hidden />

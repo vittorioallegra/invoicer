@@ -61,7 +61,7 @@ export function ClientsPage() {
             {addButton}
             <Link
               to="/import"
-              search={{ kind: "clients" }}
+              search={{ kind: "clients", from: "clients" }}
               className={buttonVariants({ variant: "secondary" })}
             >
               <FileUp aria-hidden />

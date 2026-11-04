@@ -69,7 +69,7 @@ export function ReceivedPage() {
   const importLink = (
     <Link
       to="/import"
-      search={{ kind: "received" }}
+      search={{ kind: "received", from: "received" }}
       className={buttonVariants({ variant: "secondary", size: "sm", className: "w-fit" })}
     >
       <FileUp aria-hidden />
