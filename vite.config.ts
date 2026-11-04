@@ -68,6 +68,10 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//],
         // Push and notification-click handlers live in public/push-sw.js.
         importScripts: ["/push-sw.js"],
+        // vite-plugin-pwa 2 no longer implies these for autoUpdate: without them a new worker
+        // waited for every tab to close, so a refresh kept serving the old precached shell.
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ["**/*.{js,css,html,svg,png,webmanifest}"],
       },
     }),

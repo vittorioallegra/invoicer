@@ -42,8 +42,28 @@ async function start() {
   // The service worker is registered in production builds only (never in `pnpm dev`).
   if (import.meta.env.PROD) {
     const { registerSW } = await import("virtual:pwa-register");
-    registerSW({ immediate: true });
+    registerSW({ immediate: true, onNeedReload: reloadForNewVersion });
   }
+}
+
+/**
+ * A new service worker took over: reload so the page runs the new build. While the owner is typing
+ * in a field the reload waits until the tab is hidden, so an unsaved form is not lost.
+ */
+function reloadForNewVersion() {
+  const active = document.activeElement;
+  const typing =
+    active instanceof HTMLInputElement ||
+    active instanceof HTMLTextAreaElement ||
+    active instanceof HTMLSelectElement ||
+    (active instanceof HTMLElement && active.isContentEditable);
+  if (!typing) {
+    window.location.reload();
+    return;
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") window.location.reload();
+  });
 }
 
 void start();
