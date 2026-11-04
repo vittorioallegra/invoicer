@@ -7,6 +7,7 @@ import { setup } from "./auth/setup";
 import { type Bindings, featureStatus, pecCredentialStatus } from "./env";
 import { makeError, problemResponse } from "./problem";
 import { clients } from "./routes/clients";
+import { courtesyEmail } from "./routes/courtesy-email";
 import { exportData } from "./routes/export";
 import { health } from "./routes/health";
 import { invoices } from "./routes/invoices";
@@ -33,6 +34,7 @@ export function createApp() {
   app.route("/api/setup", setup);
   app.route("/api/invoices", sendAuthorization);
   app.route("/api/invoices", send);
+  app.route("/api/invoices", courtesyEmail);
   app.route("/api/invoices", invoices);
   app.route("/api/profile", profile);
   app.route("/api/clients", clients);

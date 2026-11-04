@@ -12,6 +12,8 @@ export type NotificationType =
   | "pec_send_error"
   | "received_invoice"
   | "invoice_due"
+  | "courtesy_email_ask"
+  | "courtesy_email_failed"
   | "poll_failed"
   | "message_oversize"
   | "message_unreadable";
@@ -93,8 +95,8 @@ const BATCH_SIZE = 25;
 
 /**
  * Delivers pending in-app notifications: the notification row and the outbox status change in
- * one batch, so a crash leaves the row pending and the next cron run retries it. `email` and
- * `push` rows wait for their own steps (courtesy email, push) and are left untouched.
+ * one batch, so a crash leaves the row pending and the next cron run retries it. `email` rows
+ * are delivered by `processEmailOutbox` (`email/deliver.ts`); `push` rows wait for their own step.
  * Returns how many rows were delivered.
  */
 export async function processOutbox(env: Bindings, now = Date.now()): Promise<number> {

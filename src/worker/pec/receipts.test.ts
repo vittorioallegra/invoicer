@@ -64,13 +64,14 @@ describe("AC 7: a sent invoice follows its receipts", () => {
       "SELECT type FROM events ORDER BY created_at, rowid",
     );
     expect(events.map((e) => e.type)).toEqual(["PEC_DELIVERY", "RC"]);
-    // Delivered queues an in-app notification and the courtesy email; the notification is delivered.
+    // Delivered queues an in-app notification and the courtesy email; the notification is
+    // delivered, the email is skipped here because the courtesy email is not configured.
     expect(
       (
         await all<{ kind: string; status: string }>("SELECT kind, status FROM outbox ORDER BY kind")
       ).map((r) => [r.kind, r.status]),
     ).toEqual([
-      ["email", "pending"],
+      ["email", "skipped"],
       ["notification", "sent"],
     ]);
     expect(await all("SELECT type, title, body FROM notifications")).toEqual([

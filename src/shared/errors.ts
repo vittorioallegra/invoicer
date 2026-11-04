@@ -22,6 +22,7 @@ export const ERROR_CODES = {
   pec_unavailable: { status: 502, title: "PEC server unavailable" },
   pec_rejected: { status: 502, title: "PEC server refused the message" },
   send_outcome_unknown: { status: 504, title: "Send outcome unknown" },
+  email_failed: { status: 502, title: "Courtesy email not sent" },
   missing_secret: { status: 503, title: "Server configuration incomplete" },
 } as const;
 

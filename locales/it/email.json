@@ -1,0 +1,10 @@
+{
+  "courtesy": {
+    "subject": "Fattura {{number}} di {{sender}}",
+    "subjectCreditNote": "Nota di credito {{number}} di {{sender}}",
+    "body": "Buongiorno {{client}},\n\nin allegato trovi la fattura {{number}} del {{date}}, per un totale di {{total}}.{{due}}\n\nLa fattura valida a fini legali è quella elettronica trasmessa tramite il SdI; questa email è una copia di cortesia.{{notDelivered}}\n\nCordiali saluti,\n{{sender}}",
+    "bodyCreditNote": "Buongiorno {{client}},\n\nin allegato trovi la nota di credito {{number}} del {{date}}, per un totale di {{total}}.\n\nIl documento valido a fini legali è quello elettronico trasmesso tramite il SdI; questa email è una copia di cortesia.{{notDelivered}}\n\nCordiali saluti,\n{{sender}}",
+    "due": " Il pagamento è previsto entro il {{dueDate}}.",
+    "notDelivered": "\n\nIl SdI non ha potuto recapitare la fattura elettronica al tuo indirizzo telematico. La trovi nell'area \"Fatture e Corrispettivi\" del tuo account sul sito dell'Agenzia delle Entrate."
+  }
+}

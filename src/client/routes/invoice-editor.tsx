@@ -8,6 +8,7 @@ import {
   Ellipsis,
   Eye,
   FileMinus,
+  Mail,
   Pencil,
   Send,
   Trash2,
@@ -42,6 +43,7 @@ import {
   ritenutaTypeLabel,
 } from "../../shared/totals";
 import { ClientSheet } from "../components/client-form";
+import { CourtesyEmail, canSendCourtesyEmail } from "../components/courtesy-email";
 import { InvoiceDetail } from "../components/invoice-detail";
 import { InvoiceLines } from "../components/invoice-lines";
 import { InvoiceTotals } from "../components/invoice-totals";
@@ -269,6 +271,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const [clientSheet, setClientSheet] = useState<"new" | "edit" | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   const editability = record ? invoiceEditability(record.state) : "full";
   const locked = editability === "locked";
@@ -692,6 +695,16 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
       onSelect: () => setPaymentOpen(true),
     });
   }
+  if (record && canSendCourtesyEmail(record)) {
+    menuItems.push({
+      key: "send-email",
+      label: t("invoice.actions.sendEmail"),
+      icon: <Mail aria-hidden />,
+      disabled: !online,
+      reason: online ? undefined : t("offline.reason"),
+      onSelect: () => setEmailOpen(true),
+    });
+  }
   if (record && !unsent) {
     downloadItems.forEach((item, index) => {
       menuItems.push({
@@ -768,6 +781,10 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
             clientName={client?.name ?? record.clientName ?? ""}
             totalLabel={formatMoney(record.totalCents ?? 0, locale, record.currency)}
           />
+        ) : null}
+
+        {record && canSendCourtesyEmail(record) ? (
+          <CourtesyEmail record={record} open={emailOpen} onOpenChange={setEmailOpen} />
         ) : null}
 
         {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}

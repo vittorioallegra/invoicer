@@ -27,7 +27,12 @@ export const PEC_MESSAGE_KINDS = [
 ] as const;
 export const PARSE_STATUSES = ["pending", "parsed", "failed"] as const;
 export const OUTBOX_KINDS = ["email", "push", "notification"] as const;
-export const OUTBOX_STATUSES = ["pending", "sent", "failed"] as const;
+/**
+ * `asked`: a courtesy email waiting for the owner's Send / Skip (mode ask); `skipped`: not sent
+ * on purpose (off, not configured, no recipient, or the owner skipped it).
+ */
+export const OUTBOX_STATUSES = ["pending", "sent", "failed", "asked", "skipped"] as const;
+export const EMAIL_TRIGGERS = ["automatic", "ask", "manual"] as const;
 export const JOB_STATUSES = ["running", "success", "failed"] as const;
 
 const inList = (column: string, values: readonly string[]) =>
@@ -478,7 +483,11 @@ export const recurringOccurrences = sqliteTable(
 export const emailLog = sqliteTable("email_log", {
   id: id(),
   invoiceId: text("invoice_id").references(() => invoices.id),
+  /** Transmission attempt the email belongs to (the latest one for a manual send). */
+  attempt: integer("attempt"),
+  trigger: text("trigger", { enum: EMAIL_TRIGGERS }),
   recipient: text("recipient").notNull(),
+  subject: text("subject"),
   providerMessageId: text("provider_message_id"),
   status: text("status", { enum: ["sent", "failed"] }).notNull(),
   error: text("error"),

@@ -201,6 +201,7 @@ function serve(
     }
     if (path === "/api/invoices" && init?.method === "POST")
       return { invoice: record({ id: "new1" }) };
+    if (path.endsWith("/courtesy-email")) return { draft: null, ask: null, ready: false, log: [] };
     if (path.startsWith("/api/invoices/") && opts.invoice) return { invoice: opts.invoice };
     throw new Error(`unexpected ${path}`);
   });
@@ -1017,7 +1018,7 @@ describe("Invoice editor", () => {
     expect(backLink("Invoices").getAttribute("href")).toBe("/invoices");
   });
 
-  it("lists Duplicate, credit note, payment and the stored PDF and XML of a finalised invoice in the menu", async () => {
+  it("lists Duplicate, credit note, payment, Send email and the stored PDF and XML of a finalised invoice in the menu", async () => {
     serve({
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
@@ -1032,6 +1033,7 @@ describe("Invoice editor", () => {
       "Duplicate",
       "Create credit note",
       "Record payment",
+      "Send email",
       "Download PDF",
       "Download XML",
     ]);

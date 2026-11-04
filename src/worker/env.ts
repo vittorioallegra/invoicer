@@ -36,6 +36,8 @@ export interface Bindings {
 export const REQUIRED_SECRETS = {
   auth: ["BETTER_AUTH_SECRET", "SETUP_TOKEN"],
   pec: ["PEC_USERNAME", "PEC_PASSWORD"],
+  // Courtesy email: required only by the actions that send one (the feature is otherwise off).
+  email: ["RESEND_API_KEY"],
   // Temporary risk spike (step 2, removed in step 21).
   spike: ["SPIKE_SECRET"],
 } as const satisfies Record<string, readonly (keyof Bindings)[]>;

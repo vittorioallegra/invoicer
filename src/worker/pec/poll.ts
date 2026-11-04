@@ -1,5 +1,6 @@
 import { MAX_FILE_BYTES } from "../../db/schema";
 import { romeDateTime } from "../../shared/cron";
+import { processEmailOutbox } from "../email/deliver";
 import { type Bindings, missingSecrets } from "../env";
 import { finishJobRun, POLL_JOB, startJobRun } from "../jobs/job-runs";
 import { notificationStatement, processOutbox } from "../outbox";
@@ -332,6 +333,11 @@ async function deliverOutbox(env: Bindings): Promise<void> {
     await processOutbox(env);
   } catch {
     console.error("outbox_failed");
+  }
+  try {
+    await processEmailOutbox(env);
+  } catch {
+    console.error("email_outbox_failed");
   }
 }
 

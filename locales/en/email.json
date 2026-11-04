@@ -1,0 +1,10 @@
+{
+  "courtesy": {
+    "subject": "Invoice {{number}} from {{sender}}",
+    "subjectCreditNote": "Credit note {{number}} from {{sender}}",
+    "body": "Hello {{client}},\n\nplease find attached invoice {{number}} dated {{date}}, for a total of {{total}}.{{due}}\n\nThe legally valid invoice is the electronic one transmitted through the SdI; this email is a courtesy copy.{{notDelivered}}\n\nBest regards,\n{{sender}}",
+    "bodyCreditNote": "Hello {{client}},\n\nplease find attached credit note {{number}} dated {{date}}, for a total of {{total}}.\n\nThe legally valid document is the electronic one transmitted through the SdI; this email is a courtesy copy.{{notDelivered}}\n\nBest regards,\n{{sender}}",
+    "due": " Payment is due by {{dueDate}}.",
+    "notDelivered": "\n\nThe SdI could not deliver the electronic invoice to your digital address. You can find it in the \"Fatture e Corrispettivi\" area of your Agenzia delle Entrate account."
+  }
+}

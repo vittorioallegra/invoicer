@@ -613,7 +613,8 @@
       "deleteTitle": "Eliminare la fattura?",
       "deleteBody": "La fattura non inviata viene eliminata definitivamente.",
       "fixResend": "Correggi e reinvia",
-      "finalize": "Finalizza"
+      "finalize": "Finalizza",
+      "sendEmail": "Invia email"
     },
     "list": {
       "invoice": "Fattura",
@@ -950,6 +951,14 @@
     "message_unreadable": {
       "title": "Messaggio illeggibile",
       "body": "Un messaggio PEC non ha potuto essere letto ed è stato saltato."
+    },
+    "courtesy_email_ask": {
+      "title": "Email di cortesia da inviare",
+      "body": "Inviare la copia di cortesia della fattura {{number}} a {{client}}? Apri la fattura per controllarla e inviarla."
+    },
+    "courtesy_email_failed": {
+      "title": "Email di cortesia non inviata",
+      "body": "L'email di cortesia della fattura {{number}} a {{recipient}} non è stata inviata. Apri la fattura per inviarla di nuovo."
     }
   },
   "copy": {
@@ -1158,6 +1167,37 @@
         "defaults": "Predefiniti",
         "pdfLanguage": "Lingua"
       }
+    }
+  },
+  "courtesy": {
+    "title": "Email di cortesia",
+    "sheetTitle": "Invia l'email di cortesia",
+    "sheetBody": "Una copia di cortesia per il cliente, con PDF e XML in allegato. La copia legale passa dal SdI.",
+    "to": "A",
+    "subject": "Oggetto",
+    "body": "Messaggio",
+    "from": "Da",
+    "replyTo": "Rispondi a",
+    "bcc": "CCN",
+    "attachments": "Allegati",
+    "send": "Invia email",
+    "sending": "Invio in corso…",
+    "skip": "Salta",
+    "review": "Controlla e invia",
+    "askBody": "Vuoi inviare a {{client}} una copia di cortesia di questa fattura via email?",
+    "noRecipient": "Questo cliente non ha un indirizzo email. Inseriscilo per inviare.",
+    "notReady": "L'email di cortesia non è configurata: aggiungi un indirizzo mittente in Impostazioni > Email e imposta RESEND_API_KEY sul server.",
+    "loadFailed": "Non è stato possibile preparare l'email.",
+    "sent": "Email inviata.",
+    "skipped": "Email saltata.",
+    "failed": "L'email non è stata inviata ({{code}}).",
+    "history": "Cronologia email",
+    "sentTo": "Inviata a {{recipient}}",
+    "failedTo": "Non inviata a {{recipient}} ({{code}})",
+    "trigger": {
+      "automatic": "Automatica",
+      "ask": "Confermata da te",
+      "manual": "Inviata a mano"
     }
   }
 }

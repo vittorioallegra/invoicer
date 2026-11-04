@@ -613,7 +613,8 @@
       "deleteTitle": "Delete the invoice?",
       "deleteBody": "The unsent invoice is deleted for good.",
       "fixResend": "Fix & resend",
-      "finalize": "Finalize"
+      "finalize": "Finalize",
+      "sendEmail": "Send email"
     },
     "list": {
       "invoice": "Invoice",
@@ -950,6 +951,14 @@
     "message_unreadable": {
       "title": "Message unreadable",
       "body": "A PEC message could not be read and was skipped."
+    },
+    "courtesy_email_ask": {
+      "title": "Courtesy email to send",
+      "body": "Send the courtesy copy of invoice {{number}} to {{client}}? Open the invoice to review and send it."
+    },
+    "courtesy_email_failed": {
+      "title": "Courtesy email failed",
+      "body": "The courtesy email for invoice {{number}} to {{recipient}} was not sent. Open the invoice to send it again."
     }
   },
   "copy": {
@@ -1158,6 +1167,37 @@
         "defaults": "Defaults",
         "pdfLanguage": "Language"
       }
+    }
+  },
+  "courtesy": {
+    "title": "Courtesy email",
+    "sheetTitle": "Send the courtesy email",
+    "sheetBody": "A courtesy copy for the client, with the PDF and the XML attached. The legal copy goes through the SdI.",
+    "to": "To",
+    "subject": "Subject",
+    "body": "Message",
+    "from": "From",
+    "replyTo": "Reply-To",
+    "bcc": "BCC",
+    "attachments": "Attachments",
+    "send": "Send email",
+    "sending": "Sending…",
+    "skip": "Skip",
+    "review": "Review and send",
+    "askBody": "Send {{client}} a courtesy copy of this invoice by email?",
+    "noRecipient": "This client has no email address. Enter one to send.",
+    "notReady": "Courtesy email is not set up: add a sender address in Settings > Email and set RESEND_API_KEY on the server.",
+    "loadFailed": "The email could not be prepared.",
+    "sent": "Email sent.",
+    "skipped": "Email skipped.",
+    "failed": "The email was not sent ({{code}}).",
+    "history": "Email history",
+    "sentTo": "Sent to {{recipient}}",
+    "failedTo": "Not sent to {{recipient}} ({{code}})",
+    "trigger": {
+      "automatic": "Automatic",
+      "ask": "Confirmed by you",
+      "manual": "Sent by hand"
     }
   }
 }

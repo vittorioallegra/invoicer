@@ -214,7 +214,14 @@ the SdI. The invoice stays in `sending`; the mailbox polling matches the sent me
 receipts by file name. If nothing is found, a resend (with a new file name) unlocks 15 minutes
 after the attempt.
 
+### error-email-failed
+Resend did not accept the courtesy email (the `detail` carries its status and error name, for
+example `resend_422_validation_error`) or could not be reached. Nothing was sent. The failure is in
+the invoice's email timeline and raises a notification. Check the sender address (its domain must be
+verified in Resend) and `RESEND_API_KEY`, then send again from the invoice's "Send email" action.
+
 ### error-missing-secret
 A required Worker secret is not set. The response lists the variable names in `missing` and the
 fix in `fix`, for example `wrangler secret put PEC_PASSWORD`. Optional features (email,
-push) do not raise this error: they stay off and Settings shows a banner.
+push) stay off without their secrets and Settings shows a banner; only the "Send email" action
+raises this error when `RESEND_API_KEY` is missing.
