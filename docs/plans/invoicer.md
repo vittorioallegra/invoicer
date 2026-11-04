@@ -458,6 +458,7 @@ Approved: yes (2026-11-02)
   - the import page's back link always led to Settings, even when opened from Invoices, Received or Clients — `fix(import): return from the import page to the page it was opened from`
 
 ### Decisions
+- No floating "New invoice" button on phones (2026-11-04, owner): a "New invoice" button (`components/new-invoice-link.tsx`) sits in the title row of Home and Invoices below `md`; the sidebar keeps it on wide screens.
 - Setup checklist is a full-width, collapsible `Disclosure` (2026-11-04, owner): open while items remain by default; the open/closed choice is kept per device in `localStorage` (`invoicer.setupChecklistOpen`, always in try/catch).
 - The import page goes back to the page it was opened from (2026-11-04, owner): the "Import files" buttons pass `from=invoices|received|clients` in the `/import` search (validated in `validateImportSearch`, kept when switching the import kind); no or unknown `from` means Settings. `importBackLink` in `src/client/lib/back-links.ts`.
 - PDF engine and the CSP (2026-11-04, owner): `connect-src` stays `'self'`. yoga-layout (the layout engine of `@react-pdf/renderer`) ships only a base64-inlined WebAssembly and Emscripten fetched that `data:` URL; the `yogaWasmFromBytes` Vite plugin (`vite.config.ts`) hands it the decoded bytes (`wasmBinary`) so it never fetches. The E2E flow fails on any blocked `connect-src` request.

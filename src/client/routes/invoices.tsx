@@ -12,6 +12,7 @@ import {
   invoiceFiltersSchema,
 } from "../../shared/invoice-filters";
 import { InvoiceRows } from "../components/invoice-list";
+import { NewInvoiceLink } from "../components/new-invoice-link";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button, buttonVariants } from "../components/ui/button";
@@ -183,14 +184,17 @@ export function InvoicesPage() {
     <Page
       title={t("pages.invoices.title")}
       aside={
-        <Link
-          to="/import"
-          search={{ kind: "issued", from: "invoices" }}
-          className={buttonVariants({ variant: "secondary", size: "sm" })}
-        >
-          <FileUp aria-hidden />
-          {t("received.import")}
-        </Link>
+        <>
+          <NewInvoiceLink className="md:hidden" />
+          <Link
+            to="/import"
+            search={{ kind: "issued", from: "invoices" }}
+            className={buttonVariants({ variant: "secondary", size: "sm" })}
+          >
+            <FileUp aria-hidden />
+            {t("received.import")}
+          </Link>
+        </>
       }
     >
       <Disclosure

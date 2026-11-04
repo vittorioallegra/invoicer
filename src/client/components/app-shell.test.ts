@@ -19,7 +19,7 @@ describe("app shell layout", () => {
 
   it("applies the bottom inset once on the tab bar and once in the content padding", () => {
     expect(shell.match(/pb-\[env\(safe-area-inset-bottom\)\]/g)).toHaveLength(1);
-    expect(shell.match(/safe-area-inset-bottom/g)).toHaveLength(3);
+    expect(shell.match(/safe-area-inset-bottom/g)).toHaveLength(2);
   });
 
   it("paints the page colour on the root element", () => {

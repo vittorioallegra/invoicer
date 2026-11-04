@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, Outlet, useLocation } from "@tanstack/react-router";
-import { Bell, FileText, House, Inbox, Plus, Settings, Users, WifiOff } from "lucide-react";
+import { Link, Outlet } from "@tanstack/react-router";
+import { Bell, FileText, House, Inbox, Settings, Users, WifiOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { notificationsQuery } from "../lib/notifications-api";
 import { useOnline } from "../lib/online";
 import { cn } from "../lib/utils";
 import { MailboxAlerts } from "./mailbox-alerts";
+import { NewInvoiceLink } from "./new-invoice-link";
 import { Banner } from "./ui/banner";
-import { buttonVariants } from "./ui/button";
 import { Toaster } from "./ui/toast";
 
 const NAV = [
@@ -17,16 +17,6 @@ const NAV = [
   { to: "/clients", key: "clients", icon: Users },
   { to: "/settings", key: "settings", icon: Settings },
 ] as const;
-
-function NewInvoiceLink({ className }: { className?: string }) {
-  const { t } = useTranslation();
-  return (
-    <Link to="/invoices/new" className={cn(buttonVariants(), className)}>
-      <Plus aria-hidden />
-      {t("nav.newInvoice")}
-    </Link>
-  );
-}
 
 /** Link to the notification list with the unread count (the same query keeps it fresh). */
 function NotificationsLink({ className }: { className?: string }) {
@@ -87,36 +77,27 @@ function Sidebar() {
   );
 }
 
-/** iPhone: bottom tab bar with safe-area padding and a floating "New invoice" action. */
+/** iPhone: bottom tab bar with safe-area padding. */
 function BottomTabs() {
   const { t } = useTranslation();
-  // The editor has its own sticky totals bar above the tabs; the floating action would cover it.
-  const inEditor = useLocation({
-    select: (location) => location.pathname.startsWith("/invoices/"),
-  });
   return (
-    <>
-      {inEditor ? null : (
-        <NewInvoiceLink className="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 rounded-full px-5 shadow-lg md:hidden" />
-      )}
-      <nav
-        aria-label={t("nav.label")}
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 transform-gpu border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
-      >
-        {NAV.map(({ to, key, icon: Icon }) => (
-          <Link
-            key={to}
-            to={to}
-            activeOptions={{ exact: to === "/" || to === "/invoices", includeSearch: false }}
-            className="flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-medium text-muted-foreground"
-            activeProps={{ className: "text-primary", "aria-current": "page" }}
-          >
-            <Icon aria-hidden className="size-5" />
-            {t(`nav.${key}`)}
-          </Link>
-        ))}
-      </nav>
-    </>
+    <nav
+      aria-label={t("nav.label")}
+      className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 transform-gpu border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+    >
+      {NAV.map(({ to, key, icon: Icon }) => (
+        <Link
+          key={to}
+          to={to}
+          activeOptions={{ exact: to === "/" || to === "/invoices", includeSearch: false }}
+          className="flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-medium text-muted-foreground"
+          activeProps={{ className: "text-primary", "aria-current": "page" }}
+        >
+          <Icon aria-hidden className="size-5" />
+          {t(`nav.${key}`)}
+        </Link>
+      ))}
+    </nav>
   );
 }
 

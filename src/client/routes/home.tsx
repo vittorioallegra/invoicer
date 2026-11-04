@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import type { ChecklistItemId, OnboardingStatus } from "../../shared/onboarding";
 import { DashboardStrip } from "../components/dashboard-strip";
 import { InvoiceList, ReservedList } from "../components/invoice-list";
+import { NewInvoiceLink } from "../components/new-invoice-link";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button, buttonVariants } from "../components/ui/button";
@@ -118,7 +119,7 @@ export function HomePage() {
   const noInvoices = toIssue.data?.invoices.length === 0 && issued.data?.invoices.length === 0;
 
   return (
-    <Page title={t("pages.home.title")}>
+    <Page title={t("pages.home.title")} aside={<NewInvoiceLink className="md:hidden" />}>
       {query.isPending ? (
         <p role="status" className="text-sm text-muted-foreground">
           {t("common.loading")}
