@@ -24,7 +24,6 @@ const SECTIONS = [
   { to: "/settings/tax", key: "tax" },
   { to: "/settings/payment-methods", key: "paymentMethods" },
   { to: "/settings/numbering", key: "numbering" },
-  { to: "/recurring", key: "recurring" },
   { to: "/settings/pec", key: "pec" },
   { to: "/settings/email", key: "email" },
   { to: "/settings/notifications", key: "notifications" },

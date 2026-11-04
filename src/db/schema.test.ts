@@ -106,7 +106,7 @@ describe("first migration", () => {
     await failsWith(insert(2, 3, "IT123_00001.xml"), /UNIQUE/);
   });
 
-  it("keeps outbox, events and recurring occurrences unique", async () => {
+  it("keeps outbox and events unique", async () => {
     const outbox = () =>
       run(
         "INSERT INTO outbox (id, invoice_id, attempt, kind, created_at) VALUES (?, 'i1', 1, 'email', ?)",
@@ -124,24 +124,6 @@ describe("first migration", () => {
       );
     await event();
     await failsWith(event(), /UNIQUE/);
-
-    await run(
-      "INSERT INTO clients (id, type, name, created_at) VALUES ('c1', 'it_company', 'Acme', ?)",
-      Date.now(),
-    );
-    await run(
-      `INSERT INTO recurring_templates (id, client_id, body, interval_months, day_of_month, start_date, created_at)
-       VALUES ('t1', 'c1', '{}', 1, 1, '2026-01-01', ?)`,
-      Date.now(),
-    );
-    const occurrence = () =>
-      run(
-        "INSERT INTO recurring_occurrences (id, template_id, occurrence_date, created_at) VALUES (?, 't1', '2026-02-01', ?)",
-        crypto.randomUUID(),
-        Date.now(),
-      );
-    await occurrence();
-    await failsWith(occurrence(), /UNIQUE/);
   });
 
   it("keeps the single-row tables single", async () => {

@@ -191,10 +191,6 @@
       "notifications": {
         "title": "Notifications",
         "body": "Push on this device and what you are notified about"
-      },
-      "recurring": {
-        "title": "Recurring invoices",
-        "body": "Invoices created on a schedule, ready for you to send"
       }
     },
     "unmatched": {
@@ -221,16 +217,13 @@
       "taskFailed": "{{task}}: failed",
       "tasks": {
         "unsent": "Unsent invoices",
-        "overdue": "Overdue invoices",
-        "recurring": "Recurring invoices"
+        "overdue": "Overdue invoices"
       },
       "counts": {
         "unsent_one": "{{count}} unsent invoice reminder",
         "unsent_other": "{{count}} unsent invoice reminders",
         "overdue_one": "{{count}} overdue alert",
-        "overdue_other": "{{count}} overdue alerts",
-        "recurring_one": "{{count}} recurring invoice created",
-        "recurring_other": "{{count}} recurring invoices created"
+        "overdue_other": "{{count}} overdue alerts"
       }
     }
   },
@@ -421,7 +414,7 @@
     "editTitle": "Edit client",
     "delete": "Delete client",
     "deleteConfirm": "Confirm delete",
-    "inUse": "This client has invoices or recurring templates and cannot be deleted.",
+    "inUse": "This client has invoices and cannot be deleted.",
     "languages": {
       "it": "Italian",
       "en": "English"
@@ -645,8 +638,7 @@
       "deleteBody": "The unsent invoice is deleted for good.",
       "fixResend": "Fix & resend",
       "finalize": "Finalize",
-      "sendEmail": "Send email",
-      "repeat": "Repeat on a schedule"
+      "sendEmail": "Send email"
     },
     "list": {
       "invoice": "Invoice",
@@ -996,10 +988,6 @@
       "title": "Invoice overdue",
       "body": "Invoice {{number}} for {{client}} was due on {{dueDate}} and is still unpaid."
     },
-    "recurring_created": {
-      "title": "Recurring invoice created",
-      "body": "A recurring invoice for {{client}} dated {{date}} is ready to send. Review it and finalize it when you are ready."
-    },
     "mailbox_login_failed": {
       "title": "PEC mailbox login failing",
       "body": "The PEC mailbox refused the login. Receipts and received invoices are not being read and invoices cannot be sent. Check the PEC password."
@@ -1276,73 +1264,6 @@
       "open": "Open PEC settings",
       "loginTitle": "The PEC mailbox login is failing",
       "loginBody": "Receipts and received invoices are not being read, and invoices cannot be sent. The password may have changed or expired: update PEC_PASSWORD, then run the connection test."
-    }
-  },
-  "recurring": {
-    "title": "Recurring invoices",
-    "intro": "A recurring template creates the same invoice on a schedule. Each one appears under To send a few days before its date, with its notification. Nothing is ever sent by itself: you review and finalize every invoice.",
-    "emptyTitle": "No recurring invoices yet",
-    "emptyBody": "Open an invoice, choose Repeat on a schedule in its menu, and pick how often it repeats. The client, lines and settings of that invoice are copied.",
-    "intervals": {
-      "m1": "Every month",
-      "m2": "Every 2 months",
-      "m3": "Every 3 months",
-      "m4": "Every 4 months",
-      "m6": "Every 6 months",
-      "m12": "Every year"
-    },
-    "cadence_one": "Every month on day {{day}}",
-    "cadence_other": "Every {{count}} months on day {{day}}",
-    "until": "until {{date}}",
-    "limit_one": "{{count}} invoice at most",
-    "limit_other": "{{count}} invoices at most",
-    "paused": "Paused: no invoice is created until you resume it.",
-    "finished": "Finished: no more invoices to create.",
-    "next": "Next invoice dated {{date}}",
-    "createdCount_one": "{{count}} invoice created so far",
-    "createdCount_other": "{{count}} invoices created so far",
-    "actions": {
-      "edit": "Edit schedule",
-      "pause": "Pause",
-      "resume": "Resume",
-      "delete": "Delete"
-    },
-    "fields": {
-      "every": "Repeats",
-      "day": "Day of the month",
-      "dayHint": "1 to 31. A shorter month uses its last day.",
-      "start": "First date",
-      "end": "Last date",
-      "optional": "Optional.",
-      "count": "Number of invoices",
-      "countHint": "Optional, up to {{max}}. Leave empty to repeat until you stop it."
-    },
-    "invalid": "Check the schedule: the day must be 1 to 31, the dates valid and the last date not before the first.",
-    "sheet": {
-      "title": "Repeat this invoice",
-      "body": "A copy of this invoice is created on the schedule below. It is a normal unsent invoice each time.",
-      "create": "Create schedule"
-    },
-    "created": "Recurring invoice scheduled.",
-    "createFailed": "The schedule could not be created. Only saved invoices with a client can repeat.",
-    "edit": {
-      "title": "Schedule for {{client}}",
-      "body": "Changes apply to future invoices only; the ones already created stay as they are.",
-      "save": "Save"
-    },
-    "saved": "Schedule saved.",
-    "saveFailed": "The schedule could not be saved.",
-    "delete": {
-      "title": "Delete this recurring invoice?",
-      "body": "No more invoices are created for {{client}}. The ones already created stay.",
-      "confirm": "Delete"
-    },
-    "deleted": "Recurring invoice deleted.",
-    "lead": {
-      "label": "Create each invoice this many days ahead",
-      "hint": "0 to {{max}}. The invoice appears under To send this many days before its date.",
-      "save": "Save",
-      "saved": "Saved."
     }
   }
 }

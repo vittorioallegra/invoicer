@@ -415,7 +415,6 @@ describe("the audit looks at everything", () => {
       "/api/clients",
       "/api/invoices?scope=all",
       "/api/received",
-      "/api/recurring",
       "/api/payment-methods",
       "/api/numbering-series",
       "/api/tax",

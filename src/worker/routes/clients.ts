@@ -162,21 +162,15 @@ clients.put("/:id", async (c) => {
   return c.json({ client: toRecord(row) });
 });
 
-/** Deleting is refused while invoices or recurring templates still point at the client. */
+/** Deleting is refused while invoices still point at the client. */
 clients.delete("/:id", async (c) => {
   const id = c.req.param("id");
   const db = drizzle(c.env.DB, { schema });
-  const used =
-    (await db
-      .select({ id: schema.invoices.id })
-      .from(schema.invoices)
-      .where(eq(schema.invoices.clientId, id))
-      .get()) ??
-    (await db
-      .select({ id: schema.recurringTemplates.id })
-      .from(schema.recurringTemplates)
-      .where(eq(schema.recurringTemplates.clientId, id))
-      .get());
+  const used = await db
+    .select({ id: schema.invoices.id })
+    .from(schema.invoices)
+    .where(eq(schema.invoices.clientId, id))
+    .get();
   if (used) throw makeError("conflict", "client_in_use");
   const deleted = await db.delete(schema.clients).where(eq(schema.clients.id, id)).returning();
   if (!deleted.length) throw makeError("not_found");

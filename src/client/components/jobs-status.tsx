@@ -17,7 +17,7 @@ interface JobsResponse {
 }
 
 /** Daily tasks in the order the run lists them; -1 means that task failed, 0 is not worth a line. */
-const DAILY_TASKS = ["unsent", "overdue", "recurring"] as const;
+const DAILY_TASKS = ["unsent", "overdue"] as const;
 
 /** Last mailbox check and last daily run, from the Worker's `job_runs` records. */
 export function JobsStatus() {

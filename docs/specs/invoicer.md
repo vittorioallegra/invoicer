@@ -453,6 +453,8 @@ settle the open ones):
 
 ### 3b. Recurring invoices
 
+> Deferred by the owner on 2026-11-04 ("start light; add it later if needed"): not implemented for now; AC 12 is out of scope until it returns.
+
 - A recurring template stores client, lines, settings and a schedule: every N months
   (monthly, quarterly, yearly), day of month, start date, optional end date or count.
 - The daily job (09:00 Europe/Rome) creates a to-send invoice for each occurrence N days ahead (default 3,
@@ -667,7 +669,8 @@ settle the open ones):
     sends and imported numbers. A requested number above the highest issued number of the year
     (also leaving a gap) is respected; one equal to or below it, or already taken by another
     device, is refused with nothing reserved.
-12. A monthly recurring template on day 1 creates exactly one to-send invoice per month across
+12. (Deferred by the owner on 2026-11-04: recurring invoices were removed for now, so this criterion
+    is out of scope until the feature returns.) A monthly recurring template on day 1 creates exactly one to-send invoice per month across
     12 simulated months, also when the job runs twice for the same date.
 13. The PDF of fixture (c) is in English and of fixture (b) in Italian, and both show IBAN,
     BIC/SWIFT, holder and due date.

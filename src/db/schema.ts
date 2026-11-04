@@ -135,7 +135,6 @@ export const settings = sqliteTable(
     uiLanguage: text("ui_language", { enum: ["it", "en"] }),
     /** Notification types the owner turned push off for (JSON array of type names). */
     pushDisabledTypes: text("push_disabled_types", { mode: "json" }),
-    recurringLeadDays: integer("recurring_lead_days").notNull().default(3),
     /** Last PEC connection test (IMAP login + mailbox open): when, whether it passed, why not. */
     pecTestAt: integer("pec_test_at", { mode: "timestamp_ms" }),
     pecTestOk: integer("pec_test_ok", { mode: "boolean" }),
@@ -181,22 +180,6 @@ export const clients = sqliteTable("clients", {
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }),
 });
 
-export const recurringTemplates = sqliteTable("recurring_templates", {
-  id: id(),
-  clientId: text("client_id")
-    .notNull()
-    .references(() => clients.id),
-  /** Lines and invoice settings copied into each occurrence (JSON). */
-  body: text("body", { mode: "json" }).notNull(),
-  intervalMonths: integer("interval_months").notNull(),
-  dayOfMonth: integer("day_of_month").notNull(),
-  startDate: text("start_date").notNull(),
-  endDate: text("end_date"),
-  maxCount: integer("max_count"),
-  paused: integer("paused", { mode: "boolean" }).notNull().default(false),
-  createdAt: createdAt(),
-});
-
 export const invoices = sqliteTable(
   "invoices",
   {
@@ -234,7 +217,6 @@ export const invoices = sqliteTable(
     linkedInvoiceId: text("linked_invoice_id"),
     /** Rejected invoice this one reissues after `rejected_expired`. */
     reissuesInvoiceId: text("reissues_invoice_id"),
-    recurringTemplateId: text("recurring_template_id").references(() => recurringTemplates.id),
     /** Unused since the internal invoice notes were removed; the column is kept to avoid a data loss. */
     notes: text("notes"),
     createdAt: createdAt(),
@@ -468,21 +450,6 @@ export const pushSubscriptions = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("push_subscriptions_endpoint_unique").on(t.endpoint)],
-);
-
-export const recurringOccurrences = sqliteTable(
-  "recurring_occurrences",
-  {
-    id: id(),
-    templateId: text("template_id")
-      .notNull()
-      .references(() => recurringTemplates.id),
-    /** Occurrence date as `YYYY-MM-DD`; one invoice draft per template and date. */
-    occurrenceDate: text("occurrence_date").notNull(),
-    invoiceId: text("invoice_id").references(() => invoices.id),
-    createdAt: createdAt(),
-  },
-  (t) => [uniqueIndex("recurring_occurrences_unique").on(t.templateId, t.occurrenceDate)],
 );
 
 export const emailLog = sqliteTable("email_log", {

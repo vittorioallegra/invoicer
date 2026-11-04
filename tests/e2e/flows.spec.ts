@@ -163,7 +163,6 @@ test("at 375 px every main screen has no overflow, named controls and tappable t
     "/received",
     "/clients",
     "/import",
-    "/recurring",
     "/notifications",
     "/settings",
     "/settings/company",

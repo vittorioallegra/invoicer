@@ -30,7 +30,6 @@ const PARAMS: Record<string, Record<string, string | number>> = {
   received_invoice: { file: "IT1_00001.xml" },
   invoice_due: { client: "Acme", date: "2026-06-10", day: "2026-06-10" },
   invoice_overdue: { number: "5/2026", client: "Acme", dueDate: "2026-06-09" },
-  recurring_created: { client: "Acme", date: "2026-07-01" },
   mailbox_login_failed: {},
   courtesy_email_ask: { number: "5/2026", client: "Acme S.r.l." },
   courtesy_email_failed: { number: "5/2026", recipient: "billing@acme.test" },

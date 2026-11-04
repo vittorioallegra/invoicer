@@ -47,12 +47,11 @@ describe("background jobs status", () => {
         runDate: "2026-11-01",
         status: "failed",
         errorCode: "daily_failed",
-        counts: { unsent: 0, overdue: 2, recurring: -1 },
+        counts: { unsent: -1, overdue: 2 },
       },
     });
     expect(await screen.findByText(/failed \(daily_failed\)/)).toBeTruthy();
     expect(screen.getByText(/2 overdue alerts/)).toBeTruthy();
-    expect(screen.getByText(/Recurring invoices: failed/)).toBeTruthy();
-    expect(screen.queryByText(/unsent invoice reminder/)).toBeNull();
+    expect(screen.getByText(/Unsent invoices: failed/)).toBeTruthy();
   });
 });

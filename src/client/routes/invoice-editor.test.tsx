@@ -845,7 +845,7 @@ describe("Invoice editor", () => {
     expect(follows(finalize, more)).toBe(true);
     // Nothing to download or pay before finalising; Delete comes last.
     fireEvent.click(more);
-    expect(menuItems()).toEqual(["Edit", "Preview", "Duplicate", "Repeat on a schedule", "Delete"]);
+    expect(menuItems()).toEqual(["Edit", "Preview", "Duplicate", "Delete"]);
     expect(
       within(screen.getByRole("menuitem", { name: "Delete" })).getByText("Delete").className,
     ).toContain("text-danger");
@@ -1031,7 +1031,6 @@ describe("Invoice editor", () => {
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(menuItems()).toEqual([
       "Duplicate",
-      "Repeat on a schedule",
       "Create credit note",
       "Record payment",
       "Send email",

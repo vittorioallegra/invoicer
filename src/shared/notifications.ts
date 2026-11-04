@@ -13,7 +13,6 @@ export const NOTIFICATION_TYPES = [
   "received_invoice",
   "invoice_due",
   "invoice_overdue",
-  "recurring_created",
   "mailbox_login_failed",
   "courtesy_email_ask",
   "courtesy_email_failed",
