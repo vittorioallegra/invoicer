@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "../lib/utils";
 import { buttonVariants } from "./ui/button";
 
-/** The "New invoice" button (sidebar, and the Home and Invoices title rows on phones). */
+/** The "New invoice" button (sidebar, and the Invoices title row on phones). */
 export function NewInvoiceLink({ className }: { className?: string }) {
   const { t } = useTranslation();
   return (
