@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { type PecTestResult, type PecTestStages, stagesFromTest } from "../../shared/onboarding";
-import { MailboxQuota } from "../components/mailbox-quota";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
@@ -228,8 +227,6 @@ export function PecSettingsPage() {
             {test.isPending ? t("settings.pecTesting") : t("settings.pecTest")}
           </Button>
         </section>
-
-        <MailboxQuota online={online} configured={configured} />
       </div>
     </Page>
   );

@@ -1,0 +1,1 @@
+ALTER TABLE `settings` DROP COLUMN `mail_quota_threshold_kb`;

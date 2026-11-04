@@ -222,8 +222,7 @@
       "tasks": {
         "unsent": "Unsent invoices",
         "overdue": "Overdue invoices",
-        "recurring": "Recurring invoices",
-        "quota": "Mailbox quota"
+        "recurring": "Recurring invoices"
       },
       "counts": {
         "unsent_one": "{{count}} unsent invoice reminder",
@@ -231,9 +230,7 @@
         "overdue_one": "{{count}} overdue alert",
         "overdue_other": "{{count}} overdue alerts",
         "recurring_one": "{{count}} recurring invoice created",
-        "recurring_other": "{{count}} recurring invoices created",
-        "quota_one": "mailbox quota checked",
-        "quota_other": "mailbox quota checked"
+        "recurring_other": "{{count}} recurring invoices created"
       }
     }
   },
@@ -1003,10 +1000,6 @@
       "title": "Recurring invoice created",
       "body": "A recurring invoice for {{client}} dated {{date}} is ready to send. Review it and finalize it when you are ready."
     },
-    "mailbox_quota_low": {
-      "title": "PEC mailbox almost full",
-      "body": "About {{freeMb}} MB are left in the PEC mailbox (alert below {{thresholdMb}} MB). When it is full, invoices and receipts stop arriving. Free some space in the webmail."
-    },
     "mailbox_login_failed": {
       "title": "PEC mailbox login failing",
       "body": "The PEC mailbox refused the login. Receipts and received invoices are not being read and invoices cannot be sent. Check the PEC password."
@@ -1282,29 +1275,7 @@
     "alerts": {
       "open": "Open PEC settings",
       "loginTitle": "The PEC mailbox login is failing",
-      "loginBody": "Receipts and received invoices are not being read, and invoices cannot be sent. The password may have changed or expired: update PEC_PASSWORD, then run the connection test.",
-      "quotaTitle": "The PEC mailbox is almost full",
-      "quotaBody": "About {{free}} MB are left (alert below {{threshold}} MB). A full mailbox stops incoming invoices and receipts: free some space in the webmail."
-    },
-    "quota": {
-      "title": "Mailbox space",
-      "intro": "A full mailbox stops incoming invoices and receipts. The space is checked once a day; you get a banner and a push when less than the threshold is free.",
-      "never": "The space has not been checked yet. The daily check does it, or check now.",
-      "low": "Only about {{free}} MB are free (alert below {{threshold}} MB). Free some space in the PEC webmail.",
-      "usage": "{{used}} MB used of {{limit}} MB, {{free}} MB free.",
-      "source": {
-        "server": "Reported by the mailbox server.",
-        "estimate": "The server does not report its quota: this is an estimate from the messages the app has stored, so the real use may be higher."
-      },
-      "checked": "Checked {{when}}.",
-      "check": "Check now",
-      "checking": "Checking...",
-      "checkFailed": "The mailbox could not be checked. Run the connection test to see why.",
-      "threshold": "Warn when less than this is free (MB)",
-      "thresholdHint": "Whole megabytes, from 1 to 1000.",
-      "save": "Save",
-      "saved": "Threshold saved.",
-      "invalid": "The threshold must be a whole number of MB from 1 to {{max}}."
+      "loginBody": "Receipts and received invoices are not being read, and invoices cannot be sent. The password may have changed or expired: update PEC_PASSWORD, then run the connection test."
     }
   },
   "recurring": {

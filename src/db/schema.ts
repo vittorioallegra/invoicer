@@ -126,7 +126,6 @@ export const settings = sqliteTable(
     /** Mailbox cursor: UIDVALIDITY of the INBOX and the last UID processed under it. */
     mailboxUidValidity: integer("mailbox_uid_validity"),
     mailboxLastUid: integer("mailbox_last_uid"),
-    mailQuotaThresholdKb: integer("mail_quota_threshold_kb"),
     emailSenderName: text("email_sender_name"),
     emailSenderAddress: text("email_sender_address"),
     emailReplyTo: text("email_reply_to"),

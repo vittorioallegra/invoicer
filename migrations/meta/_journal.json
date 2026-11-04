@@ -15,6 +15,13 @@
       "when": 1793792952569,
       "tag": "0001_default_series",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793800739287,
+      "tag": "0002_ancient_legion",
+      "breakpoints": true
     }
   ]
 }

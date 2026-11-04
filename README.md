@@ -94,10 +94,6 @@ and not fetched in full.
 - A refused login (password changed or expired) stops polling and sending: the app shows a red
   warning on every screen and sends a push (`mailbox_login_failed`) until a poll works again. Update
   `PEC_PASSWORD` (`wrangler secret put PEC_PASSWORD`) and run the connection test.
-- Mailbox space: the daily job (and "Check now" in the PEC settings) asks the server for its quota
-  (`GETQUOTAROOT`, read-only). A server without QUOTA gets an estimate from the stored messages
-  against an assumed 1,000 MB. Less free space than the threshold (default 50 MB, configurable)
-  shows a banner and sends one push until you read it.
 
 ### Cutover runbook
 
@@ -283,7 +279,7 @@ the plan is an account setting. This is the only step that costs money, and it i
 - Keep `workers.dev` off (the deploy does it when `APP_DOMAIN` is set) and the repository private if it
   holds anything you consider sensitive; it holds no secrets or owner values by design.
 - Download all data (Settings) before risky changes and each year-end; store it encrypted.
-- Check Settings now and then: the last poll and daily runs, the mailbox quota, and any banner.
+- Check Settings now and then: the last poll and daily runs, and any banner.
 - Dependency versions are pinned exactly; update them deliberately and let CI run the tests.
 
 ### Cleaning up the risk spike (existing deployments only)

@@ -14,7 +14,6 @@ export const NOTIFICATION_TYPES = [
   "invoice_due",
   "invoice_overdue",
   "recurring_created",
-  "mailbox_quota_low",
   "mailbox_login_failed",
   "courtesy_email_ask",
   "courtesy_email_failed",
@@ -30,10 +29,7 @@ export function isNotificationType(value: string): value is NotificationType {
 }
 
 /** Notifications about the PEC mailbox itself; they open the PEC settings, where it is fixed. */
-export const MAILBOX_NOTIFICATION_TYPES: readonly string[] = [
-  "mailbox_quota_low",
-  "mailbox_login_failed",
-];
+export const MAILBOX_NOTIFICATION_TYPES: readonly string[] = ["mailbox_login_failed"];
 
 /**
  * The page a notification opens (in-app link and push deep link): its invoice when it has one
