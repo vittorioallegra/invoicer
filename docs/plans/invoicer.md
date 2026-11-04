@@ -524,7 +524,8 @@ Approved: yes (2026-11-02)
 - Step 19 (from step 13): `job_runs` rows with job `poll` (counts, `error_code`) exist; the last run and the `login_failed` code feed the Settings status and the prominent login warning.
 - SdI details to confirm with the first real messages (AC 21): which address the SdI names in its first reply and whether the sender of its message is that address; the receipt file names (`_RC_001.xml`, `_NS_`, `_MC_`); the real provider receipts replace the hand-written `receipt-fixtures.ts`.
 - Step 14+ (from step 12): `xmllint-wasm` adds a 779 KB WASM file to the client precache; consider excluding it from the service worker precache and caching it at first use.
+- Test instance (deferred by the owner, 2026-11-04): a separate Worker `invoicer-test` with its own D1, no PEC secrets and the mock channel enabled by an explicit var (today `SEND_CHANNEL=mock` is honoured only on a localhost origin, `isMockChannel` in `src/worker/env.ts`), with a visible TEST band; never mock on production.
 - Milestone A exit pending the owner: set the number on the first invoice, send one real invoice through the production PEC mailbox (AC 21), follow the cutover runbook in README.
 
 ### Next
-Owner tests the app locally; then Milestone A exit by the owner (see Open questions) and step 15: Received invoices and imports. Step 14 is deferred.
+The owner's local test round (2026-11-03/04) is done; all its feedback is committed on main (see the Decisions above). Resume Phase 3 with step 15: Received invoices and imports (then 16-21; step 14 stays deferred). Not deployed yet: the production Worker on the custom domain still runs the step 2 spike build; deploying needs `BETTER_AUTH_SECRET` and `SETUP_TOKEN` set by the owner and migrations 0001-0012 applied remotely. On production, Finalize sends for real through the PEC mailbox.
