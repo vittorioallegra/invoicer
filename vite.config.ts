@@ -8,7 +8,16 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    cloudflare(),
+    // E2E builds swap in tests/e2e/worker/entry.ts (the app plus fake mailbox and Resend routes).
+    cloudflare(
+      process.env.E2E_WORKER
+        ? {
+            config: { main: "tests/e2e/worker/entry.ts" },
+            // A throwaway database for every E2E run (playwright.config.ts empties it).
+            persistState: { path: ".wrangler/e2e-state" },
+          }
+        : undefined,
+    ),
     VitePWA({
       registerType: "autoUpdate",
       // Registered from src/client/main.tsx in production builds only (no inline script).

@@ -15,9 +15,12 @@ export default defineConfig({
     { name: "iphone", use: { ...devices["iPhone 14"] } },
   ],
   webServer: {
-    command: `(test -f .dev.vars || cp .dev.vars.example .dev.vars) && pnpm db:migrate:local && pnpm build && pnpm preview --port ${port} --strictPort`,
+    // E2E_WORKER=1 builds with the E2E Worker entry (tests/e2e/worker/entry.ts) and a fresh
+    // throwaway database in .wrangler/e2e-state; it overwrites dist/, so rebuild before a deploy.
+    command: `rm -rf .wrangler/e2e-state && (test -f .dev.vars || cp .dev.vars.example .dev.vars) && pnpm exec wrangler d1 migrations apply DB --local --persist-to .wrangler/e2e-state && E2E_WORKER=1 pnpm build && E2E_WORKER=1 pnpm preview --port ${port} --strictPort`,
     url: `http://localhost:${port}/api/health`,
-    reuseExistingServer: !process.env.CI,
+    // Never reuse a server: the flows need an empty database.
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 });
