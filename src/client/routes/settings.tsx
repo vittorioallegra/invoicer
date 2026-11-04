@@ -39,7 +39,7 @@ function LanguageSection() {
       <h2 id="language" className="text-base font-medium">
         {t("settings.language")}
       </h2>
-      <div className="max-w-xs">
+      <div className="w-full sm:max-w-xs">
         <Select
           aria-labelledby="language"
           aria-describedby="language-hint"
