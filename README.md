@@ -224,4 +224,5 @@ verified in Resend) and `RESEND_API_KEY`, then send again from the invoice's "Se
 A required Worker secret is not set. The response lists the variable names in `missing` and the
 fix in `fix`, for example `wrangler secret put PEC_PASSWORD`. Optional features (email,
 push) stay off without their secrets and Settings shows a banner; only the "Send email" action
-raises this error when `RESEND_API_KEY` is missing.
+raises this error when `RESEND_API_KEY` is missing, and turning on push on a device raises it
+when `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY` or `VAPID_SUBJECT` is missing.

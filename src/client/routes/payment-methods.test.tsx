@@ -119,7 +119,8 @@ describe("Payment methods page", () => {
     fireEvent.change(screen.getByLabelText("IBAN"), { target: { value: "IT00" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText("This IBAN is not valid.")).toBeTruthy();
-    expect(mocks.api).toHaveBeenCalledTimes(1);
+    // The shell's notification bell polls on its own; only the page's calls count.
+    expect(mocks.api.mock.calls.filter(([path]) => path !== "/api/notifications")).toHaveLength(1);
   });
 
   it("creates an account with the typed details", async () => {
@@ -144,7 +145,8 @@ describe("Payment methods page", () => {
     await renderPage();
     fireEvent.click(await screen.findByRole("button", { name: /Fineco/ }));
     fireEvent.click(await screen.findByRole("button", { name: "Delete account" }));
-    expect(mocks.api).toHaveBeenCalledTimes(1);
+    // The shell's notification bell polls on its own; only the page's calls count.
+    expect(mocks.api.mock.calls.filter(([path]) => path !== "/api/notifications")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
     await waitFor(() =>
       expect(mocks.api).toHaveBeenCalledWith("/api/payment-methods/pm1", { method: "DELETE" }),

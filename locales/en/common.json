@@ -188,6 +188,10 @@
       "import": {
         "title": "Import",
         "body": "Bring in received invoices, historic issued invoices and clients from files."
+      },
+      "notifications": {
+        "title": "Notifications",
+        "body": "Push on this device and what you are notified about"
       }
     },
     "unmatched": {
@@ -959,6 +963,33 @@
     "courtesy_email_failed": {
       "title": "Courtesy email failed",
       "body": "The courtesy email for invoice {{number}} to {{recipient}} was not sent. Open the invoice to send it again."
+    }
+  },
+  "notificationsPage": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "settingsLink": "Notification settings",
+    "emptyTitle": "No notifications yet",
+    "emptyBody": "Invoice outcomes, received invoices and reminders show up here.",
+    "unread": "unread",
+    "linkUnread_one": "Notifications, {{count}} unread",
+    "linkUnread_other": "Notifications, {{count}} unread",
+    "settings": {
+      "title": "Notification settings",
+      "intro": "Push notifications reach this device even when the app is closed. Every notification also appears in the notification list.",
+      "deviceTitle": "This device",
+      "on": "Push notifications are on for this device.",
+      "off": "Push notifications are off for this device.",
+      "turnOn": "Turn on push notifications",
+      "turnOff": "Turn off for this device",
+      "enabled": "Push notifications are on.",
+      "denied": "Notifications are blocked for this app. Allow them in the browser or system settings, then come back here.",
+      "unsupported": "This browser cannot receive push notifications. On iPhone, add the app to the Home Screen and open it from there.",
+      "noServiceWorker": "The app is not ready for push yet. Reload the installed app and try again.",
+      "devices_one": "{{count}} device receives push notifications.",
+      "devices_other": "{{count}} devices receive push notifications.",
+      "typesTitle": "Push per notification type",
+      "typesHint": "Switched-off types are still listed in the app, they just do not send a push."
     }
   },
   "copy": {

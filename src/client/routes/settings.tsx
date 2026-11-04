@@ -10,6 +10,7 @@ import { Select } from "../components/ui/select";
 import { UnmatchedMessages } from "../components/unmatched-messages";
 import { persistLocale } from "../i18n";
 import { api } from "../lib/api";
+import { saveLanguage } from "../lib/notifications-api";
 import { useOnline } from "../lib/online";
 
 interface Features {
@@ -24,6 +25,7 @@ const SECTIONS = [
   { to: "/settings/numbering", key: "numbering" },
   { to: "/settings/pec", key: "pec" },
   { to: "/settings/email", key: "email" },
+  { to: "/settings/notifications", key: "notifications" },
   { to: "/settings/ade-guide", key: "ade" },
   { to: "/import", key: "import" },
 ] as const;
@@ -45,6 +47,7 @@ function LanguageSection() {
             persistLocale(lng);
             document.documentElement.lang = lng;
             void i18n.changeLanguage(lng);
+            void saveLanguage(lng);
           }}
         >
           <option value="en">English</option>

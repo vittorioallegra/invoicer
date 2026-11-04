@@ -17,6 +17,8 @@ import { InvoiceEditorPage } from "./routes/invoice-editor";
 import { InvoicePage } from "./routes/invoice-page";
 import { InvoicesPage, validateInvoicesSearch } from "./routes/invoices";
 import { LoginPage } from "./routes/login";
+import { NotificationSettingsPage } from "./routes/notification-settings";
+import { NotificationsPage } from "./routes/notifications";
 import { NumberingPage } from "./routes/numbering";
 import { NotFoundPage } from "./routes/pages";
 import { PaymentMethodsPage } from "./routes/payment-methods";
@@ -117,6 +119,16 @@ const routeTree = rootRoute.addChildren([
   }),
   createRoute({ getParentRoute: () => rootRoute, path: "/login", component: LoginPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/setup", component: SetupPage }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/notifications",
+    component: NotificationsPage,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/settings/notifications",
+    component: NotificationSettingsPage,
+  }),
   // Hidden risk-spike page (step 2), removed in step 21.
   createRoute({ getParentRoute: () => rootRoute, path: "/spike", component: SpikePage }),
   createRoute({

@@ -188,6 +188,10 @@
       "import": {
         "title": "Importa",
         "body": "Porta fatture ricevute, fatture emesse in passato e clienti da file."
+      },
+      "notifications": {
+        "title": "Notifiche",
+        "body": "Push su questo dispositivo e cosa ricevere"
       }
     },
     "unmatched": {
@@ -959,6 +963,33 @@
     "courtesy_email_failed": {
       "title": "Email di cortesia non inviata",
       "body": "L'email di cortesia della fattura {{number}} a {{recipient}} non è stata inviata. Apri la fattura per inviarla di nuovo."
+    }
+  },
+  "notificationsPage": {
+    "title": "Notifiche",
+    "markAllRead": "Segna tutte come lette",
+    "settingsLink": "Impostazioni notifiche",
+    "emptyTitle": "Nessuna notifica",
+    "emptyBody": "Qui compaiono gli esiti delle fatture, le fatture ricevute e i promemoria.",
+    "unread": "non letta",
+    "linkUnread_one": "Notifiche, {{count}} non letta",
+    "linkUnread_other": "Notifiche, {{count}} non lette",
+    "settings": {
+      "title": "Impostazioni notifiche",
+      "intro": "Le notifiche push arrivano su questo dispositivo anche con l'app chiusa. Ogni notifica compare anche nell'elenco delle notifiche.",
+      "deviceTitle": "Questo dispositivo",
+      "on": "Le notifiche push sono attive su questo dispositivo.",
+      "off": "Le notifiche push sono disattivate su questo dispositivo.",
+      "turnOn": "Attiva le notifiche push",
+      "turnOff": "Disattiva su questo dispositivo",
+      "enabled": "Notifiche push attivate.",
+      "denied": "Le notifiche sono bloccate per questa app. Consentile nelle impostazioni del browser o del sistema, poi torna qui.",
+      "unsupported": "Questo browser non può ricevere notifiche push. Su iPhone aggiungi l'app alla schermata Home e aprila da lì.",
+      "noServiceWorker": "L'app non è ancora pronta per le notifiche push. Ricarica l'app installata e riprova.",
+      "devices_one": "{{count}} dispositivo riceve le notifiche push.",
+      "devices_other": "{{count}} dispositivi ricevono le notifiche push.",
+      "typesTitle": "Push per tipo di notifica",
+      "typesHint": "I tipi disattivati restano nell'elenco dell'app, ma non inviano una notifica push."
     }
   },
   "copy": {

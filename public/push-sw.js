@@ -1,5 +1,7 @@
 // Web Push handlers, imported into the generated service worker (workbox importScripts).
-// Payload: JSON {title, body, url, tag}. iOS requires every push to show a notification.
+// Payload from the Worker (src/worker/push/send.ts): JSON {title, body, url, tag}, already in the
+// owner's language; `url` is the invoice or list to open and `tag` the notification id (a repeated
+// push replaces the shown one). iOS requires every push to show a notification.
 self.addEventListener("push", (event) => {
   let data = {};
   try {

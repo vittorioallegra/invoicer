@@ -160,7 +160,8 @@ describe("Profile form", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText(/11-digit partita IVA/)).toBeTruthy();
     expect(screen.getAllByText("This field is required.").length).toBeGreaterThan(0);
-    expect(mocks.api).toHaveBeenCalledTimes(1);
+    // The shell's notification bell polls on its own; only the page's calls count.
+    expect(mocks.api.mock.calls.filter(([path]) => path !== "/api/notifications")).toHaveLength(1);
   });
 });
 
