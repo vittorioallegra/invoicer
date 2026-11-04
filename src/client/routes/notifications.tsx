@@ -100,25 +100,26 @@ export function NotificationsPage() {
   return (
     <Page
       title={t("notificationsPage.title")}
+      bell={false}
+      titleEnd={
+        <Link
+          to="/settings/notifications"
+          className={buttonVariants({ variant: "ghost", size: "icon" })}
+          aria-label={t("notificationsPage.settingsLink")}
+        >
+          <Settings aria-hidden />
+        </Link>
+      }
       aside={
-        <>
-          {data && data.unread > 0 ? (
-            <Button
-              variant="secondary"
-              disabled={read.isPending}
-              onClick={() => read.mutate(undefined)}
-            >
-              {t("notificationsPage.markAllRead")}
-            </Button>
-          ) : null}
-          <Link
-            to="/settings/notifications"
-            className={buttonVariants({ variant: "ghost", size: "icon" })}
-            aria-label={t("notificationsPage.settingsLink")}
+        data && data.unread > 0 ? (
+          <Button
+            variant="secondary"
+            disabled={read.isPending}
+            onClick={() => read.mutate(undefined)}
           >
-            <Settings aria-hidden />
-          </Link>
-        </>
+            {t("notificationsPage.markAllRead")}
+          </Button>
+        ) : undefined
       }
     >
       {query.isPending ? <ListSkeleton /> : null}

@@ -98,6 +98,26 @@ describe("notification bell on phones", () => {
   });
 });
 
+describe("notification bell placement", () => {
+  it.each(["/notifications", "/settings/company", "/settings/notifications"])(
+    "is not shown on %s",
+    async (path) => {
+      await renderAt(path);
+      await screen.findByRole("heading", { level: 1 });
+      expect(document.querySelector('main a[href="/notifications"]')).toBeNull();
+    },
+  );
+
+  it("keeps the settings icon at the end of the notifications title row", async () => {
+    await renderAt("/notifications");
+    const title = await screen.findByRole("heading", { level: 1, name: "Notifications" });
+    const row = title.parentElement?.parentElement as HTMLElement;
+    const settings = row.querySelector('a[href="/settings/notifications"]') as HTMLElement;
+    expect(settings).toBeTruthy();
+    expect(row.contains(settings) && row.lastElementChild?.contains(settings)).toBe(true);
+  });
+});
+
 describe("notification list", () => {
   it("shows an empty state", async () => {
     await renderAt("/notifications");

@@ -13,6 +13,8 @@ export function Page({
   aside,
   children,
   back,
+  titleEnd,
+  bell = back === undefined,
 }: {
   title: string;
   /** Under the title (for example a document number). */
@@ -22,6 +24,13 @@ export function Page({
   children: ReactNode;
   /** A link above the title that leads back to where the user came from (see `back-links.ts`). */
   back?: BackLink;
+  /** Fixed at the end of the title row at every width (for example a settings icon). */
+  titleEnd?: ReactNode;
+  /**
+   * The notification bell that ends the title row on phones. Shown by default on top-level pages;
+   * pages with a back link (settings sub-pages, invoices) and the notification list hide it.
+   */
+  bell?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -45,7 +54,8 @@ export function Page({
           ) : null}
         </div>
         {/* Phones: the bell ends the title row; the page actions wrap onto their own row. */}
-        <NotificationsLink className="-mt-1.5 -mr-2 shrink-0 md:hidden" />
+        {bell ? <NotificationsLink className="-mt-1.5 -mr-2 shrink-0 md:hidden" /> : null}
+        {titleEnd ? <div className="-mt-1.5 -mr-2 shrink-0">{titleEnd}</div> : null}
         {aside ? (
           <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">{aside}</div>
         ) : null}
