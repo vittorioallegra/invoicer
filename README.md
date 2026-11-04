@@ -144,8 +144,81 @@ Skeleton: this section grows with every step; the complete guide is written in s
   compensate.
 - Scheduling: a single cron trigger (`*/10 * * * *`) in `wrangler.jsonc`. Every run polls the PEC
   mailbox; the daily jobs run once per day from the first run at or after 09:00 Europe/Rome
-  (missed runs are caught up). There is no automatic backup: restore with D1 Time Travel (step 20
-  documents it).
+  (missed runs are caught up). There is no automatic backup: see [Restore](#restore).
+
+## Restore
+
+There is no automatic backup and no reminder to take one. Two things protect the data: D1 Time
+Travel (an automatic point-in-time history kept by Cloudflare) and the manual "Download all data"
+export in Settings.
+
+### D1 Time Travel
+
+Time Travel keeps the history of the database for 7 days on the Workers Free plan (30 days on
+Workers Paid). A point older than that cannot be restored. It needs Wrangler 3.4.0 or later.
+Source: <https://developers.cloudflare.com/d1/reference/time-travel/>.
+
+```sh
+# Bookmark of the current state (write it down before restoring: it is your undo point)
+wrangler d1 time-travel info <DATABASE_NAME>
+# Bookmark for a past moment (Unix timestamp or RFC3339)
+wrangler d1 time-travel info <DATABASE_NAME> --timestamp="2026-01-15T09:30:00+00:00"
+# Restore to a moment or to a bookmark
+wrangler d1 time-travel restore <DATABASE_NAME> --timestamp=<UNIX_TIMESTAMP>
+wrangler d1 time-travel restore <DATABASE_NAME> --bookmark=<BOOKMARK>
+```
+
+A restore is destructive: it overwrites the whole database in place and cancels queries in
+flight. It prints the bookmark of the state just before, so a wrong restore can be undone by
+restoring to that bookmark. Bookmarks are not deleted by restoring.
+
+What a restore rolls back, all of it to the chosen moment:
+
+- Every table: invoices, clients, settings, numbering, notifications and the mailbox cursor.
+- The stored files too (XML, PDF, received originals, imports), because they are D1 BLOBs.
+- The login: sessions, passkeys and the authenticator secret. A session created after the
+  restore point is gone (sign in again); a passkey registered after it must be registered again.
+  Push subscriptions made after it are gone too (subscribe again from Settings).
+
+After a restore:
+
+1. Open the app and check the latest invoices, their numbers and states, and the Settings job
+   list.
+2. The mailbox is the source of truth for SdI receipts and is never changed by the app (the
+   IMAP client is read-only). The mailbox cursor (last UID) and the stored message rows were
+   rolled back together, so the next poll (within 10 minutes) reads again every message above
+   the restored cursor and applies it: receipts received after the restore point are processed
+   again, and the invoices they belong to move to the right state. Messages already in the
+   restored database are skipped (matched by Message-ID and by UID), so nothing is stored twice.
+   Notifications for those messages are created again, as the first time.
+3. An invoice sent after the restore point no longer exists in the app, but the SdI got it.
+   Its receipts arrive as SdI messages that match no invoice and stay listed in Settings.
+   Recreate the invoice with the same number and date (see the original in the PEC webmail
+   "Sent" folder or the SdI portal) and do not send it again: it is already with the SdI. Check
+   the Fatture e Corrispettivi area of the Agenzia delle Entrate for what the SdI actually holds.
+4. Mail the provider already deleted from the mailbox (quota, retention) cannot be re-read.
+
+### Download all data (manual export)
+
+Settings has **Download all data**: a JSON file `{ exportedAt, tables }` with every business table
+(invoices, lines, clients, settings, mailbox messages, notifications, jobs, and so on). Files are
+included as hexadecimal text in `content_hex` columns (a stored PDF or XML is the hex of its bytes).
+
+It leaves out on purpose the login and push tables (`user`, `session`, `account`, `verification`,
+`two_factor`, `passkey`, `rate_limit`, `send_challenges`, `push_subscriptions`), because they are
+secrets and a downloaded file is easier to lose than the database. The PEC, Resend and VAPID
+secrets are Worker secrets and are never in the database or in the export.
+
+The export is a copy for safekeeping and for reading the data elsewhere, not an automatic restore
+path: the app has no import for it. To use it, extract what you need by hand (for example decode the
+hex of an XML or PDF), or load the tables into a new D1 yourself, then create the owner again with
+`SETUP_TOKEN` and register the passkey and authenticator app again.
+
+Keep it safely: the file holds fiscal and personal data of you and your clients. Download it
+before risky changes and at the end of each year, store it encrypted (an encrypted disk or
+archive, a password manager attachment), and never in a shared or public folder. Delete old
+copies you no longer need. Invoices must be kept for the legal retention period, and the SdI
+keeps its own copy of what you sent.
 
 ## Troubleshooting
 
