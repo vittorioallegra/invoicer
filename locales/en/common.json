@@ -96,6 +96,11 @@
     "passwordHint": "At least 12 characters. A generated password stored in your password manager is best.",
     "generatePassword": "Generate a password",
     "createOwner": "Create owner account",
+    "savePasswordTitle": "Save your password",
+    "savePasswordWarning": "Store this password in your password manager now. It is the fallback sign-in (with the authenticator code) and it is not shown again.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "passwordSaved": "I saved the password",
     "totpSetupTitle": "Authenticator app",
     "totpSetupIntro": "Email and password sign-in always needs a code from an authenticator app. Set it up now.",
     "totpStart": "Set up authenticator",
@@ -1043,7 +1048,8 @@
     "recoveryCodes": "Copy recovery codes",
     "setupKey": "Copy setup key",
     "copied": "Copied",
-    "failed": "Could not copy. Select the text and copy it by hand."
+    "failed": "Could not copy. Select the text and copy it by hand.",
+    "password": "Copy password"
   },
   "paymentMethods": {
     "title": "Payment methods",

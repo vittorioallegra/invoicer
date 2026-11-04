@@ -14,7 +14,7 @@ import { api } from "../lib/api";
 import { authClient, type SessionUser } from "../lib/auth-client";
 import { authErrorMessage } from "../lib/auth-errors";
 
-type Step = "create" | "totp" | "codes" | "passkey";
+type Step = "create" | "password" | "totp" | "codes" | "passkey";
 
 const PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
 
@@ -49,7 +49,27 @@ function useAction() {
   return { error, busy, run, banner: error ? <Banner tone="danger">{error}</Banner> : null };
 }
 
-function CreateOwner({ onCreated }: { onCreated: (password: string) => void }) {
+type PasswordCredentialCtor = new (data: {
+  id: string;
+  password: string;
+  name?: string;
+}) => Credential;
+
+/**
+ * Asks the browser to save the new login where the Credential Management API exists (Chromium).
+ * Safari and Firefox have no PasswordCredential; the "save your password" step covers them.
+ */
+async function offerToSave(email: string, name: string, password: string): Promise<void> {
+  const Ctor = (window as { PasswordCredential?: PasswordCredentialCtor }).PasswordCredential;
+  if (!Ctor || !navigator.credentials?.store) return;
+  try {
+    await navigator.credentials.store(new Ctor({ id: email, password, name }));
+  } catch {
+    // The browser declined or the user dismissed it: the next step still shows the password.
+  }
+}
+
+function CreateOwner({ onCreated }: { onCreated: (email: string, password: string) => void }) {
   const { t } = useTranslation();
   const { run, busy, banner } = useAction();
   const [token, setToken] = useState("");
@@ -77,7 +97,8 @@ function CreateOwner({ onCreated }: { onCreated: (password: string) => void }) {
       }
       const { error: failure } = await authClient.signIn.email({ email, password });
       if (failure) return authErrorMessage(failure, t, "auth.invalidCredentials");
-      onCreated(password);
+      await offerToSave(email, name, password);
+      onCreated(email, password);
       return null;
     });
   };
@@ -148,6 +169,60 @@ function CreateOwner({ onCreated }: { onCreated: (password: string) => void }) {
         <Button type="submit" disabled={busy}>
           {t("auth.createOwner")}
         </Button>
+      </form>
+    </AuthLayout>
+  );
+}
+
+/**
+ * Shows the new password once with a copy button. The form holds the email and password fields
+ * so the browser's password manager offers to save them when it is submitted.
+ */
+function SavePassword({
+  email,
+  password,
+  onDone,
+}: {
+  email: string;
+  password: string;
+  onDone: () => void;
+}) {
+  const { t } = useTranslation();
+  const [reveal, setReveal] = useState(false);
+  return (
+    <AuthLayout title={t("auth.savePasswordTitle")}>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          onDone();
+        }}
+        className="flex flex-col gap-4"
+      >
+        <Banner tone="warning">{t("auth.savePasswordWarning")}</Banner>
+        <Field label={t("auth.email")}>
+          {(control) => (
+            <Input {...control} type="email" readOnly value={email} autoComplete="username" />
+          )}
+        </Field>
+        <Field label={t("auth.password")}>
+          {(control) => (
+            <div className="flex items-center gap-1">
+              <Input
+                {...control}
+                type={reveal ? "text" : "password"}
+                readOnly
+                value={password}
+                autoComplete="new-password"
+                className="min-w-0 flex-1 font-mono"
+              />
+              <CopyButton text={password} label={t("copy.password")} />
+            </div>
+          )}
+        </Field>
+        <Button variant="secondary" onClick={() => setReveal((shown) => !shown)}>
+          {reveal ? t("auth.hidePassword") : t("auth.showPassword")}
+        </Button>
+        <Button type="submit">{t("auth.passwordSaved")}</Button>
       </form>
     </AuthLayout>
   );
@@ -238,7 +313,12 @@ function EnrollTotp({
         <Field label={t("auth.totpSecret")} hint={t("auth.totpSecretHint")}>
           {(control) => (
             <div className="flex flex-wrap items-center gap-1">
-              <Input {...control} readOnly value={secretOf(enrolment.uri)} />
+              <Input
+                {...control}
+                readOnly
+                value={secretOf(enrolment.uri)}
+                className="w-auto min-w-0 flex-1 font-mono"
+              />
               <CopyButton text={secretOf(enrolment.uri)} label={t("copy.setupKey")} />
             </div>
           )}
@@ -327,6 +407,7 @@ function AddPasskey() {
 
 function SetupFlow({ ownerExists, user }: { ownerExists: boolean; user: SessionUser | null }) {
   const { t } = useTranslation();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState<string | undefined>();
   const [codes, setCodes] = useState<string[]>([]);
   const [step, setStep] = useState<Step>(() => {
@@ -349,12 +430,16 @@ function SetupFlow({ ownerExists, user }: { ownerExists: boolean; user: SessionU
   if (step === "create") {
     return (
       <CreateOwner
-        onCreated={(created) => {
+        onCreated={(createdEmail, created) => {
+          setEmail(createdEmail);
           setPassword(created);
-          setStep("totp");
+          setStep("password");
         }}
       />
     );
+  }
+  if (step === "password" && password) {
+    return <SavePassword email={email} password={password} onDone={() => setStep("totp")} />;
   }
   if (step === "totp") {
     return (

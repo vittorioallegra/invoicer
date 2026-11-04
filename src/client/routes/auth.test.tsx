@@ -98,6 +98,30 @@ describe("setup screen", () => {
     expect(screen.queryByRole("button", { name: "Create owner account" })).toBeNull();
   });
 
+  it("shows the new password to save before the authenticator step", async () => {
+    mocks.api.mockImplementation(async (path: string) =>
+      path === "/api/setup/status" ? { ownerExists: false } : {},
+    );
+    mocks.signInEmail.mockResolvedValue({ data: {}, error: null });
+    await renderAt("/setup");
+    fireEvent.change(await screen.findByLabelText("Setup token"), { target: { value: "tok" } });
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Owner" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "owner@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Generate a password" }));
+    const generated = (screen.getByLabelText("Password") as HTMLInputElement).value;
+    fireEvent.click(screen.getByRole("button", { name: "Create owner account" }));
+
+    await screen.findByRole("heading", { name: "Save your password" });
+    const shown = screen.getByLabelText("Password") as HTMLInputElement;
+    expect(shown.value).toBe(generated);
+    expect(shown.autocomplete).toBe("new-password");
+    expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("owner@example.com");
+    expect(screen.getByRole("button", { name: "Copy password" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "I saved the password" }));
+    await screen.findByRole("heading", { name: "Authenticator app" });
+  });
+
   it("shows the otpauth URI as an SVG QR code on the authenticator step", async () => {
     mocks.api.mockResolvedValue({ ownerExists: false });
     mocks.session.data = { user: { id: "1", twoFactorEnabled: false } };
