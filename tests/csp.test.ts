@@ -9,8 +9,11 @@ describe("static asset headers", () => {
     expect(headers).toContain(`Content-Security-Policy: ${SPA_CSP}\n`);
   });
 
-  it("keeps connect-src on self only and forbids inline scripts", () => {
+  it("keeps connect-src on self only and forbids inline scripts and eval", () => {
     expect(SPA_CSP).toContain("connect-src 'self';");
-    expect(SPA_CSP).toContain("script-src 'self';");
+    // WebAssembly compilation only (xmllint-wasm): no 'unsafe-inline', no 'unsafe-eval'.
+    expect(SPA_CSP).toContain("script-src 'self' 'wasm-unsafe-eval';");
+    expect(SPA_CSP).not.toContain("'unsafe-eval'");
+    expect(SPA_CSP).not.toMatch(/script-src[^;]*'unsafe-inline'/);
   });
 });
