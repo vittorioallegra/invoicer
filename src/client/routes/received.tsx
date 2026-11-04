@@ -8,6 +8,7 @@ import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button, buttonVariants } from "../components/ui/button";
 import { EmptyState } from "../components/ui/empty-state";
+import { ListSkeleton } from "../components/ui/skeleton";
 import { ImportedBadge, StatusBadge } from "../components/ui/status-badge";
 import { receivedListQuery } from "../lib/received-api";
 import { useReadPending } from "../lib/use-read-pending";
@@ -77,11 +78,7 @@ export function ReceivedPage() {
   );
   return (
     <Page title={t("pages.received.title")} aside={importLink}>
-      {query.isPending ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          {t("common.loading")}
-        </p>
-      ) : null}
+      {query.isPending ? <ListSkeleton /> : null}
       {query.isError ? (
         <Banner
           tone="danger"

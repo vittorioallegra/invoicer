@@ -8,6 +8,7 @@ import { invoicesQuery, releaseNumber } from "../lib/invoices-api";
 import { useOnline } from "../lib/online";
 import { Banner } from "./ui/banner";
 import { Button } from "./ui/button";
+import { ListSkeleton } from "./ui/skeleton";
 import { ImportedBadge, StatusBadge } from "./ui/status-badge";
 import { toast } from "./ui/toast";
 
@@ -87,16 +88,12 @@ export interface InvoiceListProps {
   empty: ReactNode;
 }
 
-/** Minimal invoice list with its loading, empty and error states (full dashboard: step 16). */
+/** Minimal invoice list with its skeleton, empty and error states. */
 export function InvoiceList({ scope, empty }: InvoiceListProps) {
   const { t } = useTranslation();
   const query = useQuery(invoicesQuery(scope));
   if (query.isPending) {
-    return (
-      <p role="status" className="text-sm text-muted-foreground">
-        {t("common.loading")}
-      </p>
-    );
+    return <ListSkeleton rows={3} />;
   }
   if (query.isError) {
     return (

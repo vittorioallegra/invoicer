@@ -425,7 +425,7 @@ Approved: yes (2026-11-02)
 - [x] 13. Mailbox polling and SdI receipts — `docs: write the cutover runbook and tick the mailbox polling step`
 - [ ] 14. UI polish: Liquid Glass (deferred to a later phase, after step 21)
 - [x] 15. Received invoices and imports — `feat(import): import clients from a Fatture in Cloud CSV with a preview, per-row problems and a result screen`
-- [ ] 16. Lists and dashboard
+- [x] 16. Lists and dashboard — `feat(dashboard): add the Home top strip with counts and yearly and monthly totals, an overdue filter and skeleton loading`
 - [ ] 17. Courtesy email
 - [ ] 18. Push and notifications
 - [ ] 19. Cron jobs, recurring, mailbox quota
@@ -528,6 +528,7 @@ Approved: yes (2026-11-02)
 - Step 14+ (from step 12): `xmllint-wasm` adds a 779 KB WASM file to the client precache; consider excluding it from the service worker precache and caching it at first use.
 - Test instance (deferred by the owner, 2026-11-04): a separate Worker `invoicer-test` with its own D1, no PEC secrets and the mock channel enabled by an explicit var (today `SEND_CHANNEL=mock` is honoured only on a localhost origin, `isMockChannel` in `src/worker/env.ts`), with a visible TEST band; never mock on production.
 - Milestone A exit pending the owner: set the number on the first invoice, send one real invoice through the production PEC mailbox (AC 21), follow the cutover runbook in README.
+- Lists and dashboard (step 16, 2026-11-04): most of the step already existed (Invoices list with URL filters, recap, paid/overdue chips, empty and no-result states, mark paid in the invoice menu and on the received detail). Added: Home top strip from `GET /api/invoices/dashboard` (SQL aggregates: to send, rejected incl. expired, overdue unpaid; invoiced this Rome year and month per currency, credit notes subtracted, rejected and unsent excluded; each count links to the Invoices list with `status` and `year=all`); a status filter `overdue` (finalised, not paid, credit notes excluded, due date before today) so the strip's count has a target; `Skeleton`/`ListSkeleton` replace "Loading" text on Home, Invoices and Received lists. Decided not to add mark-paid buttons to list rows (the spec puts it in the invoice menu and the received detail) and no free-text search (owner's removal stands); Home keeps "To send" only, since "Issued" and "Received" are the Invoices and Received pages. Owner to confirm: overdue count and filter ignore credit notes; the strip is hidden on the first-run empty Home.
 
 ### Next
-Step 15 (received invoices and imports) is done. Next is step 16: Lists and dashboard (then 17-21; step 14 stays deferred). Not deployed yet: the production Worker on the custom domain still runs the step 2 spike build; deploying needs `BETTER_AUTH_SECRET` and `SETUP_TOKEN` set by the owner and migrations 0001-0013 applied remotely. On production, Finalize sends for real through the PEC mailbox.
+Step 16 (lists and dashboard) is done. Next is step 17: Courtesy email (then 18-21; step 14 stays deferred). Not deployed yet: the production Worker on the custom domain still runs the step 2 spike build; deploying needs `BETTER_AUTH_SECRET` and `SETUP_TOKEN` set by the owner and migrations 0001-0013 applied remotely. On production, Finalize sends for real through the PEC mailbox.

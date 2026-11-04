@@ -668,6 +668,14 @@
       "toSend": "Da inviare",
       "toSendCount_one": "{{count}} fattura non inviata",
       "toSendCount_other": "{{count}} fatture non inviate"
+    },
+    "dashboard": {
+      "label": "Panoramica",
+      "toSend": "Da inviare",
+      "rejected": "Scartate",
+      "overdue": "Scadute, non pagate",
+      "year": "Fatturato {{year}}",
+      "month": "Fatturato di {{month}}"
     }
   },
   "fatturapa": {

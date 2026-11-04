@@ -19,6 +19,7 @@ import { Disclosure } from "../components/ui/disclosure";
 import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
 import { Select } from "../components/ui/select";
+import { ListSkeleton } from "../components/ui/skeleton";
 import { clientsQuery } from "../lib/clients-api";
 import { invoiceOverviewQuery } from "../lib/invoices-api";
 import { numberingSeriesQuery } from "../lib/settings-api";
@@ -58,6 +59,7 @@ const FILTER_STATUS = {
   rejected: "rejected",
   paid: "paid",
   unpaid: "unpaid",
+  overdue: "overdue",
 } as const;
 
 function statusLabel(t: (key: string) => string, status: keyof typeof FILTER_STATUS) {
@@ -285,9 +287,7 @@ export function InvoicesPage() {
       </Disclosure>
 
       {overview.isPending ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          {t("common.loading")}
-        </p>
+        <ListSkeleton />
       ) : overview.isError ? (
         <Banner
           tone="danger"

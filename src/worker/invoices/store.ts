@@ -13,6 +13,7 @@ import {
 } from "../../shared/invoice";
 import {
   type CurrencyRecap,
+  type DashboardStats,
   type InvoiceFilters,
   type InvoiceRecap,
   STATUS_FILTER_STATES,
@@ -314,6 +315,12 @@ export async function listFilteredInvoices(
     where.push(`i.state IN (${states})`);
     if (filters.status === "paid") where.push("i.payment_flag = 'paid'");
     if (filters.status === "unpaid") where.push("i.payment_flag = 'unpaid'");
+    if (filters.status === "overdue") {
+      // Same rule as `effectivePayment`; a credit note is never payable.
+      where.push(
+        `i.payment_flag <> 'paid' AND i.document_type <> 'TD04' AND i.due_date IS NOT NULL AND i.due_date < ${bind(today)}`,
+      );
+    }
   }
   if (filters.client) where.push(`i.client_id = ${bind(filters.client)}`);
   if (filters.series) where.push(`i.series_id = ${bind(filters.series)}`);
@@ -336,6 +343,58 @@ export async function listFilteredInvoices(
     (a, b) => b - a,
   );
   return { invoices: await summarize(db, results, false, now), recap: recapOf(results), years };
+}
+
+/**
+ * Counts and invoiced totals for the Home top strip, all aggregated in SQL (free-plan CPU budget).
+ * Totals are by invoice date (issue date, else the date set), finalised and not rejected, credit
+ * notes subtracted, in integer cents per currency.
+ */
+export async function dashboardStats(db: D1Database, now = new Date()): Promise<DashboardStats> {
+  await expireRejected(db, now);
+  const today = romeDateTime(now).date;
+  const finalised = FINALISED_STATES.map((state) => `'${state}'`).join(", ");
+  const counts = await db
+    .prepare(
+      `SELECT
+         COALESCE(SUM(state IN ('draft', 'planned')), 0) AS to_send,
+         COALESCE(SUM(state IN ('rejected', 'rejected_expired')), 0) AS rejected,
+         COALESCE(SUM(state IN (${finalised}) AND payment_flag <> 'paid' AND document_type <> 'TD04'
+                      AND due_date IS NOT NULL AND due_date < ?1), 0) AS overdue
+       FROM invoices`,
+    )
+    .bind(today)
+    .first<{ to_send: number; rejected: number; overdue: number }>();
+  const totals = async (length: number) => {
+    const { results } = await db
+      .prepare(
+        `SELECT currency,
+                SUM(CASE WHEN document_type = 'TD04' THEN -COALESCE(total_cents, 0)
+                         ELSE COALESCE(total_cents, 0) END) AS cents
+         FROM invoices
+         WHERE state IN (${finalised})
+           AND substr(COALESCE(issue_date, planned_date, ?1), 1, ${length}) = ?2
+         GROUP BY currency`,
+      )
+      .bind(today, today.slice(0, length))
+      .all<{ currency: string; cents: number }>();
+    const rows = results.map((row) => ({ currency: row.currency, invoicedCents: row.cents }));
+    const eur = rows.find((row) => row.currency === "EUR") ?? { currency: "EUR", invoicedCents: 0 };
+    return [
+      eur,
+      ...rows
+        .filter((row) => row.currency !== "EUR")
+        .sort((a, b) => a.currency.localeCompare(b.currency)),
+    ];
+  };
+  return {
+    today,
+    toSendCount: counts?.to_send ?? 0,
+    rejectedCount: counts?.rejected ?? 0,
+    overdueCount: counts?.overdue ?? 0,
+    year: await totals(4),
+    month: await totals(7),
+  };
 }
 
 /** Recap rules (spec section 6): credit notes subtract; rejected invoices count as not invoiced. */

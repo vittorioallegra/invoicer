@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Check, Circle, FileText, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { ChecklistItemId, OnboardingStatus } from "../../shared/onboarding";
+import { DashboardStrip } from "../components/dashboard-strip";
 import { InvoiceList, ReservedList } from "../components/invoice-list";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
@@ -116,6 +117,7 @@ export function HomePage() {
       ) : null}
       {status && !status.complete ? <Checklist status={status} /> : null}
       {status ? <SendBlocked status={status} /> : null}
+      {noInvoices ? null : <DashboardStrip />}
       <ReservedList />
       {noInvoices ? (
         <EmptyState

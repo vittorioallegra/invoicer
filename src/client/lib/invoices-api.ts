@@ -1,5 +1,5 @@
 import type { InvoiceListScope, InvoiceRecord, InvoiceSummary } from "../../shared/invoice";
-import type { InvoiceFilters, InvoiceOverview } from "../../shared/invoice-filters";
+import type { DashboardStats, InvoiceFilters, InvoiceOverview } from "../../shared/invoice-filters";
 import { api } from "./api";
 
 export const invoicesQuery = (scope: InvoiceListScope) => ({
@@ -18,6 +18,12 @@ export const invoiceOverviewQuery = (filters: InvoiceFilters) => ({
     return api<InvoiceOverview>(`/api/invoices?${params}`);
   },
 });
+
+/** Counts and invoiced totals of the Home top strip. */
+export const dashboardQuery = {
+  queryKey: ["invoices", "dashboard"],
+  queryFn: () => api<DashboardStats>("/api/invoices/dashboard"),
+};
 
 export const invoiceQuery = (id: string) => ({
   queryKey: ["invoice", id],

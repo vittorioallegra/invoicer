@@ -31,6 +31,7 @@ import {
 } from "../invoices/numbering";
 import {
   createInvoice,
+  dashboardStats,
   deleteInvoice,
   listFilteredInvoices,
   listInvoices,
@@ -121,6 +122,9 @@ invoices.get("/", async (c) => {
   }
   return c.json({ invoices: await listInvoices(c.env.DB, scope as InvoiceListScope) });
 });
+
+/** Home top strip: counts and the year's and month's invoiced totals (aggregated in SQL). */
+invoices.get("/dashboard", async (c) => c.json(await dashboardStats(c.env.DB)));
 
 /**
  * The number proposed for a new invoice of the year in a series (`series` query, default series

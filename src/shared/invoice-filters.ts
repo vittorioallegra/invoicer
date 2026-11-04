@@ -12,6 +12,7 @@ export const INVOICE_STATUS_FILTERS = [
   "rejected",
   "paid",
   "unpaid",
+  "overdue",
 ] as const;
 export type InvoiceStatusFilter = (typeof INVOICE_STATUS_FILTERS)[number];
 
@@ -24,6 +25,7 @@ export const STATUS_FILTER_STATES: Record<InvoiceStatusFilter, readonly string[]
   rejected: ["rejected", "rejected_expired"],
   paid: ["sending", "sent", "delivered", "not_delivered"],
   unpaid: ["sending", "sent", "delivered", "not_delivered"],
+  overdue: ["sending", "sent", "delivered", "not_delivered"],
 };
 
 /** The year filter is a four-digit year or `all`; absent means the current Europe/Rome year. */
@@ -58,4 +60,26 @@ export interface InvoiceOverview {
   recap: InvoiceRecap;
   /** Years that have an invoice (the current one always), newest first. */
   years: number[];
+}
+
+/** Invoiced total of a period in one currency: finalised invoices, credit notes subtracted. */
+export interface PeriodTotal {
+  currency: string;
+  invoicedCents: number;
+}
+
+/** Home top strip (`GET /api/invoices/dashboard`). */
+export interface DashboardStats {
+  /** Europe/Rome today, `YYYY-MM-DD`: the year and month below are its. */
+  today: string;
+  /** Invoices not sent yet. */
+  toSendCount: number;
+  /** Rejected invoices (including those whose resend window expired). */
+  rejectedCount: number;
+  /** Finalised invoices, not paid, past their due date (credit notes excluded). */
+  overdueCount: number;
+  /** Invoiced in the current year; EUR is always listed first. */
+  year: PeriodTotal[];
+  /** Invoiced in the current month; EUR is always listed first. */
+  month: PeriodTotal[];
 }
