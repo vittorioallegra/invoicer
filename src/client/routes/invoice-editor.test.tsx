@@ -1071,7 +1071,7 @@ describe("Invoice editor", () => {
     );
     expect(mocks.renderPreview).toHaveBeenCalledWith(
       "i1",
-      expect.objectContaining({ number: "8" }),
+      expect.objectContaining({ number: "8/2026" }),
     );
     expect(mocks.downloadUrl).not.toHaveBeenCalled();
   });
@@ -1089,7 +1089,7 @@ describe("Invoice editor", () => {
     await waitFor(() =>
       expect(mocks.renderPreview).toHaveBeenCalledWith(
         "i1",
-        expect.objectContaining({ number: "CH-12" }),
+        expect.objectContaining({ number: "CH-12/2026" }),
       ),
     );
   });

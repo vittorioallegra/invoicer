@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { romeDateTime } from "../../shared/cron";
 import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
 import type { InvoiceRecord } from "../../shared/invoice";
+import { formatNumberWithYear } from "../../shared/numbering";
 import { InvoiceDocumentView } from "../components/invoice-document-view";
 import { Page } from "../components/page";
 import { PaymentDialog } from "../components/payment-action";
@@ -36,7 +37,7 @@ export function ImportedInvoicePage({ record }: { record: InvoiceRecord }) {
   return (
     <Page
       title={t(credit ? "import.view.creditNote" : "import.view.invoice", {
-        number: record.number ?? "",
+        number: record.number ? formatNumberWithYear(record.number, record.year) : "",
       })}
       back={INVOICE_LIST_BACK}
       subtitle={[

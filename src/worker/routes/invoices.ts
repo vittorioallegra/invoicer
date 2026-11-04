@@ -18,6 +18,7 @@ import {
 } from "../../shared/invoice";
 import { invoiceFiltersSchema } from "../../shared/invoice-filters";
 import { MAX_FILE_BYTES } from "../../shared/limits";
+import { formatNumberWithYear } from "../../shared/numbering";
 import { invoicePdfFileName } from "../../shared/pdf-name";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
@@ -380,7 +381,10 @@ invoices.put("/:id/pdf", async (c) => {
 
   const storage = createD1FileStorage(c.env.DB);
   const invoice = await requireInvoice(c.env.DB, id);
-  const filename = invoicePdfFileName(invoice.number ?? current.file_name, invoice.clientName);
+  const filename = invoicePdfFileName(
+    invoice.number ? formatNumberWithYear(invoice.number, invoice.year) : current.file_name,
+    invoice.clientName,
+  );
   const stored = await storage.put({
     kind: "pdf",
     filename,
@@ -421,7 +425,7 @@ invoices.get("/:id/pdf", async (c) => {
   // Named from the invoice as it is now (number and client), not from the stored file name.
   const invoice = await requireInvoice(c.env.DB, c.req.param("id"));
   const filename = invoice.number
-    ? invoicePdfFileName(invoice.number, invoice.clientName)
+    ? invoicePdfFileName(formatNumberWithYear(invoice.number, invoice.year), invoice.clientName)
     : file.filename;
   return new Response(file.content, {
     headers: {

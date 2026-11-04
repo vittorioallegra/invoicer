@@ -23,6 +23,15 @@ export function formatInvoiceNumber(series: SeriesAffixes, progressive: number):
   return `${series.prefix ?? ""}${progressive}${series.suffix ?? ""}`;
 }
 
+/**
+ * The number as shown to people: the printed number and its numbering year, e.g. `FA-1/2026`.
+ * Used in every UI text, email, notification and PDF; the FatturaPA XML `Numero` and file name
+ * keep the bare printed number. Without a year (not numbered yet) it is the number alone.
+ */
+export function formatNumberWithYear(number: string, year: number | null | undefined): string {
+  return year === null || year === undefined ? number : `${number}/${year}`;
+}
+
 const text = (max: number) => z.string().trim().max(max);
 
 /** Optional prefix or suffix: empty means none. Messages are stable codes for the UI. */

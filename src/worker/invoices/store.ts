@@ -275,6 +275,7 @@ async function summarize(
     paymentFlag: effectivePayment(row, today),
     clientName: row.client_name,
     number: row.number_raw,
+    year: row.year,
     issueDate: row.issue_date,
     invoiceDate: row.planned_date,
     dueDate: row.due_date,

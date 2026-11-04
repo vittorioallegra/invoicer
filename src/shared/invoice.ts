@@ -476,6 +476,7 @@ export type InvoiceSummary = Pick<
   | "paymentFlag"
   | "clientName"
   | "number"
+  | "year"
   | "issueDate"
   | "invoiceDate"
   | "dueDate"

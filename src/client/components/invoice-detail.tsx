@@ -3,6 +3,7 @@ import { Send } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { InvoiceRecord } from "../../shared/invoice";
+import { formatNumberWithYear } from "../../shared/numbering";
 import { manualHandedOver, manualOutcome, transmissionsQuery } from "../lib/invoices-api";
 import { useOnline } from "../lib/online";
 import { SendError, SendSheet } from "./send-sheet";
@@ -171,7 +172,11 @@ export function InvoiceDetail({ record, clientName, totalLabel }: InvoiceDetailP
         invoiceId={record.id}
         open={sendOpen}
         onOpenChange={setSendOpen}
-        summary={{ client: clientName, number: record.number ?? "", total: totalLabel }}
+        summary={{
+          client: clientName,
+          number: record.number ? formatNumberWithYear(record.number, record.year) : "",
+          total: totalLabel,
+        }}
         onSent={() => {
           setSendOpen(false);
           void refresh();

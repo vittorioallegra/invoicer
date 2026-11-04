@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
 import type { InvoiceListScope, InvoiceSummary } from "../../shared/invoice";
+import { formatNumberWithYear } from "../../shared/numbering";
 import { invoicesQuery, releaseNumber } from "../lib/invoices-api";
 import { useOnline } from "../lib/online";
 import { Banner } from "./ui/banner";
@@ -43,7 +44,7 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
           <span className="block truncate font-medium">
             {invoice.number
               ? t(credit ? "invoice.list.creditNoteNumber" : "invoice.list.number", {
-                  number: invoice.number,
+                  number: formatNumberWithYear(invoice.number, invoice.year),
                 })
               : t(credit ? "invoice.list.creditNote" : "invoice.list.invoice")}
             {" · "}

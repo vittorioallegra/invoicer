@@ -159,13 +159,13 @@ describe("AC 14: automatic mode sends exactly one courtesy email per outcome", (
       expect(body.reply_to).toBe("mario@example.test");
       expect(body.bcc).toEqual(["owner@example.test"]);
       expect(body.attachments.map((a) => a.filename)).toEqual([
-        "invoice-CH-3-acme-s-r-l.pdf",
+        "invoice-CH-3-2026-acme-s-r-l.pdf",
         FILE,
       ]);
       expect(atob(body.attachments[0]?.content ?? "")).toBe(PDF_TEXT);
     }
     // English client for the delivered invoice, Italian for the other; only the latter points to AdE.
-    expect(sent.filter((s) => s.body.subject.startsWith("Invoice CH-3"))).toHaveLength(1);
+    expect(sent.filter((s) => s.body.subject.startsWith("Invoice CH-3/2026"))).toHaveLength(1);
     expect(sent.filter((s) => s.body.text.includes("Fatture e Corrispettivi"))).toHaveLength(1);
     expect(sent.every((s) => s.headers.Authorization === "Bearer re_test_key")).toBe(true);
     expect(sent.every((s) => /^outbox-/.test(s.headers["Idempotency-Key"] ?? ""))).toBe(true);
@@ -281,7 +281,10 @@ describe("failure", () => {
       "SELECT type, invoice_id, body FROM notifications WHERE type = 'courtesy_email_failed'",
     );
     expect(note.invoice_id).toBe(inv.id);
-    expect(JSON.parse(note.body)).toMatchObject({ number: "CH-3", recipient: "billing@acme.test" });
+    expect(JSON.parse(note.body)).toMatchObject({
+      number: "CH-3/2026",
+      recipient: "billing@acme.test",
+    });
   });
 
   it("records an unreachable provider as a failure", async () => {
@@ -353,9 +356,9 @@ describe("ask mode and the manual send", () => {
     const view = await overview(inv.id);
     expect(view.ask?.attempt).toBe(1);
     expect(view.draft?.to).toBe("billing@acme.test");
-    expect(view.draft?.subject).toBe("Invoice CH-3 from Mario Rossi");
+    expect(view.draft?.subject).toBe("Invoice CH-3/2026 from Mario Rossi");
     expect(view.draft?.attachments.map((a) => a.filename)).toEqual([
-      "invoice-CH-3-acme-s-r-l.pdf",
+      "invoice-CH-3-2026-acme-s-r-l.pdf",
       FILE,
     ]);
 

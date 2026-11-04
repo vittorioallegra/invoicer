@@ -503,7 +503,7 @@
     "newTitle": "New invoice",
     "editTitle": "Invoice",
     "notFound": "This invoice does not exist.",
-    "numberYear": "No. {{number}}/{{year}}",
+    "numberYear": "No. {{number}}",
     "saved": "Saved.",
     "errors": {
       "locked": "This invoice can no longer be edited.",

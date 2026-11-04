@@ -118,7 +118,7 @@ describe("imported invoice", () => {
       throw new Error(`unexpected ${path}`);
     });
     await renderAt("/invoices/i1");
-    expect(await screen.findByText("Invoice 123")).toBeTruthy();
+    expect(await screen.findByText("Invoice 123/2014")).toBeTruthy();
     expect(screen.getByText("Imported")).toBeTruthy();
     expect(await screen.findByText("Supplier")).toBeTruthy();
     expect(screen.getByText("Download original")).toBeTruthy();

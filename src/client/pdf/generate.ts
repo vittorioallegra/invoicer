@@ -1,6 +1,7 @@
 import type { ClientRecord } from "../../shared/client";
 import type { FatturaIssuer } from "../../shared/fatturapa";
 import { type InvoiceRecord, invoiceLanguage } from "../../shared/invoice";
+import { formatNumberWithYear } from "../../shared/numbering";
 import { previewPdfFileName } from "../../shared/pdf-name";
 import { api } from "../lib/api";
 import type { ProfileResponse } from "../lib/settings-api";
@@ -40,7 +41,9 @@ export async function loadInvoicePdfInput(
     api<{ clients: ClientRecord[] }>("/api/clients"),
     api<{ profile: ProfileResponse | null }>("/api/profile"),
   ]);
-  const number = identity?.number ?? invoice.number;
+  const number =
+    identity?.number ??
+    (invoice.number ? formatNumberWithYear(invoice.number, invoice.year) : null);
   const issueDate = identity?.issueDate ?? invoice.issueDate;
   if (!number || !issueDate) throw new PdfError("not_numbered");
   const client = clients.find((c) => c.id === invoice.clientId);

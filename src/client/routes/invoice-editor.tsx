@@ -30,7 +30,11 @@ import {
   safeTotals,
   transmissionTermWarning,
 } from "../../shared/invoice";
-import { formatInvoiceNumber, type NumberingSeriesRecord } from "../../shared/numbering";
+import {
+  formatInvoiceNumber,
+  formatNumberWithYear,
+  type NumberingSeriesRecord,
+} from "../../shared/numbering";
 import type { SendReadiness } from "../../shared/onboarding";
 import { maskIban, type PaymentMethodRecord } from "../../shared/payment-method";
 import { RITENUTA_TYPES, type TaxOptions } from "../../shared/tax";
@@ -598,11 +602,15 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   // The number as it will be printed: the assigned one, else the proposal or the typed number.
   let printedNumber: string | null = null;
   if (record?.number) {
-    printedNumber = t("invoice.numberYear", { number: record.number, year: record.year });
+    printedNumber = t("invoice.numberYear", {
+      number: formatNumberWithYear(record.number, record.year),
+    });
   } else if (numberEditable && typed !== null && !Number.isNaN(typed)) {
     printedNumber = t("invoice.numberYear", {
-      number: activeSeries ? formatInvoiceNumber(activeSeries, typed) : typed,
-      year,
+      number: formatNumberWithYear(
+        activeSeries ? formatInvoiceNumber(activeSeries, typed) : String(typed),
+        year,
+      ),
     });
   }
 
@@ -620,7 +628,10 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     if (typed === null) return;
     setPreviewBusy(true);
     renderPreviewPdf(id, {
-      number: activeSeries ? formatInvoiceNumber(activeSeries, typed) : String(typed),
+      number: formatNumberWithYear(
+        activeSeries ? formatInvoiceNumber(activeSeries, typed) : String(typed),
+        year,
+      ),
       issueDate: issueDateNow,
     })
       .then(({ bytes, fileName }) => downloadBytes(bytes, fileName))
@@ -1107,7 +1118,10 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                         ) : null}
                         {linkable.map((invoice) => (
                           <option key={invoice.id} value={invoice.id}>
-                            {invoice.number} · {invoice.clientName ?? ""}
+                            {invoice.number
+                              ? formatNumberWithYear(invoice.number, invoice.year)
+                              : ""}{" "}
+                            · {invoice.clientName ?? ""}
                             {invoice.issueDate ? ` · ${formatDate(invoice.issueDate, locale)}` : ""}
                           </option>
                         ))}
@@ -1500,7 +1514,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           }}
           summary={{
             client: client?.name ?? "",
-            number: record?.number ?? "",
+            number: record?.number ? formatNumberWithYear(record.number, record.year) : "",
             total: formatMoney(
               totals?.amountDueCents ?? 0,
               locale,

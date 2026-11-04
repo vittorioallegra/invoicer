@@ -451,8 +451,11 @@ Approved: yes (2026-11-02)
   - setup showed the blank create form after the owner was created — `fix(auth): keep the setup flow on its step after the owner account is created`
   - PEC settings said every send needs the passkey — `fix(settings): say a send needs a passkey or an authenticator code`
   - Preview PDF appeared to do nothing — `fix(pdf): make the PDF preview reliable with a download fallback`
+- owner follow-ups (2026-11-04): done
+  - invoice number showed as 1/2026 on the invoice page and receipts but as 1 in lists, emails, PDF and other notifications — `fix(invoices): show the invoice number as number/year everywhere`
 
 ### Decisions
+- Invoice numbers are shown as number/year (2026-11-04, owner): the printed number plus the numbering year (`formatNumberWithYear` in `src/shared/numbering.ts`, from `number_raw` and `invoices.year`) in the invoice page, lists, send dialog, courtesy emails (subject, body), notifications and push text, the PDF download name and the number printed on the PDF. The FatturaPA XML `Numero` and file name, received invoices (supplier numbers) and the credit note reference keep the bare number. Imported historic invoices use the same helper.
 - Company email and phone: optional, sent in CedentePrestatore/Contatti and printed under the sender (owner's choice). The phone is kept as typed; the XML value is its digits (no +/00, Italian 39 dropped if over 12 digits).
 - View-mode actions in a "⋯" menu (Edit, Duplicate, Credit note, Payment, Download PDF/XML, Delete); Finalize stays a button (owner's choice).
 - Invoice page has a view mode (actions: Duplicate, Delete, Edit, Finalize) and an edit mode (Cancel, Save at the bottom); new and duplicated invoices open in edit mode (owner's choice, 2026-11-03).

@@ -1,4 +1,5 @@
 import { romeDateTime } from "../../shared/cron";
+import { formatNumberWithYear } from "../../shared/numbering";
 import type { Bindings } from "../env";
 import { overdueCondition } from "../invoices/store";
 import { notificationTitleKey } from "../outbox";
@@ -18,14 +19,20 @@ export async function notifyOverdueInvoices(env: Bindings, now = new Date()): Pr
   const today = romeDateTime(now).date;
   const type = "invoice_overdue";
   const { results } = await env.DB.prepare(
-    `SELECT i.id AS id, i.number_raw AS number, i.due_date AS dueDate, c.name AS client
+    `SELECT i.id AS id, i.number_raw AS number, i.year AS year, i.due_date AS dueDate, c.name AS client
      FROM invoices i LEFT JOIN clients c ON c.id = i.client_id
      WHERE ${overdueCondition("?1")} AND i.source = 'app'
        AND NOT EXISTS (SELECT 1 FROM notifications n WHERE n.type = ?2 AND n.invoice_id = i.id)
      ORDER BY i.due_date, i.id LIMIT ?3`,
   )
     .bind(today, type, OVERDUE_MAX_PER_RUN)
-    .all<{ id: string; number: string | null; dueDate: string; client: string | null }>();
+    .all<{
+      id: string;
+      number: string | null;
+      year: number | null;
+      dueDate: string;
+      client: string | null;
+    }>();
   if (results.length === 0) return 0;
   const written = await env.DB.batch(
     results.map((row) =>
@@ -38,7 +45,7 @@ export async function notifyOverdueInvoices(env: Bindings, now = new Date()): Pr
         type,
         notificationTitleKey(type),
         JSON.stringify({
-          number: row.number ?? "",
+          number: row.number ? formatNumberWithYear(row.number, row.year) : "",
           client: row.client ?? "",
           dueDate: row.dueDate,
         }),

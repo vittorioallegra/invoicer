@@ -1,5 +1,6 @@
 import { renderCourtesyEmail } from "../../shared/courtesy-email";
 import { type InvoiceLanguage, invoiceDataSchema } from "../../shared/invoice";
+import { formatNumberWithYear } from "../../shared/numbering";
 import { invoicePdfFileName } from "../../shared/pdf-name";
 import { type Bindings, requireSecrets } from "../env";
 import { notificationTitleKey } from "../outbox";
@@ -61,6 +62,7 @@ export interface CourtesyContext {
 interface ContextRow {
   state: string;
   number: string | null;
+  year: number | null;
   documentType: string;
   issueDate: string | null;
   plannedDate: string | null;
@@ -85,7 +87,7 @@ export async function loadCourtesyContext(
 ): Promise<CourtesyContext | null> {
   const row = await db
     .prepare(
-      `SELECT i.state AS state, i.number_raw AS number, i.document_type AS documentType,
+      `SELECT i.state AS state, i.number_raw AS number, i.year AS year, i.document_type AS documentType,
               i.issue_date AS issueDate, i.planned_date AS plannedDate, i.due_date AS dueDate,
               i.currency AS currency, i.total_cents AS totalCents, i.data AS data,
               i.source AS source, c.name AS clientName, c.email AS clientEmail,
@@ -108,7 +110,7 @@ export async function loadCourtesyContext(
   return {
     invoiceId,
     state: row.state,
-    number: row.number,
+    number: formatNumberWithYear(row.number, row.year),
     creditNote: row.documentType === "TD04",
     issueDate: row.issueDate ?? row.plannedDate ?? "",
     dueDate: row.dueDate,

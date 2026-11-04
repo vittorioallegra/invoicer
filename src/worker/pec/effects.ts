@@ -1,4 +1,5 @@
 import { INVOICE_STATES, type InvoiceState } from "../../shared/invoice-state";
+import { formatNumberWithYear } from "../../shared/numbering";
 import { isSdiAddress, normalizeMessageId, type SdiMessageType } from "../../shared/sdi-messages";
 import { type NotificationType, notificationStatement, outboxStatement } from "../outbox";
 import type { Classification } from "./classify";
@@ -118,7 +119,7 @@ function eventStatement(
     );
 }
 
-const numberOf = (m: Match) => (m.number ? (m.year ? `${m.number}/${m.year}` : m.number) : "");
+const numberOf = (m: Match) => (m.number ? formatNumberWithYear(m.number, m.year) : "");
 
 async function sdiAddressOf(db: D1Database): Promise<string | null> {
   const row = await db

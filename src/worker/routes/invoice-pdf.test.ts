@@ -126,7 +126,7 @@ describe("invoice PDF storage", () => {
     const stored = await put(id, bytes);
     expect(stored.status).toBe(201);
     expect(stored.body.file).toMatchObject({ attempt: 1, size: 200 });
-    expect(stored.body.file.filename).toBe("invoice-1-acme-s-r-l.pdf");
+    expect(stored.body.file.filename).toBe("invoice-1-2026-acme-s-r-l.pdf");
     expect(stored.body.file.sha256).toMatch(/^[0-9a-f]{64}$/);
 
     const row = await env.DB.prepare(

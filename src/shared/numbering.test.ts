@@ -1,10 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
   formatInvoiceNumber,
+  formatNumberWithYear,
   MAX_AFFIX_LENGTH,
   matchSeries,
   numberingSeriesInputSchema,
 } from "./numbering";
+
+describe("formatNumberWithYear", () => {
+  it("appends the numbering year to the printed number", () => {
+    expect(formatNumberWithYear("1", 2026)).toBe("1/2026");
+    expect(formatNumberWithYear("CH-3", 2025)).toBe("CH-3/2025");
+    expect(formatNumberWithYear("7-A", 2026)).toBe("7-A/2026");
+  });
+
+  it("is the bare number while there is no year", () => {
+    expect(formatNumberWithYear("1", null)).toBe("1");
+    expect(formatNumberWithYear("1", undefined)).toBe("1");
+  });
+});
 
 describe("formatInvoiceNumber", () => {
   it("joins prefix, progressive and suffix", () => {

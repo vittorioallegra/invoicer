@@ -30,6 +30,7 @@ const summary = (over: Partial<InvoiceSummary>): InvoiceSummary => ({
   paymentFlag: "unpaid",
   clientName: "Acme S.r.l.",
   number: null,
+  year: null,
   issueDate: null,
   invoiceDate: null,
   dueDate: null,

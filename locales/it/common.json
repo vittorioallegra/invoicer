@@ -503,7 +503,7 @@
     "newTitle": "Nuova fattura",
     "editTitle": "Fattura",
     "notFound": "Questa fattura non esiste.",
-    "numberYear": "N. {{number}}/{{year}}",
+    "numberYear": "N. {{number}}",
     "saved": "Salvata.",
     "errors": {
       "locked": "Questa fattura non si può più modificare.",
