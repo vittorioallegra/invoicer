@@ -132,6 +132,10 @@ export const settings = sqliteTable(
     emailReplyTo: text("email_reply_to"),
     emailBcc: text("email_bcc"),
     courtesyEmailMode: text("courtesy_email_mode").notNull().default("ask"),
+    /** The owner's UI language, kept here so the Worker can write push text in it. */
+    uiLanguage: text("ui_language", { enum: ["it", "en"] }),
+    /** Notification types the owner turned push off for (JSON array of type names). */
+    pushDisabledTypes: text("push_disabled_types", { mode: "json" }),
     recurringLeadDays: integer("recurring_lead_days").notNull().default(3),
     /** Last PEC connection test (IMAP login + mailbox open): when, whether it passed, why not. */
     pecTestAt: integer("pec_test_at", { mode: "timestamp_ms" }),
@@ -449,6 +453,8 @@ export const notifications = sqliteTable("notifications", {
   body: text("body"),
   invoiceId: text("invoice_id").references(() => invoices.id),
   readAt: integer("read_at", { mode: "timestamp_ms" }),
+  /** When the push for this row was settled (sent, or skipped: type off, no device); null = open. */
+  pushSentAt: integer("push_sent_at", { mode: "timestamp_ms" }),
   createdAt: createdAt(),
 });
 

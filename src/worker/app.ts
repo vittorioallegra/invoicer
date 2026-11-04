@@ -12,10 +12,12 @@ import { exportData } from "./routes/export";
 import { health } from "./routes/health";
 import { invoices } from "./routes/invoices";
 import { mailbox } from "./routes/mailbox";
+import { notifications } from "./routes/notifications";
 import { numberingSeries } from "./routes/numbering-series";
 import { onboarding } from "./routes/onboarding";
 import { paymentMethods } from "./routes/payment-methods";
 import { profile } from "./routes/profile";
+import { push } from "./routes/push";
 import { received } from "./routes/received";
 import { send } from "./routes/send";
 import { settings } from "./routes/settings";
@@ -44,6 +46,8 @@ export function createApp() {
   app.route("/api/tax", tax);
   app.route("/api/mailbox", mailbox);
   app.route("/api/received", received);
+  app.route("/api/notifications", notifications);
+  app.route("/api/push", push);
   app.route("/api/export", exportData);
   app.route("/api/onboarding", onboarding);
   // Better Auth: sign-in, passkeys, TOTP, sessions. Sign-up is disabled (owner only via /api/setup).

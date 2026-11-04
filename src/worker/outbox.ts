@@ -1,22 +1,7 @@
+import type { NotificationType } from "../shared/notifications";
 import type { Bindings } from "./env";
 
-/**
- * Notification kinds the Worker writes today. A notification row stores the i18n key of its
- * title (`notifications.<type>.title`) and the interpolation values as JSON in `body`; the
- * client renders both in the UI language (`notifications.<type>.body`).
- */
-export type NotificationType =
-  | "invoice_delivered"
-  | "invoice_not_delivered"
-  | "invoice_rejected"
-  | "pec_send_error"
-  | "received_invoice"
-  | "invoice_due"
-  | "courtesy_email_ask"
-  | "courtesy_email_failed"
-  | "poll_failed"
-  | "message_oversize"
-  | "message_unreadable";
+export type { NotificationType };
 
 export type NotificationParams = Record<string, string | number>;
 
@@ -96,7 +81,8 @@ const BATCH_SIZE = 25;
 /**
  * Delivers pending in-app notifications: the notification row and the outbox status change in
  * one batch, so a crash leaves the row pending and the next cron run retries it. `email` rows
- * are delivered by `processEmailOutbox` (`email/deliver.ts`); `push` rows wait for their own step.
+ * are delivered by `processEmailOutbox` (`email/deliver.ts`); pushes are derived from the delivered
+ * notification rows by `processPushNotifications` (`push/deliver.ts`), not queued here.
  * Returns how many rows were delivered.
  */
 export async function processOutbox(env: Bindings, now = Date.now()): Promise<number> {

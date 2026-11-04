@@ -71,6 +71,16 @@ settings.put("/email", async (c) => {
   return c.json({ ok: true });
 });
 
+/** The owner's UI language, so push text is written in it. */
+settings.put("/language", async (c) => {
+  const parsed = z
+    .object({ language: z.enum(["en", "it"]) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) throw makeError("bad_request", validationDetail(parsed.error));
+  await patchSettings(c.env, { uiLanguage: parsed.data.language });
+  return c.json({ language: parsed.data.language });
+});
+
 settings.put("/ade-guide", async (c) => {
   const parsed = z.object({ done: z.boolean() }).safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) throw makeError("bad_request", validationDetail(parsed.error));

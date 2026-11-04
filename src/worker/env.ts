@@ -38,6 +38,8 @@ export const REQUIRED_SECRETS = {
   pec: ["PEC_USERNAME", "PEC_PASSWORD"],
   // Courtesy email: required only by the actions that send one (the feature is otherwise off).
   email: ["RESEND_API_KEY"],
+  // Push: required by the actions that subscribe or send (the feature is otherwise off).
+  push: ["VAPID_PRIVATE_KEY", "VAPID_PUBLIC_KEY", "VAPID_SUBJECT"],
   // Temporary risk spike (step 2, removed in step 21).
   spike: ["SPIKE_SECRET"],
 } as const satisfies Record<string, readonly (keyof Bindings)[]>;
