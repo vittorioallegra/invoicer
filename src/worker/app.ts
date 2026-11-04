@@ -11,6 +11,7 @@ import { courtesyEmail } from "./routes/courtesy-email";
 import { exportData } from "./routes/export";
 import { health } from "./routes/health";
 import { invoices } from "./routes/invoices";
+import { jobs } from "./routes/jobs";
 import { mailbox } from "./routes/mailbox";
 import { notifications } from "./routes/notifications";
 import { numberingSeries } from "./routes/numbering-series";
@@ -45,6 +46,7 @@ export function createApp() {
   app.route("/api/settings", settings);
   app.route("/api/tax", tax);
   app.route("/api/mailbox", mailbox);
+  app.route("/api/jobs", jobs);
   app.route("/api/received", received);
   app.route("/api/notifications", notifications);
   app.route("/api/push", push);

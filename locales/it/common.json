@@ -205,6 +205,33 @@
       "intro": "Un file JSON con ogni fattura, cliente, impostazione, file conservato e messaggio della casella, come backup manuale accanto a D1 Time Travel. I file conservati sono scritti come testo esadecimale.",
       "button": "Scarica tutti i dati",
       "excluded": "L'accesso (passkey, password, segreto dell'autenticatore, sessioni) e le iscrizioni push non sono inclusi: sono segreti e si configurano di nuovo dopo un ripristino."
+    },
+    "jobs": {
+      "title": "Attività in background",
+      "intro": "La casella viene controllata ogni 10 minuti. Le attività giornaliere partono una volta al giorno dalle 09:00 (ora di Roma).",
+      "poll": "Controllo della casella",
+      "daily": "Attività giornaliere",
+      "never": "Non ancora eseguito",
+      "at": "Ultima esecuzione {{when}}",
+      "ok": "OK",
+      "failed": "non riuscito ({{code}})",
+      "taskFailed": "{{task}}: non riuscito",
+      "tasks": {
+        "unsent": "Fatture da inviare",
+        "overdue": "Fatture scadute",
+        "recurring": "Fatture ricorrenti",
+        "quota": "Spazio della casella"
+      },
+      "counts": {
+        "unsent_one": "{{count}} promemoria di fattura da inviare",
+        "unsent_other": "{{count}} promemoria di fatture da inviare",
+        "overdue_one": "{{count}} avviso di scadenza",
+        "overdue_other": "{{count}} avvisi di scadenza",
+        "recurring_one": "{{count}} fattura ricorrente creata",
+        "recurring_other": "{{count}} fatture ricorrenti create",
+        "quota_one": "spazio della casella controllato",
+        "quota_other": "spazio della casella controllato"
+      }
     }
   },
   "unsaved": {
@@ -963,6 +990,22 @@
     "courtesy_email_failed": {
       "title": "Email di cortesia non inviata",
       "body": "L'email di cortesia della fattura {{number}} a {{recipient}} non è stata inviata. Apri la fattura per inviarla di nuovo."
+    },
+    "invoice_overdue": {
+      "title": "Fattura scaduta",
+      "body": "La fattura {{number}} per {{client}} scadeva il {{dueDate}} e risulta ancora non pagata."
+    },
+    "recurring_created": {
+      "title": "Fattura ricorrente creata",
+      "body": "È pronta da inviare una fattura ricorrente per {{client}} con data {{date}}. Controllala e finalizzala quando vuoi."
+    },
+    "mailbox_quota_low": {
+      "title": "Casella PEC quasi piena",
+      "body": "Restano circa {{freeMb}} MB nella casella PEC (avviso sotto {{thresholdMb}} MB). Quando è piena, fatture e ricevute non arrivano più. Libera spazio dalla webmail."
+    },
+    "mailbox_login_failed": {
+      "title": "Accesso alla casella PEC non riuscito",
+      "body": "La casella PEC ha rifiutato l'accesso. Ricevute e fatture ricevute non vengono lette e non è possibile inviare fatture. Controlla la password della PEC."
     }
   },
   "notificationsPage": {

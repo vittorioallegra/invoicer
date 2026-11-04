@@ -3,7 +3,8 @@ import type { Bindings } from "../env";
 import { pollMailbox } from "../pec/poll";
 import { processPushNotifications } from "../push/deliver";
 import { remindUnsentInvoices } from "./invoice-due";
-import { DAILY_JOB, finishJobRun, startJobRun } from "./job-runs";
+import { notifyOverdueInvoices } from "./invoice-overdue";
+import { DAILY_JOB, finishJobRun, type JobCounts, startJobRun } from "./job-runs";
 
 type Handler = (env: Bindings) => Promise<void>;
 
@@ -16,13 +17,47 @@ async function pushNotifications(env: Bindings): Promise<void> {
   }
 }
 
+/** One daily job: returns how many things it did (notifications, invoices created...). */
+export interface DailyTask {
+  name: string;
+  run: (env: Bindings, now: Date) => Promise<number>;
+}
+
+/** The daily jobs, in order. Each is idempotent: a run that is repeated writes nothing twice. */
+export const dailyTasks: DailyTask[] = [
+  { name: "unsent", run: remindUnsentInvoices },
+  { name: "overdue", run: notifyOverdueInvoices },
+];
+
+/**
+ * Runs every daily task, each on its own so one failure does not stop the others; the counts
+ * say what each did (`-1` = it failed). Returns whether all of them succeeded.
+ */
+export async function runDailyTasks(
+  env: Bindings,
+  now: Date,
+  tasks: DailyTask[] = dailyTasks,
+): Promise<{ ok: boolean; counts: JobCounts }> {
+  const counts: JobCounts = {};
+  let ok = true;
+  for (const task of tasks) {
+    try {
+      counts[task.name] = await task.run(env, now);
+    } catch (error) {
+      console.error("daily_task_failed", task.name, error instanceof Error ? error.name : "error");
+      counts[task.name] = -1;
+      ok = false;
+    }
+  }
+  return { ok, counts };
+}
+
 /**
  * Mailbox polling runs on every tick, then the pushes of whatever it wrote; the daily jobs run
- * once per Rome day from 09:00, followed by their pushes.
+ * once per Rome day from 09:00 (`runDailyTasks`), followed by their pushes.
  */
-export const handlers: { poll: Handler[]; daily: Handler[] } = {
+export const handlers: { poll: Handler[] } = {
   poll: [async (env) => void (await pollMailbox(env)), pushNotifications],
-  daily: [async (env) => void (await remindUnsentInvoices(env)), pushNotifications],
 };
 
 /** Rome date of the last completed daily run; backed by `job_runs` from step 3 on. */
@@ -48,8 +83,13 @@ export async function runScheduled(
   // Recorded so the next ticks of the day skip it; a failed run is retried by the next tick.
   const run = await startJobRun(env.DB, DAILY_JOB, runDate);
   try {
-    for (const handler of handlers.daily) await handler(env);
-    await finishJobRun(env.DB, run, { status: "success" });
+    const { ok, counts } = await runDailyTasks(env, now);
+    await pushNotifications(env);
+    await finishJobRun(
+      env.DB,
+      run,
+      ok ? { status: "success", counts } : { status: "failed", counts, errorCode: "daily_failed" },
+    );
   } catch (error) {
     console.error("scheduled_daily_failed", error instanceof Error ? error.name : "error");
     await finishJobRun(env.DB, run, { status: "failed", errorCode: "daily_failed" });

@@ -63,3 +63,39 @@ export async function lastSuccessfulPollAt(db: D1Database): Promise<number | nul
     .first<{ at: number | null }>();
   return row?.at ?? null;
 }
+
+export interface LastRun {
+  /** When the run started (epoch ms). */
+  at: number;
+  /** Europe/Rome date the run belongs to. */
+  runDate: string | null;
+  status: "success" | "failed";
+  errorCode: string | null;
+  counts: JobCounts | null;
+}
+
+/** The most recent finished run of a job, or null when it never ran. */
+export async function lastFinishedRun(db: D1Database, job: string): Promise<LastRun | null> {
+  const row = await db
+    .prepare(
+      `SELECT started_at AS at, run_date AS runDate, status, error_code AS errorCode, counts
+       FROM job_runs WHERE job = ? AND status IN ('success', 'failed')
+       ORDER BY started_at DESC, rowid DESC LIMIT 1`,
+    )
+    .bind(job)
+    .first<{
+      at: number;
+      runDate: string | null;
+      status: "success" | "failed";
+      errorCode: string | null;
+      counts: string | null;
+    }>();
+  if (!row) return null;
+  let counts: JobCounts | null = null;
+  try {
+    counts = row.counts ? (JSON.parse(row.counts) as JobCounts) : null;
+  } catch {
+    // Unreadable counts: the run is still listed.
+  }
+  return { ...row, counts };
+}

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Bell, Settings } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { MAILBOX_NOTIFICATION_TYPES } from "../../shared/notifications";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
 import { Button, buttonVariants } from "../components/ui/button";
@@ -60,6 +61,18 @@ function Item({ item, onOpen }: { item: NotificationItem; onOpen: () => void }) 
     return (
       <Link
         to="/received"
+        onClick={onOpen}
+        className={cn(row, "hover:bg-muted focus-visible:bg-muted focus-visible:outline-none")}
+      >
+        {content}
+      </Link>
+    );
+  }
+  // A mailbox problem is fixed in the PEC settings.
+  if (MAILBOX_NOTIFICATION_TYPES.includes(item.type)) {
+    return (
+      <Link
+        to="/settings/pec"
         onClick={onOpen}
         className={cn(row, "hover:bg-muted focus-visible:bg-muted focus-visible:outline-none")}
       >

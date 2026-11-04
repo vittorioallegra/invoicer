@@ -10,6 +10,10 @@ export const NOTIFICATION_TYPES = [
   "pec_send_error",
   "received_invoice",
   "invoice_due",
+  "invoice_overdue",
+  "recurring_created",
+  "mailbox_quota_low",
+  "mailbox_login_failed",
   "courtesy_email_ask",
   "courtesy_email_failed",
   "poll_failed",
@@ -23,14 +27,21 @@ export function isNotificationType(value: string): value is NotificationType {
   return (NOTIFICATION_TYPES as readonly string[]).includes(value);
 }
 
+/** Notifications about the PEC mailbox itself; they open the PEC settings, where it is fixed. */
+export const MAILBOX_NOTIFICATION_TYPES: readonly string[] = [
+  "mailbox_quota_low",
+  "mailbox_login_failed",
+];
+
 /**
  * The page a notification opens (in-app link and push deep link): its invoice when it has one
- * (the courtesy email offer card lives there), the Received list for a received invoice, else
- * the notification list.
+ * (the courtesy email offer card lives there), the Received list for a received invoice, the PEC
+ * settings for a mailbox problem, else the notification list.
  */
 export function notificationPath(type: string, invoiceId: string | null): string {
   if (invoiceId) return `/invoices/${invoiceId}`;
   if (type === "received_invoice") return "/received";
+  if (MAILBOX_NOTIFICATION_TYPES.includes(type)) return "/settings/pec";
   return "/notifications";
 }
 

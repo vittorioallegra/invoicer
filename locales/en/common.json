@@ -205,6 +205,33 @@
       "intro": "A JSON file with every invoice, client, setting, stored file and mailbox message, as a manual backup next to D1 Time Travel. Stored files are written as hexadecimal text.",
       "button": "Download all data",
       "excluded": "The login (passkeys, password, authenticator secret, sessions) and push subscriptions are not included: they are secrets and are set up again after a restore."
+    },
+    "jobs": {
+      "title": "Background jobs",
+      "intro": "The mailbox is checked every 10 minutes. The daily jobs run once a day from 09:00 (Rome time).",
+      "poll": "Mailbox check",
+      "daily": "Daily jobs",
+      "never": "Has not run yet",
+      "at": "Last run {{when}}",
+      "ok": "OK",
+      "failed": "failed ({{code}})",
+      "taskFailed": "{{task}}: failed",
+      "tasks": {
+        "unsent": "Unsent invoices",
+        "overdue": "Overdue invoices",
+        "recurring": "Recurring invoices",
+        "quota": "Mailbox quota"
+      },
+      "counts": {
+        "unsent_one": "{{count}} unsent invoice reminder",
+        "unsent_other": "{{count}} unsent invoice reminders",
+        "overdue_one": "{{count}} overdue alert",
+        "overdue_other": "{{count}} overdue alerts",
+        "recurring_one": "{{count}} recurring invoice created",
+        "recurring_other": "{{count}} recurring invoices created",
+        "quota_one": "mailbox quota checked",
+        "quota_other": "mailbox quota checked"
+      }
     }
   },
   "unsaved": {
@@ -963,6 +990,22 @@
     "courtesy_email_failed": {
       "title": "Courtesy email failed",
       "body": "The courtesy email for invoice {{number}} to {{recipient}} was not sent. Open the invoice to send it again."
+    },
+    "invoice_overdue": {
+      "title": "Invoice overdue",
+      "body": "Invoice {{number}} for {{client}} was due on {{dueDate}} and is still unpaid."
+    },
+    "recurring_created": {
+      "title": "Recurring invoice created",
+      "body": "A recurring invoice for {{client}} dated {{date}} is ready to send. Review it and finalize it when you are ready."
+    },
+    "mailbox_quota_low": {
+      "title": "PEC mailbox almost full",
+      "body": "About {{freeMb}} MB are left in the PEC mailbox (alert below {{thresholdMb}} MB). When it is full, invoices and receipts stop arriving. Free some space in the webmail."
+    },
+    "mailbox_login_failed": {
+      "title": "PEC mailbox login failing",
+      "body": "The PEC mailbox refused the login. Receipts and received invoices are not being read and invoices cannot be sent. Check the PEC password."
     }
   },
   "notificationsPage": {

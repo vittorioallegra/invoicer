@@ -287,7 +287,18 @@ async function summarize(
   }));
 }
 
-const FINALISED_STATES = ["sending", "sent", "delivered", "not_delivered"];
+export const FINALISED_STATES = ["sending", "sent", "delivered", "not_delivered"];
+
+/**
+ * SQL condition (table alias `i`) for an overdue unpaid invoice, with `today` bound at `todayRef`
+ * (e.g. `?1`): finalised, not paid, due before today, and never a credit note. Same rule as the
+ * `overdue` list filter and the Home count.
+ */
+export function overdueCondition(todayRef: string): string {
+  const finalised = FINALISED_STATES.map((state) => `'${state}'`).join(", ");
+  return `i.state IN (${finalised}) AND i.payment_flag <> 'paid' AND i.document_type <> 'TD04'
+    AND i.due_date IS NOT NULL AND i.due_date < ${todayRef}`;
+}
 
 /**
  * All invoices of the owner matching the filters (Invoices page), newest first by invoice date
