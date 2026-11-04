@@ -98,28 +98,20 @@ describe("setup screen", () => {
     expect(screen.queryByRole("button", { name: "Create owner account" })).toBeNull();
   });
 
-  it("shows the new password to save before the authenticator step", async () => {
-    mocks.api.mockImplementation(async (path: string) =>
-      path === "/api/setup/status" ? { ownerExists: false } : {},
-    );
-    mocks.signInEmail.mockResolvedValue({ data: {}, error: null });
+  it("marks the account fields for password managers and keeps the setup token out of them", async () => {
+    mocks.api.mockResolvedValue({ ownerExists: false });
     await renderAt("/setup");
-    fireEvent.change(await screen.findByLabelText("Setup token"), { target: { value: "tok" } });
-    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Owner" } });
-    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "owner@example.com" } });
-    fireEvent.click(screen.getByRole("button", { name: "Generate a password" }));
-    const generated = (screen.getByLabelText("Password") as HTMLInputElement).value;
-    fireEvent.click(screen.getByRole("button", { name: "Create owner account" }));
-
-    await screen.findByRole("heading", { name: "Save your password" });
-    const shown = screen.getByLabelText("Password") as HTMLInputElement;
-    expect(shown.value).toBe(generated);
-    expect(shown.autocomplete).toBe("new-password");
-    expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("owner@example.com");
-    expect(screen.getByRole("button", { name: "Copy password" })).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("button", { name: "I saved the password" }));
-    await screen.findByRole("heading", { name: "Authenticator app" });
+    const token = (await screen.findByLabelText("Setup token")) as HTMLInputElement;
+    expect(token.type).toBe("text");
+    expect(token.autocomplete).toBe("off");
+    const email = screen.getByLabelText("Email") as HTMLInputElement;
+    expect(email.autocomplete).toBe("username");
+    expect(email.name).toBe("email");
+    const password = screen.getByLabelText("Password") as HTMLInputElement;
+    expect(password.type).toBe("password");
+    expect(password.autocomplete).toBe("new-password");
+    expect(password.getAttribute("passwordrules")).toContain("minlength");
+    expect(screen.getByLabelText("Setup token").closest("form")).toBe(password.closest("form"));
   });
 
   it("shows the otpauth URI as an SVG QR code on the authenticator step", async () => {

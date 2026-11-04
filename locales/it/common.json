@@ -96,11 +96,6 @@
     "passwordHint": "Almeno 12 caratteri. Meglio una password generata e salvata nel gestore di password.",
     "generatePassword": "Genera una password",
     "createOwner": "Crea l'account del titolare",
-    "savePasswordTitle": "Salva la password",
-    "savePasswordWarning": "Salva subito questa password nel gestore di password. È l'accesso di riserva (insieme al codice dell'app di autenticazione) e non viene più mostrata.",
-    "showPassword": "Mostra password",
-    "hidePassword": "Nascondi password",
-    "passwordSaved": "Ho salvato la password",
     "totpSetupTitle": "App di autenticazione",
     "totpSetupIntro": "L'accesso con email e password richiede sempre un codice da un'app di autenticazione. Configurala ora.",
     "totpStart": "Configura l'autenticatore",
@@ -1048,8 +1043,7 @@
     "recoveryCodes": "Copia i codici di recupero",
     "setupKey": "Copia la chiave di configurazione",
     "copied": "Copiati",
-    "failed": "Copia non riuscita. Seleziona il testo e copialo a mano.",
-    "password": "Copia password"
+    "failed": "Copia non riuscita. Seleziona il testo e copialo a mano."
   },
   "paymentMethods": {
     "title": "Metodi di pagamento",

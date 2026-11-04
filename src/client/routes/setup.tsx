@@ -14,7 +14,13 @@ import { api } from "../lib/api";
 import { authClient, type SessionUser } from "../lib/auth-client";
 import { authErrorMessage } from "../lib/auth-errors";
 
-type Step = "create" | "password" | "totp" | "codes" | "passkey";
+type Step = "create" | "totp" | "codes" | "passkey";
+
+/** Safari's strong-password generator follows these rules (the server needs 12 to 128 characters). */
+const PASSWORD_RULES = {
+  passwordrules:
+    "minlength: 20; maxlength: 128; required: lower; required: upper; required: digit;",
+} as Record<string, string>;
 
 const PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
 
@@ -49,27 +55,7 @@ function useAction() {
   return { error, busy, run, banner: error ? <Banner tone="danger">{error}</Banner> : null };
 }
 
-type PasswordCredentialCtor = new (data: {
-  id: string;
-  password: string;
-  name?: string;
-}) => Credential;
-
-/**
- * Asks the browser to save the new login where the Credential Management API exists (Chromium).
- * Safari and Firefox have no PasswordCredential; the "save your password" step covers them.
- */
-async function offerToSave(email: string, name: string, password: string): Promise<void> {
-  const Ctor = (window as { PasswordCredential?: PasswordCredentialCtor }).PasswordCredential;
-  if (!Ctor || !navigator.credentials?.store) return;
-  try {
-    await navigator.credentials.store(new Ctor({ id: email, password, name }));
-  } catch {
-    // The browser declined or the user dismissed it: the next step still shows the password.
-  }
-}
-
-function CreateOwner({ onCreated }: { onCreated: (email: string, password: string) => void }) {
+function CreateOwner({ onCreated }: { onCreated: (password: string) => void }) {
   const { t } = useTranslation();
   const { run, busy, banner } = useAction();
   const [token, setToken] = useState("");
@@ -97,8 +83,7 @@ function CreateOwner({ onCreated }: { onCreated: (email: string, password: strin
       }
       const { error: failure } = await authClient.signIn.email({ email, password });
       if (failure) return authErrorMessage(failure, t, "auth.invalidCredentials");
-      await offerToSave(email, name, password);
-      onCreated(email, password);
+      onCreated(password);
       return null;
     });
   };
@@ -112,10 +97,14 @@ function CreateOwner({ onCreated }: { onCreated: (email: string, password: strin
           {(control) => (
             <Input
               {...control}
-              type="password"
+              name="setup-token"
               value={token}
               onChange={(e) => setToken(e.target.value)}
               autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              data-1p-ignore
+              data-lpignore="true"
               required
             />
           )}
@@ -124,6 +113,7 @@ function CreateOwner({ onCreated }: { onCreated: (email: string, password: strin
           {(control) => (
             <Input
               {...control}
+              name="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoComplete="name"
@@ -136,6 +126,7 @@ function CreateOwner({ onCreated }: { onCreated: (email: string, password: strin
             <Input
               {...control}
               type="email"
+              name="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
@@ -148,9 +139,11 @@ function CreateOwner({ onCreated }: { onCreated: (email: string, password: strin
             <Input
               {...control}
               type={reveal ? "text" : "password"}
+              name="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
+              {...PASSWORD_RULES}
               minLength={12}
               maxLength={128}
               required
@@ -169,60 +162,6 @@ function CreateOwner({ onCreated }: { onCreated: (email: string, password: strin
         <Button type="submit" disabled={busy}>
           {t("auth.createOwner")}
         </Button>
-      </form>
-    </AuthLayout>
-  );
-}
-
-/**
- * Shows the new password once with a copy button. The form holds the email and password fields
- * so the browser's password manager offers to save them when it is submitted.
- */
-function SavePassword({
-  email,
-  password,
-  onDone,
-}: {
-  email: string;
-  password: string;
-  onDone: () => void;
-}) {
-  const { t } = useTranslation();
-  const [reveal, setReveal] = useState(false);
-  return (
-    <AuthLayout title={t("auth.savePasswordTitle")}>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          onDone();
-        }}
-        className="flex flex-col gap-4"
-      >
-        <Banner tone="warning">{t("auth.savePasswordWarning")}</Banner>
-        <Field label={t("auth.email")}>
-          {(control) => (
-            <Input {...control} type="email" readOnly value={email} autoComplete="username" />
-          )}
-        </Field>
-        <Field label={t("auth.password")}>
-          {(control) => (
-            <div className="flex items-center gap-1">
-              <Input
-                {...control}
-                type={reveal ? "text" : "password"}
-                readOnly
-                value={password}
-                autoComplete="new-password"
-                className="min-w-0 flex-1 font-mono"
-              />
-              <CopyButton text={password} label={t("copy.password")} />
-            </div>
-          )}
-        </Field>
-        <Button variant="secondary" onClick={() => setReveal((shown) => !shown)}>
-          {reveal ? t("auth.hidePassword") : t("auth.showPassword")}
-        </Button>
-        <Button type="submit">{t("auth.passwordSaved")}</Button>
       </form>
     </AuthLayout>
   );
@@ -407,7 +346,6 @@ function AddPasskey() {
 
 function SetupFlow({ ownerExists, user }: { ownerExists: boolean; user: SessionUser | null }) {
   const { t } = useTranslation();
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState<string | undefined>();
   const [codes, setCodes] = useState<string[]>([]);
   const [step, setStep] = useState<Step>(() => {
@@ -430,16 +368,12 @@ function SetupFlow({ ownerExists, user }: { ownerExists: boolean; user: SessionU
   if (step === "create") {
     return (
       <CreateOwner
-        onCreated={(createdEmail, created) => {
-          setEmail(createdEmail);
+        onCreated={(created) => {
           setPassword(created);
-          setStep("password");
+          setStep("totp");
         }}
       />
     );
-  }
-  if (step === "password" && password) {
-    return <SavePassword email={email} password={password} onDone={() => setStep("totp")} />;
   }
   if (step === "totp") {
     return (

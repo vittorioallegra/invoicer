@@ -137,6 +137,7 @@ export function LoginPage() {
               <Input
                 {...control}
                 type="email"
+                name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="username webauthn"
@@ -149,6 +150,7 @@ export function LoginPage() {
               <Input
                 {...control}
                 type="password"
+                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
