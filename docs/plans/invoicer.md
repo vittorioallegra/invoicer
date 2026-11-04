@@ -439,6 +439,7 @@ Approved: yes (2026-11-02)
   - notification texts showed dates as 2026-10-01 (list and push) unlike every other date in the app — `fix(notifications): write the dates in a notification in the reader's language instead of as stored`
 - review: pending
   - a retry after an unknown send unlocked after a poll that hit its per-run caps and left the mailbox (maybe the attempt's receipt) unread, risking a duplicate transmission — `fix(send): unlock a retry after an unknown send only after a poll that drained the mailbox`
+  - an XML upload racing a send could swap the attempt's stored XML after the Worker hashed and sent another one (the stored record would differ from what reached the SdI) — `fix(send): bind the send claim to the hashed XML file and refuse an XML upload once an attempt is claimed`
 - walkthrough (2026-11-03): done
   - mock channel could not send — `fix(send): treat the mock channel as ready to send`
   - manual AdE channel only reachable after a PEC failure — `fix(send): offer the manual AdE channel from the editor without a PEC failure`

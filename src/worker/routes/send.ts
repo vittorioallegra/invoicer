@@ -127,9 +127,16 @@ send.put("/:id/xml", async (c) => {
     invoiceId: id,
     transmissionId: current.id,
   });
-  await c.env.DB.prepare("UPDATE transmissions SET xml_file_id = ?, updated_at = ? WHERE id = ?")
+  // Guarded: a send that claimed the attempt meanwhile keeps the XML it hashed and sent.
+  const replaced = await c.env.DB.prepare(
+    "UPDATE transmissions SET xml_file_id = ?, updated_at = ? WHERE id = ? AND send_outcome = 'none'",
+  )
     .bind(stored.id, Date.now(), current.id)
     .run();
+  if (replaced.meta.changes === 0) {
+    await storage.delete(stored.id);
+    throw makeError("conflict", "transmission_sent");
+  }
   if (current.xmlFileId) await storage.delete(current.xmlFileId);
   return c.json(
     {
@@ -301,10 +308,12 @@ send.post("/:id/send", async (c) => {
 
   const claim = await c.env.DB.prepare(
     `UPDATE transmissions SET send_outcome = 'unknown', channel_message_id = ?2,
-       sdi_pec_address = ?3, updated_at = ?4 WHERE id = ?1 AND send_outcome = 'none'`,
+       sdi_pec_address = ?3, updated_at = ?4
+     WHERE id = ?1 AND send_outcome = 'none' AND xml_file_id = ?5`,
   )
-    .bind(current.id, messageId, to, Date.now())
+    .bind(current.id, messageId, to, Date.now(), current.xmlFileId)
     .run();
+  // 0 rows: another send claimed the attempt, or the XML was replaced after it was hashed.
   if (claim.meta.changes === 0) throw makeError("conflict", "send_in_progress");
 
   try {
