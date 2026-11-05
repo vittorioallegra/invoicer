@@ -1,6 +1,6 @@
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { KeyRound } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AuthLayout } from "../components/auth-layout";
 import { Banner } from "../components/ui/banner";
@@ -9,6 +9,7 @@ import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { authClient } from "../lib/auth-client";
 import { authErrorMessage } from "../lib/auth-errors";
+import { useConsumeFreshLaunch } from "../lib/fresh-launch";
 import { IDLE_TIMEOUT_MS } from "../lib/sign-out";
 
 const route = getRouteApi("/login");
@@ -26,7 +27,20 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const done = () => navigate({ to: "/", replace: true });
+  const session = authClient.useSession();
+  const [signedIn, setSignedIn] = useState(false);
+  useConsumeFreshLaunch();
+
+  // Go to the app only once the session state has caught up with the sign-in: navigating at once
+  // made the session gate see "no session" and bounce back here, so the passkey seemed to fail.
+  useEffect(() => {
+    if (signedIn && session.data) void navigate({ to: "/", replace: true });
+  }, [signedIn, session.data, navigate]);
+
+  const done = async () => {
+    setSignedIn(true);
+    await session.refetch();
+  };
 
   async function run(action: () => Promise<{ ok: boolean; message?: string }>) {
     setBusy(true);

@@ -158,6 +158,28 @@ describe("login screen", () => {
     await waitFor(() => expect(router.state.location.pathname).toBe("/"));
   });
 
+  it("waits for the session to catch up after a passkey sign-in instead of bouncing back", async () => {
+    // The passkey call succeeds while the session state is still empty; the app must not go to
+    // the gate (which would send the visitor back to the login) before the session shows up.
+    let finish: () => void = () => {};
+    mocks.signInPasskey.mockResolvedValue({ data: {}, error: null });
+    mocks.session.refetch.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = () => {
+            mocks.session.data = signedIn;
+            resolve();
+          };
+        }),
+    );
+    const router = await renderAt("/login");
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in with passkey" }));
+    await waitFor(() => expect(mocks.session.refetch).toHaveBeenCalled());
+    expect(router.state.location.pathname).toBe("/login");
+    finish();
+    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+  });
+
   it("asks for a TOTP after the password and shows an error for a wrong code", async () => {
     mocks.signInEmail.mockResolvedValue({ data: { twoFactorRedirect: true }, error: null });
     mocks.verifyTotp.mockResolvedValue({ data: null, error: { status: 401 } });

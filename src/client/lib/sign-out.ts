@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef } from "react";
 import { authClient } from "./auth-client";
+import { shouldSignOutOnLaunch } from "./fresh-launch";
 
 /** A signed-in tab with no user activity for this long is signed out. */
 export const IDLE_TIMEOUT_MS = 10 * 60 * 1000;
@@ -39,6 +40,11 @@ export function useIdleSignOut(): void {
   const signOut = useSignOut();
   const signOutRef = useRef(signOut);
   signOutRef.current = signOut;
+
+  // The installed app was killed and reopened: the idle rule also covers the time it was closed.
+  useEffect(() => {
+    if (shouldSignOutOnLaunch()) void signOutRef.current();
+  }, []);
 
   useEffect(() => {
     let last = Date.now();

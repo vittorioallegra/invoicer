@@ -13,6 +13,7 @@ import { Input } from "../components/ui/input";
 import { api } from "../lib/api";
 import { authClient, type SessionUser } from "../lib/auth-client";
 import { authErrorMessage } from "../lib/auth-errors";
+import { useConsumeFreshLaunch } from "../lib/fresh-launch";
 
 type Step = "create" | "totp" | "codes" | "passkey";
 
@@ -393,6 +394,7 @@ function SetupFlow({ ownerExists, user }: { ownerExists: boolean; user: SessionU
 /** First-run screen: owner account (needs the setup token), TOTP enrolment, passkey. */
 export function SetupPage() {
   const { t } = useTranslation();
+  useConsumeFreshLaunch();
   const status = useQuery({
     queryKey: ["setup-status"],
     queryFn: () => api<{ ownerExists: boolean }>("/api/setup/status"),
