@@ -3,6 +3,7 @@ import { FileText, House, Inbox, Settings, Users, WifiOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useOnline } from "../lib/online";
 import { useIdleSignOut } from "../lib/sign-out";
+import { useKeyboardViewportReset } from "../lib/use-keyboard-viewport-reset";
 import { MailboxAlerts } from "./mailbox-alerts";
 import { NewInvoiceLink } from "./new-invoice-link";
 import { NotificationsLink } from "./notifications-link";
@@ -86,6 +87,7 @@ function OfflineBanner() {
 
 export function AppShell() {
   useIdleSignOut();
+  useKeyboardViewportReset();
   return (
     <div className="flex min-h-dvh pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
       <Sidebar />
