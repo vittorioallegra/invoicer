@@ -1020,7 +1020,14 @@
       "devices_other": "{{count}} dispositivi ricevono le notifiche push.",
       "typesTitle": "Push per tipo di notifica",
       "typesHint": "I tipi disattivati restano nell'elenco dell'app, ma non inviano una notifica push."
-    }
+    },
+    "deleteOne": "Elimina notifica",
+    "swipeDelete": "Elimina",
+    "deleteAll": "Elimina tutte",
+    "deleteAllTitle": "Eliminare tutte le notifiche?",
+    "deleteAllBody": "Spariscono dall'elenco. I promemoria già inviati non vengono inviati di nuovo.",
+    "deleteAllConfirm": "Elimina tutte",
+    "deletedAll": "Notifiche eliminate"
   },
   "copy": {
     "recoveryCodes": "Copia i codici di recupero",

@@ -47,6 +47,14 @@ const post = (path: string, method: string, body: unknown) =>
 export const markNotificationsRead = (ids?: string[]) =>
   post("/api/notifications/read", "POST", ids ? { ids } : {});
 
+/** Deletes one notification from the list. */
+export const dismissNotification = (id: string) =>
+  api<unknown>(`/api/notifications/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+/** Deletes every notification from the list. */
+export const dismissAllNotifications = () =>
+  api<unknown>("/api/notifications", { method: "DELETE" });
+
 export const savePushTypes = (disabled: string[]) =>
   putJson<{ disabledTypes: string[] }>("/api/push/types", { disabled });
 

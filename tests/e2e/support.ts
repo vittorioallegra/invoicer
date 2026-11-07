@@ -214,7 +214,10 @@ export async function auditLayout(page: Page): Promise<LayoutProblems> {
       const target = (isToggle && (el as HTMLInputElement).labels?.[0]) || el;
       const rect = target.getBoundingClientRect();
       const inline = el.tagName === "A" && getComputedStyle(el).display === "inline";
-      if (!inline && (rect.width < 24 || rect.height < 24)) {
+      // A control that is visually hidden on purpose (`sr-only`, shown again when it gets focus)
+      // is reached by assistive technology and the keyboard, not by a finger.
+      const visuallyHidden = rect.width <= 1 && rect.height <= 1;
+      if (!inline && !visuallyHidden && (rect.width < 24 || rect.height < 24)) {
         small.push(`${Math.round(rect.width)}x${Math.round(rect.height)} ${nameOf(el)}`);
       }
     }

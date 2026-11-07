@@ -1020,7 +1020,14 @@
       "devices_other": "{{count}} devices receive push notifications.",
       "typesTitle": "Push per notification type",
       "typesHint": "Switched-off types are still listed in the app, they just do not send a push."
-    }
+    },
+    "deleteOne": "Delete notification",
+    "swipeDelete": "Delete",
+    "deleteAll": "Delete all",
+    "deleteAllTitle": "Delete all notifications?",
+    "deleteAllBody": "They disappear from the list. Reminders that were already sent are not sent again.",
+    "deleteAllConfirm": "Delete all",
+    "deletedAll": "Notifications deleted"
   },
   "copy": {
     "recoveryCodes": "Copy recovery codes",
