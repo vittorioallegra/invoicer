@@ -1118,6 +1118,7 @@
     "view": {
       "reading": "Lettura del file della fattura…",
       "unreadable": "Impossibile leggere questo file come fattura. Puoi comunque scaricare l'originale.",
+      "summaryOnly": "Questa fattura arriva da un riepilogo contabile, quindi non c'è un file originale: sono stati importati solo i dati dell'intestazione.",
       "supplier": "Fornitore",
       "customer": "Cliente",
       "vat": "Partita IVA",
@@ -1189,6 +1190,7 @@
     "view": {
       "invoice": "Fattura {{number}}",
       "creditNote": "Nota di credito {{number}}",
+      "noOriginal": "Questa fattura arriva da un riepilogo contabile: sono stati importati solo numero, data, cliente e totale, quindi non ci sono file originale né righe. Puoi registrarne il pagamento.",
       "readOnly": "Questa fattura è stata importata da un file. Si vede come scritta nel file e non si può modificare; puoi registrare il pagamento."
     },
     "clients": {

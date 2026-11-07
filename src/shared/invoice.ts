@@ -436,7 +436,10 @@ export interface InvoiceRecord {
   paymentFlag: PaymentState;
   paidDate: string | null;
   clientId: string | null;
+  /** The client's name, else the customer name kept by a summary import. */
   clientName: string | null;
+  /** An imported invoice has its original file stored (a summary import has none). */
+  hasOriginal: boolean;
   /** Number as printed; null while draft or planned. */
   number: string | null;
   /** Number the owner asked for on a draft or planned invoice; null = automatic. */

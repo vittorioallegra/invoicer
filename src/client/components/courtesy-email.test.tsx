@@ -19,6 +19,7 @@ const record: InvoiceRecord = {
   paidDate: null,
   clientId: "c1",
   clientName: "Acme",
+  hasOriginal: false,
   number: "7",
   seriesId: "default",
   requestedNumber: null,

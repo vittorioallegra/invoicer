@@ -29,6 +29,8 @@ export function ImportedInvoicePage({ record }: { record: InvoiceRecord }) {
   const file = useQuery({
     queryKey: ["invoice", record.id, "original"],
     retry: false,
+    // A summary import has no original file to read or download.
+    enabled: record.hasOriginal,
     queryFn: () => loadOriginal(`/api/invoices/${record.id}/original`, "invoice.xml", "import"),
   });
   const paid = record.paymentFlag === "paid";
@@ -70,8 +72,10 @@ export function ImportedInvoicePage({ record }: { record: InvoiceRecord }) {
         </>
       }
     >
-      <Banner tone="info">{t("import.view.readOnly")}</Banner>
-      {file.isPending ? (
+      <Banner tone="info">
+        {t(record.hasOriginal ? "import.view.readOnly" : "import.view.noOriginal")}
+      </Banner>
+      {record.hasOriginal && file.isPending ? (
         <p role="status" className="text-sm text-muted-foreground">
           {t("received.view.reading")}
         </p>

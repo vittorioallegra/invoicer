@@ -1,6 +1,12 @@
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "../../db/schema";
-import { type ImportFileOutcome, type IssuedImportMeta, importClient } from "../../shared/import";
+import {
+  type ImportFileOutcome,
+  type IssuedImportMeta,
+  type IssuedSummaryRow,
+  importClient,
+  type SummaryRowOutcome,
+} from "../../shared/import";
 import { INVOICE_STATES } from "../../shared/invoice-state";
 import { matchSeries } from "../../shared/numbering";
 import { makeError } from "../problem";
@@ -61,6 +67,52 @@ async function resolveClient(
     .values({ ...data, updatedAt: new Date() })
     .returning({ id: schema.clients.id });
   return row ? { id: row.id, created: true } : null;
+}
+
+interface ImportedInvoice {
+  id: string;
+  documentType: "TD01" | "TD04";
+  number: string;
+  progressive: number | null;
+  seriesId: string;
+  date: string;
+  dueDate: string | null;
+  currency: string;
+  totalCents: number;
+  paid: boolean;
+  clientId: string | null;
+  /** The customer name as written in the source, shown when no client is linked. */
+  counterpartyName: string;
+}
+
+/** The statement that stores one imported issued invoice (delivered, read-only, paid or not). */
+function insertImported(db: D1Database, invoice: ImportedInvoice): D1PreparedStatement {
+  return db
+    .prepare(
+      `INSERT INTO invoices (id, document_type, state, state_rank, payment_flag, paid_date, source,
+         client_id, counterparty_name, number_raw, number_int, series_id, year, issue_date,
+         planned_date, due_date, currency, total_cents, created_at)
+       VALUES (?, ?, 'delivered', ?, ?, ?, 'imported', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(
+      invoice.id,
+      invoice.documentType,
+      INVOICE_STATES.indexOf("delivered"),
+      invoice.paid ? "paid" : "unpaid",
+      invoice.paid ? invoice.date : null,
+      invoice.clientId,
+      invoice.counterpartyName,
+      invoice.number,
+      invoice.progressive,
+      invoice.seriesId,
+      Number(invoice.date.slice(0, 4)),
+      invoice.date,
+      invoice.date,
+      invoice.dueDate,
+      invoice.currency,
+      invoice.totalCents,
+      Date.now(),
+    );
 }
 
 export async function importIssuedInvoice(
@@ -128,36 +180,173 @@ export async function importIssuedInvoice(
     invoiceId: id,
   });
   try {
-    await db
-      .prepare(
-        `INSERT INTO invoices (id, document_type, state, state_rank, payment_flag, paid_date, source,
-           client_id, number_raw, number_int, series_id, year, issue_date, planned_date, due_date,
-           currency, total_cents, created_at)
-         VALUES (?, ?, 'delivered', ?, ?, ?, 'imported', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .bind(
-        id,
-        meta.documentType,
-        INVOICE_STATES.indexOf("delivered"),
-        meta.paid ? "paid" : "unpaid",
-        meta.paid ? meta.date : null,
-        client?.id ?? null,
-        meta.number,
-        progressive,
-        seriesId,
-        year,
-        meta.date,
-        meta.date,
-        meta.dueDate,
-        meta.currency,
-        meta.totalCents,
-        Date.now(),
-      )
-      .run();
+    await insertImported(db, {
+      id,
+      documentType: meta.documentType,
+      number: meta.number,
+      progressive,
+      seriesId,
+      date: meta.date,
+      dueDate: meta.dueDate,
+      currency: meta.currency,
+      totalCents: meta.totalCents,
+      paid: meta.paid,
+      clientId: client?.id ?? null,
+      counterpartyName: meta.customer.name,
+    }).run();
   } catch {
     // Another request took the number between the check and the insert.
     await storage.delete(stored.id);
     throw makeError("conflict", "number_unavailable");
   }
   return { outcome: "imported", id, clientLinked: client !== null };
+}
+
+const clientColumns = (customer: IssuedSummaryRow["customer"]): [string, string][] =>
+  (
+    [
+      ["vat_number", customer.vatCountry === "IT" ? customer.vatCode : null],
+      [
+        "foreign_tax_id",
+        customer.vatCountry && customer.vatCountry !== "IT" ? customer.vatCode : null,
+      ],
+      ["tax_code", customer.taxCode],
+    ] as [string, string | null][]
+  ).filter((entry): entry is [string, string] => Boolean(entry[1]));
+
+/**
+ * Import of the issued rows of a Fatture in Cloud account summary: no original file, no lines and
+ * no client record is created (a client is only linked by VAT number or codice fiscale; the name
+ * is kept in `counterparty_name`). The same numbering and duplicate rules as a file import apply.
+ * One round trip reads everything the rows need and one batch writes them, so a chunk of rows
+ * stays within the Worker's CPU limit. Answers one outcome per row, in order.
+ */
+export async function importIssuedSummary(
+  db: D1Database,
+  rows: IssuedSummaryRow[],
+): Promise<SummaryRowOutcome[]> {
+  const { results: seriesRows } = await db
+    .prepare("SELECT id, prefix, suffix, is_default AS isDefault FROM numbering_series")
+    .all<{ id: string; prefix: string | null; suffix: string | null; isDefault: number }>();
+  const series = seriesRows.map((row) => ({ ...row, isDefault: row.isDefault === 1 }));
+  const planned = rows.map((row) => ({
+    row,
+    ...matchSeries(row.number, series),
+    year: Number(row.date.slice(0, 4)),
+  }));
+
+  // Everything to look up, in one batch: the row that may hold the number, and the clients.
+  const lookups: D1PreparedStatement[] = [];
+  const shape = planned.map(({ row, seriesId, progressive, year }) => {
+    const existing = lookups.length;
+    lookups.push(
+      progressive !== null
+        ? db
+            .prepare(
+              `SELECT id, number_raw, issue_date, total_cents FROM invoices
+               WHERE series_id = ? AND year = ? AND number_int = ?`,
+            )
+            .bind(seriesId, year, progressive)
+        : db
+            .prepare(
+              `SELECT id, number_raw, issue_date, total_cents FROM invoices
+               WHERE number_raw = ? AND issue_date = ? AND total_cents = ? LIMIT 1`,
+            )
+            .bind(row.number, row.date, row.totalCents),
+    );
+    const columns = clientColumns(row.customer);
+    const first = lookups.length;
+    for (const [column, value] of columns) {
+      lookups.push(db.prepare(`SELECT id FROM clients WHERE ${column} = ? LIMIT 1`).bind(value));
+    }
+    return { existing, first, count: columns.length };
+  });
+  const answers = lookups.length > 0 ? await db.batch<Record<string, unknown>>(lookups) : [];
+
+  const outcomes: SummaryRowOutcome[] = [];
+  const inserts: { index: number; invoice: ImportedInvoice }[] = [];
+  // Rows of this request that already took a number (the same invoice twice in one file).
+  const taken = new Map<string, { id: string; row: IssuedSummaryRow }>();
+  const same = (a: IssuedSummaryRow, b: { number: string; date: string; totalCents: number }) =>
+    a.number === b.number && a.date === b.date && a.totalCents === b.totalCents;
+
+  planned.forEach(({ row, seriesId, progressive, year }, index) => {
+    const at = shape[index];
+    if (!seriesId || !at) {
+      outcomes.push({ outcome: "invalid" });
+      return;
+    }
+    const found = answers[at.existing]?.results[0] as
+      | {
+          id: string;
+          number_raw: string | null;
+          issue_date: string | null;
+          total_cents: number | null;
+        }
+      | undefined;
+    if (found) {
+      outcomes.push(
+        found.number_raw === row.number &&
+          found.issue_date === row.date &&
+          found.total_cents === row.totalCents
+          ? { outcome: "duplicate", id: found.id }
+          : { outcome: "number_conflict", id: found.id, number: row.number },
+      );
+      return;
+    }
+    const key =
+      progressive !== null
+        ? `${seriesId}|${year}|${progressive}`
+        : `${row.number}|${row.date}|${row.totalCents}`;
+    const earlier = taken.get(key);
+    if (earlier) {
+      outcomes.push(
+        same(earlier.row, row) || progressive === null
+          ? { outcome: "duplicate", id: earlier.id }
+          : { outcome: "number_conflict", id: earlier.id, number: row.number },
+      );
+      return;
+    }
+    let clientId: string | null = null;
+    for (let i = 0; i < at.count && clientId === null; i++) {
+      const hit = answers[at.first + i]?.results[0] as { id: string } | undefined;
+      clientId = hit?.id ?? null;
+    }
+    const id = crypto.randomUUID();
+    taken.set(key, { id, row });
+    outcomes.push({ outcome: "imported", id, clientLinked: clientId !== null });
+    inserts.push({
+      index,
+      invoice: {
+        id,
+        documentType: row.documentType,
+        number: row.number,
+        progressive,
+        seriesId,
+        date: row.date,
+        dueDate: null,
+        currency: row.currency,
+        totalCents: row.totalCents,
+        paid: row.paid,
+        clientId,
+        counterpartyName: row.customer.name,
+      },
+    });
+  });
+
+  if (inserts.length > 0) {
+    try {
+      await db.batch(inserts.map(({ invoice }) => insertImported(db, invoice)));
+    } catch {
+      // Another request took a number meanwhile (the batch is all or nothing): one by one.
+      for (const { index, invoice } of inserts) {
+        try {
+          await insertImported(db, invoice).run();
+        } catch {
+          outcomes[index] = { outcome: "invalid" };
+        }
+      }
+    }
+  }
+  return outcomes;
 }

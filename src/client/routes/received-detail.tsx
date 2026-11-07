@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { Download } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
 import { InvoiceDocumentView } from "../components/invoice-document-view";
 import { Page } from "../components/page";
 import { Banner } from "../components/ui/banner";
@@ -21,7 +22,8 @@ import {
 } from "../lib/received-api";
 
 export function ReceivedDetailPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale: UiLocale = i18n.language.startsWith("it") ? "it" : "en";
   const online = useOnline();
   const queryClient = useQueryClient();
   const { receivedId } = useParams({ strict: false }) as { receivedId: string };
@@ -64,7 +66,19 @@ export function ReceivedDetailPage() {
     <Page
       title={data?.supplierName ?? t("pages.received.title")}
       back={RECEIVED_BACK}
-      subtitle={data?.number ? t("received.view.number", { number: data.number }) : undefined}
+      subtitle={
+        data
+          ? [
+              data.number ? t("received.view.number", { number: data.number }) : null,
+              !original && data.issueDate ? formatDate(data.issueDate, locale) : null,
+              !original && data.totalCents !== null
+                ? formatMoney(data.totalCents, locale, data.currency)
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || undefined
+          : undefined
+      }
       aside={
         data ? (
           <>
@@ -101,6 +115,9 @@ export function ReceivedDetailPage() {
         <p role="status" className="text-sm text-muted-foreground">
           {t("received.view.reading")}
         </p>
+      ) : null}
+      {data?.parseStatus === "parsed" && !original ? (
+        <Banner tone="info">{t("received.view.summaryOnly")}</Banner>
       ) : null}
       {file.isError ? <Banner tone="danger">{t("received.view.unreadable")}</Banner> : null}
       {loaded ? <InvoiceDocumentView invoice={loaded.invoice} /> : null}

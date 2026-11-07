@@ -31,6 +31,7 @@ interface InvoiceRow {
   paid_date: string | null;
   client_id: string | null;
   client_name: string | null;
+  has_original: number;
   number_raw: string | null;
   number_int: number | null;
   requested_number_int: number | null;
@@ -48,7 +49,9 @@ interface InvoiceRow {
 }
 
 const SELECT = `SELECT i.id, i.source, i.document_type, i.state, i.payment_flag, i.paid_date, i.client_id,
-  c.name AS client_name, i.number_raw, i.number_int, i.requested_number_int, i.series_id, i.year, i.issue_date, i.planned_date,
+  COALESCE(c.name, i.counterparty_name) AS client_name,
+  EXISTS (SELECT 1 FROM files f WHERE f.invoice_id = i.id AND f.kind = 'import') AS has_original,
+  i.number_raw, i.number_int, i.requested_number_int, i.series_id, i.year, i.issue_date, i.planned_date,
   i.due_date, i.currency, i.data, i.total_cents, i.editor_form, i.linked_invoice_id,
   i.reissues_invoice_id
   FROM invoices i LEFT JOIN clients c ON c.id = i.client_id`;
@@ -192,6 +195,7 @@ export async function loadInvoice(
     paidDate: row.paid_date,
     clientId: row.client_id,
     clientName: row.client_name,
+    hasOriginal: row.has_original === 1,
     number: row.number_raw,
     requestedNumber: row.number_raw === null ? row.requested_number_int : null,
     seriesId: row.series_id,

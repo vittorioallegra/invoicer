@@ -5,7 +5,13 @@ import type { ZodError } from "zod";
 import * as schema from "../../db/schema";
 import type { ClientRecord } from "../../shared/client";
 import { romeDateTime } from "../../shared/cron";
-import { decodeImportMeta, IMPORT_META_HEADER, issuedImportMetaSchema } from "../../shared/import";
+import {
+  decodeImportMeta,
+  IMPORT_META_HEADER,
+  issuedImportMetaSchema,
+  issuedSummaryBodySchema,
+  type SummaryImportResponse,
+} from "../../shared/import";
 import {
   INVOICE_LIST_SCOPES,
   type InvoiceBody,
@@ -22,7 +28,7 @@ import { formatNumberWithYear } from "../../shared/numbering";
 import { invoicePdfFileName } from "../../shared/pdf-name";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
-import { importIssuedInvoice } from "../invoices/import";
+import { importIssuedInvoice, importIssuedSummary } from "../invoices/import";
 import {
   defaultSeriesId,
   lastIssueDate,
@@ -43,6 +49,7 @@ import {
 import { loadSendReadiness } from "../onboarding";
 import { makeError } from "../problem";
 import { createD1FileStorage } from "../storage";
+import { validationDetail } from "../validation";
 import { toRecord } from "./clients";
 
 /** `%PDF-`: every PDF file starts with these bytes. */
@@ -167,6 +174,17 @@ invoices.post("/import", async (c) => {
   if (!meta.success) throw makeError("bad_request", `${IMPORT_META_HEADER}: invalid`);
   const outcome = await importIssuedInvoice(c.env.DB, content, meta.data);
   return c.json(outcome, outcome.outcome === "imported" ? 201 : 200);
+});
+
+/**
+ * Issued rows of a Fatture in Cloud account summary, a chunk at a time (no original file). One
+ * outcome per row, in order: `imported`, `duplicate`, `number_conflict` or `invalid`.
+ */
+invoices.post("/import-summary", async (c) => {
+  const body = issuedSummaryBodySchema.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) throw makeError("bad_request", validationDetail(body.error));
+  const results = await importIssuedSummary(c.env.DB, body.data.rows);
+  return c.json({ results } satisfies SummaryImportResponse);
 });
 
 invoices.post("/", async (c) => {

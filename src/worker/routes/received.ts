@@ -6,12 +6,15 @@ import {
   type ImportFileOutcome,
   parsedResultSchema,
   receivedImportMetaSchema,
+  receivedSummaryBodySchema,
+  type SummaryImportResponse,
 } from "../../shared/import";
 import { invoiceMetaSchema } from "../../shared/invoice";
 import { MAX_FILE_BYTES } from "../../shared/limits";
 import type { ReceivedInvoiceRecord } from "../../shared/received";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
+import { importReceivedSummary } from "../invoices/import-received";
 import { makeError } from "../problem";
 import { createD1FileStorage, sha256Hex } from "../storage";
 import { validationDetail } from "../validation";
@@ -227,4 +230,15 @@ received.post("/import", async (c) => {
     throw error;
   }
   return c.json({ outcome: "imported", id } satisfies ImportFileOutcome, 201);
+});
+
+/**
+ * Received rows of a Fatture in Cloud account summary, a chunk at a time (no original file). One
+ * outcome per row, in order: `imported` or `duplicate`.
+ */
+received.post("/import-summary", async (c) => {
+  const body = receivedSummaryBodySchema.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) throw makeError("bad_request", validationDetail(body.error));
+  const results = await importReceivedSummary(c.env.DB, body.data.rows);
+  return c.json({ results } satisfies SummaryImportResponse);
 });
