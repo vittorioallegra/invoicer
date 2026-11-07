@@ -22,7 +22,14 @@ const schema = {
 export const AUTH_BASE_PATH = "/api/auth";
 export const MIN_PASSWORD_LENGTH = 12;
 const APP_NAME = "Invoicer";
-const SESSION_DAYS = 30;
+/**
+ * A session lasts this long after the last renewal. Only the app's own keepalive (`GET
+ * /api/auth/get-session`, sent while the owner is active) renews it: API calls and background
+ * polling read the session with `disableRefresh`, so an idle or closed app signs itself out.
+ */
+export const SESSION_IDLE_SECONDS = 10 * 60;
+/** A renewal is written at most this often. */
+export const SESSION_RENEW_AFTER_SECONDS = 30;
 
 /**
  * Login rate limit per client IP, kept in D1 (Worker isolates share no memory). Better Auth
@@ -69,7 +76,7 @@ export function createAuth(env: Bindings, requestUrl: string) {
         verify: ({ hash, password }) => verifyPassword(hash, password),
       },
     },
-    session: { expiresIn: SESSION_DAYS * 24 * 60 * 60, updateAge: 24 * 60 * 60 },
+    session: { expiresIn: SESSION_IDLE_SECONDS, updateAge: SESSION_RENEW_AFTER_SECONDS },
     rateLimit: {
       enabled: true,
       storage: "database",

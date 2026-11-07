@@ -64,6 +64,7 @@
   "auth": {
     "signOut": "Sign out",
     "signedOutIdle": "You were signed out after {{minutes}} minutes of inactivity. Sign in again to continue.",
+    "signedOutClosed": "You were signed out because the app was closed. Sign in again to continue.",
     "loginTitle": "Sign in",
     "signInWithPasskey": "Sign in with passkey",
     "orPassword": "or with email and password",

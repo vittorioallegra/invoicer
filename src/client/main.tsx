@@ -7,6 +7,7 @@ import { createI18n, detectLocale } from "./i18n";
 import { fixStandaloneViewport } from "./lib/standalone-viewport";
 import { createAppRouter } from "./router";
 import "./styles.css";
+import { usePresence } from "./lib/presence";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,6 +21,12 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Keeps this tab in the registry of open tabs (see `lib/presence.ts`). */
+function Presence() {
+  usePresence();
+  return null;
+}
+
 async function start() {
   const lng = detectLocale();
   document.documentElement.lang = lng;
@@ -31,6 +38,7 @@ async function start() {
     <StrictMode>
       <I18nextProvider i18n={i18n}>
         <QueryClientProvider client={queryClient}>
+          <Presence />
           <RouterProvider router={router} />
         </QueryClientProvider>
       </I18nextProvider>

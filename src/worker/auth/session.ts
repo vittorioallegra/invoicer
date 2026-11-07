@@ -21,7 +21,11 @@ export const requireSession = createMiddleware<{
   Variables: SessionVariables;
 }>(async (c, next) => {
   if (PUBLIC_PATHS.some((pattern) => pattern.test(c.req.path))) return next();
-  const current = await createAuth(c.env, c.req.url).api.getSession({ headers: c.req.raw.headers });
+  // Reading the session here never renews it: only the keepalive does (see SESSION_IDLE_SECONDS).
+  const current = await createAuth(c.env, c.req.url).api.getSession({
+    headers: c.req.raw.headers,
+    query: { disableRefresh: true },
+  });
   if (!current) throw makeError("unauthorized");
   c.set("userId", current.user.id);
   return next();

@@ -1,6 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { problemSchema } from "../../shared/errors";
+import { SESSION_IDLE_SECONDS } from "./auth";
 import { hashPassword, PBKDF2_ITERATIONS, verifyPassword } from "./password";
 import {
   applyMigrations,
@@ -102,6 +103,51 @@ describe("session middleware", () => {
     expect((await client.json("/api/features")).status).toBe(200);
     await client.json("/api/auth/sign-out", { body: {} });
     expect((await client.json("/api/features")).status).toBe(401);
+  });
+});
+
+describe("session lifetime", () => {
+  const expiry = async () =>
+    (
+      await env.DB.prepare(
+        "SELECT expires_at AS at FROM session ORDER BY created_at DESC LIMIT 1",
+      ).first<{
+        at: number;
+      }>()
+    )?.at ?? 0;
+  const backdate = (secondsLeft: number) =>
+    env.DB.prepare("UPDATE session SET expires_at = ?, updated_at = ?")
+      .bind(Date.now() + secondsLeft * 1000, Date.now() - 5 * 60_000)
+      .run();
+
+  it("lasts ten minutes from sign-in", async () => {
+    const client = new TestClient("10.0.2.2");
+    expect((await signIn(client)).status).toBe(200);
+    const left = ((await expiry()) - Date.now()) / 1000;
+    expect(left).toBeGreaterThan(SESSION_IDLE_SECONDS - 30);
+    expect(left).toBeLessThanOrEqual(SESSION_IDLE_SECONDS);
+  });
+
+  it("is renewed by the keepalive but not by API calls, which also stand for background polling", async () => {
+    const client = new TestClient("10.0.2.3");
+    expect((await signIn(client)).status).toBe(200);
+    await backdate(300);
+    const before = await expiry();
+
+    expect((await client.json("/api/features")).status).toBe(200);
+    expect(await expiry()).toBe(before);
+
+    expect((await client.json("/api/auth/get-session")).status).toBe(200);
+    const renewed = ((await expiry()) - Date.now()) / 1000;
+    expect(renewed).toBeGreaterThan(SESSION_IDLE_SECONDS - 30);
+  });
+
+  it("is refused once the ten minutes are over", async () => {
+    const client = new TestClient("10.0.2.4");
+    expect((await signIn(client)).status).toBe(200);
+    await backdate(-1);
+    const denied = await client.json("/api/features");
+    expect(denied.status).toBe(401);
   });
 });
 

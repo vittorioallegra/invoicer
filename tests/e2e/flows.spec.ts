@@ -38,6 +38,12 @@ test.beforeAll(async ({ browser }, info) => {
     if (/connect-src|refused to connect/i.test(message.text())) cspViolations.push(message.text());
   });
   await addVirtualAuthenticator(page);
+  // The app signs the owner out when it starts with no open tab (a cold start), and a full page
+  // load of this tab empties the tab registry for an instant. The flows below load pages with
+  // `goto`, so keep a tab registered; the last test checks the cold start rule itself.
+  await page.addInitScript(() => {
+    localStorage.setItem("invoicer.tabs", JSON.stringify({ e2e: Date.now() }));
+  });
 });
 
 test.afterAll(async () => {
@@ -200,4 +206,25 @@ test("at 375 px every main screen has no overflow, named controls and tappable t
 
   await phone.close();
   expect(problems).toEqual([]);
+});
+
+test("the session ends when the last tab is closed, and survives a second tab and a reload", async () => {
+  // Another tab while the first is open: still signed in.
+  const second = await context.newPage();
+  await second.goto("/");
+  await expect(second.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
+  await second.reload();
+  await expect(second.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
+  await second.close();
+
+  // Every tab closed and the app opened again is a cold start: back to the login screen. A closed
+  // browser cannot be scripted, so the last heartbeat is made 31 s old (a killed app sends no
+  // "pagehide"; the unit tests cover the tab removing itself).
+  await page.close();
+  const reopened = await context.newPage();
+  await reopened.addInitScript(() => {
+    localStorage.setItem("invoicer.tabs", JSON.stringify({ gone: Date.now() - 31_000 }));
+  });
+  await reopened.goto("/");
+  await expect(reopened).toHaveURL(/\/login\?reason=closed$/);
 });

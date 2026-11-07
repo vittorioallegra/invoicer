@@ -9,7 +9,7 @@ import { Field } from "../components/ui/field";
 import { Input } from "../components/ui/input";
 import { authClient } from "../lib/auth-client";
 import { authErrorMessage } from "../lib/auth-errors";
-import { useConsumeFreshLaunch } from "../lib/fresh-launch";
+import { recordActivity, useConsumeFreshLaunch } from "../lib/presence";
 import { IDLE_TIMEOUT_MS } from "../lib/sign-out";
 
 const route = getRouteApi("/login");
@@ -38,6 +38,7 @@ export function LoginPage() {
   }, [signedIn, session.data, navigate]);
 
   const done = async () => {
+    recordActivity(true);
     setSignedIn(true);
     await session.refetch();
   };
@@ -144,6 +145,7 @@ export function LoginPage() {
             {t("auth.signedOutIdle", { minutes: IDLE_TIMEOUT_MS / 60_000 })}
           </Banner>
         ) : null}
+        {reason === "closed" ? <Banner tone="info">{t("auth.signedOutClosed")}</Banner> : null}
         {errorBanner}
         <Button onClick={signInWithPasskey} disabled={busy}>
           <KeyRound aria-hidden />

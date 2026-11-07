@@ -64,6 +64,7 @@
   "auth": {
     "signOut": "Esci",
     "signedOutIdle": "Sei stato disconnesso dopo {{minutes}} minuti di inattività. Accedi di nuovo per continuare.",
+    "signedOutClosed": "Sei stato disconnesso perché l'app è stata chiusa. Accedi di nuovo per continuare.",
     "loginTitle": "Accedi",
     "signInWithPasskey": "Accedi con passkey",
     "orPassword": "oppure con email e password",

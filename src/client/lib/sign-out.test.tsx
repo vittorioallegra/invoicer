@@ -1,11 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { IDLE_TIMEOUT_MS, useIdleSignOut, useSignOut } from "./sign-out";
+import { ACTIVITY_KEY, resetFreshLaunchForTest } from "./presence";
+import { IDLE_TIMEOUT_MS, KEEPALIVE_MS, useIdleSignOut, useSignOut } from "./sign-out";
 
-const mocks = vi.hoisted(() => ({ signOut: vi.fn(), navigate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ signOut: vi.fn(), getSession: vi.fn(), navigate: vi.fn() }));
 
-vi.mock("./auth-client", () => ({ authClient: { signOut: mocks.signOut } }));
+vi.mock("./auth-client", () => ({
+  authClient: { signOut: mocks.signOut, getSession: mocks.getSession },
+}));
 vi.mock("@tanstack/react-router", () => ({ useNavigate: () => mocks.navigate }));
 
 function Idle() {
@@ -31,6 +34,7 @@ const flush = () => act(async () => {});
 beforeEach(() => {
   vi.useFakeTimers();
   mocks.signOut.mockReset().mockResolvedValue({ data: { success: true }, error: null });
+  mocks.getSession.mockReset().mockResolvedValue({ data: null, error: null });
   mocks.navigate.mockReset().mockResolvedValue(undefined);
 });
 afterEach(() => {
@@ -117,6 +121,56 @@ describe("useIdleSignOut", () => {
     act(() => void window.dispatchEvent(new Event("focus")));
     await flush();
     expect(mocks.signOut).toHaveBeenCalledOnce();
+  });
+
+  it("signs out at once on a cold start of the app (every tab and the installed app were closed)", async () => {
+    resetFreshLaunchForTest(true);
+    mount(<Idle />);
+    await flush();
+    expect(mocks.signOut).toHaveBeenCalledOnce();
+    expect(mocks.navigate).toHaveBeenCalledWith({
+      to: "/login",
+      search: { reason: "closed" },
+      replace: true,
+    });
+  });
+
+  it("signs out at once when the last activity, in any tab, is older than the timeout", async () => {
+    localStorage.setItem(ACTIVITY_KEY, String(Date.now() - IDLE_TIMEOUT_MS - 1000));
+    mount(<Idle />);
+    await flush();
+    expect(mocks.signOut).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the session while another tab is active", async () => {
+    mount(<Idle />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(IDLE_TIMEOUT_MS - 1000);
+    });
+    // Another tab recorded activity: this one must not sign out.
+    localStorage.setItem(ACTIVITY_KEY, String(Date.now()));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it("renews the server session while active, at most once a minute, and never when idle", async () => {
+    mount(<Idle />);
+    act(() => void window.dispatchEvent(new Event("pointerdown")));
+    expect(mocks.getSession).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(KEEPALIVE_MS);
+    });
+    act(() => void window.dispatchEvent(new Event("keydown")));
+    act(() => void window.dispatchEvent(new Event("keydown")));
+    await flush();
+    expect(mocks.getSession).toHaveBeenCalledOnce();
+    mocks.getSession.mockClear();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(IDLE_TIMEOUT_MS - 1000);
+    });
+    expect(mocks.getSession).not.toHaveBeenCalled();
   });
 
   it("stops watching once unmounted", async () => {

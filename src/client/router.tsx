@@ -118,9 +118,10 @@ const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/login",
-    // `reason=idle`: the owner was signed out for inactivity (see `lib/sign-out.ts`).
-    validateSearch: (search: Record<string, unknown>): { reason?: "idle" } =>
-      search.reason === "idle" ? { reason: "idle" } : {},
+    // `reason`: why the owner was signed out without asking: inactivity, or the app was closed
+    // (see `lib/sign-out.ts`).
+    validateSearch: (search: Record<string, unknown>): { reason?: "idle" | "closed" } =>
+      search.reason === "idle" || search.reason === "closed" ? { reason: search.reason } : {},
     component: LoginPage,
   }),
   createRoute({ getParentRoute: () => rootRoute, path: "/setup", component: SetupPage }),

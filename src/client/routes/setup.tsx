@@ -13,7 +13,7 @@ import { Input } from "../components/ui/input";
 import { api } from "../lib/api";
 import { authClient, type SessionUser } from "../lib/auth-client";
 import { authErrorMessage } from "../lib/auth-errors";
-import { useConsumeFreshLaunch } from "../lib/fresh-launch";
+import { recordActivity, useConsumeFreshLaunch } from "../lib/presence";
 
 type Step = "create" | "totp" | "codes" | "passkey";
 
@@ -315,7 +315,10 @@ function AddPasskey() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { run, busy, banner } = useAction();
-  const finish = () => navigate({ to: "/", replace: true });
+  const finish = () => {
+    recordActivity(true);
+    return navigate({ to: "/", replace: true });
+  };
   return (
     <AuthLayout title={t("auth.passkeySetupTitle")}>
       <div className="flex flex-col gap-4">

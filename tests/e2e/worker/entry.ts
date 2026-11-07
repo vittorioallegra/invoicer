@@ -43,13 +43,20 @@ async function deliver(env: Bindings, deliveries: Delivery[]) {
   // The first poll of an empty install starts at the end of the mailbox and ignores older mail,
   // so an empty first poll comes before the first delivery.
   if (uid === 0) await pollMailbox(env);
+  // The messages are stamped with the current time: a fixed date would let the 5-day resend
+  // window of a rejected invoice run out as the calendar moves on.
   for (const item of deliveries) {
     uid += 1;
     const id = `e2e-${uid}`;
     const source =
       item.type === "received_invoice"
         ? receivedInvoiceMessage({ id, fileName: item.fileName, content: supplierInvoice })
-        : sdiMessage({ type: item.type, id, fileName: item.fileName });
+        : sdiMessage({
+            type: item.type,
+            id,
+            fileName: item.fileName,
+            date: new Date().toUTCString(),
+          });
     mailbox.messages.push({ uid, source });
   }
   return pollMailbox(env);

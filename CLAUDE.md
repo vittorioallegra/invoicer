@@ -54,6 +54,7 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
   `POST /api/setup` with `SETUP_TOKEN`. Every `/api/*` route needs a session except the public list
   in `src/worker/auth/session.ts`. Worker auth tests use `src/worker/auth/test-helpers.ts` (cookie
   client, TOTP, virtual authenticator). Better Auth tables follow its model names in `src/db/schema.ts`.
+  Sessions last 10 minutes and are renewed only by the app's keepalive while the owner is active (the session middleware reads with `disableRefresh`, so polling never renews); closing every tab or the installed app ends the session (`src/client/lib/presence.ts`, `sign-out.ts`).
 - Secrets (`PEC_USERNAME`/`PEC_PASSWORD`, Resend key, VAPID key, setup token) are Worker
   secrets only: never in D1, tracked files or API responses. Owner-specific values (domain,
   sender, resource IDs) come from env or untracked config; `wrangler.jsonc` holds placeholders
