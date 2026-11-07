@@ -33,11 +33,13 @@ notifications.get("/", async (c) => {
   const [{ results }, unread] = await Promise.all([
     c.env.DB.prepare(
       `SELECT id, type, body, invoice_id AS invoiceId, read_at AS readAt, created_at AS createdAt
-       FROM notifications ORDER BY created_at DESC, id LIMIT ?`,
+       FROM notifications WHERE dismissed_at IS NULL ORDER BY created_at DESC, id LIMIT ?`,
     )
       .bind(LIST_LIMIT)
       .all<Row>(),
-    c.env.DB.prepare("SELECT COUNT(*) AS n FROM notifications WHERE read_at IS NULL").first<{
+    c.env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM notifications WHERE read_at IS NULL AND dismissed_at IS NULL",
+    ).first<{
       n: number;
     }>(),
   ]);
@@ -76,5 +78,32 @@ notifications.post("/read", async (c) => {
       ),
     );
   }
+  return c.json({ ok: true });
+});
+
+/**
+ * Deletes one notification from the list. It is hidden, not removed (see `dismissedAt`), and counts
+ * as read so a repeated mailbox problem raises a new notification.
+ */
+notifications.delete("/:id", async (c) => {
+  const now = Date.now();
+  await c.env.DB.prepare(
+    `UPDATE notifications SET dismissed_at = ?1, read_at = COALESCE(read_at, ?1)
+     WHERE id = ?2 AND dismissed_at IS NULL`,
+  )
+    .bind(now, c.req.param("id"))
+    .run();
+  return c.json({ ok: true });
+});
+
+/** Deletes every notification from the list. */
+notifications.delete("/", async (c) => {
+  const now = Date.now();
+  await c.env.DB.prepare(
+    `UPDATE notifications SET dismissed_at = ?1, read_at = COALESCE(read_at, ?1)
+     WHERE dismissed_at IS NULL`,
+  )
+    .bind(now)
+    .run();
   return c.json({ ok: true });
 });

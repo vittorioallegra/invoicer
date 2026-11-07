@@ -439,6 +439,12 @@ export const notifications = sqliteTable("notifications", {
   body: text("body"),
   invoiceId: text("invoice_id").references(() => invoices.id),
   readAt: integer("read_at", { mode: "timestamp_ms" }),
+  /**
+   * Set when the owner deletes the notification. The row stays: the daily reminders and the
+   * outbox look for an existing notification before writing a new one, so a hard delete would make
+   * them come back. The list, the unread count and the push ignore dismissed rows.
+   */
+  dismissedAt: integer("dismissed_at", { mode: "timestamp_ms" }),
   /** When the push for this row was settled (sent, or skipped: type off, no device); null = open. */
   pushSentAt: integer("push_sent_at", { mode: "timestamp_ms" }),
   createdAt: createdAt(),

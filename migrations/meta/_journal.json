@@ -43,6 +43,13 @@
       "when": 1794079016938,
       "tag": "0005_funny_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794079459538,
+      "tag": "0006_glamorous_mister_sinister",
+      "breakpoints": true
     }
   ]
 }

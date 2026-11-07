@@ -49,7 +49,8 @@ export async function processPushNotifications(env: Bindings, now = Date.now()):
   if (!featureStatus(env).push) return 0;
   const { results } = await env.DB.prepare(
     `SELECT id, type, body, invoice_id AS invoiceId FROM notifications
-     WHERE push_sent_at IS NULL AND created_at >= ?1 ORDER BY created_at LIMIT ?2`,
+     WHERE push_sent_at IS NULL AND dismissed_at IS NULL AND created_at >= ?1
+     ORDER BY created_at LIMIT ?2`,
   )
     .bind(now - PUSH_MAX_AGE_MS, PUSH_BATCH_SIZE)
     .all<Row>();
