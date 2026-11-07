@@ -127,6 +127,52 @@ export function importClient(client: unknown): z.output<typeof clientInputSchema
   return parsed.success ? parsed.data : null;
 }
 
+/** Most rows one summary import request may carry (keeps the Worker under its CPU limit). */
+export const SUMMARY_CHUNK_ROWS = 25;
+
+/**
+ * One issued invoice of a Fatture in Cloud account summary (a spreadsheet row: no lines, no due
+ * date, no original file). `customer.client` is absent: a client is only linked, never created.
+ */
+export const issuedSummaryRowSchema = z.object({
+  documentType: z.enum(["TD01", "TD04"]),
+  number: text(20).min(1),
+  date: dateOnly,
+  currency,
+  totalCents: cents,
+  paid: z.boolean(),
+  customer: z.object({
+    name: text(200).min(1),
+    vatCountry: text(2).nullable(),
+    vatCode: text(40).nullable(),
+    taxCode: text(40).nullable(),
+  }),
+});
+export type IssuedSummaryRow = z.infer<typeof issuedSummaryRowSchema>;
+
+/** One received invoice of the summary: the received summary plus the paid flag. */
+export const receivedSummaryRowSchema = receivedSummarySchema.extend({
+  totalCents: cents,
+  paid: z.boolean(),
+});
+export type ReceivedSummaryRow = z.infer<typeof receivedSummaryRowSchema>;
+
+/** Body of `POST /api/invoices/import-summary` and `POST /api/received/import-summary`. */
+export const issuedSummaryBodySchema = z.object({
+  rows: z.array(issuedSummaryRowSchema).min(1).max(SUMMARY_CHUNK_ROWS),
+});
+export const receivedSummaryBodySchema = z.object({
+  rows: z.array(receivedSummaryRowSchema).min(1).max(SUMMARY_CHUNK_ROWS),
+});
+
+/** The answer for one summary row (`invalid`: the Worker could not store it). */
+export type SummaryRowOutcome = ImportFileOutcome | { outcome: "invalid" };
+
+/** Response of the two summary endpoints: one outcome per row, in order. */
+export interface SummaryImportResponse {
+  results: SummaryRowOutcome[];
+}
+
 /** Response of the two file import endpoints. */
 export type ImportFileOutcome =
   | { outcome: "imported"; id: string; clientLinked?: boolean }
