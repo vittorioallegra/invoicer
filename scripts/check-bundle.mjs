@@ -7,7 +7,14 @@ import { gzipSync } from "node:zlib";
 const WORKER_DIR = "dist/invoicer";
 const LIMIT_BYTES = 3 * 1024 * 1024;
 // Markers of client-only libraries (the 3 MB limit is for the gzip-compressed Worker).
-const CLIENT_ONLY = ["@react-pdf/renderer", "xmllint-wasm", "pkijs", "fflate", "papaparse"];
+const CLIENT_ONLY = [
+  "@react-pdf/renderer",
+  "xmllint-wasm",
+  "pkijs",
+  "fflate",
+  "papaparse",
+  "XlsError",
+];
 
 function jsFiles(dir) {
   return readdirSync(dir)
