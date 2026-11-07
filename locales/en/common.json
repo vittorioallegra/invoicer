@@ -1149,7 +1149,8 @@
     "kinds": {
       "received": "Received invoices",
       "issued": "Issued invoices",
-      "clients": "Clients"
+      "clients": "Clients",
+      "summary": "Fatture in Cloud summary (.xls)"
     },
     "received": {
       "intro": "Import supplier invoices you received before you started using the app: FatturaPA XML or signed P7M files, or the ZIP you can download from the Agenzia delle Entrate portal."
@@ -1192,6 +1193,41 @@
       "creditNote": "Credit note {{number}}",
       "noOriginal": "This invoice comes from an account summary: only its number, date, customer and total were imported, so there is no original file or invoice lines. You can record its payment.",
       "readOnly": "This invoice was imported from a file. It is shown as written in the file and cannot be changed; you can record its payment."
+    },
+    "summary": {
+      "intro": "Import the account summary spreadsheet exported from Fatture in Cloud (.xls): all issued and received invoices in one file. The summary holds only the number, date, customer or supplier and amounts, so the invoices are stored without lines and without an original file. Numbers with a suffix such as /CH get their own numbering series.",
+      "file": "Summary file (.xls)",
+      "reading": "Reading the file…",
+      "unreadable": "This file could not be read as a Fatture in Cloud account summary.",
+      "found": "Found in the file",
+      "nothing": "There are no invoices to import in this file.",
+      "issuedCount_one": "{{count}} issued invoice",
+      "issuedCount_other": "{{count}} issued invoices",
+      "receivedCount_one": "{{count}} received invoice",
+      "receivedCount_other": "{{count}} received invoices",
+      "year": "Year {{year}}",
+      "years": "Years {{from}} to {{to}}",
+      "series": "Numbering series that will be created:",
+      "seriesRow": "{{name}} (numbers like {{example}})",
+      "invalidCount_one": "{{count}} row cannot be read and will be skipped:",
+      "invalidCount_other": "{{count}} rows cannot be read and will be skipped:",
+      "invalidLabel": "Row {{line}} ({{kind}})",
+      "invalidDetail": "{{field}} cannot be read.",
+      "kind": {
+        "issued": "issued",
+        "received": "received"
+      },
+      "fields": {
+        "number": "Number",
+        "date": "Date",
+        "name": "Name",
+        "amount": "Amount"
+      },
+      "label": {
+        "issued": "Issued {{number}}, {{date}}, {{name}}",
+        "received": "Received {{number}}, {{date}}, {{name}}"
+      },
+      "markPaidHint": "Earlier invoices are usually settled. The paid date is the invoice date. Turn this off to keep them unpaid."
     },
     "clients": {
       "intro": "Import clients from a Fatture in Cloud CSV export. You see which column feeds each field and every row with a problem before anything is saved. Clients you already have (same VAT number, tax code or name) are skipped."

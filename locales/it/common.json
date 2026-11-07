@@ -1149,7 +1149,8 @@
     "kinds": {
       "received": "Fatture ricevute",
       "issued": "Fatture emesse",
-      "clients": "Clienti"
+      "clients": "Clienti",
+      "summary": "Riepilogo Fatture in Cloud (.xls)"
     },
     "received": {
       "intro": "Importa le fatture dei fornitori ricevute prima di usare l'app: file XML FatturaPA o P7M firmati, oppure lo ZIP scaricabile dal portale dell'Agenzia delle Entrate."
@@ -1192,6 +1193,41 @@
       "creditNote": "Nota di credito {{number}}",
       "noOriginal": "Questa fattura arriva da un riepilogo contabile: sono stati importati solo numero, data, cliente e totale, quindi non ci sono file originale né righe. Puoi registrarne il pagamento.",
       "readOnly": "Questa fattura è stata importata da un file. Si vede come scritta nel file e non si può modificare; puoi registrare il pagamento."
+    },
+    "summary": {
+      "intro": "Importa il riepilogo contabile esportato da Fatture in Cloud (.xls): tutte le fatture emesse e ricevute in un solo file. Il riepilogo contiene solo numero, data, cliente o fornitore e importi, quindi le fatture vengono salvate senza righe e senza file originale. I numeri con un suffisso come /CH hanno un loro sezionale.",
+      "file": "File di riepilogo (.xls)",
+      "reading": "Lettura del file…",
+      "unreadable": "Impossibile leggere questo file come riepilogo contabile di Fatture in Cloud.",
+      "found": "Trovato nel file",
+      "nothing": "Nel file non ci sono fatture da importare.",
+      "issuedCount_one": "{{count}} fattura emessa",
+      "issuedCount_other": "{{count}} fatture emesse",
+      "receivedCount_one": "{{count}} fattura ricevuta",
+      "receivedCount_other": "{{count}} fatture ricevute",
+      "year": "Anno {{year}}",
+      "years": "Anni dal {{from}} al {{to}}",
+      "series": "Sezionali che verranno creati:",
+      "seriesRow": "{{name}} (numeri come {{example}})",
+      "invalidCount_one": "{{count}} riga non si può leggere e verrà saltata:",
+      "invalidCount_other": "{{count}} righe non si possono leggere e verranno saltate:",
+      "invalidLabel": "Riga {{line}} ({{kind}})",
+      "invalidDetail": "{{field}} non leggibile.",
+      "kind": {
+        "issued": "emessa",
+        "received": "ricevuta"
+      },
+      "fields": {
+        "number": "Numero",
+        "date": "Data",
+        "name": "Nome",
+        "amount": "Importo"
+      },
+      "label": {
+        "issued": "Emessa {{number}}, {{date}}, {{name}}",
+        "received": "Ricevuta {{number}}, {{date}}, {{name}}"
+      },
+      "markPaidHint": "Le fatture passate sono di solito saldate. La data di pagamento è la data della fattura. Disattiva per lasciarle non pagate."
     },
     "clients": {
       "intro": "Importa i clienti da un'esportazione CSV di Fatture in Cloud. Prima di salvare vedi quale colonna riempie ogni campo e ogni riga con un problema. I clienti che hai già (stessa partita IVA, codice fiscale o nome) vengono saltati."

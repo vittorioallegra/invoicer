@@ -7,6 +7,7 @@ import type { ImportItemResult } from "../../shared/import";
 import { ClientsImport } from "../components/clients-import";
 import { ImportResult } from "../components/import-result";
 import { Page } from "../components/page";
+import { SummaryImport } from "../components/summary-import";
 import { Banner } from "../components/ui/banner";
 import { Button, buttonVariants } from "../components/ui/button";
 import {
@@ -20,7 +21,7 @@ import { useOnline } from "../lib/online";
 import { profileQuery } from "../lib/settings-api";
 import { cn } from "../lib/utils";
 
-export const IMPORT_KINDS = ["received", "issued", "clients"] as const;
+export const IMPORT_KINDS = ["received", "issued", "clients", "summary"] as const;
 export type ImportPageKind = (typeof IMPORT_KINDS)[number];
 
 /** Search params of `/import`: which import is shown (default: received invoices). */
@@ -201,7 +202,13 @@ export function ImportPage() {
           </Link>
         ))}
       </nav>
-      {kind === "clients" ? <ClientsImport /> : <InvoiceImport key={kind} kind={kind} />}
+      {kind === "clients" ? (
+        <ClientsImport />
+      ) : kind === "summary" ? (
+        <SummaryImport />
+      ) : (
+        <InvoiceImport key={kind} kind={kind} />
+      )}
     </Page>
   );
 }

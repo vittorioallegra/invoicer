@@ -154,4 +154,26 @@ describe("received invoices (AC 10)", () => {
     expect(screen.getAllByText(/SOCIETA' ALPHA SRL/).length).toBeGreaterThan(0);
     expect(screen.getByText("Cash")).toBeTruthy();
   });
+
+  it("explains that a summary import has no original file and offers no download", async () => {
+    mocks.api.mockImplementation(async (path: string) => {
+      if (path === "/api/received/r1") {
+        return {
+          received: record({
+            parseStatus: "parsed",
+            supplierName: "Tool Shop",
+            number: "7",
+            issueDate: "2024-01-05",
+            totalCents: 12200,
+            original: null,
+          }),
+        };
+      }
+      throw new Error(`unexpected ${path}`);
+    });
+    await renderAt("/received/r1");
+    expect(await screen.findByText(/there is no original file/)).toBeTruthy();
+    expect(screen.queryByText("Download original")).toBeNull();
+    expect(mocks.apiFile).not.toHaveBeenCalled();
+  });
 });

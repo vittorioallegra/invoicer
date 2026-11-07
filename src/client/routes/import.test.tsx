@@ -7,6 +7,7 @@ import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { InvoiceRecord } from "../../shared/invoice";
 import { createI18n } from "../i18n";
+import { buildXls, type FixtureCell } from "../import/xls-fixture";
 import { createAppRouter } from "../router";
 
 const mocks = vi.hoisted(() => ({ api: vi.fn(), apiFile: vi.fn() }));
@@ -128,6 +129,7 @@ describe("imported invoice", () => {
     paidDate: "2014-12-18",
     clientId: null,
     clientName: "DITTA BETA",
+    hasOriginal: true,
     number: "123",
     year: 2014,
     issueDate: "2014-12-18",
@@ -155,6 +157,22 @@ describe("imported invoice", () => {
     expect(screen.getByText("Download original")).toBeTruthy();
     expect(screen.queryByText("Finalize")).toBeNull();
     expect(screen.queryByText("Edit")).toBeNull();
+  });
+
+  it("explains that a summary import has no original and offers no download", async () => {
+    mocks.api.mockImplementation(async (path: string) => {
+      if (path === "/api/invoices/i1") {
+        return { invoice: { ...record, hasOriginal: false, clientName: "Name from the summary" } };
+      }
+      throw new Error(`unexpected ${path}`);
+    });
+    await renderAt("/invoices/i1");
+    expect(
+      await screen.findByText(/only its number, date, customer and total were imported/),
+    ).toBeTruthy();
+    expect(screen.getByText(/Name from the summary/)).toBeTruthy();
+    expect(screen.queryByText("Download original")).toBeNull();
+    expect(mocks.apiFile).not.toHaveBeenCalled();
   });
 });
 
@@ -196,5 +214,86 @@ describe("clients CSV import (AC 17)", () => {
     expect(sent[0]).toHaveLength(4);
     expect(screen.getByText("Already imported.")).toBeTruthy();
     expect(screen.getAllByText(/Not imported\./)).toHaveLength(2);
+  });
+});
+
+describe("summary import", () => {
+  const sheet = (name: string, rows: FixtureCell[][]) => buildXls([{ name, rows }]);
+  const header = ["# Fattura emessa", "Data", "Cliente", "P.IVA", "CF", "Imponibile", "IVA"];
+  const receivedHeader = [
+    "# Fattura ricevuta",
+    "Data",
+    "Fornitore",
+    "P.IVA",
+    "CF",
+    "Imponibile",
+    "IVA",
+  ];
+  const day = (iso: string) =>
+    (Date.parse(`${iso}T00:00:00Z`) - Date.UTC(1899, 11, 30)) / 86_400_000;
+  const xls = sheet("Summary", [
+    ["Gennaio"],
+    header,
+    ["3/CH", day("2025-03-31"), "Acme Srl", " ", " ", 100, 22],
+    [4, day("2024-05-02"), "Beta Ltd", " ", " ", 10, 0],
+    [5, 0, "No date", " ", " ", 10, 0],
+    ["Totale"],
+    receivedHeader,
+    [7, day("2024-01-05"), "Tool Shop", "98765432109 ", " ", 100, 22],
+    ["Totale"],
+  ]);
+  const asFile = (bytes: Uint8Array) =>
+    new File([bytes as BlobPart], "riepilogo.xls", { type: "application/vnd.ms-excel" });
+
+  it("previews the file, then imports it and shows the result with the skipped rows", async () => {
+    mocks.api.mockImplementation(async (path: string, init?: { body?: string }) => {
+      if (path === "/api/numbering-series" && !init) return { series: [] };
+      if (path === "/api/numbering-series") return { series: {} };
+      const { rows } = JSON.parse(init?.body ?? "{}") as { rows: { number?: string }[] };
+      if (path === "/api/invoices/import-summary") {
+        return {
+          results: rows.map((row) =>
+            row.number === "4"
+              ? { outcome: "duplicate", id: "old" }
+              : { outcome: "imported", id: "n1" },
+          ),
+        };
+      }
+      return { results: rows.map(() => ({ outcome: "imported", id: "r1" })) };
+    });
+    await renderAt("/import?kind=summary");
+    const input = (await screen.findByLabelText("Summary file (.xls)")) as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [asFile(xls)] } });
+    expect(await screen.findByText("2 issued invoices")).toBeTruthy();
+    expect(screen.getByText("1 received invoice")).toBeTruthy();
+    expect(screen.getByText("Years 2024 to 2025")).toBeTruthy();
+    expect(screen.getByText("CH (numbers like 1/CH)")).toBeTruthy();
+    expect(screen.getByText("1 row cannot be read and will be skipped:")).toBeTruthy();
+    expect(screen.getByText(/Row 5 \(issued\)/)).toBeTruthy();
+    expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
+    const start = screen.getByRole("button", { name: "Import" });
+    await waitFor(() => expect((start as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(start);
+    expect(await screen.findByText("2 imported, 2 skipped")).toBeTruthy();
+    expect(screen.getByText("Issued 3/CH, 2025-03-31, Acme Srl")).toBeTruthy();
+    expect(screen.getByText("Already imported.")).toBeTruthy();
+    expect(screen.getByText("Received 7, 2024-01-05, Tool Shop")).toBeTruthy();
+    const created = mocks.api.mock.calls.find(
+      (call) => call[0] === "/api/numbering-series" && call[1]?.method === "POST",
+    );
+    expect(JSON.parse(created?.[1].body)).toEqual({ name: "CH", prefix: null, suffix: "/CH" });
+  });
+
+  it("says when the file is not an account summary", async () => {
+    mocks.api.mockResolvedValue({ series: [] });
+    await renderAt("/import?kind=summary");
+    const input = (await screen.findByLabelText("Summary file (.xls)")) as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["a,b"], "x.xls")] } });
+    expect(
+      await screen.findByText(/could not be read as a Fatture in Cloud account summary/),
+    ).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Import" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
   });
 });
