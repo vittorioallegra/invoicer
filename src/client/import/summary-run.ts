@@ -6,7 +6,7 @@ import type {
   SummaryImportResponse,
   SummaryRowOutcome,
 } from "../../shared/import";
-import type { NumberingSeriesData } from "../../shared/numbering";
+import { type NumberingSeriesData, seriesRequestBody } from "../../shared/numbering";
 import { api } from "../lib/api";
 import type { FicInvalidRow, FicSummary } from "./fic-summary";
 
@@ -96,7 +96,7 @@ export async function runSummaryImport(
       await api("/api/numbering-series", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(series),
+        body: JSON.stringify(seriesRequestBody(series)),
       });
     } catch {
       // Keep importing.

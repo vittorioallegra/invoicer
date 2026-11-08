@@ -154,6 +154,13 @@ describe("combined invoice file import", () => {
     expect(createdSeries).toMatchObject([{ name: "CH", suffix: "/CH" }]);
     const created = mocks.api.mock.calls.filter((call) => call[0] === "/api/numbering-series");
     expect(created).toHaveLength(1);
+    // The endpoint takes text for both affixes, not null.
+    const seriesInit = created[0]?.[1] as { body: string };
+    expect(JSON.parse(seriesInit.body)).toEqual({
+      name: "CH",
+      prefix: "",
+      suffix: "/CH",
+    });
     // The series exist before the first invoice is sent.
     expect(pathsCalled()[0]).toBe("/api/numbering-series");
 

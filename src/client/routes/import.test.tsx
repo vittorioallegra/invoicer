@@ -324,7 +324,7 @@ describe("summary import", () => {
     const created = mocks.api.mock.calls.find(
       (call) => call[0] === "/api/numbering-series" && call[1]?.method === "POST",
     );
-    expect(JSON.parse(created?.[1].body)).toEqual({ name: "CH", prefix: null, suffix: "/CH" });
+    expect(JSON.parse(created?.[1].body)).toEqual({ name: "CH", prefix: "", suffix: "/CH" });
   });
 
   it("says when the file is not an account summary", async () => {

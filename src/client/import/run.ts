@@ -9,7 +9,11 @@ import {
   type IssuedImportMeta,
   type ReceivedSummary,
 } from "../../shared/import";
-import type { NumberingSeriesData, NumberingSeriesRecord } from "../../shared/numbering";
+import {
+  type NumberingSeriesData,
+  type NumberingSeriesRecord,
+  seriesRequestBody,
+} from "../../shared/numbering";
 import { api } from "../lib/api";
 import { missingSeries } from "./fic-summary";
 import { type ReadFile, readImportFile } from "./read";
@@ -286,7 +290,7 @@ export async function runInvoiceImport(
       await api("/api/numbering-series", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(series),
+        body: JSON.stringify(seriesRequestBody(series)),
       });
       createdSeries.push(series);
     } catch {

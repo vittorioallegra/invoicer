@@ -84,6 +84,12 @@ describe("runSummaryImport", () => {
       "/api/invoices/import-summary",
       "/api/received/import-summary",
     ]);
+    // The series endpoint takes text for both affixes, not null.
+    expect(JSON.parse(mocks.api.mock.calls[0]?.[1].body as string)).toEqual({
+      name: "CH",
+      prefix: "",
+      suffix: "/CH",
+    });
     const sent = JSON.parse(mocks.api.mock.calls[1]?.[1].body as string).rows;
     expect(sent).toHaveLength(20);
     expect(sent[0]).toMatchObject({ number: "1/CH", paid: true });

@@ -57,6 +57,13 @@ export const numberingSeriesInputSchema = z
 export type NumberingSeriesInput = z.input<typeof numberingSeriesInputSchema>;
 export type NumberingSeriesData = z.output<typeof numberingSeriesInputSchema>;
 
+/** The request body for creating a series: the endpoint takes text, not the nulls of the parsed value. */
+export const seriesRequestBody = (series: NumberingSeriesData): NumberingSeriesInput => ({
+  name: series.name,
+  prefix: series.prefix ?? "",
+  suffix: series.suffix ?? "",
+});
+
 export interface NumberingSeriesRecord extends SeriesAffixes {
   id: string;
   name: string;
