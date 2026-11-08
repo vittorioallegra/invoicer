@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { LoaderCircle } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { romeDateTime } from "../../shared/cron";
 import { formatInvoiceNumber } from "../../shared/numbering";
 import { type FicSummary, missingSeries, parseFicSummary, yearRange } from "../import/fic-summary";
 import { runSummaryImport, type SummaryItem, type SummaryProgress } from "../import/summary-run";
@@ -10,8 +11,10 @@ import { readXls } from "../import/xls";
 import { useOnline } from "../lib/online";
 import { numberingSeriesQuery } from "../lib/settings-api";
 import { ImportResult } from "./import-result";
+import { type RowChoice, type RowChoices, rowKey, SummaryReview } from "./summary-review";
 import { Banner } from "./ui/banner";
 import { Button } from "./ui/button";
+import { Disclosure } from "./ui/disclosure";
 
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
@@ -30,11 +33,14 @@ export function SummaryImport() {
   const [reading, setReading] = useState(false);
   const [unreadable, setUnreadable] = useState(false);
   const [markPaid, setMarkPaid] = useState(true);
+  const [choices, setChoices] = useState<RowChoices>({});
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [progress, setProgress] = useState<SummaryProgress | null>(null);
   const [items, setItems] = useState<SummaryItem[] | null>(null);
 
   const pick = async (file: File | undefined) => {
     setSummary(null);
+    setChoices({});
     setUnreadable(false);
     if (!file) return;
     setReading(true);
@@ -51,21 +57,43 @@ export function SummaryImport() {
     }
   };
 
-  const series = summary
+  const today = romeDateTime(new Date()).date;
+  // An invoice dated after today is not issued yet: it starts left out unless the owner ticks it.
+  const included = (kind: "issued" | "received", line: number, date: string) =>
+    choices[rowKey(kind, line)]?.include ?? date <= today;
+  const paidFor = (kind: "issued" | "received", line: number) =>
+    choices[rowKey(kind, line)]?.paid ?? markPaid;
+  const selected: FicSummary | null = summary && {
+    ...summary,
+    issued: summary.issued.filter((item) => included("issued", item.line, item.row.date)),
+    received: summary.received.filter((item) =>
+      included("received", item.line, item.row.issueDate),
+    ),
+  };
+  const leftOut = summary
+    ? summary.issued.length +
+      summary.received.length -
+      (selected?.issued.length ?? 0) -
+      (selected?.received.length ?? 0)
+    : 0;
+  const series = selected
     ? missingSeries(
-        summary.issued.map((item) => item.row.number),
+        selected.issued.map((item) => item.row.number),
         seriesQuery.data?.series ?? [],
       )
     : [];
-  const years = summary ? yearRange(summary) : null;
-  const count = (summary?.issued.length ?? 0) + (summary?.received.length ?? 0);
+  const years = selected ? yearRange(selected) : null;
+  const count = (selected?.issued.length ?? 0) + (selected?.received.length ?? 0);
+  const change = (key: string, next: RowChoice) =>
+    setChoices((current) => ({ ...current, [key]: { ...current[key], ...next } }));
 
   const fieldText = (field: string) => t(`import.summary.fields.${field}`);
   const run = useMutation({
     mutationFn: async () => {
-      if (!summary) return [];
-      return runSummaryImport(summary, {
+      if (!selected) return [];
+      return runSummaryImport(selected, {
         markPaid,
+        paidFor,
         series,
         label: (kind, number, date, name) =>
           t(`import.summary.label.${kind}`, { number, date, name }),
@@ -152,8 +180,10 @@ export function SummaryImport() {
             <Banner tone="warning">{t("import.summary.nothing")}</Banner>
           ) : (
             <ul className="flex flex-col gap-1 text-sm">
-              <li>{t("import.summary.issuedCount", { count: summary.issued.length })}</li>
-              <li>{t("import.summary.receivedCount", { count: summary.received.length })}</li>
+              <li>{t("import.summary.issuedCount", { count: selected?.issued.length ?? 0 })}</li>
+              <li>
+                {t("import.summary.receivedCount", { count: selected?.received.length ?? 0 })}
+              </li>
               {years ? (
                 <li>
                   {years.from === years.to
@@ -163,6 +193,11 @@ export function SummaryImport() {
               ) : null}
             </ul>
           )}
+          {leftOut > 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {t("import.summary.leftOut", { count: leftOut })}
+            </p>
+          ) : null}
           {series.length > 0 ? (
             <div className="text-sm">
               <p className="font-medium">{t("import.summary.series")}</p>
@@ -211,6 +246,22 @@ export function SummaryImport() {
               </span>
             </span>
           </label>
+          <Disclosure
+            id="summary-review"
+            title={t("import.summary.review")}
+            summary={t("import.summary.reviewSummary")}
+            open={reviewOpen}
+            onToggle={() => setReviewOpen((open) => !open)}
+          >
+            <SummaryReview
+              summary={summary}
+              today={today}
+              choices={choices}
+              markPaid={markPaid}
+              disabled={run.isPending}
+              onChange={change}
+            />
+          </Disclosure>
         </section>
       ) : null}
       {run.isError ? <Banner tone="danger">{t("common.error")}</Banner> : null}

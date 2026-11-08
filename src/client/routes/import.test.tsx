@@ -296,4 +296,70 @@ describe("summary import", () => {
       true,
     );
   });
+
+  describe("review of the invoices", () => {
+    const future = sheet("Summary", [
+      ["Gennaio"],
+      header,
+      [3, day("2025-03-31"), "Acme Srl", " ", " ", 100, 22],
+      [4, day("2026-10-30"), "Open Client", " ", " ", 10, 0],
+      [5, day("2099-12-31"), "Later Client", " ", " ", 10, 0],
+      ["Totale"],
+    ]);
+    const sent = () => {
+      const call = mocks.api.mock.calls.find((c) => c[0] === "/api/invoices/import-summary");
+      return (JSON.parse(call?.[1].body) as { rows: { number: string; paid: boolean }[] }).rows.map(
+        (row) => [row.number, row.paid],
+      );
+    };
+    beforeEach(() => {
+      mocks.api.mockImplementation(async (path: string, init?: { body?: string }) => {
+        if (path === "/api/numbering-series") return { series: [] };
+        const { rows } = JSON.parse(init?.body ?? "{}") as { rows: unknown[] };
+        return { results: rows.map(() => ({ outcome: "imported", id: "n1" })) };
+      });
+    });
+    const load = async () => {
+      await renderAt("/import?kind=summary");
+      const input = (await screen.findByLabelText("Summary file (.xls)")) as HTMLInputElement;
+      fireEvent.change(input, { target: { files: [asFile(future)] } });
+      await screen.findByText("2 issued invoices");
+    };
+
+    it("leaves an invoice dated after today out until it is ticked", async () => {
+      await load();
+      expect(screen.getByText("1 invoice is left out (see the review below).")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: /Review the invoices/ }));
+      expect(screen.getByText("Not issued yet")).toBeTruthy();
+      const later = screen.getByLabelText("Import Issued 5, 2099-12-31, Later Client");
+      expect((later as HTMLInputElement).checked).toBe(false);
+      fireEvent.click(later);
+      expect(await screen.findByText("3 issued invoices")).toBeTruthy();
+      const start = screen.getByRole("button", { name: "Import" });
+      await waitFor(() => expect((start as HTMLButtonElement).disabled).toBe(false));
+      fireEvent.click(start);
+      await screen.findByText(/imported/);
+      expect(sent()).toEqual(
+        [
+          ["5", true],
+          ["4", true],
+          ["3", true],
+        ].sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+      );
+    });
+
+    it("stores an invoice as not paid when its Paid box is unticked, and skips the future one", async () => {
+      await load();
+      fireEvent.click(screen.getByRole("button", { name: /Review the invoices/ }));
+      fireEvent.click(screen.getByLabelText("Paid: Issued 4, 2026-10-30, Open Client"));
+      const start = screen.getByRole("button", { name: "Import" });
+      await waitFor(() => expect((start as HTMLButtonElement).disabled).toBe(false));
+      fireEvent.click(start);
+      await screen.findByText(/imported/);
+      expect(sent()).toEqual([
+        ["3", true],
+        ["4", false],
+      ]);
+    });
+  });
 });

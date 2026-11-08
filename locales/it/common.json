@@ -1234,7 +1234,17 @@
         "issued": "Emessa {{number}}, {{date}}, {{name}}",
         "received": "Ricevuta {{number}}, {{date}}, {{name}}"
       },
-      "markPaidHint": "Le fatture passate sono di solito saldate. La data di pagamento è la data della fattura. Disattiva per lasciarle non pagate."
+      "markPaidHint": "Le fatture passate sono di solito saldate. La data di pagamento è la data della fattura. Disattiva per lasciarle non pagate.",
+      "review": "Controlla le fatture",
+      "reviewSummary": "Escludi una fattura o segnala quelle non ancora pagate",
+      "reviewHint": "Le più recenti sono in alto. Togli la spunta da Importa per escludere una fattura, e da Pagata per una fattura non ancora incassata. Le fatture con data successiva a oggi non sono ancora emesse, quindi partono escluse.",
+      "rowImport": "Importa",
+      "rowPaid": "Pagata",
+      "rowImportLabel": "Importa {{row}}",
+      "rowPaidLabel": "Pagata: {{row}}",
+      "notIssuedYet": "Non ancora emessa",
+      "leftOut_one": "{{count}} fattura è esclusa (vedi il controllo qui sotto).",
+      "leftOut_other": "{{count}} fatture sono escluse (vedi il controllo qui sotto)."
     },
     "clients": {
       "intro": "Importa i clienti da un'esportazione CSV di Fatture in Cloud. Prima di salvare vedi quale colonna riempie ogni campo e ogni riga con un problema. I clienti che hai già (stessa partita IVA, codice fiscale o nome) vengono saltati."

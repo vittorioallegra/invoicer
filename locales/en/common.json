@@ -1234,7 +1234,17 @@
         "issued": "Issued {{number}}, {{date}}, {{name}}",
         "received": "Received {{number}}, {{date}}, {{name}}"
       },
-      "markPaidHint": "Earlier invoices are usually settled. The paid date is the invoice date. Turn this off to keep them unpaid."
+      "markPaidHint": "Earlier invoices are usually settled. The paid date is the invoice date. Turn this off to keep them unpaid.",
+      "review": "Review the invoices",
+      "reviewSummary": "Leave an invoice out, or mark one as not paid yet",
+      "reviewHint": "The newest invoices come first. Untick Import to leave an invoice out, and untick Paid for an invoice that has not been collected yet. Invoices dated after today are not issued yet, so they start left out.",
+      "rowImport": "Import",
+      "rowPaid": "Paid",
+      "rowImportLabel": "Import {{row}}",
+      "rowPaidLabel": "Paid: {{row}}",
+      "notIssuedYet": "Not issued yet",
+      "leftOut_one": "{{count}} invoice is left out (see the review below).",
+      "leftOut_other": "{{count}} invoices are left out (see the review below)."
     },
     "clients": {
       "intro": "Import clients from a Fatture in Cloud CSV export. You see which column feeds each field and every row with a problem before anything is saved. Clients you already have (same VAT number, tax code or name) are skipped."

@@ -26,7 +26,10 @@ export interface SummaryProgress {
 }
 
 export interface SummaryRunOptions {
+  /** Paid by default; `paidFor` decides row by row when the owner changed some. */
   markPaid: boolean;
+  /** Whether an invoice is stored as paid, by its row in the sheet; defaults to `markPaid`. */
+  paidFor?: (kind: "issued" | "received", line: number) => boolean;
   series: NumberingSeriesData[];
   /** The text of one row on the result screen ("Issued 3/CH, 2025-03-31, Acme"). */
   label: (kind: "issued" | "received", number: string, date: string, name: string) => string;
@@ -85,13 +88,14 @@ export async function runSummaryImport(
     }
   }
 
-  const issued: IssuedSummaryRow[] = summary.issued.map(({ row }) => ({
+  const paidFor = options.paidFor ?? (() => options.markPaid);
+  const issued: IssuedSummaryRow[] = summary.issued.map(({ line, row }) => ({
     ...row,
-    paid: options.markPaid,
+    paid: paidFor("issued", line),
   }));
-  const received: ReceivedSummaryRow[] = summary.received.map(({ row }) => ({
+  const received: ReceivedSummaryRow[] = summary.received.map(({ line, row }) => ({
     ...row,
-    paid: options.markPaid,
+    paid: paidFor("received", line),
   }));
   const total = issued.length + received.length;
   let done = 0;
