@@ -12,6 +12,7 @@ import {
   issuedSummaryBodySchema,
   issuedSummaryDraftsBodySchema,
   type SummaryImportResponse,
+  xmlDraftSchema,
 } from "../../shared/import";
 import {
   INVOICE_LIST_SCOPES,
@@ -31,6 +32,7 @@ import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
 import { importIssuedInvoice, importIssuedSummary } from "../invoices/import";
 import { importSummaryDrafts } from "../invoices/import-summary-drafts";
+import { importXmlDraft } from "../invoices/import-xml-draft";
 import {
   defaultSeriesId,
   lastIssueDate,
@@ -199,6 +201,18 @@ invoices.post("/import-summary-drafts", async (c) => {
   if (!body.success) throw makeError("bad_request", validationDetail(body.error));
   const results = await importSummaryDrafts(c.env.DB, body.data.rows);
   return c.json({ results } satisfies SummaryImportResponse);
+});
+
+/**
+ * An issued invoice file that was never sent (read in the browser): created as an unsent invoice
+ * with the real content of the file, the original is not stored. Answers 201 with the outcome
+ * (`imported`, `duplicate`, `number_conflict` or `invalid`).
+ */
+invoices.post("/import-draft", async (c) => {
+  const body = xmlDraftSchema.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) throw makeError("bad_request", validationDetail(body.error));
+  const outcome = await importXmlDraft(c.env.DB, body.data);
+  return c.json(outcome, outcome.outcome === "imported" ? 201 : 200);
 });
 
 invoices.post("/", async (c) => {

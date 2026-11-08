@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { clientInputSchema } from "./client";
+import { invoiceLineSchema } from "./invoice";
+import { cassaDefaultsSchema, ritenutaDefaultsSchema } from "./tax";
 
 /**
  * Shapes shared by the import screens (browser) and the import endpoints (Worker). The browser
@@ -32,10 +34,6 @@ export const IMPORT_REASONS = [
   "unreadable",
   "unsupported_document_type",
   "multiple_documents",
-  /** An issued-invoice file whose supplier is not the owner. */
-  "not_issued_by_owner",
-  /** A received-invoice file whose supplier is the owner (it belongs with the issued invoices). */
-  "issued_by_owner",
   "too_large",
   "empty_archive",
   "server_error",
@@ -54,8 +52,10 @@ export interface ImportItemResult {
   detail?: string;
   /** Stored id of an imported (or already existing) record. */
   id?: string;
-  /** Imported as an unsent invoice to complete and send (a summary row dated after today). */
+  /** Imported as an unsent invoice to complete and send (not sent yet, or dated after today). */
   draft?: boolean;
+  /** Which list the record belongs to (the combined invoice import mixes both). */
+  kind?: "issued" | "received";
 }
 
 /** Decimal text from a FatturaPA file ("1234.50", "-12.5") as integer cents; null when invalid. */
@@ -98,6 +98,8 @@ export const parsedResultSchema = z.discriminatedUnion("status", [
 export const receivedImportMetaSchema = z.object({
   fileName: text(200).min(1),
   summary: receivedSummarySchema,
+  /** Mark the imported invoice paid on its invoice date (historic invoices usually are). */
+  paid: z.boolean().default(false),
 });
 
 /** Header summary of `POST /api/invoices/import` (a historic issued invoice). */
@@ -122,6 +124,33 @@ export const issuedImportMetaSchema = z.object({
   }),
 });
 export type IssuedImportMeta = z.infer<typeof issuedImportMetaSchema>;
+
+/**
+ * An issued invoice file that was never sent (kept in a "not sent" folder of the export, or dated
+ * after today), read in the browser: the real content of the file, to be created as an unsent
+ * invoice (`POST /api/invoices/import-draft`). The original file is not stored. Anything the
+ * editor cannot model (an unknown cassa type, a ritenuta cause...) is simply left out.
+ */
+export const xmlDraftSchema = z.object({
+  documentType: z.enum(["TD01", "TD04"]),
+  number: text(20).min(1),
+  date: dateOnly,
+  currency,
+  customer: issuedImportMetaSchema.shape.customer,
+  lines: z.array(invoiceLineSchema).min(1).max(500),
+  cassa: cassaDefaultsSchema.nullable(),
+  ritenuta: ritenutaDefaultsSchema.nullable(),
+  bollo: z.enum(["none", "client", "issuer"]),
+  note: text(2000),
+  payment: z
+    .object({
+      method: text(4).nullable(),
+      iban: text(40).nullable(),
+      dueDate: dateOnly.nullable(),
+    })
+    .nullable(),
+});
+export type XmlDraft = z.infer<typeof xmlDraftSchema>;
 
 /** The client record of an import customer, or null when it does not pass the client rules. */
 export function importClient(client: unknown): z.output<typeof clientInputSchema> | null {

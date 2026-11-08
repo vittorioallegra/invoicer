@@ -3,7 +3,8 @@ import { Link, useSearch } from "@tanstack/react-router";
 import { LoaderCircle } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { ImportItemResult } from "../../shared/import";
+import { romeDateTime } from "../../shared/cron";
+import { formatInvoiceNumber } from "../../shared/numbering";
 import { ClientsImport } from "../components/clients-import";
 import { ImportResult } from "../components/import-result";
 import { Page } from "../components/page";
@@ -11,21 +12,25 @@ import { SummaryImport } from "../components/summary-import";
 import { Banner } from "../components/ui/banner";
 import { Button, buttonVariants } from "../components/ui/button";
 import {
-  type ImportKind,
+  type ImportOutcome,
   type ImportProgress,
   type PickedFile,
   runInvoiceImport,
 } from "../import/run";
 import { SETTINGS_BACK } from "../lib/back-links";
 import { useOnline } from "../lib/online";
-import { profileQuery } from "../lib/settings-api";
+import { numberingSeriesQuery, profileQuery } from "../lib/settings-api";
 import { cn } from "../lib/utils";
 
-export const IMPORT_KINDS = ["received", "issued", "clients", "summary"] as const;
+export const IMPORT_KINDS = ["invoices", "clients", "summary"] as const;
 export type ImportPageKind = (typeof IMPORT_KINDS)[number];
 
-/** Search params of `/import`: which import is shown (default: received invoices). */
+/**
+ * Search params of `/import`: which import is shown (default: invoices). The former `issued` and
+ * `received` tabs were merged into `invoices`, so old links keep working.
+ */
 export function validateImportSearch(search: Record<string, unknown>): { kind?: ImportPageKind } {
+  if (search.kind === "issued" || search.kind === "received") return { kind: "invoices" };
   const kind = IMPORT_KINDS.find((value) => value === search.kind);
   return kind ? { kind } : {};
 }
@@ -67,50 +72,73 @@ function FilePicker({
   );
 }
 
-function InvoiceImport({ kind }: { kind: ImportKind }) {
+function InvoiceImport() {
   const { t } = useTranslation();
   const online = useOnline();
   const queryClient = useQueryClient();
   const profile = useQuery(profileQuery);
+  const seriesQuery = useQuery(numberingSeriesQuery);
   const [files, setFiles] = useState<File[]>([]);
   const [markPaid, setMarkPaid] = useState(true);
   const [progress, setProgress] = useState<ImportProgress | null>(null);
-  const [results, setResults] = useState<ImportItemResult[] | null>(null);
+  const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
+  const own = profile.data?.profile;
+  const ownVat = own?.vatNumber ? `${own.country}${own.vatNumber}` : null;
 
   const run = useMutation({
     mutationFn: async () => {
-      const own = profile.data?.profile;
+      if (!ownVat) throw new Error("no_vat");
       const picked: PickedFile[] = files.map((file) => ({
         name: file.name,
         read: async () => new Uint8Array(await file.arrayBuffer()),
       }));
       return runInvoiceImport(picked, {
-        kind,
         markPaid,
-        ownVat: own ? `${own.country}${own.vatNumber}` : null,
+        ownVat,
+        ownTaxCode: own?.taxCode || null,
+        today: romeDateTime(new Date()).date,
+        series: seriesQuery.data?.series ?? [],
+        label: (kind, number, date, name) =>
+          t(`import.summary.label.${kind}`, { number, date, name }),
         onProgress: setProgress,
       });
     },
-    onSuccess: async (items) => {
-      setResults(items);
+    onSuccess: async (result) => {
+      setOutcome(result);
       setFiles([]);
-      await queryClient.invalidateQueries({
-        queryKey: [kind === "received" ? "received" : "invoices"],
-      });
-      await queryClient.invalidateQueries({ queryKey: ["next-number"] });
+      for (const key of ["invoices", "received", "next-number", "numbering-series"]) {
+        await queryClient.invalidateQueries({ queryKey: [key] });
+      }
     },
     onSettled: () => setProgress(null),
   });
 
-  if (results) {
+  if (outcome) {
     return (
       <ImportResult
-        results={results}
-        onAgain={() => setResults(null)}
+        results={outcome.items}
+        onAgain={() => setOutcome(null)}
+        notes={
+          outcome.createdSeries.length > 0 ? (
+            <div className="rounded-card border border-border bg-surface px-4 py-3 text-sm">
+              <p className="font-medium">{t("import.seriesCreated")}</p>
+              <ul className="list-disc pl-5 text-muted-foreground">
+                {outcome.createdSeries.map((item) => (
+                  <li key={`${item.prefix}|${item.suffix}`}>
+                    {t("import.summary.seriesRow", {
+                      name: item.name,
+                      example: formatInvoiceNumber(item, 1),
+                    })}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null
+        }
         linkFor={(item) =>
           item.id ? (
             <Link
-              {...(kind === "received"
+              {...(item.kind === "received"
                 ? { to: "/received/$receivedId", params: { receivedId: item.id } }
                 : { to: "/invoices/$invoiceId", params: { invoiceId: item.id } })}
               className="text-sm text-primary underline underline-offset-2"
@@ -123,38 +151,42 @@ function InvoiceImport({ kind }: { kind: ImportKind }) {
     );
   }
 
+  const missingVat = profile.isSuccess && !ownVat;
   return (
     <form
       className="flex max-w-xl flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
-        if (files.length > 0) run.mutate();
+        if (files.length > 0 && ownVat) run.mutate();
       }}
     >
-      <p className="text-sm text-muted-foreground">{t(`import.${kind}.intro`)}</p>
+      <p className="text-sm text-muted-foreground">{t("import.invoices.intro")}</p>
       <FilePicker
         accept=".xml,.p7m,.zip,application/xml,text/xml,application/zip,application/pkcs7-mime"
         files={files}
         onChange={setFiles}
         disabled={run.isPending}
       />
-      {kind === "issued" ? (
-        <label className="flex items-start gap-3 text-sm">
-          <input
-            type="checkbox"
-            checked={markPaid}
-            onChange={(event) => setMarkPaid(event.target.checked)}
-            disabled={run.isPending}
-            className="mt-1 size-4"
-          />
-          <span>
-            <span className="block font-medium">{t("import.issued.markPaid")}</span>
-            <span className="block text-muted-foreground">{t("import.issued.markPaidHint")}</span>
-          </span>
-        </label>
-      ) : null}
-      {profile.isSuccess && !profile.data.profile ? (
-        <Banner tone="warning">{t("import.noProfile")}</Banner>
+      <label className="flex items-start gap-3 text-sm">
+        <input
+          type="checkbox"
+          checked={markPaid}
+          onChange={(event) => setMarkPaid(event.target.checked)}
+          disabled={run.isPending}
+          className="mt-1 size-4"
+        />
+        <span>
+          <span className="block font-medium">{t("import.invoices.markPaid")}</span>
+          <span className="block text-muted-foreground">{t("import.invoices.markPaidHint")}</span>
+        </span>
+      </label>
+      {missingVat ? (
+        <Banner tone="warning">
+          {t("import.noProfile")}{" "}
+          <Link to="/settings/company" className="underline underline-offset-2">
+            {t("import.noProfileLink")}
+          </Link>
+        </Banner>
       ) : null}
       {run.isError ? <Banner tone="danger">{t("common.error")}</Banner> : null}
       {progress ? (
@@ -172,7 +204,14 @@ function InvoiceImport({ kind }: { kind: ImportKind }) {
       <Button
         type="submit"
         className="w-fit"
-        disabled={!online || files.length === 0 || run.isPending || profile.isPending}
+        disabled={
+          !online ||
+          files.length === 0 ||
+          run.isPending ||
+          profile.isPending ||
+          seriesQuery.isPending ||
+          !ownVat
+        }
       >
         {t("import.start")}
       </Button>
@@ -184,7 +223,7 @@ export function ImportPage() {
   const { t } = useTranslation();
   // `strict: false` hands back the raw search of the URL, so validate it again here.
   const search = validateImportSearch(useSearch({ strict: false }) as Record<string, unknown>);
-  const kind = search.kind ?? "received";
+  const kind = search.kind ?? "invoices";
   return (
     <Page title={t("import.title")} back={SETTINGS_BACK}>
       <nav aria-label={t("import.title")} className="flex flex-wrap gap-2">
@@ -207,7 +246,7 @@ export function ImportPage() {
       ) : kind === "summary" ? (
         <SummaryImport />
       ) : (
-        <InvoiceImport key={kind} kind={kind} />
+        <InvoiceImport />
       )}
     </Page>
   );

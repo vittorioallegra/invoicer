@@ -1154,16 +1154,12 @@
     "badge": "Importata",
     "title": "Importa",
     "kinds": {
-      "received": "Fatture ricevute",
-      "issued": "Fatture emesse",
+      "invoices": "Fatture",
       "clients": "Clienti",
       "summary": "Riepilogo Fatture in Cloud (.xls)"
     },
-    "received": {
-      "intro": "Importa le fatture dei fornitori ricevute prima di usare l'app: file XML FatturaPA o P7M firmati, oppure lo ZIP scaricabile dal portale dell'Agenzia delle Entrate."
-    },
-    "issued": {
-      "intro": "Importa le fatture emesse in precedenza (per esempio l'esportazione di Fatture in Cloud o lo ZIP del portale dell'Agenzia delle Entrate) come XML, P7M o ZIP. Vengono salvate come consegnate e non si possono modificare; i loro numeri non si possono riutilizzare.",
+    "invoices": {
+      "intro": "Importa le tue fatture da file: XML o P7M firmati, oppure uno ZIP che li contiene (per esempio l'esportazione completa di Fatture in Cloud, o lo ZIP del portale dell'Agenzia delle Entrate). Ogni file viene riconosciuto da solo: emesso dalla tua azienda, oppure ricevuto da un fornitore. Le fatture emesse sono salvate come consegnate e non si possono modificare; i loro numeri non si possono riusare. Le fatture emesse mai inviate (in una cartella \"non inviate\", o con data successiva a oggi) diventano fatture da inviare, con le righe originali, da controllare e inviare da qui. I file che non sono fatture (PDF, fogli di calcolo) vengono ignorati.",
       "markPaid": "Segna le fatture importate come pagate",
       "markPaidHint": "Le fatture precedenti di solito sono già saldate. Disattiva per lasciarle non pagate."
     },
@@ -1172,7 +1168,9 @@
     "selected_other": "{{count}} file selezionati",
     "start": "Importa",
     "running": "Importazione {{done}} di {{total}}",
-    "noProfile": "Compila prima i dati dell'azienda: servono a distinguere le tue fatture da quelle dei fornitori.",
+    "noProfile": "Compila prima i dati dell'azienda, partita IVA compresa: servono a distinguere le tue fatture da quelle dei fornitori.",
+    "noProfileLink": "Apri i dati dell'azienda",
+    "seriesCreated": "Serie di numerazione create per le fatture emesse:",
     "result": {
       "summary": "{{imported}} importate, {{skipped}} saltate",
       "imported": "Importata",
@@ -1191,8 +1189,6 @@
       "unreadable": "Non è una fattura FatturaPA leggibile.",
       "unsupported_document_type": "Il tipo documento {{detail}} non si può importare: solo fatture e note di credito.",
       "multiple_documents": "Il file contiene più fatture. Importale un file alla volta.",
-      "not_issued_by_owner": "Il fornitore non è la tua azienda, quindi non è una tua fattura emessa.",
-      "issued_by_owner": "Il fornitore è la tua azienda: importala con le fatture emesse.",
       "too_large": "Il file supera 2 MB, il limite per i file salvati.",
       "empty_archive": "L'archivio non contiene file di fatture.",
       "server_error": "Non è stato possibile salvare il file. Riprova.",

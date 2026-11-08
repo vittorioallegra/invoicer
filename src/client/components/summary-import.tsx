@@ -250,7 +250,7 @@ export function SummaryImport() {
               className="mt-1 size-4"
             />
             <span>
-              <span className="block font-medium">{t("import.issued.markPaid")}</span>
+              <span className="block font-medium">{t("import.invoices.markPaid")}</span>
               <span className="block text-muted-foreground">
                 {t("import.summary.markPaidHint")}
               </span>

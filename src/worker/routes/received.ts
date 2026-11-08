@@ -181,7 +181,7 @@ received.post("/import", async (c) => {
     decodeImportMeta(c.req.header(IMPORT_META_HEADER)),
   );
   if (!meta.success) throw makeError("bad_request", `${IMPORT_META_HEADER}: invalid`);
-  const { fileName, summary } = meta.data;
+  const { fileName, summary, paid } = meta.data;
   const db = c.env.DB;
 
   const sha = await sha256Hex(content);
@@ -209,8 +209,9 @@ received.post("/import", async (c) => {
     await db
       .prepare(
         `INSERT INTO received_invoices (id, pec_message_id, parse_status, file_id, supplier_name,
-           supplier_vat, number, issue_date, document_type, currency, total_cents, created_at)
-         VALUES (?, NULL, 'parsed', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           supplier_vat, number, issue_date, document_type, currency, total_cents, payment_flag,
+           paid_date, created_at)
+         VALUES (?, NULL, 'parsed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         id,
@@ -222,6 +223,8 @@ received.post("/import", async (c) => {
         summary.documentType,
         summary.currency,
         summary.totalCents,
+        paid ? "paid" : "unpaid",
+        paid ? summary.issueDate : null,
         Date.now(),
       )
       .run();

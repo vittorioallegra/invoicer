@@ -1154,16 +1154,12 @@
     "badge": "Imported",
     "title": "Import",
     "kinds": {
-      "received": "Received invoices",
-      "issued": "Issued invoices",
+      "invoices": "Invoices",
       "clients": "Clients",
       "summary": "Fatture in Cloud summary (.xls)"
     },
-    "received": {
-      "intro": "Import supplier invoices you received before you started using the app: FatturaPA XML or signed P7M files, or the ZIP you can download from the Agenzia delle Entrate portal."
-    },
-    "issued": {
-      "intro": "Import your earlier issued invoices (for example the export from Fatture in Cloud or the ZIP from the Agenzia delle Entrate portal) as XML, P7M or ZIP. They are stored as delivered and cannot be changed; their numbers cannot be used again.",
+    "invoices": {
+      "intro": "Import your invoices from files: XML or signed P7M files, or a ZIP of them (for example the full Fatture in Cloud export, or the ZIP from the Agenzia delle Entrate portal). Each file is told apart automatically: issued by your company, or received from a supplier. Issued invoices are stored as delivered and cannot be changed; their numbers cannot be used again. Issued invoices that were never sent (in a \"not sent\" folder, or dated after today) are created as invoices to send, with their real lines, to check and send from here. Files that are not invoices (PDFs, spreadsheets) are ignored.",
       "markPaid": "Mark the imported invoices as paid",
       "markPaidHint": "Earlier invoices are usually settled. Turn this off to keep them unpaid."
     },
@@ -1172,7 +1168,9 @@
     "selected_other": "{{count}} files selected",
     "start": "Import",
     "running": "Importing {{done}} of {{total}}",
-    "noProfile": "Fill in your company details first: they tell your own invoices from your suppliers' ones.",
+    "noProfile": "Fill in your company details, including the VAT number, first: they tell your own invoices from your suppliers' ones.",
+    "noProfileLink": "Open the company details",
+    "seriesCreated": "Numbering series created for the issued invoices:",
     "result": {
       "summary": "{{imported}} imported, {{skipped}} skipped",
       "imported": "Imported",
@@ -1191,8 +1189,6 @@
       "unreadable": "This is not a readable FatturaPA invoice.",
       "unsupported_document_type": "Document type {{detail}} cannot be imported: only invoices and credit notes.",
       "multiple_documents": "The file holds several invoices. Import them one file at a time.",
-      "not_issued_by_owner": "The supplier is not your company, so this is not one of your issued invoices.",
-      "issued_by_owner": "The supplier is your company: import it with the issued invoices.",
       "too_large": "The file is larger than 2 MB, the limit for stored files.",
       "empty_archive": "The archive has no invoice files.",
       "server_error": "The file could not be stored. Try again.",

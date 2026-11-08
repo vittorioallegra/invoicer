@@ -16,6 +16,8 @@ export interface ReadFile {
   label: string;
   /** Name of the stored original (the entry name inside a ZIP). */
   fileName: string;
+  /** Where the file came from: its name, or its full path inside the ZIP. */
+  path: string;
   /** The file exactly as it was (the XML, or the P7M with its signature). */
   original: Uint8Array;
   invoice: ReceivedInvoice | null;
@@ -45,8 +47,8 @@ export function parseInvoiceFile(fileName: string, bytes: Uint8Array): ReceivedI
   return parseFatturaXml(decodeXml(invoiceXmlBytes(fileName, bytes)));
 }
 
-function readOne(label: string, fileName: string, bytes: Uint8Array): ReadFile {
-  const base = { label, fileName, original: bytes };
+function readOne(label: string, fileName: string, bytes: Uint8Array, path = fileName): ReadFile {
+  const base = { label, fileName, path, original: bytes };
   if (bytes.byteLength > MAX_FILE_BYTES) return { ...base, invoice: null, reason: "too_large" };
   try {
     return { ...base, invoice: parseInvoiceFile(fileName, bytes), reason: null };
@@ -65,13 +67,31 @@ export function readImportFile(name: string, bytes: Uint8Array): ReadFile[] {
   try {
     entries = unzipEntries(bytes);
   } catch {
-    return [{ label: name, fileName: name, original: bytes, invoice: null, reason: "unreadable" }];
+    return [
+      {
+        label: name,
+        fileName: name,
+        path: name,
+        original: bytes,
+        invoice: null,
+        reason: "unreadable",
+      },
+    ];
   }
   const files = entries.filter((entry) => !SDI_SIDE_FILE.test(entry.name));
   if (files.length === 0) {
     return [
-      { label: name, fileName: name, original: bytes, invoice: null, reason: "empty_archive" },
+      {
+        label: name,
+        fileName: name,
+        path: name,
+        original: bytes,
+        invoice: null,
+        reason: "empty_archive",
+      },
     ];
   }
-  return files.map((entry) => readOne(`${name}/${entry.name}`, entry.name, entry.bytes));
+  return files.map((entry) =>
+    readOne(`${name}/${entry.name}`, entry.name, entry.bytes, entry.path),
+  );
 }

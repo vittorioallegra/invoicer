@@ -50,9 +50,17 @@ afterEach(cleanup);
 const profile = { profile: { country: "IT", vatNumber: "01234567890", name: "Me" } };
 
 describe("import page", () => {
-  it("imports issued invoice files and shows the result with a reason for each skipped file", async () => {
+  const file = (name: string, text: string) => new File([text], name, { type: "text/xml" });
+  const received = xml.replace(
+    /<IdCodice>01234567890<\/IdCodice>/g,
+    "<IdCodice>05555555555</IdCodice>",
+  );
+
+  it("imports issued and received files in one go and shows the result with a reason for each skipped file", async () => {
     mocks.api.mockImplementation(async (path: string, init?: { body?: Uint8Array }) => {
       if (path === "/api/profile") return profile;
+      if (path === "/api/numbering-series") return { series: [] };
+      if (path === "/api/received/import") return { outcome: "imported", id: "r1" };
       if (path === "/api/invoices/import") {
         const text = new TextDecoder().decode(init?.body);
         return text.includes("<Numero>2</Numero>")
@@ -61,30 +69,65 @@ describe("import page", () => {
       }
       throw new Error(`unexpected ${path}`);
     });
-    await renderAt("/import?kind=issued");
+    await renderAt("/import");
     const input = (await screen.findByLabelText("Files")) as HTMLInputElement;
-    const file = (name: string, text: string) => new File([text], name, { type: "text/xml" });
     fireEvent.change(input, {
       target: {
         files: [
           file("one.xml", xml.replace("<Numero>123</Numero>", "<Numero>1</Numero>")),
           file("two.xml", xml.replace("<Numero>123</Numero>", "<Numero>2</Numero>")),
+          file("supplier.xml", received),
           file("junk.xml", "not an invoice"),
         ],
       },
     });
-    expect(screen.getByText("3 files selected")).toBeTruthy();
+    expect(screen.getByText("4 files selected")).toBeTruthy();
     const start = screen.getByRole("button", { name: "Import" });
     await waitFor(() => expect((start as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(start);
-    expect(await screen.findByText("1 imported, 2 skipped")).toBeTruthy();
+    expect(await screen.findByText("2 imported, 2 skipped")).toBeTruthy();
+    expect(screen.getByText("Issued 1, 2014-12-18, DITTA BETA")).toBeTruthy();
+    expect(screen.getByText("Received 123, 2014-12-18, SOCIETA' ALPHA SRL")).toBeTruthy();
     expect(
       screen.getByText("Number 2 is already used by another invoice in the same series and year."),
     ).toBeTruthy();
     expect(screen.getByText("This is not a readable FatturaPA invoice.")).toBeTruthy();
-    expect(screen.getByText("Imported")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Import more files" }));
     expect(await screen.findByLabelText("Files")).toBeTruthy();
+  });
+
+  it.each(["/import?kind=issued", "/import?kind=received", "/import"])(
+    "shows the combined import for %s",
+    async (path) => {
+      mocks.api.mockImplementation(async (url: string) =>
+        url === "/api/profile" ? profile : { series: [] },
+      );
+      await renderAt(path);
+      const kinds = await screen.findByRole("navigation", { name: "Import" });
+      expect(
+        within(kinds).getByRole("link", { name: "Invoices" }).getAttribute("aria-current"),
+      ).toBe("page");
+      expect(within(kinds).queryByRole("link", { name: "Issued invoices" })).toBeNull();
+      expect(await screen.findByLabelText("Files")).toBeTruthy();
+    },
+  );
+
+  it("asks for the VAT number in the company details instead of guessing", async () => {
+    mocks.api.mockImplementation(async (url: string) =>
+      url === "/api/profile"
+        ? { profile: { country: "IT", vatNumber: "", name: "Me" } }
+        : { series: [] },
+    );
+    await renderAt("/import");
+    expect(await screen.findByText(/including the VAT number/)).toBeTruthy();
+    const link = screen.getByRole("link", { name: "Open the company details" });
+    expect(link.getAttribute("href")).toBe("/settings/company");
+    fireEvent.change(await screen.findByLabelText("Files"), {
+      target: { files: [file("one.xml", xml)] },
+    });
+    expect((screen.getByRole("button", { name: "Import" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
   });
 });
 

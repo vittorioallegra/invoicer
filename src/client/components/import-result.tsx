@@ -13,6 +13,7 @@ export function ImportResult({
   onAgain,
   linkFor,
   labelOf,
+  notes,
 }: {
   results: ImportItemResult[];
   onAgain: () => void;
@@ -20,6 +21,8 @@ export function ImportResult({
   linkFor?: (item: ImportItemResult) => ReactNode;
   /** Formats an item's label (CSV rows are "row 3"); defaults to the label as is. */
   labelOf?: (item: ImportItemResult) => string;
+  /** Extra information under the heading (for example the numbering series that were created). */
+  notes?: ReactNode;
 }) {
   const { t } = useTranslation();
   const imported = results.filter((item) => item.status === "imported").length;
@@ -36,6 +39,7 @@ export function ImportResult({
       <h2 id="import-result" role="status" className="text-lg font-semibold">
         {t("import.result.summary", { imported, skipped })}
       </h2>
+      {notes}
       {results.length > 0 ? (
         <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
           {ordered.map(({ item, key }) => (

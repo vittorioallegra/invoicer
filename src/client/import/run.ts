@@ -9,17 +9,18 @@ import {
   type IssuedImportMeta,
   type ReceivedSummary,
 } from "../../shared/import";
+import type { NumberingSeriesData, NumberingSeriesRecord } from "../../shared/numbering";
 import { api } from "../lib/api";
+import { missingSeries } from "./fic-summary";
 import { type ReadFile, readImportFile } from "./read";
 import { summarizeInvoice, vatIdOf } from "./summary";
+import { xmlDraftFromInvoice } from "./xml-draft";
 
 /**
  * Runs an import of invoice files (XML, P7M, ZIP): reads each file in the browser, checks it, and
  * sends the original with a summary to the Worker, one file at a time so a slow or broken file
  * never stops the others. Reports progress between files and returns one result per file.
  */
-
-export type ImportKind = "received" | "issued";
 
 export interface PickedFile {
   name: string;
@@ -36,13 +37,29 @@ export interface ImportProgress {
 }
 
 export interface ImportOptions {
-  kind: ImportKind;
-  /** Issued only: mark the imported invoices paid (historic invoices are usually settled). */
+  /** Mark the imported issued and received invoices paid (historic invoices are usually settled). */
   markPaid?: boolean;
   /** The owner's VAT id with country (`IT01234567890`), to tell issued from received files. */
-  ownVat: string | null;
+  ownVat: string;
+  /** The owner's codice fiscale, when set: a file issued by it is the owner's too. */
+  ownTaxCode?: string | null;
+  /** Today (Europe/Rome, `YYYY-MM-DD`): an issued invoice dated after it is not issued yet. */
+  today: string;
+  /** The numbering series that exist now; the ones the issued numbers need are created. */
+  series?: NumberingSeriesRecord[];
+  /** The text of a result row ("Issued 5/CH, 2025-03-31, Acme"). */
+  label?: (kind: "issued" | "received", number: string, date: string, name: string) => string;
   onProgress?: (progress: ImportProgress) => void;
 }
+
+export interface ImportOutcome {
+  items: ImportItemResult[];
+  /** Numbering series created for the issued numbers (`5/CH` needs one with the suffix `/CH`). */
+  createdSeries: NumberingSeriesData[];
+}
+
+/** A folder named like "not sent" in the path of an archive entry: the invoice was never sent. */
+const NOT_SENT_FOLDER = /(^|\/)[^/]*(non[\s_-]*inviat|not[\s_-]*sent|unsent)[^/]*\//i;
 
 const DEFAULT_RECIPIENT = new Set(["0000000", "XXXXXXX"]);
 
@@ -118,94 +135,180 @@ function skipped(label: string, reason: ImportReason, detail?: string, id?: stri
   return item;
 }
 
-/** Checks one read file and sends it; never throws (a failure becomes a skipped result). */
-export async function importReadFile(
-  file: ReadFile,
-  options: ImportOptions,
-): Promise<ImportItemResult> {
-  const { label } = file;
-  if (file.reason || !file.invoice) return skipped(label, file.reason ?? "unreadable");
+/** The invoice files read from the picks, classified: issued by the owner, or received. */
+interface Entry {
+  file: ReadFile;
+  kind: "issued" | "received" | null;
+  summary: ReceivedSummary | null;
+  /** Issued only: never sent (a "not sent" folder, or dated after today). */
+  unsent: boolean;
+}
+
+function classify(file: ReadFile, options: ImportOptions): Entry {
+  const summary = file.invoice ? summarizeInvoice(file.invoice) : null;
+  if (!file.invoice || !summary) return { file, kind: null, summary: null, unsent: false };
+  const supplier = file.invoice.supplier;
+  const own =
+    vatIdOf(supplier) === options.ownVat ||
+    (options.ownTaxCode != null && supplier.taxCode === options.ownTaxCode);
+  const folder = file.path.includes("/") ? file.path.slice(0, file.path.lastIndexOf("/") + 1) : "";
+  return {
+    file,
+    kind: own ? "issued" : "received",
+    summary,
+    unsent: own && (NOT_SENT_FOLDER.test(folder) || summary.issueDate > options.today),
+  };
+}
+
+const DRAFT_NOTES = {
+  unavailable: "draft_number_unavailable",
+  free_text: "draft_number_free_text",
+};
+
+/** Sends one classified file; never throws (a failure becomes a skipped result). */
+async function importEntry(entry: Entry, options: ImportOptions): Promise<ImportItemResult> {
+  const { file, summary, kind } = entry;
+  if (!kind || !summary || !file.invoice) return skipped(file.label, file.reason ?? "unreadable");
   const invoice = file.invoice;
-  const summary = summarizeInvoice(invoice);
-  if (!summary) return skipped(label, "unreadable");
-  const own = options.ownVat;
-  const supplierVat = vatIdOf(invoice.supplier);
-  const ownSupplier = own !== null && supplierVat === own;
+  const label = options.label
+    ? options.label(
+        kind,
+        summary.number,
+        summary.issueDate,
+        kind === "issued" ? invoice.customer.name : summary.supplierName,
+      )
+    : file.label;
+  const tag = <T extends ImportItemResult>(item: T): T => ({ ...item, kind });
   try {
-    if (options.kind === "received") {
-      if (ownSupplier) return skipped(label, "issued_by_owner");
+    if (kind === "received") {
       const result = await upload("/api/received/import", file, {
         fileName: file.fileName,
         summary,
+        paid: options.markPaid ?? false,
       });
-      return result.outcome === "imported"
-        ? { label, status: "imported", id: result.id }
-        : skipped(label, "duplicate", undefined, result.id);
+      return tag(
+        result.outcome === "imported"
+          ? { label, status: "imported", id: result.id }
+          : skipped(label, "duplicate", undefined, result.id),
+      );
     }
-    if (own !== null && !ownSupplier) return skipped(label, "not_issued_by_owner");
     if (summary.documentType !== "TD01" && summary.documentType !== "TD04") {
-      return skipped(label, "unsupported_document_type", summary.documentType);
+      return tag(skipped(label, "unsupported_document_type", summary.documentType));
     }
-    if (invoice.documents.length > 1) return skipped(label, "multiple_documents");
+    if (invoice.documents.length > 1) return tag(skipped(label, "multiple_documents"));
     const meta = issuedMeta(file, invoice, summary, options.markPaid ?? false);
-    if (!meta) return skipped(label, "unreadable");
-    const result = await upload("/api/invoices/import", file, meta);
+    if (!meta) return tag(skipped(label, "unreadable"));
+    let result: ImportFileOutcome | { outcome: "invalid" };
+    if (entry.unsent) {
+      const draft = xmlDraftFromInvoice(invoice, meta.customer);
+      if (!draft) return tag(skipped(label, "unreadable"));
+      result = await api<ImportFileOutcome | { outcome: "invalid" }>("/api/invoices/import-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draft),
+      });
+    } else {
+      result = await upload("/api/invoices/import", file, meta);
+    }
     if (result.outcome === "imported") {
-      return {
+      const note = result.numberNote ? DRAFT_NOTES[result.numberNote] : undefined;
+      return tag({
         label,
         status: "imported",
         id: result.id,
-        ...(result.clientLinked === false ? { detail: "no_client" } : {}),
-      };
+        ...(entry.unsent ? { draft: true } : {}),
+        ...(note
+          ? { detail: note }
+          : result.clientLinked === false && !entry.unsent
+            ? { detail: "no_client" }
+            : {}),
+      });
     }
     if (result.outcome === "number_conflict") {
-      return skipped(label, "number_conflict", result.number, result.id);
+      return tag(skipped(label, "number_conflict", result.number, result.id));
     }
-    return skipped(label, "duplicate", undefined, result.id);
+    if (result.outcome === "invalid") return tag(skipped(label, "server_error"));
+    return tag(skipped(label, "duplicate", undefined, result.id));
   } catch (error) {
     const status = (error as { status?: number }).status;
-    return skipped(label, status === 413 ? "too_large" : "server_error");
+    return tag(skipped(label, status === 413 ? "too_large" : "server_error"));
   }
 }
 
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-/** Imports every picked file (archives expand to their entries). */
+const unreadable = (name: string): ReadFile => ({
+  label: name,
+  fileName: name,
+  path: name,
+  original: new Uint8Array(),
+  invoice: null,
+  reason: "unreadable",
+});
+
+/**
+ * Imports every picked file (archives expand to their invoice files). Each file is told apart
+ * automatically: issued when its supplier is the owner, received otherwise. The numbering series
+ * the issued numbers need are created first. Issued invoices that were never sent are created last,
+ * as unsent invoices, so their numbers are asked for above the issued ones.
+ */
 export async function runInvoiceImport(
   picked: PickedFile[],
   options: ImportOptions,
-): Promise<ImportItemResult[]> {
-  const results: ImportItemResult[] = [];
-  let total = picked.length;
+): Promise<ImportOutcome> {
+  const files: ReadFile[] = [];
   let done = 0;
+  let total = picked.length;
   const report = (label: string) => options.onProgress?.({ done, total, label });
   for (const file of picked) {
     report(file.name);
     // Let the page paint the progress before the heavy parsing blocks the thread.
     await tick();
-    let entries: ReadFile[];
     try {
-      entries = readImportFile(file.name, await file.read());
+      files.push(...readImportFile(file.name, await file.read()));
     } catch {
-      entries = [
-        {
-          label: file.name,
-          fileName: file.name,
-          original: new Uint8Array(),
-          invoice: null,
-          reason: "unreadable",
-        },
-      ];
+      files.push(unreadable(file.name));
     }
-    // An archive counts once for itself and once more for each extra entry.
-    total += Math.max(0, entries.length - 1);
-    for (const entry of entries) {
-      report(entry.label);
-      await tick();
-      results.push(await importReadFile(entry, options));
-      done += 1;
+    done += 1;
+  }
+  const entries = files.map((file) => classify(file, options));
+
+  // Numbers like `5/CH` only block reuse inside a series with that suffix: create the missing ones.
+  const createdSeries: NumberingSeriesData[] = [];
+  const wanted = missingSeries(
+    entries
+      .filter((e) => e.kind === "issued" && e.summary)
+      .map((e) => (e.summary as ReceivedSummary).number),
+    options.series ?? [],
+  );
+  for (const series of wanted) {
+    try {
+      await api("/api/numbering-series", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(series),
+      });
+      createdSeries.push(series);
+    } catch {
+      // A series taken meanwhile only means those numbers block nothing.
     }
   }
+
+  const ordered = [
+    ...entries.filter((entry) => !entry.unsent),
+    ...entries
+      .filter((entry) => entry.unsent)
+      .sort((a, b) => (a.summary?.issueDate ?? "").localeCompare(b.summary?.issueDate ?? "")),
+  ];
+  total = ordered.length;
+  done = 0;
+  const items: ImportItemResult[] = [];
+  for (const entry of ordered) {
+    report(entry.file.label);
+    await tick();
+    items.push(await importEntry(entry, options));
+    done += 1;
+  }
   options.onProgress?.({ done, total, label: "" });
-  return results;
+  return { items, createdSeries };
 }

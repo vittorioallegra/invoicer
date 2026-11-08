@@ -114,3 +114,20 @@ describe("invoice summary", () => {
     expect(documentTotalCents(document)).toBe(123450);
   });
 });
+
+describe("archive entries that are not invoices", () => {
+  it("are ignored without a result row", () => {
+    const bytes = (value: string) => new TextEncoder().encode(value);
+    const zip = zipSync({
+      "x/a.xml": xml,
+      "x/a.pdf": bytes("%PDF"),
+      "x/list.xlsx": bytes("sheet"),
+      "__MACOSX/x/._a.xml": bytes("meta"),
+      "x/._a.xml": bytes("meta"),
+      "x/.DS_Store": bytes("meta"),
+    });
+    expect(readImportFile("export.zip", zip).map((f) => [f.label, f.path, f.reason])).toEqual([
+      ["export.zip/a.xml", "x/a.xml", null],
+    ]);
+  });
+});
