@@ -1183,7 +1183,7 @@
       "summary": "Riepilogo Fatture in Cloud (.xls)"
     },
     "invoices": {
-      "intro": "Importa le tue fatture da file: XML o P7M firmati, oppure uno ZIP che li contiene (per esempio l'esportazione completa di Fatture in Cloud, o lo ZIP del portale dell'Agenzia delle Entrate). Ogni file viene riconosciuto da solo: emesso dalla tua azienda, oppure ricevuto da un fornitore. Le fatture emesse sono salvate come consegnate e non si possono modificare; i loro numeri non si possono riusare. Le fatture emesse mai inviate (in una cartella \"non inviate\", o con data successiva a oggi) diventano fatture da inviare, con le righe originali, da controllare e inviare da qui. I file che non sono fatture (PDF, fogli di calcolo) vengono ignorati.",
+      "intro": "Importa le tue fatture da file: XML o P7M firmati, oppure uno ZIP che li contiene (per esempio l'esportazione completa di Fatture in Cloud, o lo ZIP del portale dell'Agenzia delle Entrate). Ogni file viene riconosciuto da solo: emesso dalla tua azienda, oppure ricevuto da un fornitore. Le fatture emesse sono salvate come già inviate: puoi modificarle dopo, ma non vengono mai più inviate, e i loro numeri non si possono riusare. Le fatture emesse mai inviate (in una cartella \"non inviate\", o con data successiva a oggi) diventano fatture da inviare, con le righe originali, da controllare e inviare da qui. I file che non sono fatture (PDF, fogli di calcolo) vengono ignorati.",
       "markPaid": "Segna le fatture importate come pagate",
       "markPaidHint": "Le fatture precedenti di solito sono già saldate. Disattiva per lasciarle non pagate."
     },

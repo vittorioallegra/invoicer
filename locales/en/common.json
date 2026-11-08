@@ -1183,7 +1183,7 @@
       "summary": "Fatture in Cloud summary (.xls)"
     },
     "invoices": {
-      "intro": "Import your invoices from files: XML or signed P7M files, or a ZIP of them (for example the full Fatture in Cloud export, or the ZIP from the Agenzia delle Entrate portal). Each file is told apart automatically: issued by your company, or received from a supplier. Issued invoices are stored as delivered and cannot be changed; their numbers cannot be used again. Issued invoices that were never sent (in a \"not sent\" folder, or dated after today) are created as invoices to send, with their real lines, to check and send from here. Files that are not invoices (PDFs, spreadsheets) are ignored.",
+      "intro": "Import your invoices from files: XML or signed P7M files, or a ZIP of them (for example the full Fatture in Cloud export, or the ZIP from the Agenzia delle Entrate portal). Each file is told apart automatically: issued by your company, or received from a supplier. Issued invoices are stored as already sent: you can edit them afterwards, but they are never sent again, and their numbers cannot be used again. Issued invoices that were never sent (in a \"not sent\" folder, or dated after today) are created as invoices to send, with their real lines, to check and send from here. Files that are not invoices (PDFs, spreadsheets) are ignored.",
       "markPaid": "Mark the imported invoices as paid",
       "markPaidHint": "Earlier invoices are usually settled. Turn this off to keep them unpaid."
     },
