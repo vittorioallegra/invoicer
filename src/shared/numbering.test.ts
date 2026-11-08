@@ -5,6 +5,7 @@ import {
   MAX_AFFIX_LENGTH,
   matchSeries,
   numberingSeriesInputSchema,
+  resolveImportedNumber,
 } from "./numbering";
 
 describe("formatNumberWithYear", () => {
@@ -77,5 +78,29 @@ describe("matchSeries", () => {
     expect(matchSeries("42", series)).toEqual({ seriesId: "it", progressive: 42 });
     expect(matchSeries("CH-x", series)).toEqual({ seriesId: "it", progressive: null });
     expect(matchSeries("2024/7", series)).toEqual({ seriesId: "it", progressive: null });
+  });
+});
+
+describe("resolveImportedNumber", () => {
+  const series = [
+    { id: "it", prefix: null, suffix: null, isDefault: true },
+    { id: "ch", prefix: "CH-", suffix: null, isDefault: false },
+  ];
+
+  it("lets the number decide, unless the chosen series fits it", () => {
+    expect(resolveImportedNumber("CH-4", "it", series)).toEqual({ seriesId: "ch", progressive: 4 });
+    expect(resolveImportedNumber("CH-4", "ch", series)).toEqual({ seriesId: "ch", progressive: 4 });
+    expect(resolveImportedNumber("7", "ch", series)).toEqual({ seriesId: "it", progressive: 7 });
+  });
+
+  it("keeps the chosen series for free text", () => {
+    expect(resolveImportedNumber("2021/A", "ch", series)).toEqual({
+      seriesId: "ch",
+      progressive: null,
+    });
+    expect(resolveImportedNumber("2021/A", null, series)).toEqual({
+      seriesId: "it",
+      progressive: null,
+    });
   });
 });

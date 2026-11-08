@@ -48,6 +48,7 @@ import {
   listInvoices,
   loadInvoice,
   recordToBody,
+  refuseImported,
   updateInvoice,
 } from "../invoices/store";
 import { loadSendReadiness } from "../onboarding";
@@ -77,17 +78,20 @@ const EDITOR_FORM_MAX_CHARS = 200_000;
  */
 async function readBody(c: {
   req: { json: () => Promise<unknown> };
-}): Promise<{ body: InvoiceBody; editorForm: string | null }> {
+}): Promise<{ body: InvoiceBody; editorForm: string | null; number: string | null }> {
   const raw = await c.req.json().catch(() => null);
   const body = parseInvoiceDraft(raw);
   if (!body) throw makeError("bad_request", "body: invalid");
+  // The printed number of an imported invoice (free text); other invoices are numbered at send time.
+  const typed = (raw as { number?: unknown }).number;
+  const number = typeof typed === "string" ? typed : null;
   const form = (raw as { editorForm?: unknown }).editorForm;
-  if (form === undefined || form === null) return { body, editorForm: null };
+  if (form === undefined || form === null) return { body, editorForm: null, number };
   const text = typeof form === "object" && !Array.isArray(form) ? JSON.stringify(form) : "";
   if (text === "" || text.length > EDITOR_FORM_MAX_CHARS) {
     throw makeError("bad_request", "editorForm: invalid");
   }
-  return { body, editorForm: text };
+  return { body, editorForm: text, number };
 }
 
 /**
@@ -227,13 +231,14 @@ invoices.get("/:id", async (c) =>
 
 invoices.put("/:id", async (c) => {
   const id = c.req.param("id");
-  const { body, editorForm } = await readBody(c);
+  const { body, editorForm, number } = await readBody(c);
   await updateInvoice(
     c.env.DB,
     id,
     await resolveReferences(c.env.DB, body),
     new Date(),
     editorForm,
+    number,
   );
   return c.json({ invoice: await requireInvoice(c.env.DB, id) });
 });
@@ -316,6 +321,7 @@ invoices.post("/:id/credit-note", async (c) => {
  * new number and date come at send time and the old number is never reused.
  */
 invoices.post("/:id/reissue", async (c) => {
+  await refuseImported(c.env.DB, c.req.param("id"));
   const source = await requireInvoice(c.env.DB, c.req.param("id"));
   if (source.state !== "rejected_expired") throw makeError("conflict", "reissue_not_allowed");
   if (source.reissuedById) {
@@ -344,6 +350,7 @@ async function loadClient(db: D1Database, id: string | null): Promise<ClientReco
  */
 invoices.post("/:id/reserve-number", async (c) => {
   const id = c.req.param("id");
+  await refuseImported(c.env.DB, id);
   // Finalizing needs the company details; the PEC setup gates only the PEC send itself (the
   // send route), so an invoice can still be finalised for the manual AdE channel.
   const readiness = await loadSendReadiness(c.env);
@@ -387,6 +394,7 @@ invoices.post("/:id/reserve-number", async (c) => {
 /** Gives a reserved number back, only while it is the highest of its year and nothing was sent. */
 invoices.post("/:id/release-number", async (c) => {
   const id = c.req.param("id");
+  await refuseImported(c.env.DB, id);
   await releaseNumber(c.env.DB, id);
   return c.json({ invoice: await requireInvoice(c.env.DB, id) });
 });

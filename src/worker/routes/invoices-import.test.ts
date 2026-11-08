@@ -81,7 +81,7 @@ describe("POST /api/invoices/import", () => {
     expect(await nextNumber(2024)).toBe(8);
     expect(await nextNumber(2025)).toBe(1);
 
-    // Read-only: no edit, delete, duplicate or credit note.
+    // No delete, duplicate or credit note (editing is covered in invoices-imported-edit.test.ts).
     expect((await owner.json(`/api/invoices/${id}`, { method: "PUT", body: {} })).status).toBe(400);
     expect((await owner.json(`/api/invoices/${id}`, { method: "DELETE" })).status).toBe(409);
     expect((await owner.json(`/api/invoices/${id}/duplicate`, { body: {} })).status).toBe(409);

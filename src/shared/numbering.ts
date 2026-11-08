@@ -71,6 +71,19 @@ export interface NumberingSeriesRecord extends SeriesAffixes {
 }
 
 /**
+ * The progressive of a printed number in one series: the digits between its prefix and suffix
+ * (at most 9), or null when the number is not exactly prefix + digits + suffix.
+ */
+export function progressiveIn(raw: string, series: SeriesAffixes): number | null {
+  const prefix = series.prefix ?? "";
+  const suffix = series.suffix ?? "";
+  if (raw.length <= prefix.length + suffix.length) return null;
+  if (!raw.startsWith(prefix) || !raw.endsWith(suffix)) return null;
+  const middle = raw.slice(prefix.length, raw.length - suffix.length);
+  return /^\d{1,9}$/.test(middle) ? Number(middle) : null;
+}
+
+/**
  * The series an already printed number belongs to, for invoices imported from elsewhere: a series
  * that has a prefix or a suffix when the number is exactly prefix + digits + suffix, else the
  * default series. Returns the series id and the progressive (null when the number has no clean
@@ -81,14 +94,30 @@ export function matchSeries(
   series: readonly Pick<NumberingSeriesRecord, "id" | "prefix" | "suffix" | "isDefault">[],
 ): { seriesId: string | null; progressive: number | null } {
   const fallback = series.find((s) => s.isDefault)?.id ?? null;
-  const candidates = series.filter((s) => s.prefix || s.suffix);
-  for (const s of candidates) {
-    const prefix = s.prefix ?? "";
-    const suffix = s.suffix ?? "";
-    if (raw.length <= prefix.length + suffix.length) continue;
-    if (!raw.startsWith(prefix) || !raw.endsWith(suffix)) continue;
-    const middle = raw.slice(prefix.length, raw.length - suffix.length);
-    if (/^\d{1,9}$/.test(middle)) return { seriesId: s.id, progressive: Number(middle) };
+  for (const s of series.filter((s) => s.prefix || s.suffix)) {
+    const progressive = progressiveIn(raw, s);
+    if (progressive !== null) return { seriesId: s.id, progressive };
   }
   return { seriesId: fallback, progressive: /^\d{1,9}$/.test(raw) ? Number(raw) : null };
+}
+
+/**
+ * The series and progressive of a number the owner typed for an imported invoice, who may also
+ * have picked a series: that series wins when the number fits it (or when the number is free text
+ * with no progressive anywhere); otherwise the number decides, as on import.
+ */
+export function resolveImportedNumber(
+  raw: string,
+  chosenId: string | null,
+  series: readonly Pick<NumberingSeriesRecord, "id" | "prefix" | "suffix" | "isDefault">[],
+): { seriesId: string | null; progressive: number | null } {
+  const chosen = series.find((s) => s.id === chosenId);
+  if (chosen) {
+    const progressive = progressiveIn(raw, chosen);
+    if (progressive !== null) return { seriesId: chosen.id, progressive };
+  }
+  const matched = matchSeries(raw, series);
+  return chosen && matched.progressive === null
+    ? { seriesId: chosen.id, progressive: null }
+    : matched;
 }

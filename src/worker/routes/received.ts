@@ -7,6 +7,7 @@ import {
   parsedResultSchema,
   receivedImportMetaSchema,
   receivedSummaryBodySchema,
+  receivedSummarySchema,
   type SummaryImportResponse,
 } from "../../shared/import";
 import { invoiceMetaSchema } from "../../shared/invoice";
@@ -136,6 +137,49 @@ received.put("/:id/parsed", async (c) => {
           )
           .run();
   if (result.meta.changes === 0) throw makeError("not_found");
+  return c.json({ received: await requireRecord(c.env.DB, id) });
+});
+
+/**
+ * The owner corrects the summary of a received invoice (supplier, number, date, type, currency,
+ * total). The original file, when there is one, is untouched. A change that makes it the same
+ * invoice as another received one (same supplier, number and date) is refused as a duplicate.
+ */
+received.put("/:id", async (c) => {
+  const id = c.req.param("id");
+  const parsed = receivedSummarySchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) throw makeError("bad_request", validationDetail(parsed.error));
+  const summary = parsed.data;
+  const current = await c.env.DB.prepare("SELECT parse_status FROM received_invoices WHERE id = ?")
+    .bind(id)
+    .first<{ parse_status: string }>();
+  if (!current) throw makeError("not_found");
+  if (current.parse_status !== "parsed") throw makeError("conflict", "not_parsed");
+  const same = await c.env.DB.prepare(
+    `SELECT id FROM received_invoices
+     WHERE id <> ?1 AND number = ?2 AND issue_date = ?3
+       AND (supplier_vat = ?4 OR (?4 IS NULL AND supplier_vat IS NULL AND supplier_name = ?5))
+     LIMIT 1`,
+  )
+    .bind(id, summary.number, summary.issueDate, summary.supplierVat, summary.supplierName)
+    .first<{ id: string }>();
+  if (same) throw makeError("conflict", "duplicate");
+  await c.env.DB.prepare(
+    `UPDATE received_invoices SET supplier_name = ?, supplier_vat = ?, number = ?, issue_date = ?,
+       document_type = ?, currency = ?, total_cents = ?
+     WHERE id = ?`,
+  )
+    .bind(
+      summary.supplierName,
+      summary.supplierVat,
+      summary.number,
+      summary.issueDate,
+      summary.documentType,
+      summary.currency,
+      summary.totalCents,
+      id,
+    )
+    .run();
   return c.json({ received: await requireRecord(c.env.DB, id) });
 });
 

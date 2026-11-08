@@ -202,7 +202,7 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
           `INSERT INTO number_sequences (series_id, year, last_number)
            SELECT ?4, ?1, CASE WHEN EXISTS (
              SELECT 1 FROM invoices
-              WHERE id = ?2 AND state IN ${ISSUABLE_STATES} AND number_int IS NULL
+              WHERE id = ?2 AND state IN ${ISSUABLE_STATES} AND number_int IS NULL AND source = 'app'
                 AND EXISTS (SELECT 1 FROM numbering_series WHERE id = ?4)
                 AND ?3 >= COALESCE((SELECT issue_date FROM invoices
                                      WHERE year = ?1 AND series_id = ?4 AND number_int IS NOT NULL
@@ -237,7 +237,7 @@ export async function reserveNumber(db: D1Database, input: ReserveInput): Promis
              requested_number_int = NULL,
              year = ?1, issue_date = ?3, state = 'sending', state_rank = 2, updated_at = ?4,
              due_date = COALESCE(?5, due_date)
-           WHERE id = ?2 AND state IN ${ISSUABLE_STATES} AND number_int IS NULL`,
+           WHERE id = ?2 AND state IN ${ISSUABLE_STATES} AND number_int IS NULL AND source = 'app'`,
         )
         .bind(year, invoiceId, issueDate, stamp, termsDueDate, seriesId),
       // 4. The global file progressive.

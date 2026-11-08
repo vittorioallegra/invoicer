@@ -19,6 +19,7 @@ import type { SessionVariables } from "../auth/session";
 import { channelDeps } from "../channel";
 import { type Bindings, isMockChannel } from "../env";
 import { addTransmissionAttempt } from "../invoices/numbering";
+import { refuseImported } from "../invoices/store";
 import {
   advanceState,
   asAttemptState,
@@ -57,6 +58,12 @@ async function loadRow(db: D1Database, id: string): Promise<InvoiceRow> {
     .first<InvoiceRow>();
   if (!row) throw makeError("not_found");
   return row;
+}
+
+/** The row for a route that changes or sends: an imported invoice is never sent. */
+async function loadSendRow(db: D1Database, id: string): Promise<InvoiceRow> {
+  await refuseImported(db, id);
+  return loadRow(db, id);
 }
 
 async function currentTransmission(db: D1Database, invoiceId: string): Promise<TransmissionRow> {
@@ -111,7 +118,7 @@ send.put("/:id/xml", async (c) => {
   const length = Number(c.req.header("Content-Length") ?? 0);
   if (length > schema.MAX_FILE_BYTES) throw makeError("payload_too_large");
   const content = new Uint8Array(await c.req.arrayBuffer());
-  const invoice = await loadRow(c.env.DB, id);
+  const invoice = await loadSendRow(c.env.DB, id);
   if (invoice.state !== "sending") throw makeError("conflict", "invoice_locked");
   const current = await currentTransmission(c.env.DB, id);
   if (current.outcome !== "none") throw makeError("conflict", "transmission_sent");
@@ -176,7 +183,7 @@ send.get("/:id/xml", async (c) => {
  */
 send.post("/:id/new-attempt", async (c) => {
   const id = c.req.param("id");
-  const invoice = await loadRow(c.env.DB, id);
+  const invoice = await loadSendRow(c.env.DB, id);
   const attempts = await listTransmissions(c.env.DB, id);
   const now = Date.now();
   let allocate = false;
@@ -266,7 +273,7 @@ send.post("/:id/send", async (c) => {
   if (!parsed.success) throw makeError("bad_request", validationDetail(parsed.error));
   const answer: SendAnswer = parsed.data.answer;
 
-  const invoice = await loadRow(c.env.DB, id);
+  const invoice = await loadSendRow(c.env.DB, id);
   if (invoice.state !== "sending") throw makeError("conflict", "invoice_not_sendable");
   const current = await currentTransmission(c.env.DB, id);
   if (current.outcome !== "none") {
@@ -349,7 +356,7 @@ send.post("/:id/send", async (c) => {
 /** Manual AdE channel: the owner uploaded the exported XML/PDF to the portal by hand. */
 send.post("/:id/manual/handed-over", async (c) => {
   const id = c.req.param("id");
-  const invoice = await loadRow(c.env.DB, id);
+  const invoice = await loadSendRow(c.env.DB, id);
   if (invoice.state !== "sending") throw makeError("conflict", "invoice_not_sendable");
   const current = await currentTransmission(c.env.DB, id);
   if (current.outcome !== "none" || !current.xmlFileId) {
@@ -394,7 +401,7 @@ send.post("/:id/manual/outcome", async (c) => {
   if (outcome === "rejected" && !errors?.length) {
     throw makeError("bad_request", "errors: required");
   }
-  const invoice = await loadRow(c.env.DB, id);
+  const invoice = await loadSendRow(c.env.DB, id);
   const current = await currentTransmission(c.env.DB, id);
   if (invoice.state !== "sent" || current.channel !== "manual") {
     throw makeError("conflict", "not_manual_sent");

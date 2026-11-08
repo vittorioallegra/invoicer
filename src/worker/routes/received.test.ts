@@ -167,3 +167,77 @@ describe("POST /api/received/import", () => {
     expect(big.status).toBe(413);
   });
 });
+
+describe("PUT /api/received/:id", () => {
+  const importOne = async (over: Record<string, unknown>, content: string) => {
+    const res = await owner.json<{ outcome: string; id: string }>("/api/received/import", {
+      method: "POST",
+      body: bytes(content),
+      contentType: "application/octet-stream",
+      headers: {
+        [IMPORT_META_HEADER]: encodeImportMeta({
+          fileName: `${content}.xml`,
+          summary: { ...summary, ...over },
+        }),
+      },
+    });
+    return res.body.id;
+  };
+  const edit = (id: string, over: Record<string, unknown>) =>
+    owner.json<{ received: ReceivedInvoiceRecord }>(`/api/received/${id}`, {
+      method: "PUT",
+      body: { ...summary, ...over },
+    });
+
+  it("needs a session", async () => {
+    const anon = new TestClient("10.11.0.4", bindings);
+    expect((await anon.json("/api/received/x", { method: "PUT", body: summary })).status).toBe(401);
+  });
+
+  it("changes the summary and leaves the original and the paid state alone", async () => {
+    const id = await importOne({ number: "E1", issueDate: "2026-01-01" }, "<e1/>");
+    await owner.json(`/api/received/${id}`, { method: "PATCH", body: { paymentFlag: "paid" } });
+    const res = await edit(id, {
+      supplierName: "BETA SRL",
+      supplierVat: null,
+      number: "E1-bis",
+      issueDate: "2026-01-02",
+      documentType: "TD04",
+      currency: "USD",
+      totalCents: 999,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.received).toMatchObject({
+      supplierName: "BETA SRL",
+      supplierVat: null,
+      number: "E1-bis",
+      issueDate: "2026-01-02",
+      documentType: "TD04",
+      currency: "USD",
+      totalCents: 999,
+      paymentFlag: "paid",
+      original: { fileName: "<e1/>.xml" },
+    });
+    const file = await owner.request(`/api/received/${id}/file`);
+    expect(await file.text()).toBe("<e1/>");
+  });
+
+  it("refuses a change that makes it the same invoice as another, and bad bodies and unknown ids", async () => {
+    await importOne({ number: "D1", issueDate: "2026-02-01" }, "<d1/>");
+    const other = await importOne({ number: "D2", issueDate: "2026-02-01" }, "<d2/>");
+    const clash = await edit(other, { number: "D1", issueDate: "2026-02-01" });
+    expect(clash.status).toBe(409);
+    expect(clash.body).toMatchObject({ detail: "duplicate" });
+    // Itself is not a duplicate.
+    expect(
+      (await edit(other, { number: "D2", issueDate: "2026-02-01", totalCents: 1 })).status,
+    ).toBe(200);
+    expect((await edit(other, { number: "", issueDate: "2026-02-01" })).status).toBe(400);
+    expect((await edit("missing", {})).status).toBe(404);
+  });
+
+  it("does not edit an invoice the browser has not read yet", async () => {
+    const id = await polledInvoice();
+    expect((await edit(id, {})).status).toBe(409);
+  });
+});

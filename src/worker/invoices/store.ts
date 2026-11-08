@@ -20,6 +20,7 @@ import {
 } from "../../shared/invoice-filters";
 import type { InvoiceState, PaymentState } from "../../shared/invoice-state";
 import { INVOICE_STATES } from "../../shared/invoice-state";
+import { resolveImportedNumber } from "../../shared/numbering";
 import { makeError } from "../problem";
 
 interface InvoiceRow {
@@ -563,12 +564,16 @@ export async function updateInvoice(
   body: InvoiceBody,
   now = new Date(),
   editorForm: string | null = null,
+  importedNumber: string | null = null,
 ): Promise<void> {
   const current = await db
-    .prepare("SELECT state, document_type FROM invoices WHERE id = ?")
+    .prepare("SELECT state, document_type, source FROM invoices WHERE id = ?")
     .bind(id)
-    .first<{ state: InvoiceState; document_type: string }>();
+    .first<{ state: InvoiceState; document_type: string; source: "app" | "imported" }>();
   if (!current) throw makeError("not_found");
+  if (current.source === "imported") {
+    return updateImported(db, id, body, now, editorForm, importedNumber);
+  }
   if (current.state !== "draft" && current.state !== "planned" && current.state !== "rejected") {
     throw makeError("conflict", "invoice_locked");
   }
@@ -621,6 +626,112 @@ export async function updateInvoice(
     ]);
   } catch {
     throw makeError("conflict", "invoice_locked");
+  }
+}
+
+/**
+ * An imported invoice counts as already sent and can never be sent, numbered, released or reissued:
+ * every such path calls this first. A missing invoice is left to the caller (not found).
+ */
+export async function refuseImported(db: D1Database, id: string): Promise<void> {
+  const row = await db
+    .prepare("SELECT source FROM invoices WHERE id = ?")
+    .bind(id)
+    .first<{ source: string }>();
+  if (row?.source === "imported") throw makeError("conflict", "imported_invoice_never_sent");
+}
+
+/** Longest printed number (FatturaPA `Numero`, `String20Type`). */
+const MAX_PRINTED_NUMBER = 20;
+
+/**
+ * Saves an edit of an imported (historic, already sent) invoice: everything the editor holds, but
+ * never its state, rank, payment, transmissions, events or files, and it is never sent again. The
+ * printed number is free text; its series and progressive come from `resolveImportedNumber`, its
+ * year from the invoice date, and the unique index on series + year + progressive keeps holding
+ * (a number held by another invoice is refused with `number_unavailable`). The totals are
+ * recomputed from the lines when they can be (else the figures read from the file stay), and the
+ * due date follows the payment terms when there are some (else the stored one stays).
+ */
+async function updateImported(
+  db: D1Database,
+  id: string,
+  body: InvoiceBody,
+  now: Date,
+  editorForm: string | null,
+  typedNumber: string | null,
+): Promise<void> {
+  const current = await db
+    .prepare(
+      "SELECT number_raw, series_id, issue_date FROM invoices WHERE id = ? AND source = 'imported'",
+    )
+    .bind(id)
+    .first<{ number_raw: string | null; series_id: string; issue_date: string | null }>();
+  if (!current) throw makeError("not_found");
+  const printed = (typedNumber ?? "").trim() || current.number_raw || "";
+  if (
+    printed === "" ||
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: rejects control characters on purpose
+    /[\u0000-\u001f\u007f]/.test(printed) ||
+    (printed.length > MAX_PRINTED_NUMBER && printed !== current.number_raw)
+  ) {
+    throw makeError("bad_request", "number: invalid");
+  }
+  const date = body.invoiceDate ?? current.issue_date;
+  if (!date) throw makeError("bad_request", "invoiceDate: required");
+  const year = Number(date.slice(0, 4));
+  const { results: seriesRows } = await db
+    .prepare("SELECT id, prefix, suffix, is_default AS isDefault FROM numbering_series")
+    .all<{ id: string; prefix: string | null; suffix: string | null; isDefault: number }>();
+  const resolved = resolveImportedNumber(
+    printed,
+    body.seriesId ?? current.series_id,
+    seriesRows.map((row) => ({ ...row, isDefault: row.isDefault === 1 })),
+  );
+  if (!resolved.seriesId) throw makeError("internal_error");
+  if (resolved.progressive !== null) {
+    const taken = await db
+      .prepare(
+        "SELECT 1 AS hit FROM invoices WHERE series_id = ? AND year = ? AND number_int = ? AND id <> ?",
+      )
+      .bind(resolved.seriesId, year, resolved.progressive, id)
+      .first();
+    if (taken) throw makeError("number_unavailable", "number: unavailable");
+  }
+  try {
+    await db.batch([
+      db
+        .prepare(
+          `UPDATE invoices SET document_type = ?2, client_id = ?3, planned_date = ?4, issue_date = ?4,
+             year = ?5, number_raw = ?6, number_int = ?7, series_id = ?8,
+             due_date = COALESCE(?9, due_date), currency = ?10, data = ?11,
+             total_cents = COALESCE(?12, total_cents), linked_invoice_id = ?13, editor_form = ?14,
+             updated_at = ?15
+           WHERE id = ?1 AND source = 'imported'`,
+        )
+        .bind(
+          id,
+          body.documentType,
+          body.clientId,
+          date,
+          year,
+          printed,
+          resolved.progressive,
+          resolved.seriesId,
+          body.dueDate,
+          body.currency,
+          JSON.stringify(body.data),
+          totalCents(body),
+          body.linkedInvoiceId,
+          editorForm,
+          now.getTime(),
+        ),
+      db.prepare("DELETE FROM invoice_lines WHERE invoice_id = ?").bind(id),
+      ...lineStatements(db, id, body.lines),
+    ]);
+  } catch {
+    // Another request took the number between the check and the update.
+    throw makeError("number_unavailable", "number: unavailable");
   }
 }
 
