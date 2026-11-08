@@ -95,7 +95,7 @@ export async function importDrafts(
     const columns = clientColumns(candidate.customer);
     const first = lookups.length;
     for (const [column, value] of columns) {
-      lookups.push(db.prepare(`SELECT id FROM clients WHERE ${column} = ? LIMIT 1`).bind(value));
+      lookups.push(db.prepare(`SELECT id FROM clients WHERE ${column} LIMIT 1`).bind(value));
     }
     return { at, first, columns };
   });

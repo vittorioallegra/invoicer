@@ -280,3 +280,18 @@ const nameCollator = new Intl.Collator("it", { sensitivity: "base" });
 export function compareClientNames(a: string, b: string): number {
   return nameCollator.compare(a, b);
 }
+
+/**
+ * A tax id that only says "none": Fatture in Cloud writes `ESTERO` for a foreign customer without
+ * one, other software `0000000` or `99999999999`. It must never identify a client, or every such
+ * customer would be taken for the first one that was stored.
+ */
+export function isPlaceholderTaxId(value: string | null | undefined): boolean {
+  const code = (value ?? "").trim();
+  return (
+    code === "" ||
+    /^(\d)\1*$/.test(code) ||
+    /^x+$/i.test(code) ||
+    /^(estero|n\/?a|none|nessuno|nd)$/i.test(code)
+  );
+}

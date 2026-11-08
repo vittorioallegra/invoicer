@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "../../db/schema";
+import { isPlaceholderTaxId } from "../../shared/client";
 import {
   type ImportFileOutcome,
   type IssuedImportMeta,
@@ -34,18 +35,36 @@ interface Existing {
   total_cents: number | null;
 }
 
-/** An existing client for the customer (same VAT number, codice fiscale or foreign tax id). */
-async function findClient(db: D1Database, meta: IssuedImportMeta): Promise<string | null> {
-  const { vatCountry, vatCode, taxCode } = meta.customer;
-  const candidates: [string, string | null][] = [
-    ["vat_number", vatCountry === "IT" ? vatCode : null],
-    ["foreign_tax_id", vatCountry && vatCountry !== "IT" ? vatCode : null],
-    ["tax_code", taxCode],
+/**
+ * How to recognise an existing client of an imported customer, best first: its VAT number, foreign
+ * tax id or codice fiscale, as SQL conditions with their value. A placeholder tax id (`ESTERO`,
+ * `0000000`) identifies nobody; a customer with no real id is recognised by its name instead.
+ */
+export function clientMatches(customer: {
+  name: string;
+  vatCountry: string | null;
+  vatCode: string | null;
+  taxCode: string | null;
+}): [string, string][] {
+  const real = (value: string | null) => (value && !isPlaceholderTaxId(value) ? value : null);
+  const vat = real(customer.vatCode);
+  const tax = real(customer.taxCode);
+  const matches: [string, string | null][] = [
+    ["vat_number = ?", customer.vatCountry === "IT" ? vat : null],
+    ["foreign_tax_id = ?", customer.vatCountry && customer.vatCountry !== "IT" ? vat : null],
+    ["tax_code = ?", tax],
   ];
-  for (const [column, value] of candidates) {
-    if (!value) continue;
+  const byId = matches.filter((entry): entry is [string, string] => Boolean(entry[1]));
+  if (byId.length > 0) return byId;
+  const name = customer.name.trim();
+  return name ? [["lower(trim(name)) = lower(trim(?))", name]] : [];
+}
+
+/** An existing client for the customer (see `clientMatches`). */
+async function findClient(db: D1Database, meta: IssuedImportMeta): Promise<string | null> {
+  for (const [condition, value] of clientMatches(meta.customer)) {
     const row = await db
-      .prepare(`SELECT id FROM clients WHERE ${column} = ? LIMIT 1`)
+      .prepare(`SELECT id FROM clients WHERE ${condition} LIMIT 1`)
       .bind(value)
       .first<{ id: string }>();
     if (row) return row.id;
@@ -209,16 +228,7 @@ export async function importIssuedInvoice(
 }
 
 export const clientColumns = (customer: IssuedSummaryRow["customer"]): [string, string][] =>
-  (
-    [
-      ["vat_number", customer.vatCountry === "IT" ? customer.vatCode : null],
-      [
-        "foreign_tax_id",
-        customer.vatCountry && customer.vatCountry !== "IT" ? customer.vatCode : null,
-      ],
-      ["tax_code", customer.taxCode],
-    ] as [string, string | null][]
-  ).filter((entry): entry is [string, string] => Boolean(entry[1]));
+  clientMatches(customer);
 
 /**
  * Import of the issued rows of a Fatture in Cloud account summary: no original file, no lines and
@@ -263,7 +273,7 @@ export async function importIssuedSummary(
     const columns = clientColumns(row.customer);
     const first = lookups.length;
     for (const [column, value] of columns) {
-      lookups.push(db.prepare(`SELECT id FROM clients WHERE ${column} = ? LIMIT 1`).bind(value));
+      lookups.push(db.prepare(`SELECT id FROM clients WHERE ${column} LIMIT 1`).bind(value));
     }
     return { existing, first, count: columns.length };
   });

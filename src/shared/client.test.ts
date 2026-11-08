@@ -6,6 +6,7 @@ import {
   compareClientNames,
   deriveClientType,
   EMPTY_CLIENT_DEFAULTS,
+  isPlaceholderTaxId,
   isValidClientTaxCode,
   isValidPersonalTaxCode,
   newClientDefaults,
@@ -266,5 +267,31 @@ describe("compareClientNames", () => {
       "zeta",
       "Zorro",
     ]);
+  });
+});
+
+describe("placeholder tax ids", () => {
+  it.each([
+    "ESTERO",
+    "estero",
+    "0000000",
+    "00000000000",
+    "99999999999",
+    "XXXXXXXXXXX",
+    "N/A",
+    " ",
+    "",
+  ])("treats %j as no tax id", (value) => {
+    expect(isPlaceholderTaxId(value)).toBe(true);
+  });
+  it.each(["12345678903", "CHE-123.456.789", "DE123456789", "ATU12345678"])(
+    "keeps %s as a tax id",
+    (value) => {
+      expect(isPlaceholderTaxId(value)).toBe(false);
+    },
+  );
+  it("treats a missing value as none", () => {
+    expect(isPlaceholderTaxId(null)).toBe(true);
+    expect(isPlaceholderTaxId(undefined)).toBe(true);
   });
 });

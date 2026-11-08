@@ -226,3 +226,57 @@ describe("POST /api/invoices/import", () => {
     expect((await post("<a/>", meta({ documentType: "TD02" as "TD01" }))).status).toBe(400);
   });
 });
+
+describe("linking the customer of an imported invoice", () => {
+  const addClient = (id: string, name: string, foreignTaxId: string | null) =>
+    env.DB.prepare(
+      `INSERT INTO clients (id, type, name, country_code, foreign_tax_id, created_at)
+       VALUES (?, 'non_eu_company', ?, 'CH', ?, 1)`,
+    )
+      .bind(id, name, foreignTaxId)
+      .run();
+  const foreign = (name: string, number: string) =>
+    meta({
+      fileName: `${number}.xml`,
+      number,
+      date: "2025-02-28",
+      totalCents: 100000 + Number(number.replace(/\D/g, "")),
+      customer: { name, vatCountry: "CH", vatCode: "ESTERO", taxCode: null, client: null },
+    });
+  const clientOf = async (id: string) =>
+    (await owner.json<{ invoice: InvoiceRecord }>(`/api/invoices/${id}`)).body.invoice.clientName;
+
+  it("does not take foreign customers for one client because they share a placeholder tax id", async () => {
+    await addClient("cl-first", "First Swiss SA", "ESTERO");
+    await addClient("cl-second", "Second Swiss GmbH", null);
+    const first = await post("a", foreign("First Swiss SA", "31/CH"));
+    const second = await post("b", foreign("Second Swiss GmbH", "32/CH"));
+    expect(first.body).toMatchObject({ outcome: "imported" });
+    expect(second.body).toMatchObject({ outcome: "imported" });
+    expect(await clientOf((first.body as { id: string }).id)).toBe("First Swiss SA");
+    expect(await clientOf((second.body as { id: string }).id)).toBe("Second Swiss GmbH");
+  });
+
+  it("still links by a real VAT number", async () => {
+    await env.DB.prepare(
+      `INSERT INTO clients (id, type, name, country_code, vat_number, created_at)
+       VALUES ('cl-it', 'it_company', 'Real Srl', 'IT', '55544433321', 1)`,
+    ).run();
+    const outcome = await post(
+      "c",
+      meta({
+        fileName: "134.xml",
+        number: "134",
+        totalCents: 55555,
+        customer: {
+          name: "Another name",
+          vatCountry: "IT",
+          vatCode: "55544433321",
+          taxCode: null,
+          client: null,
+        },
+      }),
+    );
+    expect(await clientOf((outcome.body as { id: string }).id)).toBe("Real Srl");
+  });
+});

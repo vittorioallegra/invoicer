@@ -1,4 +1,4 @@
-import { deriveClientType } from "../../shared/client";
+import { deriveClientType, isPlaceholderTaxId } from "../../shared/client";
 import type { ReceivedInvoice } from "../../shared/fatturapa";
 import {
   encodeImportMeta,
@@ -67,6 +67,10 @@ const NOT_SENT_FOLDER = /(^|\/)[^/]*(non[\s_-]*inviat|not[\s_-]*sent|unsent)[^/]
 
 const DEFAULT_RECIPIENT = new Set(["0000000", "XXXXXXX"]);
 
+/** The tax id as written, or an empty text for a placeholder such as `ESTERO` or `0000000`. */
+const realTaxId = (value: string | null | undefined): string =>
+  isPlaceholderTaxId(value) ? "" : (value ?? "");
+
 /** A client record built from the customer of an issued invoice file (checked by the Worker). */
 function customerClient(invoice: ReceivedInvoice, currency: string): Record<string, unknown> {
   const customer = invoice.customer;
@@ -77,9 +81,9 @@ function customerClient(invoice: ReceivedInvoice, currency: string): Record<stri
   return {
     type,
     name: customer.name.slice(0, 80),
-    vatNumber: country === "IT" ? (customer.vatId?.code ?? "") : "",
-    taxCode: customer.taxCode ?? "",
-    foreignTaxId: country === "IT" ? "" : (customer.vatId?.code ?? ""),
+    vatNumber: country === "IT" ? realTaxId(customer.vatId?.code) : "",
+    taxCode: realTaxId(customer.taxCode),
+    foreignTaxId: country === "IT" ? "" : realTaxId(customer.vatId?.code),
     countryCode: country,
     address: [customer.address.street, customer.address.streetNumber].filter(Boolean).join(" "),
     postalCode: customer.address.postalCode,
@@ -115,8 +119,8 @@ function issuedMeta(
     customer: {
       name: invoice.customer.name,
       vatCountry: invoice.customer.vatId?.country ?? null,
-      vatCode: invoice.customer.vatId?.code ?? null,
-      taxCode: invoice.customer.taxCode,
+      vatCode: realTaxId(invoice.customer.vatId?.code) || null,
+      taxCode: realTaxId(invoice.customer.taxCode) || null,
       client: customerClient(invoice, summary.currency),
     },
   };
