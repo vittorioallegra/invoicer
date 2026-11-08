@@ -182,24 +182,31 @@ describe("imported invoice", () => {
     totalCents: 610,
     lines: [],
     data: {},
+    editorForm: null,
   } as unknown as InvoiceRecord;
 
-  it("shows the file read-only with the Imported badge and no editing actions", async () => {
+  it("shows the file with the Imported badge, Edit and the original in the menu, and no sending actions", async () => {
     mocks.apiFile.mockResolvedValue({
       bytes: new TextEncoder().encode(xml),
       fileName: "IT01234567890_00001.xml",
     });
     mocks.api.mockImplementation(async (path: string) => {
       if (path === "/api/invoices/i1") return { invoice: record };
+      if (path === "/api/clients") return { clients: [] };
+      if (path === "/api/payment-methods") return { paymentMethods: [] };
       throw new Error(`unexpected ${path}`);
     });
     await renderAt("/invoices/i1");
     expect(await screen.findByText("Invoice 123/2014")).toBeTruthy();
     expect(screen.getByText("Imported")).toBeTruthy();
     expect(await screen.findByText("Supplier")).toBeTruthy();
-    expect(screen.getByText("Download original")).toBeTruthy();
     expect(screen.queryByText("Finalize")).toBeNull();
-    expect(screen.queryByText("Edit")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+      "Edit",
+      "Undo payment",
+      "Download original",
+    ]);
   });
 
   it("explains that a summary import has no original and offers no download", async () => {
@@ -207,6 +214,8 @@ describe("imported invoice", () => {
       if (path === "/api/invoices/i1") {
         return { invoice: { ...record, hasOriginal: false, clientName: "Name from the summary" } };
       }
+      if (path === "/api/clients") return { clients: [] };
+      if (path === "/api/payment-methods") return { paymentMethods: [] };
       throw new Error(`unexpected ${path}`);
     });
     await renderAt("/invoices/i1");
@@ -214,7 +223,8 @@ describe("imported invoice", () => {
       await screen.findByText(/only its number, date, customer and total were imported/),
     ).toBeTruthy();
     expect(screen.getByText(/Name from the summary/)).toBeTruthy();
-    expect(screen.queryByText("Download original")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    expect(screen.queryByRole("menuitem", { name: "Download original" })).toBeNull();
     expect(mocks.apiFile).not.toHaveBeenCalled();
   });
 });

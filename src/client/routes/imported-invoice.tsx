@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Download } from "lucide-react";
+import { CircleCheck, CircleX, Download, Ellipsis, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { romeDateTime } from "../../shared/cron";
@@ -10,22 +10,34 @@ import { InvoiceDocumentView } from "../components/invoice-document-view";
 import { Page } from "../components/page";
 import { PaymentDialog } from "../components/payment-action";
 import { Banner } from "../components/ui/banner";
-import { Button } from "../components/ui/button";
+import { MenuButton, type MenuItem } from "../components/ui/menu-button";
 import { ImportedBadge, StatusBadge } from "../components/ui/status-badge";
-import { loadOriginal, originalType } from "../import/original";
+import { type ImportedSeed, seedImportedForm } from "../import/imported-seed";
+import { loadOriginal } from "../import/original";
 import { INVOICE_LIST_BACK } from "../lib/back-links";
-import { downloadBytes } from "../lib/invoice-download";
+import { clientsQuery } from "../lib/clients-api";
+import { downloadUrl } from "../lib/invoice-download";
 import { useOnline } from "../lib/online";
+import { paymentMethodsQuery } from "../lib/settings-api";
 
 /**
- * A historic issued invoice read from a file: the readable view of the original, its payment
- * status, and a download of the original. It cannot be edited, sent, duplicated or deleted.
+ * A historic issued invoice that was never edited: the readable view of the file it was read from
+ * (nothing for a summary import), its payment status, and a download of the original. Edit opens
+ * the editor with a form built from that file (`onEdit`); it is never sent or deleted.
  */
-export function ImportedInvoicePage({ record }: { record: InvoiceRecord }) {
+export function ImportedInvoicePage({
+  record,
+  onEdit,
+}: {
+  record: InvoiceRecord;
+  onEdit: (seed: ImportedSeed) => void;
+}) {
   const { t, i18n } = useTranslation();
   const online = useOnline();
   const locale: UiLocale = i18n.language.startsWith("it") ? "it" : "en";
   const [paying, setPaying] = useState(false);
+  const clients = useQuery(clientsQuery);
+  const accounts = useQuery(paymentMethodsQuery);
   const file = useQuery({
     queryKey: ["invoice", record.id, "original"],
     retry: false,
@@ -36,6 +48,46 @@ export function ImportedInvoicePage({ record }: { record: InvoiceRecord }) {
   const paid = record.paymentFlag === "paid";
   const loaded = file.data;
   const credit = record.documentType === "TD04";
+  // Edit needs the original read (or known unreadable) and the lists the form is built from.
+  const reading = record.hasOriginal && file.isPending;
+  const ready = !reading && clients.data !== undefined && accounts.data !== undefined;
+
+  const items: MenuItem[] = [
+    {
+      key: "edit",
+      label: t("invoice.actions.edit"),
+      icon: <Pencil aria-hidden />,
+      disabled: !ready,
+      onSelect: () => {
+        if (!clients.data || !accounts.data) return;
+        const original = record.hasOriginal ? (loaded ?? "unreadable") : null;
+        onEdit(
+          seedImportedForm(record, clients.data.clients, accounts.data.paymentMethods, original),
+        );
+      },
+    },
+  ];
+  if (!credit) {
+    items.push({
+      key: "payment",
+      label: t(paid ? "invoice.paid.undo" : "invoice.paid.record"),
+      icon: paid ? <CircleX aria-hidden /> : <CircleCheck aria-hidden />,
+      disabled: !online,
+      reason: online ? undefined : t("offline.reason"),
+      onSelect: () => setPaying(true),
+    });
+  }
+  if (record.hasOriginal) {
+    items.push({
+      key: "download-original",
+      label: t("received.download"),
+      icon: <Download aria-hidden />,
+      separated: true,
+      disabled: !online,
+      reason: online ? undefined : t("offline.reason"),
+      onSelect: () => downloadUrl(`/api/invoices/${record.id}/original`),
+    });
+  }
   return (
     <Page
       title={t(credit ? "import.view.creditNote" : "import.view.invoice", {
@@ -53,29 +105,19 @@ export function ImportedInvoicePage({ record }: { record: InvoiceRecord }) {
         <>
           <ImportedBadge />
           {credit ? null : <StatusBadge status={record.paymentFlag} />}
-          {credit ? null : (
-            <Button variant="secondary" disabled={!online} onClick={() => setPaying(true)}>
-              {t(paid ? "invoice.paid.undo" : "invoice.paid.record")}
-            </Button>
-          )}
-          {loaded ? (
-            <Button
-              variant="secondary"
-              onClick={() =>
-                downloadBytes(loaded.bytes, loaded.fileName, originalType(loaded.fileName))
-              }
-            >
-              <Download aria-hidden />
-              {t("received.download")}
-            </Button>
-          ) : null}
+          <MenuButton
+            label={t("invoice.actions.more")}
+            icon={<Ellipsis aria-hidden />}
+            items={items}
+            iconOnly
+          />
         </>
       }
     >
       <Banner tone="info">
-        {t(record.hasOriginal ? "import.view.readOnly" : "import.view.noOriginal")}
+        {t(record.hasOriginal ? "import.view.fromFile" : "import.view.noOriginal")}
       </Banner>
-      {record.hasOriginal && file.isPending ? (
+      {reading ? (
         <p role="status" className="text-sm text-muted-foreground">
           {t("received.view.reading")}
         </p>

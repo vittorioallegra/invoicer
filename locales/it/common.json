@@ -497,6 +497,17 @@
     "notFound": "Questa fattura non esiste.",
     "numberYear": "N. {{number}}",
     "saved": "Salvata.",
+    "imported": {
+      "noteFile": "Fattura importata: vale come già inviata e non viene mai più inviata. Le modifiche cambiano solo questa scheda; il file originale resta conservato.",
+      "noteSummary": "Fattura importata da un riepilogo contabile: vale come già inviata e non viene mai più inviata.",
+      "seed": {
+        "xml": "Le righe sono state lette dal file originale. Controllale prima di salvare.",
+        "summary": "Il file non aveva righe: una riga contiene il totale importato. Indica descrizione e IVA, oppure sostituiscila con le righe vere.",
+        "unreadable": "Non è stato possibile leggere il file originale, quindi le righe partono vuote. Aggiungile come preferisci."
+      },
+      "totalsHint": "Quando salvi, i totali vengono ricalcolati dalle righe e possono differire di qualche centesimo dalle cifre del file.",
+      "numberTaken": "Questo numero è già usato da un'altra fattura della stessa serie e anno."
+    },
     "errors": {
       "locked": "Questa fattura non si può più modificare.",
       "previewFailed": "Non è stato possibile creare l'anteprima. Riprova."
@@ -1097,6 +1108,19 @@
     "markPaid": "Segna come pagata",
     "markUnpaid": "Segna come non pagata",
     "download": "Scarica l'originale",
+    "edit": {
+      "action": "Modifica",
+      "title": "Modifica fattura ricevuta",
+      "body": "Correggi i dati mostrati negli elenchi. Il file originale, se c'è, non cambia.",
+      "supplierName": "Fornitore",
+      "supplierVat": "Partita IVA o codice fiscale",
+      "number": "Numero",
+      "issueDate": "Data fattura",
+      "documentType": "Tipo documento",
+      "currency": "Valuta",
+      "total": "Totale",
+      "duplicate": "Un'altra fattura ricevuta ha lo stesso fornitore, numero e data."
+    },
     "list": {
       "number": "n. {{number}}",
       "reading": "Lettura della fattura…",
@@ -1197,8 +1221,8 @@
     "view": {
       "invoice": "Fattura {{number}}",
       "creditNote": "Nota di credito {{number}}",
-      "noOriginal": "Questa fattura arriva da un riepilogo contabile: sono stati importati solo numero, data, cliente e totale, quindi non ci sono file originale né righe. Puoi registrarne il pagamento.",
-      "readOnly": "Questa fattura è stata importata da un file. Si vede come scritta nel file e non si può modificare; puoi registrare il pagamento."
+      "noOriginal": "Questa fattura arriva da un riepilogo contabile: sono stati importati solo numero, data, cliente e totale, quindi non ci sono file originale né righe. Puoi modificarla e registrarne il pagamento.",
+      "fromFile": "Questa fattura è stata importata da un file e si vede come scritta nel file. Puoi modificarla dal menu; non verrà mai più inviata."
     },
     "summary": {
       "intro": "Importa il riepilogo contabile esportato da Fatture in Cloud (.xls): tutte le fatture emesse e ricevute in un solo file. Il riepilogo contiene solo numero, data, cliente o fornitore e importi, quindi le fatture vengono salvate senza righe e senza file originale. I numeri con un suffisso come /CH hanno un loro sezionale.",

@@ -425,10 +425,20 @@ export const SDI_ERROR_FIELDS: Readonly<Record<string, "client" | "lines">> = {
   "00401": "lines",
 };
 
+/**
+ * An imported invoice the owner has edited (it has stored lines or an editor form), as opposed to
+ * one still shown from the file it was read from.
+ */
+export function isEditedImport(
+  record: Pick<InvoiceRecord, "source" | "editorForm" | "lines">,
+): boolean {
+  return record.source === "imported" && (record.editorForm !== null || record.lines.length > 0);
+}
+
 /** An invoice as the API returns it. */
 export interface InvoiceRecord {
   id: string;
-  /** `imported` = a historic invoice read from a file: stored `delivered` and read-only. */
+  /** `imported` = a historic invoice read from a file: stored `delivered`, editable, never sent. */
   source: "app" | "imported";
   documentType: "TD01" | "TD04";
   state: InvoiceState;

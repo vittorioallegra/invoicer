@@ -160,6 +160,15 @@ export function fromRecord(
   clients: readonly ClientRecord[] = [],
 ): InvoiceForm {
   const stored = fromStored(record, clients.find((c) => c.id === record.clientId) ?? null);
+  if (record.source === "imported") {
+    // The printed number, series and date are the invoice's own facts, whatever was typed last.
+    return {
+      ...restoreForm(record.editorForm, stored),
+      requestedNumber: stored.requestedNumber,
+      seriesId: stored.seriesId,
+      invoiceDate: stored.invoiceDate,
+    };
+  }
   const unsent = record.state === "draft" || record.state === "planned";
   if (!unsent) return stored;
   const form = restoreForm(record.editorForm, stored);
@@ -174,9 +183,16 @@ function fromStored(record: InvoiceRecord, client: ClientRecord | null): Invoice
     clientId: record.clientId ?? "",
     currency: record.currency,
     language: invoiceLanguage(data, client),
-    requestedNumber: record.requestedNumber === null ? "" : String(record.requestedNumber),
+    // An imported invoice's number is its printed text (free text allowed), not a progressive.
+    requestedNumber:
+      record.source === "imported"
+        ? (record.number ?? "")
+        : record.requestedNumber === null
+          ? ""
+          : String(record.requestedNumber),
     seriesId: record.seriesId,
-    invoiceDate: record.invoiceDate ?? "",
+    invoiceDate:
+      record.invoiceDate ?? (record.source === "imported" ? (record.issueDate ?? "") : ""),
     ...termsToForm(data.payment.terms),
     linkedInvoiceId: record.linkedInvoiceId ?? "",
     lines: record.lines.map((line) => ({
@@ -263,6 +279,22 @@ export function draftBody(
   today: string = romeDateTime(new Date()).date,
 ): InvoiceInput & { editorForm: InvoiceForm } {
   return { ...buildInvoice(form, proposal, today).input, editorForm: form };
+}
+
+/**
+ * The body of a save of an imported invoice: the form plus its printed number (free text, the
+ * Worker finds the series and progressive). It is never numbered or sent, so there is no
+ * requested number.
+ */
+export function importedBody(
+  form: InvoiceForm,
+  today: string = romeDateTime(new Date()).date,
+): InvoiceInput & { editorForm: InvoiceForm; number: string } {
+  return {
+    ...draftBody(form, null, today),
+    requestedNumber: null,
+    number: form.requestedNumber.trim(),
+  };
 }
 
 /** The form fields for stored terms (null = no terms). */

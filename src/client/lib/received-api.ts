@@ -27,6 +27,10 @@ export const reportParsed = (id: string, result: { summary: ReceivedSummary } | 
     json("PUT", result ? { status: "parsed", summary: result.summary } : { status: "failed" }),
   );
 
+/** The owner's corrections to the summary of a received invoice. */
+export const updateReceived = (id: string, body: unknown) =>
+  api<{ received: ReceivedInvoiceRecord }>(`/api/received/${id}`, json("PUT", body));
+
 export const setReceivedPayment = (id: string, paid: boolean) =>
   api<{ received: ReceivedInvoiceRecord }>(
     `/api/received/${id}`,

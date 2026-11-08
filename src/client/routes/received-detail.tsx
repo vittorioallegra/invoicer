@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
-import { Download } from "lucide-react";
+import { Download, Pencil } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
 import { InvoiceDocumentView } from "../components/invoice-document-view";
 import { Page } from "../components/page";
+import { ReceivedEditSheet } from "../components/received-edit-sheet";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
 import { StatusBadge } from "../components/ui/status-badge";
@@ -59,6 +61,7 @@ export function ReceivedDetailPage() {
     onError: () => toast.error(t("common.error")),
   });
 
+  const [editing, setEditing] = useState(false);
   const data = record.data?.received;
   const paid = data?.paymentFlag === "paid";
   const loaded = file.data;
@@ -90,6 +93,12 @@ export function ReceivedDetailPage() {
             >
               {t(paid ? "received.markUnpaid" : "received.markPaid")}
             </Button>
+            {data.parseStatus === "parsed" ? (
+              <Button variant="secondary" disabled={!online} onClick={() => setEditing(true)}>
+                <Pencil aria-hidden />
+                {t("received.edit.action")}
+              </Button>
+            ) : null}
             {loaded ? (
               <Button
                 variant="secondary"
@@ -121,6 +130,9 @@ export function ReceivedDetailPage() {
       ) : null}
       {file.isError ? <Banner tone="danger">{t("received.view.unreadable")}</Banner> : null}
       {loaded ? <InvoiceDocumentView invoice={loaded.invoice} /> : null}
+      {data && editing ? (
+        <ReceivedEditSheet record={data} open={editing} onOpenChange={setEditing} />
+      ) : null}
     </Page>
   );
 }

@@ -32,6 +32,7 @@ import {
 import {
   formatInvoiceNumber,
   formatNumberWithYear,
+  matchSeries,
   type NumberingSeriesRecord,
 } from "../../shared/numbering";
 import type { SendReadiness } from "../../shared/onboarding";
@@ -65,10 +66,11 @@ import { Input } from "../components/ui/input";
 import { MenuButton, type MenuItem } from "../components/ui/menu-button";
 import { Select } from "../components/ui/select";
 import { Sheet, SheetFooter } from "../components/ui/sheet";
-import { StatusBadge } from "../components/ui/status-badge";
+import { ImportedBadge, StatusBadge } from "../components/ui/status-badge";
 import { Textarea } from "../components/ui/textarea";
 import { toast } from "../components/ui/toast";
 import { UnsavedChangesGuard } from "../components/unsaved-changes-guard";
+import type { SeedSource } from "../import/imported-seed";
 import { INVOICE_LIST_BACK } from "../lib/back-links";
 import { clientsQuery } from "../lib/clients-api";
 import { type FinalizeProblem, finalizeProblems, focusField } from "../lib/finalize-checks";
@@ -83,6 +85,7 @@ import {
   formTotals,
   fromRecord,
   type InvoiceForm,
+  importedBody,
   type LineForm,
   naturaTextsFor,
   typedNumber,
@@ -119,7 +122,17 @@ const SNAPSHOT = "__snapshot__";
 /** Invoices just duplicated: they open straight in edit mode, once (read when the page mounts). */
 const OPEN_IN_EDIT = new Set<string>();
 
-export function InvoiceEditorPage() {
+/**
+ * What an imported invoice that was never edited starts from: the form built in the browser from
+ * its original (see `seedImportedForm`). `onLeave` puts the page back on the file view (Cancel).
+ */
+export interface EditorSeed {
+  form: InvoiceForm;
+  source: SeedSource;
+  onLeave?: (() => void) | undefined;
+}
+
+export function InvoiceEditorPage({ seed }: { seed?: EditorSeed | undefined } = {}) {
   const { t } = useTranslation();
   const { invoiceId } = useParams({ strict: false }) as { invoiceId?: string };
   const clients = useQuery(clientsQuery);
@@ -161,6 +174,7 @@ export function InvoiceEditorPage() {
     return (
       <EditorForm
         key={record.data?.invoice.id ?? "new"}
+        seed={seed}
         record={record.data?.invoice ?? null}
         clients={clients.data.clients}
         accounts={accounts.data.paymentMethods}
@@ -216,9 +230,10 @@ interface EditorFormProps {
   series: NumberingSeriesRecord[];
   tax: TaxOptions;
   send: SendReadiness;
+  seed: EditorSeed | undefined;
 }
 
-function EditorForm({ record, clients, accounts, series, tax, send }: EditorFormProps) {
+function EditorForm({ record, clients, accounts, series, tax, send, seed }: EditorFormProps) {
   const { t, i18n } = useTranslation();
   const locale: UiLocale = i18n.language.startsWith("it") ? "it" : "en";
   const online = useOnline();
@@ -232,19 +247,23 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const today = romeDateTime(new Date()).date;
 
   const [initialForm] = useState<InvoiceForm>(() =>
-    record
-      ? fromRecord(record, clients)
-      : withAccount(
-          applyDefaults({ ...emptyForm(), invoiceDate: today }, null, tax),
-          accounts.find((account) => account.isDefault) ?? null,
-        ),
+    seed
+      ? seed.form
+      : record
+        ? fromRecord(record, clients)
+        : withAccount(
+            applyDefaults({ ...emptyForm(), invoiceDate: today }, null, tax),
+            accounts.find((account) => account.isDefault) ?? null,
+          ),
   );
   const [form, setForm] = useState<InvoiceForm>(initialForm);
   // What is stored: Cancel puts it back. Save is enabled once the form differs from it.
   const [stored, setStored] = useState<InvoiceForm>(initialForm);
   const { dirty, markSaved } = useDirty(initialForm, form);
   // View mode shows the invoice read-only; a new or just duplicated invoice opens in edit mode.
-  const [editing, setEditing] = useState(() => !record || OPEN_IN_EDIT.has(record.id));
+  const [editing, setEditing] = useState(
+    () => !record || OPEN_IN_EDIT.has(record.id) || seed !== undefined,
+  );
   // Unsaved edits block leaving the page, except the editor's own navigations (after a save,
   // a confirmed discard, a delete...), which set this flag first.
   const leaving = useRef(false);
@@ -278,7 +297,10 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   const [emailOpen, setEmailOpen] = useState(false);
 
   const editability = record ? invoiceEditability(record.state) : "full";
-  const locked = editability === "locked";
+  // An imported invoice counts as sent for good, yet everything in it can be edited: no number to
+  // reserve, nothing to finalise or send, no delete.
+  const imported = record?.source === "imported";
+  const locked = editability === "locked" && !imported;
   // Fields are read-only in view mode and once the invoice is finalised.
   const readOnly = locked || !editing;
   // Not finalised yet: no number, freely editable and deletable.
@@ -451,6 +473,9 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     onError: (error) => {
       if (error instanceof ApiError && error.code === "bad_request") {
         setServerErrors(fieldErrorsFromDetail(error.problem.detail));
+      } else if (error instanceof ApiError && error.code === "number_unavailable" && imported) {
+        setNumberTaken(true);
+        toast.error(t("invoice.imported.numberTaken"));
       } else if (error instanceof ApiError && error.status === 409) {
         toast.error(t("invoice.errors.locked"));
       } else {
@@ -547,6 +572,12 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
       void navigate({ to: "/invoices" });
       return;
     }
+    if (seed?.onLeave) {
+      // Never edited: back to the view of the original file.
+      leaving.current = true;
+      seed.onLeave();
+      return;
+    }
     // Back to the stored values, as if nothing had been typed.
     setForm(stored);
     markSaved(stored);
@@ -563,7 +594,10 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     event.preventDefault();
     if (readOnly) return;
     // Saving never validates: whatever is typed is stored, and Finalize runs every check.
-    save.mutate({ body: draftBody(form, proposal, today), form });
+    save.mutate({
+      body: imported ? importedBody(form, today) : draftBody(form, proposal, today),
+      form,
+    });
   }
 
   const bolloData = {
@@ -586,7 +620,9 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
       ? { from: gapFrom, to: typed - 1 }
       : null;
   let numberError: string | undefined;
-  if (numberTaken) {
+  if (imported) {
+    numberError = numberTaken ? t("invoice.imported.numberTaken") : err("number");
+  } else if (numberTaken) {
     numberError = t("invoice.document.numberUnavailable", { next: proposal ?? "" });
   } else if (submitted && issuing.errors.requestedNumber === "number_too_low") {
     numberError = t("invoice.document.numberTooLow", { next: proposal ?? "" });
@@ -643,8 +679,9 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
     reason: online ? undefined : t("offline.reason"),
     onSelect: () => record && downloadUrl(`/api/invoices/${record.id}/${kind}`),
   }));
-  const finalizable = !locked;
+  const finalizable = !locked && !imported;
   const issuedCreditable =
+    !imported &&
     record?.documentType === "TD01" &&
     (record.state === "delivered" || record.state === "not_delivered");
   // View mode of an unsent (or rejected) invoice: Duplicate, Delete, Edit, Finalize. Edit mode has
@@ -652,7 +689,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
   // View mode: Finalize stays a button (the main step for an unsent invoice); every other action
   // is in the "⋯" menu. Edit mode has no title actions: Cancel and Save are under the form.
   const menuItems: MenuItem[] = [];
-  if (finalizable) {
+  if (finalizable || imported) {
     menuItems.push({
       key: "edit",
       label: t("invoice.actions.edit"),
@@ -675,7 +712,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
       onSelect: () => showPreview(record.id),
     });
   }
-  if (record) {
+  if (record && !imported) {
     menuItems.push({
       key: "duplicate",
       label: t("invoice.actions.duplicate"),
@@ -716,7 +753,17 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
       onSelect: () => setEmailOpen(true),
     });
   }
-  if (record && !unsent) {
+  if (record && imported && record.hasOriginal) {
+    menuItems.push({
+      key: "download-original",
+      label: t("received.download"),
+      icon: <Download aria-hidden />,
+      separated: true,
+      disabled: !online,
+      reason: online ? undefined : t("offline.reason"),
+      onSelect: () => downloadUrl(`/api/invoices/${record.id}/original`),
+    });
+  } else if (record && !unsent && !imported) {
     downloadItems.forEach((item, index) => {
       menuItems.push({
         ...item,
@@ -772,7 +819,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
         {record ? (
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <StatusBadge status={record.state} />
+            {imported ? <ImportedBadge /> : <StatusBadge status={record.state} />}
             {payable ? (
               <StatusBadge
                 status={record.paymentFlag}
@@ -786,7 +833,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           </div>
         ) : null}
 
-        {record?.number && record.state !== "draft" && record.state !== "planned" ? (
+        {record?.number && !imported && record.state !== "draft" && record.state !== "planned" ? (
           <InvoiceDetail
             record={record}
             clientName={client?.name ?? record.clientName ?? ""}
@@ -799,6 +846,19 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
         ) : null}
 
         {!online ? <Banner tone="warning">{t("offline.reason")}</Banner> : null}
+        {imported ? (
+          <Banner tone="info">
+            <p>
+              {t(
+                record?.hasOriginal ? "invoice.imported.noteFile" : "invoice.imported.noteSummary",
+              )}
+            </p>
+            {seed ? <p>{t(`invoice.imported.seed.${seed.source}`)}</p> : null}
+            {editing && record?.editorForm === null ? (
+              <p>{t("invoice.imported.totalsHint")}</p>
+            ) : null}
+          </Banner>
+        ) : null}
         {record?.numberReserved ? (
           <Banner
             tone="warning"
@@ -1019,11 +1079,15 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                       <Select
                         {...c}
                         value={activeSeries?.id ?? ""}
-                        disabled={!numberEditable || !editing}
+                        disabled={imported ? !editing : !numberEditable || !editing}
                         onChange={(event) => {
                           setNumberTouched(false);
                           setNumberTaken(false);
-                          patch({ seriesId: event.target.value, requestedNumber: "" });
+                          patch(
+                            imported
+                              ? { seriesId: event.target.value }
+                              : { seriesId: event.target.value, requestedNumber: "" },
+                          );
                         }}
                       >
                         {series.map((s) => (
@@ -1037,19 +1101,38 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
                 ) : null}
                 <Field
                   label={t("invoice.document.number")}
-                  error={numberEditable ? numberError : undefined}
-                  name="requestedNumber"
+                  error={numberEditable || imported ? numberError : undefined}
+                  name={imported ? "number" : "requestedNumber"}
                 >
                   {(c) => (
                     <Input
                       {...c}
-                      inputMode="numeric"
-                      value={numberEditable ? numberText : (record?.number ?? "")}
-                      disabled={!numberEditable || !editing}
+                      inputMode={imported ? "text" : "numeric"}
+                      maxLength={imported ? 20 : undefined}
+                      value={
+                        imported
+                          ? form.requestedNumber
+                          : numberEditable
+                            ? numberText
+                            : (record?.number ?? "")
+                      }
+                      disabled={imported ? !editing : !numberEditable || !editing}
                       onChange={(event) => {
                         setNumberTouched(true);
                         setNumberTaken(false);
-                        patch({ requestedNumber: event.target.value });
+                        const typedText = event.target.value;
+                        if (imported) {
+                          // The number decides the series, as on import (the owner may still pick one).
+                          const match = matchSeries(typedText.trim(), series);
+                          patch({
+                            requestedNumber: typedText,
+                            ...(match.seriesId && match.progressive !== null
+                              ? { seriesId: match.seriesId }
+                              : {}),
+                          });
+                        } else {
+                          patch({ requestedNumber: typedText });
+                        }
                       }}
                     />
                   )}
@@ -1450,7 +1533,7 @@ function EditorForm({ record, clients, accounts, series, tax, send }: EditorForm
           </fieldset>
         </div>
 
-        {!locked && !send.ready ? (
+        {!locked && !imported && !send.ready ? (
           <Banner tone="warning">
             <p className="font-medium">{t("onboarding.sendBlocked")}</p>
             <ul className="list-disc pl-5">
