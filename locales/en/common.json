@@ -1177,10 +1177,13 @@
       "summary": "{{imported}} imported, {{skipped}} skipped",
       "imported": "Imported",
       "again": "Import more files",
-      "open": "Open"
+      "open": "Open",
+      "draft": "Created as an invoice to send, check it before sending (description, VAT and totals)"
     },
     "detail": {
-      "no_client": "no client was linked, the customer in the file is incomplete"
+      "no_client": "no client was linked, the customer in the file is incomplete",
+      "draft_number_unavailable": "the number could not be kept (it is taken or not above the issued numbers): set it in the editor",
+      "draft_number_free_text": "the number has no progressive: set it in the editor"
     },
     "reason": {
       "duplicate": "Already imported.",
@@ -1237,14 +1240,17 @@
       "markPaidHint": "Earlier invoices are usually settled. The paid date is the invoice date. Turn this off to keep them unpaid.",
       "review": "Review the invoices",
       "reviewSummary": "Leave an invoice out, or mark one as not paid yet",
-      "reviewHint": "The newest invoices come first. Untick Import to leave an invoice out, and untick Paid for an invoice that has not been collected yet. Invoices dated after today are not issued yet, so they start left out.",
+      "reviewHint": "The newest invoices come first. Untick Import to leave an invoice out, and untick Paid for an invoice that has not been collected yet. An issued invoice dated after today is not issued yet: it is created as an invoice to send, never as paid. A received invoice dated after today starts left out.",
       "rowImport": "Import",
       "rowPaid": "Paid",
       "rowImportLabel": "Import {{row}}",
       "rowPaidLabel": "Paid: {{row}}",
       "notIssuedYet": "Not issued yet",
       "leftOut_one": "{{count}} invoice is left out (see the review below).",
-      "leftOut_other": "{{count}} invoices are left out (see the review below)."
+      "leftOut_other": "{{count}} invoices are left out (see the review below).",
+      "willBeToSend": "Will be created as an invoice to send",
+      "toSendCount_one": "{{count}} issued invoice dated after today will be created as an invoice to send (not sent, not paid)",
+      "toSendCount_other": "{{count}} issued invoices dated after today will be created as invoices to send (not sent, not paid)"
     },
     "clients": {
       "intro": "Import clients from a Fatture in Cloud CSV export. You see which column feeds each field and every row with a problem before anything is saved. Clients you already have (same VAT number, tax code or name) are skipped."

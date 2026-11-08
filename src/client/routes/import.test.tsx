@@ -305,13 +305,15 @@ describe("summary import", () => {
       [4, day("2026-10-30"), "Open Client", " ", " ", 10, 0],
       [5, day("2099-12-31"), "Later Client", " ", " ", 10, 0],
       ["Totale"],
+      receivedHeader,
+      [7, day("2099-12-30"), "Later Shop", " ", " ", 10, 0],
+      ["Totale"],
     ]);
-    const sent = () => {
-      const call = mocks.api.mock.calls.find((c) => c[0] === "/api/invoices/import-summary");
-      return (JSON.parse(call?.[1].body) as { rows: { number: string; paid: boolean }[] }).rows.map(
-        (row) => [row.number, row.paid],
-      );
+    const body = (path: string) => {
+      const call = mocks.api.mock.calls.find((c) => c[0] === path);
+      return call ? (JSON.parse(call[1].body) as { rows: Record<string, unknown>[] }).rows : [];
     };
+    const sent = () => body("/api/invoices/import-summary").map((row) => [row.number, row.paid]);
     beforeEach(() => {
       mocks.api.mockImplementation(async (path: string, init?: { body?: string }) => {
         if (path === "/api/numbering-series") return { series: [] };
@@ -325,37 +327,63 @@ describe("summary import", () => {
       fireEvent.change(input, { target: { files: [asFile(future)] } });
       await screen.findByText("2 issued invoices");
     };
+    const start = async () => {
+      const button = screen.getByRole("button", { name: "Import" });
+      await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+      fireEvent.click(button);
+      await screen.findByText(/imported/);
+    };
 
-    it("leaves an invoice dated after today out until it is ticked", async () => {
+    it("creates an issued invoice dated after today as an invoice to send, never paid", async () => {
+      await load();
+      expect(
+        screen.getByText(
+          "1 issued invoice dated after today will be created as an invoice to send (not sent, not paid)",
+        ),
+      ).toBeTruthy();
+      expect(screen.getByText("0 received invoices")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: /Review the invoices/ }));
+      expect(screen.getByText("Will be created as an invoice to send")).toBeTruthy();
+      const later = screen.getByLabelText("Import Issued 5, 2099-12-31, Later Client");
+      expect((later as HTMLInputElement).checked).toBe(true);
+      // No Paid box is offered for it, the global box does not apply.
+      expect(screen.queryByLabelText("Paid: Issued 5, 2099-12-31, Later Client")).toBeNull();
+      await start();
+      expect(sent()).toEqual([
+        ["3", true],
+        ["4", true],
+      ]);
+      const drafts = body("/api/invoices/import-summary-drafts");
+      expect(drafts).toHaveLength(1);
+      expect(drafts[0]).toMatchObject({
+        number: "5",
+        date: "2099-12-31",
+        amounts: { taxableCents: 1000, taxCents: 0 },
+      });
+      expect(drafts[0]).not.toHaveProperty("paid");
+      expect(
+        screen.getByText(/Created as an invoice to send, check it before sending/),
+      ).toBeTruthy();
+    });
+
+    it("leaves a received invoice dated after today out until it is ticked", async () => {
       await load();
       expect(screen.getByText("1 invoice is left out (see the review below).")).toBeTruthy();
       fireEvent.click(screen.getByRole("button", { name: /Review the invoices/ }));
       expect(screen.getByText("Not issued yet")).toBeTruthy();
-      const later = screen.getByLabelText("Import Issued 5, 2099-12-31, Later Client");
+      const later = screen.getByLabelText("Import Received 7, 2099-12-30, Later Shop");
       expect((later as HTMLInputElement).checked).toBe(false);
       fireEvent.click(later);
-      expect(await screen.findByText("3 issued invoices")).toBeTruthy();
-      const start = screen.getByRole("button", { name: "Import" });
-      await waitFor(() => expect((start as HTMLButtonElement).disabled).toBe(false));
-      fireEvent.click(start);
-      await screen.findByText(/imported/);
-      expect(sent()).toEqual(
-        [
-          ["5", true],
-          ["4", true],
-          ["3", true],
-        ].sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
-      );
+      expect(await screen.findByText("1 received invoice")).toBeTruthy();
+      await start();
+      expect(body("/api/received/import-summary")).toHaveLength(1);
     });
 
-    it("stores an invoice as not paid when its Paid box is unticked, and skips the future one", async () => {
+    it("stores an invoice as not paid when its Paid box is unticked", async () => {
       await load();
       fireEvent.click(screen.getByRole("button", { name: /Review the invoices/ }));
       fireEvent.click(screen.getByLabelText("Paid: Issued 4, 2026-10-30, Open Client"));
-      const start = screen.getByRole("button", { name: "Import" });
-      await waitFor(() => expect((start as HTMLButtonElement).disabled).toBe(false));
-      fireEvent.click(start);
-      await screen.findByText(/imported/);
+      await start();
       expect(sent()).toEqual([
         ["3", true],
         ["4", false],

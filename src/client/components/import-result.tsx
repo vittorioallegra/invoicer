@@ -51,7 +51,7 @@ export function ImportResult({
                 </span>
                 <span className="block text-muted-foreground">
                   {item.status === "imported"
-                    ? t("import.result.imported")
+                    ? t(item.draft ? "import.result.draft" : "import.result.imported")
                     : t(`import.reason.${item.reason ?? "server_error"}`, {
                         detail: item.detail ?? "",
                         number: item.detail ?? "",

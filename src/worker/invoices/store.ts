@@ -460,7 +460,12 @@ function parseEditorForm(text: string | null): unknown {
   }
 }
 
-type Extra = { reissuesInvoiceId?: string | null; editorForm?: string | null };
+type Extra = {
+  reissuesInvoiceId?: string | null;
+  editorForm?: string | null;
+  /** The customer name of an invoice rebuilt from an import, shown until a client is chosen. */
+  counterpartyName?: string | null;
+};
 
 /**
  * Insert statements for the lines of invoice `id`. `guarded` makes each one a no-op unless the
@@ -517,9 +522,10 @@ export async function createInvoice(
         `INSERT INTO invoices
            (id, document_type, state, state_rank, payment_flag, source, client_id, planned_date,
             due_date, currency, data, total_cents, linked_invoice_id,
-            reissues_invoice_id, requested_number_int, editor_form, series_id, created_at, updated_at)
+            reissues_invoice_id, requested_number_int, editor_form, series_id, counterparty_name,
+            created_at, updated_at)
          VALUES (?, ?, ?, ?, 'unpaid', 'app', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                 COALESCE(?, (SELECT id FROM numbering_series WHERE is_default = 1)), ?, ?)`,
+                 COALESCE(?, (SELECT id FROM numbering_series WHERE is_default = 1)), ?, ?, ?)`,
       )
       .bind(
         id,
@@ -537,6 +543,7 @@ export async function createInvoice(
         body.requestedNumber,
         extra.editorForm ?? null,
         body.seriesId,
+        extra.counterpartyName ?? null,
         now.getTime(),
         now.getTime(),
       ),

@@ -45,8 +45,9 @@ function entries(summary: FicSummary): Entry[] {
 
 /**
  * Every invoice of the file with a box to leave it out and a box for "paid". The newest come first,
- * because those are the ones that are still open. Invoices dated after today are not issued yet
- * and start unticked.
+ * because those are the ones that are still open. An issued invoice dated after today is not
+ * issued yet: it is created as an unsent invoice (ticked, never paid). A received one dated after
+ * today starts unticked.
  */
 export function SummaryReview({
   summary,
@@ -75,8 +76,9 @@ export function SummaryReview({
         {sorted.map((entry) => {
           const key = rowKey(entry.kind, entry.line);
           const future = entry.date > today;
-          const include = choices[key]?.include ?? !future;
-          const paid = choices[key]?.paid ?? markPaid;
+          const toSend = future && entry.kind === "issued";
+          const include = choices[key]?.include ?? !(future && !toSend);
+          const paid = toSend ? false : (choices[key]?.paid ?? markPaid);
           const label = t(`import.summary.label.${entry.kind}`, {
             number: entry.number,
             date: entry.date,
@@ -89,7 +91,7 @@ export function SummaryReview({
                   <span className="font-medium">{label}</span>
                   {future ? (
                     <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                      {t("import.summary.notIssuedYet")}
+                      {t(toSend ? "import.summary.willBeToSend" : "import.summary.notIssuedYet")}
                     </span>
                   ) : null}
                 </span>
@@ -109,17 +111,19 @@ export function SummaryReview({
                   />
                   {t("import.summary.rowImport")}
                 </label>
-                <label className="flex min-h-8 items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={paid}
-                    disabled={disabled || !include}
-                    aria-label={t("import.summary.rowPaidLabel", { row: label })}
-                    onChange={(event) => onChange(key, { paid: event.target.checked })}
-                    className="size-4"
-                  />
-                  {t("import.summary.rowPaid")}
-                </label>
+                {toSend ? null : (
+                  <label className="flex min-h-8 items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={paid}
+                      disabled={disabled || !include}
+                      aria-label={t("import.summary.rowPaidLabel", { row: label })}
+                      onChange={(event) => onChange(key, { paid: event.target.checked })}
+                      className="size-4"
+                    />
+                    {t("import.summary.rowPaid")}
+                  </label>
+                )}
               </div>
             </li>
           );

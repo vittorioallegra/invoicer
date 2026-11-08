@@ -1,5 +1,6 @@
 import type {
   ImportItemResult,
+  IssuedSummaryDraftRow,
   IssuedSummaryRow,
   ReceivedSummaryRow,
   SummaryImportResponse,
@@ -11,13 +12,15 @@ import type { FicInvalidRow, FicSummary } from "./fic-summary";
 
 /**
  * Sends a Fatture in Cloud account summary to the Worker once the owner confirmed the preview:
- * first the numbering series the numbers need, then the issued rows, then the received rows, in
+ * first the numbering series the numbers need, then the issued rows, then the issued rows dated
+ * after today (created as unsent invoices, never as delivered ones), then the received rows, in
  * chunks (the Worker answers one outcome per row; a chunk is small enough for its CPU limit).
  * Never throws: a failed chunk marks its rows `server_error` and the others go on.
  */
 
-/** Rows per request (the Worker accepts up to `SUMMARY_CHUNK_ROWS`). */
+/** Rows per request (the Worker accepts up to `SUMMARY_CHUNK_ROWS`, and `SUMMARY_DRAFT_CHUNK_ROWS` of drafts). */
 const CHUNK = 20;
+const DRAFT_CHUNK = 10;
 
 export interface SummaryProgress {
   /** Rows answered so far, and all rows to send. */
@@ -31,6 +34,8 @@ export interface SummaryRunOptions {
   /** Whether an invoice is stored as paid, by its row in the sheet; defaults to `markPaid`. */
   paidFor?: (kind: "issued" | "received", line: number) => boolean;
   series: NumberingSeriesData[];
+  /** Today (Europe/Rome, `YYYY-MM-DD`): an issued row dated after it becomes an unsent invoice. */
+  today: string;
   /** The text of one row on the result screen ("Issued 3/CH, 2025-03-31, Acme"). */
   label: (kind: "issued" | "received", number: string, date: string, name: string) => string;
   /** The title and the reason of a row that could not be read from the file. */
@@ -43,9 +48,9 @@ export interface SummaryItem extends ImportItemResult {
   kind: "issued" | "received";
 }
 
-const chunks = <T>(rows: T[]): T[][] => {
+const chunks = <T>(rows: T[], size = CHUNK): T[][] => {
   const out: T[][] = [];
-  for (let i = 0; i < rows.length; i += CHUNK) out.push(rows.slice(i, i + CHUNK));
+  for (let i = 0; i < rows.length; i += size) out.push(rows.slice(i, i + size));
   return out;
 };
 
@@ -53,9 +58,19 @@ function toItem(
   kind: "issued" | "received",
   label: string,
   outcome: SummaryRowOutcome | undefined,
+  draft = false,
 ): SummaryItem {
   const base = { kind, label };
-  if (outcome?.outcome === "imported") return { ...base, status: "imported", id: outcome.id };
+  if (outcome?.outcome === "imported") {
+    if (!draft) return { ...base, status: "imported", id: outcome.id };
+    return {
+      ...base,
+      status: "imported",
+      id: outcome.id,
+      draft: true,
+      ...(outcome.numberNote ? { detail: `draft_number_${outcome.numberNote}` } : {}),
+    };
+  }
   if (outcome?.outcome === "duplicate") {
     return { ...base, status: "skipped", reason: "duplicate", id: outcome.id };
   }
@@ -89,15 +104,22 @@ export async function runSummaryImport(
   }
 
   const paidFor = options.paidFor ?? (() => options.markPaid);
-  const issued: IssuedSummaryRow[] = summary.issued.map(({ line, row }) => ({
-    ...row,
-    paid: paidFor("issued", line),
-  }));
+  const future = (date: string) => date > options.today;
+  const issued: IssuedSummaryRow[] = summary.issued
+    .filter(({ row }) => !future(row.date))
+    .map(({ line, row: { amounts: _amounts, ...row } }) => ({
+      ...row,
+      paid: paidFor("issued", line),
+    }));
+  // Not issued yet: an unsent invoice, never paid, whatever the "mark as paid" boxes say.
+  const drafts: IssuedSummaryDraftRow[] = summary.issued
+    .filter(({ row }) => future(row.date))
+    .map(({ row }) => row);
   const received: ReceivedSummaryRow[] = summary.received.map(({ line, row }) => ({
     ...row,
     paid: paidFor("received", line),
   }));
-  const total = issued.length + received.length;
+  const total = issued.length + drafts.length + received.length;
   let done = 0;
   options.onProgress?.({ done, total });
 
@@ -107,8 +129,10 @@ export async function runSummaryImport(
     path: string,
     rows: Row[],
     labelOf: (row: Row) => string,
+    size = CHUNK,
+    draft = false,
   ) => {
-    for (const part of chunks(rows)) {
+    for (const part of chunks(rows, size)) {
       let results: SummaryRowOutcome[] = [];
       try {
         results = (
@@ -122,7 +146,7 @@ export async function runSummaryImport(
         // Every row of the chunk is reported as failed below.
       }
       part.forEach((row, index) => {
-        items.push(toItem(kind, labelOf(row), results[index]));
+        items.push(toItem(kind, labelOf(row), results[index], draft));
       });
       done += part.length;
       options.onProgress?.({ done, total });
@@ -130,6 +154,14 @@ export async function runSummaryImport(
   };
   await send("issued", "/api/invoices/import-summary", issued, (row) =>
     options.label("issued", row.number, row.date, row.customer.name),
+  );
+  await send(
+    "issued",
+    "/api/invoices/import-summary-drafts",
+    drafts,
+    (row) => options.label("issued", row.number, row.date, row.customer.name),
+    DRAFT_CHUNK,
+    true,
   );
   await send("received", "/api/received/import-summary", received, (row) =>
     options.label("received", row.number, row.issueDate, row.supplierName),

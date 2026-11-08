@@ -58,9 +58,10 @@ export function SummaryImport() {
   };
 
   const today = romeDateTime(new Date()).date;
-  // An invoice dated after today is not issued yet: it starts left out unless the owner ticks it.
+  // A received invoice dated after today starts left out unless the owner ticks it. An issued one
+  // is not issued yet: it is created as an unsent invoice, so it starts ticked.
   const included = (kind: "issued" | "received", line: number, date: string) =>
-    choices[rowKey(kind, line)]?.include ?? date <= today;
+    choices[rowKey(kind, line)]?.include ?? (kind === "issued" || date <= today);
   const paidFor = (kind: "issued" | "received", line: number) =>
     choices[rowKey(kind, line)]?.paid ?? markPaid;
   const selected: FicSummary | null = summary && {
@@ -83,6 +84,7 @@ export function SummaryImport() {
       )
     : [];
   const years = selected ? yearRange(selected) : null;
+  const toSendCount = selected?.issued.filter((item) => item.row.date > today).length ?? 0;
   const count = (selected?.issued.length ?? 0) + (selected?.received.length ?? 0);
   const change = (key: string, next: RowChoice) =>
     setChoices((current) => ({ ...current, [key]: { ...current[key], ...next } }));
@@ -95,6 +97,7 @@ export function SummaryImport() {
         markPaid,
         paidFor,
         series,
+        today,
         label: (kind, number, date, name) =>
           t(`import.summary.label.${kind}`, { number, date, name }),
         invalidLabel: (row) =>
@@ -180,7 +183,14 @@ export function SummaryImport() {
             <Banner tone="warning">{t("import.summary.nothing")}</Banner>
           ) : (
             <ul className="flex flex-col gap-1 text-sm">
-              <li>{t("import.summary.issuedCount", { count: selected?.issued.length ?? 0 })}</li>
+              <li>
+                {t("import.summary.issuedCount", {
+                  count: (selected?.issued.length ?? 0) - toSendCount,
+                })}
+              </li>
+              {toSendCount > 0 ? (
+                <li>{t("import.summary.toSendCount", { count: toSendCount })}</li>
+              ) : null}
               <li>
                 {t("import.summary.receivedCount", { count: selected?.received.length ?? 0 })}
               </li>

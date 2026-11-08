@@ -1,6 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import type {
+  IssuedSummaryDraftRow,
   IssuedSummaryRow,
   ReceivedSummaryRow,
   SummaryImportResponse,
@@ -202,6 +203,179 @@ describe("POST /api/invoices/import-summary", () => {
   it("stores a credit note", async () => {
     const res = await postIssued([issued({ number: "80", documentType: "TD04", totalCents: 100 })]);
     expect(outcomes(res)).toEqual(["imported"]);
+  });
+});
+
+const draft = (over: Partial<IssuedSummaryDraftRow> = {}): IssuedSummaryDraftRow => ({
+  documentType: "TD01",
+  number: "5",
+  date: "2099-06-01",
+  currency: "EUR",
+  totalCents: 0,
+  customer: { name: "Later Client", vatCountry: null, vatCode: null, taxCode: null },
+  amounts: {
+    taxableCents: 100000,
+    taxCents: 22000,
+    withholdingCents: 0,
+    rivalsaCents: 0,
+    cassaCents: 0,
+    otherCassaCents: 0,
+  },
+  ...over,
+});
+const postDrafts = (rows: IssuedSummaryDraftRow[]) =>
+  owner.json<SummaryImportResponse>("/api/invoices/import-summary-drafts", { body: { rows } });
+const invoiceOf = async (result: unknown) =>
+  (await owner.json<{ invoice: InvoiceRecord }>(`/api/invoices/${(result as { id: string }).id}`))
+    .body.invoice;
+
+describe("POST /api/invoices/import-summary-drafts", () => {
+  it("needs a session and a valid body", async () => {
+    const anon = new TestClient("10.13.0.4", bindings);
+    expect(
+      (await anon.json("/api/invoices/import-summary-drafts", { body: { rows: [] } })).status,
+    ).toBe(401);
+    expect((await postDrafts([])).status).toBe(400);
+    expect((await postDrafts(Array.from({ length: 11 }, () => draft()))).status).toBe(400);
+    expect((await postDrafts([draft({ date: "01/06/2099" })])).status).toBe(400);
+  });
+
+  it("creates an unsent invoice with the requested number and one line", async () => {
+    const res = await postDrafts([draft()]);
+    expect(res.status).toBe(200);
+    expect(res.body.results).toMatchObject([{ outcome: "imported", clientLinked: false }]);
+    const invoice = await invoiceOf(res.body.results[0]);
+    expect(invoice).toMatchObject({
+      source: "app",
+      state: "planned",
+      paymentFlag: "unpaid",
+      documentType: "TD01",
+      currency: "EUR",
+      invoiceDate: "2099-06-01",
+      number: null,
+      requestedNumber: 5,
+      clientId: null,
+      clientName: "Later Client",
+      hasOriginal: false,
+    });
+    expect(invoice.lines).toEqual([
+      expect.objectContaining({
+        description: "",
+        quantityMilli: 1000,
+        unitPriceCents: 100000,
+        vatRateBp: 2200,
+        natura: null,
+      }),
+    ]);
+    expect(invoice.data.cassa).toBeNull();
+    expect(invoice.data.ritenuta).toBeNull();
+    const list = await owner.json<{ invoices: InvoiceSummary[] }>("/api/invoices?scope=to_issue");
+    expect(list.body.invoices.map((i) => i.id)).toContain(invoice.id);
+  });
+
+  it("is a duplicate the second time, and the same row twice imports once", async () => {
+    const again = await postDrafts([draft()]);
+    expect(outcomes(again)).toEqual(["duplicate"]);
+    const twice = await postDrafts([draft({ number: "6" }), draft({ number: "6" })]);
+    expect(outcomes(twice)).toEqual(["imported", "duplicate"]);
+    const clash = await postDrafts([
+      draft({ number: "7" }),
+      draft({ number: "7", date: "2099-07-01" }),
+    ]);
+    expect(outcomes(clash)).toEqual(["imported", "number_conflict"]);
+    const count = await env.DB.prepare(
+      "SELECT count(*) AS n FROM invoices WHERE planned_date LIKE '2099-%' AND source = 'app'",
+    ).first<{ n: number }>();
+    expect(count?.n).toBe(3);
+  });
+
+  it("uses the owner's cassa and ritenuta when the row has them, and leaves VAT unset at 0", async () => {
+    await owner.json("/api/tax", {
+      method: "PUT",
+      body: {
+        regimeFiscale: "RF19",
+        cassa: { type: "TC22", rateBp: 400, mode: "included", subjectToRitenuta: true },
+        ritenuta: { type: "RT01", rateBp: 2000, baseBp: 10000, causale: "A" },
+      },
+    });
+    const res = await postDrafts([
+      draft({
+        number: "10",
+        amounts: {
+          taxableCents: 100000,
+          taxCents: 22880,
+          withholdingCents: 20800,
+          rivalsaCents: 0,
+          cassaCents: 4000,
+          otherCassaCents: 0,
+        },
+      }),
+      draft({
+        number: "11",
+        amounts: { ...draft().amounts, taxCents: 0 },
+      }),
+    ]);
+    expect(outcomes(res)).toEqual(["imported", "imported"]);
+    const [first, second] = [
+      await invoiceOf(res.body.results[0]),
+      await invoiceOf(res.body.results[1]),
+    ];
+    // IVA / (taxable + cassa) = 22%, the cassa keeps the owner's options but is added on top.
+    expect(first.lines[0]).toMatchObject({ unitPriceCents: 100000, vatRateBp: 2200 });
+    expect(first.data.cassa).toEqual({
+      type: "TC22",
+      rateBp: 400,
+      mode: "excluded",
+      subjectToRitenuta: true,
+    });
+    expect(first.data.ritenuta).toMatchObject({ type: "RT01", rateBp: 2000 });
+    expect(second.lines[0]).toMatchObject({ vatRateBp: null, natura: null });
+    expect(second.data.cassa).toBeNull();
+    expect(second.data.ritenuta).toBeNull();
+  });
+
+  it("creates the invoice without a number that is taken or not above the issued ones", async () => {
+    await postIssued([issued({ number: "20", date: "2099-01-01" })]);
+    const res = await postDrafts([
+      draft({ number: "20" }),
+      draft({ number: "19", date: "2099-08-01" }),
+      draft({ number: "21", date: "2099-08-02" }),
+      draft({ number: "21 bis", date: "2099-08-03" }),
+    ]);
+    expect(res.body.results).toMatchObject([
+      { outcome: "number_conflict", number: "20" },
+      { outcome: "imported", numberNote: "unavailable" },
+      { outcome: "imported" },
+      { outcome: "imported", numberNote: "free_text" },
+    ]);
+    expect((await invoiceOf(res.body.results[1])).requestedNumber).toBeNull();
+    expect((await invoiceOf(res.body.results[2])).requestedNumber).toBe(21);
+    expect((await invoiceOf(res.body.results[3])).requestedNumber).toBeNull();
+    // Re-importing the number-less ones does not create them twice.
+    const again = await postDrafts([draft({ number: "21 bis", date: "2099-08-03" })]);
+    expect(outcomes(again)).toEqual(["duplicate"]);
+  });
+
+  it("puts the number into its series and links an existing client by VAT number", async () => {
+    const series = await owner.json<{ series: { id: string } }>("/api/numbering-series", {
+      body: { name: "DR", suffix: "/DR" },
+    });
+    const clientRow = await env.DB.prepare(
+      "SELECT id FROM clients WHERE vat_number = '01234567897'",
+    ).first<{ id: string }>();
+    const res = await postDrafts([
+      draft({
+        number: "3/DR",
+        customer: { name: "Name in file", vatCountry: "IT", vatCode: "01234567897", taxCode: null },
+      }),
+    ]);
+    expect(res.body.results).toMatchObject([{ outcome: "imported", clientLinked: true }]);
+    const invoice = await invoiceOf(res.body.results[0]);
+    expect(invoice).toMatchObject({
+      seriesId: series.body.series.id,
+      requestedNumber: 3,
+      clientId: clientRow?.id,
+    });
   });
 });
 

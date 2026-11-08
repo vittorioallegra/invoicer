@@ -105,6 +105,14 @@ describe("parseFicSummary", () => {
           vatCode: "12345678903",
           taxCode: "RSSMRA80A01H501U",
         },
+        amounts: {
+          taxableCents: 100000,
+          taxCents: 22000,
+          withholdingCents: 20000,
+          rivalsaCents: 4000,
+          cassaCents: 1000,
+          otherCassaCents: 500,
+        },
       },
       {
         documentType: "TD01",
@@ -113,6 +121,14 @@ describe("parseFicSummary", () => {
         currency: "EUR",
         totalCents: 50050,
         customer: { name: "Beta GmbH", vatCountry: null, vatCode: null, taxCode: null },
+        amounts: {
+          taxableCents: 50050,
+          taxCents: 0,
+          withholdingCents: 0,
+          rivalsaCents: 0,
+          cassaCents: 0,
+          otherCassaCents: 0,
+        },
       },
       {
         documentType: "TD04",
@@ -121,6 +137,14 @@ describe("parseFicSummary", () => {
         currency: "EUR",
         totalCents: 12200,
         customer: { name: "Credit note client", vatCountry: null, vatCode: null, taxCode: null },
+        amounts: {
+          taxableCents: 10000,
+          taxCents: 2200,
+          withholdingCents: 0,
+          rivalsaCents: 0,
+          cassaCents: 0,
+          otherCassaCents: 0,
+        },
       },
     ]);
     expect(summary?.issued[0]?.line).toBe(8);

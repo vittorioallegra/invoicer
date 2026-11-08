@@ -1177,10 +1177,13 @@
       "summary": "{{imported}} importate, {{skipped}} saltate",
       "imported": "Importata",
       "again": "Importa altri file",
-      "open": "Apri"
+      "open": "Apri",
+      "draft": "Creata come fattura da inviare, controllala prima di inviarla (descrizione, IVA e totali)"
     },
     "detail": {
-      "no_client": "nessun cliente collegato, i dati del cliente nel file sono incompleti"
+      "no_client": "nessun cliente collegato, i dati del cliente nel file sono incompleti",
+      "draft_number_unavailable": "il numero non è stato mantenuto (è occupato o non supera quelli emessi): impostalo nell'editor",
+      "draft_number_free_text": "il numero non ha un progressivo: impostalo nell'editor"
     },
     "reason": {
       "duplicate": "Già importata.",
@@ -1237,14 +1240,17 @@
       "markPaidHint": "Le fatture passate sono di solito saldate. La data di pagamento è la data della fattura. Disattiva per lasciarle non pagate.",
       "review": "Controlla le fatture",
       "reviewSummary": "Escludi una fattura o segnala quelle non ancora pagate",
-      "reviewHint": "Le più recenti sono in alto. Togli la spunta da Importa per escludere una fattura, e da Pagata per una fattura non ancora incassata. Le fatture con data successiva a oggi non sono ancora emesse, quindi partono escluse.",
+      "reviewHint": "Le più recenti sono in alto. Togli la spunta da Importa per escludere una fattura, e da Pagata per una fattura non ancora incassata. Una fattura emessa con data successiva a oggi non è ancora emessa: viene creata come fattura da inviare, mai come pagata. Una fattura ricevuta con data successiva a oggi parte esclusa.",
       "rowImport": "Importa",
       "rowPaid": "Pagata",
       "rowImportLabel": "Importa {{row}}",
       "rowPaidLabel": "Pagata: {{row}}",
       "notIssuedYet": "Non ancora emessa",
       "leftOut_one": "{{count}} fattura è esclusa (vedi il controllo qui sotto).",
-      "leftOut_other": "{{count}} fatture sono escluse (vedi il controllo qui sotto)."
+      "leftOut_other": "{{count}} fatture sono escluse (vedi il controllo qui sotto).",
+      "willBeToSend": "Verrà creata come fattura da inviare",
+      "toSendCount_one": "{{count}} fattura emessa con data successiva a oggi verrà creata come fattura da inviare (non inviata, non pagata)",
+      "toSendCount_other": "{{count}} fatture emesse con data successiva a oggi verranno create come fatture da inviare (non inviate, non pagate)"
     },
     "clients": {
       "intro": "Importa i clienti da un'esportazione CSV di Fatture in Cloud. Prima di salvare vedi quale colonna riempie ogni campo e ogni riga con un problema. I clienti che hai già (stessa partita IVA, codice fiscale o nome) vengono saltati."

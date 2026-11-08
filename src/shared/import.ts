@@ -54,6 +54,8 @@ export interface ImportItemResult {
   detail?: string;
   /** Stored id of an imported (or already existing) record. */
   id?: string;
+  /** Imported as an unsent invoice to complete and send (a summary row dated after today). */
+  draft?: boolean;
 }
 
 /** Decimal text from a FatturaPA file ("1234.50", "-12.5") as integer cents; null when invalid. */
@@ -157,6 +159,32 @@ export const receivedSummaryRowSchema = receivedSummarySchema.extend({
 });
 export type ReceivedSummaryRow = z.infer<typeof receivedSummaryRowSchema>;
 
+/** The amounts of an issued summary row, in cents (credit notes have them negated back to positive). */
+export const summaryAmountsSchema = z.object({
+  taxableCents: cents,
+  taxCents: cents,
+  withholdingCents: cents,
+  rivalsaCents: cents,
+  cassaCents: cents,
+  otherCassaCents: cents,
+});
+export type SummaryAmounts = z.infer<typeof summaryAmountsSchema>;
+
+/**
+ * An issued summary row dated after today: not issued yet, so it becomes an unsent invoice
+ * (`POST /api/invoices/import-summary-drafts`) rebuilt from these amounts, never a delivered one.
+ */
+export const issuedSummaryDraftRowSchema = issuedSummaryRowSchema
+  .omit({ paid: true })
+  .extend({ amounts: summaryAmountsSchema });
+export type IssuedSummaryDraftRow = z.infer<typeof issuedSummaryDraftRowSchema>;
+
+/** Rows per request of the drafts endpoint: each one is a few D1 statements. */
+export const SUMMARY_DRAFT_CHUNK_ROWS = 10;
+export const issuedSummaryDraftsBodySchema = z.object({
+  rows: z.array(issuedSummaryDraftRowSchema).min(1).max(SUMMARY_DRAFT_CHUNK_ROWS),
+});
+
 /** Body of `POST /api/invoices/import-summary` and `POST /api/received/import-summary`. */
 export const issuedSummaryBodySchema = z.object({
   rows: z.array(issuedSummaryRowSchema).min(1).max(SUMMARY_CHUNK_ROWS),
@@ -175,7 +203,13 @@ export interface SummaryImportResponse {
 
 /** Response of the two file import endpoints. */
 export type ImportFileOutcome =
-  | { outcome: "imported"; id: string; clientLinked?: boolean }
+  | {
+      outcome: "imported";
+      id: string;
+      clientLinked?: boolean;
+      /** Drafts only: why the invoice was created without its number (to set in the editor). */
+      numberNote?: "unavailable" | "free_text";
+    }
   | { outcome: "duplicate"; id: string }
   | { outcome: "number_conflict"; id: string; number: string };
 

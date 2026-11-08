@@ -202,7 +202,7 @@ export async function importIssuedInvoice(
   return { outcome: "imported", id, clientLinked: client !== null };
 }
 
-const clientColumns = (customer: IssuedSummaryRow["customer"]): [string, string][] =>
+export const clientColumns = (customer: IssuedSummaryRow["customer"]): [string, string][] =>
   (
     [
       ["vat_number", customer.vatCountry === "IT" ? customer.vatCode : null],

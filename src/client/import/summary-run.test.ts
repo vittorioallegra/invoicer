@@ -16,6 +16,14 @@ const issued = (n: number) => ({
     currency: "EUR",
     totalCents: 100,
     customer: { name: `Client ${n}`, vatCountry: null, vatCode: null, taxCode: null },
+    amounts: {
+      taxableCents: 100,
+      taxCents: 0,
+      withholdingCents: 0,
+      rivalsaCents: 0,
+      cassaCents: 0,
+      otherCassaCents: 0,
+    },
   },
 });
 const receivedRow = (n: number) => ({
@@ -33,6 +41,7 @@ const receivedRow = (n: number) => ({
 
 const options = {
   markPaid: true,
+  today: "2025-06-01",
   series: [{ name: "CH", prefix: null, suffix: "/CH" }],
   label: (kind: string, number: string, date: string, name: string) =>
     `${kind} ${number} ${date} ${name}`,
@@ -78,6 +87,7 @@ describe("runSummaryImport", () => {
     const sent = JSON.parse(mocks.api.mock.calls[1]?.[1].body as string).rows;
     expect(sent).toHaveLength(20);
     expect(sent[0]).toMatchObject({ number: "1/CH", paid: true });
+    expect(sent[0]).not.toHaveProperty("amounts");
     expect(progress).toEqual([0, 20, 40, 45, 46]);
     expect(items).toHaveLength(47);
     expect(items[0]).toMatchObject({
@@ -109,5 +119,48 @@ describe("runSummaryImport", () => {
       ["received", "imported", undefined],
     ]);
     expect(JSON.parse(mocks.api.mock.calls[1]?.[1].body as string).rows[0].paid).toBe(false);
+  });
+
+  it("sends the rows dated after today to the drafts endpoint, ten at a time, unpaid", async () => {
+    mocks.api.mockImplementation(async (path: string, init: { body: string }) => {
+      if (path === "/api/numbering-series") return {};
+      const { rows } = JSON.parse(init.body) as { rows: unknown[] };
+      return {
+        results: rows.map((_, i) =>
+          path.endsWith("-drafts") && i === 0
+            ? { outcome: "imported", id: "d1", numberNote: "unavailable" }
+            : path.endsWith("-drafts") && i === 1
+              ? { outcome: "number_conflict", id: "c1", number: "2/CH" }
+              : { outcome: "imported", id: "new" },
+        ),
+      } satisfies SummaryImportResponse;
+    });
+    const later = (n: number) => ({ line: n, row: { ...issued(n).row, date: "2025-12-31" } });
+    const items = await runSummaryImport(
+      {
+        issued: [issued(1), ...Array.from({ length: 12 }, (_, i) => later(i + 2))],
+        received: [],
+        invalid: [],
+      },
+      { ...options, series: [] },
+    );
+    const paths = mocks.api.mock.calls.map((call) => call[0]);
+    expect(paths).toEqual([
+      "/api/invoices/import-summary",
+      "/api/invoices/import-summary-drafts",
+      "/api/invoices/import-summary-drafts",
+    ]);
+    const drafts = JSON.parse(mocks.api.mock.calls[1]?.[1].body as string).rows;
+    expect(drafts).toHaveLength(10);
+    expect(drafts[0]).toMatchObject({ number: "2/CH", amounts: { taxableCents: 100 } });
+    expect(drafts[0]).not.toHaveProperty("paid");
+    expect(items[0]).not.toHaveProperty("draft");
+    expect(items[1]).toMatchObject({
+      status: "imported",
+      id: "d1",
+      draft: true,
+      detail: "draft_number_unavailable",
+    });
+    expect(items[2]).toMatchObject({ status: "skipped", reason: "number_conflict", id: "c1" });
   });
 });

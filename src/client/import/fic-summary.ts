@@ -1,4 +1,4 @@
-import type { IssuedSummaryRow, ReceivedSummaryRow } from "../../shared/import";
+import type { IssuedSummaryRow, ReceivedSummaryRow, SummaryAmounts } from "../../shared/import";
 import {
   matchSeries,
   type NumberingSeriesData,
@@ -15,7 +15,7 @@ import { serialToIsoDate, type XlsCell, type XlsWorkbook } from "./xls";
  */
 
 /** A row without the paid flag, which the owner picks on the preview. */
-export type SummaryIssued = Omit<IssuedSummaryRow, "paid">;
+export type SummaryIssued = Omit<IssuedSummaryRow, "paid"> & { amounts: SummaryAmounts };
 export type SummaryReceived = Omit<ReceivedSummaryRow, "paid">;
 
 export interface FicIssuedRow {
@@ -48,6 +48,7 @@ type Column =
   | "taxCode"
   | "taxable"
   | "tax"
+  | "withholding"
   | "rivalsa"
   | "cassa"
   | "otherCassa";
@@ -61,6 +62,7 @@ const HEADERS: Record<"issued" | "received", Record<string, Column>> = {
     cf: "taxCode",
     imponibile: "taxable",
     iva: "tax",
+    ritdacconto: "withholding",
     rivalsainps: "rivalsa",
     cassaprevidenziale: "cassa",
     altracassaprev: "otherCassa",
@@ -188,7 +190,13 @@ export function parseFicSummary(book: XlsWorkbook): FicSummary | null {
       const taxable = centsOf(at("taxable"));
       const tax = centsOf(at("tax"));
       const extras = (["rivalsa", "cassa", "otherCassa"] as const).map((c) => centsOf(at(c)));
-      if (taxable === null || tax === null || extras.some((value) => value === null)) {
+      const withholding = centsOf(at("withholding"));
+      if (
+        taxable === null ||
+        tax === null ||
+        withholding === null ||
+        extras.some((value) => value === null)
+      ) {
         invalid("amount");
         continue;
       }
@@ -196,6 +204,9 @@ export function parseFicSummary(book: XlsWorkbook): FicSummary | null {
       const credit = total < 0;
       if (credit) total = -total;
       if (kind === "issued") {
+        const [rivalsa = 0, cassa = 0, otherCassa = 0] = extras as number[];
+        // A credit note carries its amounts as positive numbers, like its total.
+        const sign = credit ? -1 : 1;
         summary.issued.push({
           line,
           row: {
@@ -209,6 +220,14 @@ export function parseFicSummary(book: XlsWorkbook): FicSummary | null {
               vatCountry: vat !== null && /^\d{11}$/.test(vat) ? "IT" : null,
               vatCode: vat,
               taxCode,
+            },
+            amounts: {
+              taxableCents: sign * taxable + 0,
+              taxCents: sign * tax + 0,
+              withholdingCents: Math.abs(withholding),
+              rivalsaCents: sign * rivalsa + 0,
+              cassaCents: sign * cassa + 0,
+              otherCassaCents: sign * otherCassa + 0,
             },
           },
         });

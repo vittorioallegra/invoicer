@@ -10,6 +10,7 @@ import {
   IMPORT_META_HEADER,
   issuedImportMetaSchema,
   issuedSummaryBodySchema,
+  issuedSummaryDraftsBodySchema,
   type SummaryImportResponse,
 } from "../../shared/import";
 import {
@@ -29,6 +30,7 @@ import { invoicePdfFileName } from "../../shared/pdf-name";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
 import { importIssuedInvoice, importIssuedSummary } from "../invoices/import";
+import { importSummaryDrafts } from "../invoices/import-summary-drafts";
 import {
   defaultSeriesId,
   lastIssueDate,
@@ -184,6 +186,18 @@ invoices.post("/import-summary", async (c) => {
   const body = issuedSummaryBodySchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) throw makeError("bad_request", validationDetail(body.error));
   const results = await importIssuedSummary(c.env.DB, body.data.rows);
+  return c.json({ results } satisfies SummaryImportResponse);
+});
+
+/**
+ * Issued rows of the summary dated after today, ten at a time: each becomes an unsent invoice (the
+ * editor's save path), never a delivered one. Same outcomes as `/import-summary`, plus the
+ * `numberNote` of an invoice created without its number.
+ */
+invoices.post("/import-summary-drafts", async (c) => {
+  const body = issuedSummaryDraftsBodySchema.safeParse(await c.req.json().catch(() => null));
+  if (!body.success) throw makeError("bad_request", validationDetail(body.error));
+  const results = await importSummaryDrafts(c.env.DB, body.data.rows);
   return c.json({ results } satisfies SummaryImportResponse);
 });
 
