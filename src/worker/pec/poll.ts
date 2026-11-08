@@ -349,8 +349,25 @@ async function connect(env: Bindings, servers: { imapHost: string; imapPort: num
       password: env.PEC_PASSWORD as string,
     });
   } catch (error) {
+    if (!(error instanceof ImapError)) {
+      // What the socket layer said (a timeout, a reset, a TLS problem), to tell the causes apart in
+      // the Worker logs; the code the owner sees stays `connection_failed`.
+      console.error("imap_connect", error instanceof Error ? error.name : typeof error);
+    }
     throw error instanceof ImapError ? error : new ImapError("closed", "Connection failed.");
   }
+}
+
+/** Whether the poll run before this one ended in a failure. */
+async function previousPollFailed(db: D1Database, runId: string): Promise<boolean> {
+  const row = await db
+    .prepare(
+      "SELECT status FROM job_runs WHERE job = ?1 AND id != ?2 ORDER BY started_at DESC LIMIT 1",
+    )
+    .bind(POLL_JOB, runId)
+    .first<{ status: string }>()
+    .catch(() => null);
+  return row?.status === "failed";
 }
 
 export function pollErrorCode(error: unknown): string {
@@ -396,17 +413,21 @@ export async function pollMailbox(
     const errorCode = pollErrorCode(error);
     console.error("poll_failed", errorCode);
     await finishJobRun(env.DB, runId, { status: "failed", counts, errorCode });
-    // A refused login stops polling and sending alike: its own, more urgent notification.
+    // A refused login stops polling and sending alike: its own, more urgent notification. Any other
+    // failure (the PEC server not answering for a moment) often heals by itself on the next run, ten
+    // minutes later, so it is reported only when the run before it failed too.
     const loginFailed = errorCode === "login_failed";
-    await notificationStatement(
-      env.DB,
-      loginFailed ? "mailbox_login_failed" : "poll_failed",
-      loginFailed ? {} : { code: errorCode },
-      Date.now(),
-      { unlessUnread: true },
-    )
-      .run()
-      .catch(() => undefined);
+    if (loginFailed || (await previousPollFailed(env.DB, runId))) {
+      await notificationStatement(
+        env.DB,
+        loginFailed ? "mailbox_login_failed" : "poll_failed",
+        loginFailed ? {} : { code: errorCode },
+        Date.now(),
+        { unlessUnread: true },
+      )
+        .run()
+        .catch(() => undefined);
+    }
     await deliverOutbox(env);
     return { ok: false, counts, errorCode };
   }

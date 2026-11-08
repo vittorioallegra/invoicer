@@ -71,6 +71,31 @@ describe("a failing poll raises a notification", () => {
     expect(await count("notifications")).toBe(3);
   });
 
+  it("reports a connection problem only when the run before it failed too", async () => {
+    useMailbox([{ uid: 1, source: plainMail("seed") }]);
+    expect((await pollMailbox(pollEnv))?.ok).toBe(true);
+    const unreachable = () => {
+      throw new Error("tls handshake failed");
+    };
+    const working = pollDeps.open;
+    pollDeps.open = unreachable;
+
+    // One failed run between good ones: it heals by itself, nothing to report.
+    expect(await pollMailbox(pollEnv)).toMatchObject({ ok: false, errorCode: "connection_failed" });
+    expect(await count("notifications")).toBe(0);
+    pollDeps.open = working;
+    expect((await pollMailbox(pollEnv))?.ok).toBe(true);
+    pollDeps.open = unreachable;
+    expect((await pollMailbox(pollEnv))?.ok).toBe(false);
+    expect(await count("notifications")).toBe(0);
+
+    // The next run fails as well: now it is a problem.
+    expect((await pollMailbox(pollEnv))?.ok).toBe(false);
+    expect(await all("SELECT type, body FROM notifications")).toEqual([
+      { type: "poll_failed", body: '{"code":"connection_failed"}' },
+    ]);
+  });
+
   it("does not notify on a successful run", async () => {
     useMailbox([{ uid: 1, source: plainMail("seed") }]);
     expect((await pollMailbox(pollEnv))?.ok).toBe(true);
