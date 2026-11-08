@@ -53,6 +53,17 @@ async function findClient(db: D1Database, meta: IssuedImportMeta): Promise<strin
   return null;
 }
 
+/** Stores a client from an import record when it passes the client rules; null otherwise. */
+export async function createImportClient(db: D1Database, raw: unknown): Promise<string | null> {
+  const data = importClient(raw);
+  if (!data) return null;
+  const [row] = await drizzle(db, { schema })
+    .insert(schema.clients)
+    .values({ ...data, updatedAt: new Date() })
+    .returning({ id: schema.clients.id });
+  return row?.id ?? null;
+}
+
 /** The client of the invoice: an existing one, else one created from the file when it is valid. */
 async function resolveClient(
   db: D1Database,
@@ -60,13 +71,8 @@ async function resolveClient(
 ): Promise<{ id: string; created: boolean } | null> {
   const found = await findClient(db, meta);
   if (found) return { id: found, created: false };
-  const data = importClient(meta.customer.client);
-  if (!data) return null;
-  const [row] = await drizzle(db, { schema })
-    .insert(schema.clients)
-    .values({ ...data, updatedAt: new Date() })
-    .returning({ id: schema.clients.id });
-  return row ? { id: row.id, created: true } : null;
+  const id = await createImportClient(db, meta.customer.client);
+  return id ? { id, created: true } : null;
 }
 
 interface ImportedInvoice {

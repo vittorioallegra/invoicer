@@ -15,6 +15,8 @@ export const cassaDefaultsSchema = z.object({
   subjectToRitenuta: z.boolean(),
 });
 
+export type CassaDefaults = z.output<typeof cassaDefaultsSchema>;
+
 /** A ritenuta d'acconto setting: the owner's in Tax details, copied onto an invoice. */
 export const ritenutaDefaultsSchema = z.object({
   type: z.enum(RITENUTA_TYPES),
@@ -23,6 +25,8 @@ export const ritenutaDefaultsSchema = z.object({
   baseBp: rateBp.min(1).default(10000),
   causale: z.enum(CAUSALE_PAGAMENTO_CODES),
 });
+
+export type RitenutaDefaults = z.output<typeof ritenutaDefaultsSchema>;
 
 /** The owner's fiscal options as the Tax details page submits them. */
 export const taxInputSchema = z.object({

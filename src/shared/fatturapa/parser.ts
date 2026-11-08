@@ -34,6 +34,19 @@ export interface ReceivedLine {
   total: string;
   vatRate: string;
   natura: string | null;
+  /** `Ritenuta` = SI: the line is subject to the withholding tax. */
+  withholding: boolean;
+}
+
+/** One `DatiCassaPrevidenziale` block (cassa previdenziale or rivalsa INPS). */
+export interface ReceivedCassa {
+  type: string;
+  rate: string | null;
+  amount: string;
+  taxable: string | null;
+  vatRate: string;
+  withholding: boolean;
+  natura: string | null;
 }
 
 export interface ReceivedVatSummary {
@@ -61,6 +74,7 @@ export interface ReceivedDocument {
   causali: string[];
   withholding: { type: string; amount: string; rate: string | null; reason: string | null }[];
   stamp: { amount: string | null } | null;
+  cassa: ReceivedCassa[];
   lines: ReceivedLine[];
   vatSummary: ReceivedVatSummary[];
   payments: ReceivedPayment[];
@@ -99,6 +113,7 @@ const ALWAYS_ARRAY = new Set([
   "DettaglioPagamento",
   "Causale",
   "DatiRitenuta",
+  "DatiCassaPrevidenziale",
   "DatiFattureCollegate",
 ]);
 
@@ -169,6 +184,15 @@ function document(raw: Tree): ReceivedDocument {
       reason: text(item.CausalePagamento),
     })),
     stamp: text(stamp.BolloVirtuale) ? { amount: text(stamp.ImportoBollo) } : null,
+    cassa: asList(doc.DatiCassaPrevidenziale).map((item) => ({
+      type: str(item.TipoCassa),
+      rate: text(item.AlCassa),
+      amount: str(item.ImportoContributoCassa),
+      taxable: text(item.ImponibileCassa),
+      vatRate: str(item.AliquotaIVA),
+      withholding: text(item.Ritenuta) === "SI",
+      natura: text(item.Natura),
+    })),
     lines: asList(goods.DettaglioLinee).map((line) => ({
       number: str(line.NumeroLinea),
       description: str(line.Descrizione),
@@ -178,6 +202,7 @@ function document(raw: Tree): ReceivedDocument {
       total: str(line.PrezzoTotale),
       vatRate: str(line.AliquotaIVA),
       natura: text(line.Natura),
+      withholding: text(line.Ritenuta) === "SI",
     })),
     vatSummary: asList(goods.DatiRiepilogo).map((item) => ({
       vatRate: str(item.AliquotaIVA),

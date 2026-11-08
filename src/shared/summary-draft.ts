@@ -1,5 +1,6 @@
 import type { IssuedSummaryDraftRow, SummaryAmounts } from "./import";
-import { EMPTY_INVOICE_DATA, type InvoiceBody } from "./invoice";
+import type { InvoiceBody } from "./invoice";
+import { assembleDraft, type DraftContext } from "./invoice-draft";
 import type { TaxOptions } from "./tax";
 
 /**
@@ -24,12 +25,8 @@ export function inferVatRateBp(amounts: SummaryAmounts): number | null {
   return INFERRED_RATES.find((rate) => Math.abs(percent - rate / 100) <= 0.5) ?? null;
 }
 
-export interface SummaryDraftContext {
+export interface SummaryDraftContext extends DraftContext {
   tax: TaxOptions;
-  clientId: string | null;
-  seriesId: string | null;
-  /** The progressive to ask for, or null when the number is left to the owner. */
-  requestedNumber: number | null;
 }
 
 export function buildSummaryDraft(
@@ -41,26 +38,28 @@ export function buildSummaryDraft(
   const cassa =
     hasCassa && context.tax.cassa ? { ...context.tax.cassa, mode: "excluded" as const } : null;
   const ritenuta = amounts.withholdingCents > 0 ? context.tax.ritenuta : null;
-  return {
-    documentType: row.documentType,
-    clientId: context.clientId,
-    currency: "EUR",
-    invoiceDate: row.date,
-    dueDate: null,
-    requestedNumber: context.requestedNumber,
-    seriesId: context.seriesId,
-    linkedInvoiceId: null,
-    lines: [
-      {
-        description: "",
-        note: "",
-        quantityMilli: 1000,
-        unit: null,
-        unitPriceCents: Math.abs(amounts.taxableCents),
-        vatRateBp: inferVatRateBp(amounts),
-        natura: null,
-      },
-    ],
-    data: { ...EMPTY_INVOICE_DATA, cassa, ritenuta },
-  };
+  return assembleDraft(
+    {
+      documentType: row.documentType,
+      currency: "EUR",
+      date: row.date,
+      lines: [
+        {
+          description: "",
+          note: "",
+          quantityMilli: 1000,
+          unit: null,
+          unitPriceCents: Math.abs(amounts.taxableCents),
+          vatRateBp: inferVatRateBp(amounts),
+          natura: null,
+        },
+      ],
+      cassa,
+      ritenuta,
+      bollo: "none",
+      note: "",
+      payment: null,
+    },
+    context,
+  );
 }
