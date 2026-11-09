@@ -218,6 +218,25 @@ describe("number reservation", () => {
     expect([future.year, future.issueDate]).toEqual([2061, "2061-01-09"]);
   });
 
+  it("numbers a late invoice with the year of its date: 31/12 sent in January is 12 of the old year, not 2 of the new one", async () => {
+    // Eleven invoices of 2090 are out, the last on 30 December; 1/2091 went out on 4 January.
+    for (let n = 1; n <= 11; n++) {
+      const day = n === 11 ? "2090-12-30" : `2090-0${Math.min(n, 9)}-10`;
+      await insertInvoice({
+        state: "delivered",
+        year: 2090,
+        number: n,
+        issueDate: day,
+        invoiceDate: day,
+      });
+    }
+    await insertInvoice({ state: "delivered", year: 2091, number: 1, issueDate: "2091-01-04" });
+    const late = await insertInvoice({ state: "planned", invoiceDate: "2090-12-31" });
+    const done = await reserve(late, "2091-01-08T09:00:00Z");
+    expect([done.year, done.issueDate, done.number]).toEqual([2090, "2090-12-31", 12]);
+    expect(await nextFreeNumber(db, 2091, "default")).toBe(2);
+  });
+
   it("refuses an issue date earlier than the highest number of the year", async () => {
     await insertInvoice({ state: "sent", year: 2040, number: 5, issueDate: "2040-05-10" });
     const late = await insertInvoice();

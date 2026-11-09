@@ -1703,6 +1703,33 @@ describe("Invoice editor, number on the invoice", () => {
   });
 });
 
+describe("Invoice editor, numbering year", () => {
+  const lastYear = String(Number(YEAR) - 1);
+  const nextNumberYears = () =>
+    mocks.api.mock.calls
+      .map(([path]) => String(path))
+      .filter((path) => path.startsWith("/api/invoices/next-number"))
+      .map((path) => new URLSearchParams(path.split("?")[1]).get("year"));
+
+  it("asks for the next number of the invoice date's year, not of today's, for a late invoice", async () => {
+    // Dated 31 December of last year, edited now: its number is the old year's.
+    serve({ invoice: record({ invoiceDate: `${lastYear}-12-31` }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    edit();
+    await waitFor(() => expect(nextNumberYears()).toContain(lastYear));
+    expect(nextNumberYears()).not.toContain(YEAR);
+  });
+
+  it("uses today's year for an invoice dated in the future, and follows the date when it changes", async () => {
+    serve({ invoice: record({ invoiceDate: `${YEAR}-12-31` }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    edit();
+    await waitFor(() => expect(nextNumberYears()).toContain(YEAR));
+  });
+});
+
 describe("Invoice editor, date before the last issued number", () => {
   it("explains a date too early in the Finalize checks, then on the date field, never before", async () => {
     lastIssueDate = `${YEAR}-12-31`;

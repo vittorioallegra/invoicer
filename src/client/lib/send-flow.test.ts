@@ -25,13 +25,15 @@ vi.mock("./invoices-api", () => ({
   reserveNumber: mocks.reserve,
   releaseNumber: mocks.release,
   newAttempt: mocks.newAttempt,
-  nextNumberQuery: () => ({ queryFn: mocks.nextNumber }),
+  nextNumberQuery: (year: number, series: string | null) => ({
+    queryFn: () => mocks.nextNumber(year, series),
+  }),
   uploadXml: mocks.upload,
   requestSendChallenge: mocks.challenge,
   sendInvoice: mocks.send,
 }));
 
-import { runSendFlow, type SendFlowError } from "./send-flow";
+import { numberingYear, provisionalNumberFor, runSendFlow, type SendFlowError } from "./send-flow";
 
 const fixture = INVOICE_FIXTURES[0];
 if (!fixture) throw new Error("no fixture");
@@ -257,5 +259,29 @@ describe("browser send flow", () => {
     const final = mocks.check.mock.calls.at(-1)?.[0] as string;
     expect(final).toContain("<ProgressivoInvio>00009</ProgressivoInvio>");
     expect(final).toContain("<Numero>2</Numero>");
+  });
+});
+
+describe("numbering year", () => {
+  const dated = (invoiceDate: string | null) =>
+    ({ invoiceDate }) as Parameters<typeof numberingYear>[0];
+
+  it("is the year of the invoice date when it is not in the future, else today's", () => {
+    expect(numberingYear(dated("2026-12-31"), "2027-01-05")).toBe(2026);
+    expect(numberingYear(dated("2027-01-05"), "2027-01-05")).toBe(2027);
+    expect(numberingYear(dated("2027-03-01"), "2027-01-05")).toBe(2027);
+    expect(numberingYear(dated(null), "2027-01-05")).toBe(2027);
+  });
+
+  it("proposes the number of the old year for a late invoice", async () => {
+    mocks.nextNumber.mockResolvedValue({ year: 2026, next: 12 });
+    const late = {
+      ...invoice,
+      requestedNumber: null,
+      seriesId: "default",
+      invoiceDate: "2026-12-31",
+    };
+    await provisionalNumberFor(late as never, "2027-01-05").catch(() => undefined);
+    expect(mocks.nextNumber).toHaveBeenCalledWith(2026, "default");
   });
 });

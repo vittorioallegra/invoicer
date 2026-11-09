@@ -318,7 +318,11 @@ function EditorForm({ record, clients, accounts, series, tax, send, seed }: Edit
 
   // The number is chosen here until it is reserved; from then on it is shown read-only.
   const numberEditable = editability === "full" && !record?.number;
-  const year = Number(today.slice(0, 4));
+  // The day the invoice will be issued with, and so its numbering year: its own date when that is
+  // not in the future (an invoice dated 31/12 and sent in January is still of the old year), else
+  // today. The Worker decides the same way when it reserves the number.
+  const issueDateNow = form.invoiceDate && form.invoiceDate <= today ? form.invoiceDate : today;
+  const year = Number(issueDateNow.slice(0, 4));
   // The invoice's series; a series that no longer exists falls back to the default one.
   const defaultSeries = series.find((s) => s.isDefault) ?? series[0] ?? null;
   const activeSeries = series.find((s) => s.id === form.seriesId) ?? defaultSeries;
@@ -337,9 +341,7 @@ function EditorForm({ record, clients, accounts, series, tax, send, seed }: Edit
     enabled: numberEditable,
   });
   const proposal = nextNumber.data?.next ?? null;
-  // A new number may not be dated before the last one issued in its series (same year): the date
-  // the invoice will be issued with is its own, or today when empty or in the future.
-  const issueDateNow = form.invoiceDate && form.invoiceDate <= today ? form.invoiceDate : today;
+  // A new number may not be dated before the last one issued in its series (same year).
   const lastIssued = numberEditable ? (nextNumber.data?.lastIssueDate ?? null) : null;
   const dateBeforeLast =
     lastIssued && lastIssued.slice(0, 4) === issueDateNow.slice(0, 4) && issueDateNow < lastIssued

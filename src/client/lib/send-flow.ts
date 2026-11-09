@@ -136,6 +136,15 @@ async function releaseAfterFailure(invoiceId: string): Promise<boolean> {
 }
 
 /**
+ * The year its number will belong to: that of the invoice's own date when it is not in the future
+ * (a late invoice dated 31/12 keeps the old year), else the year of today.
+ */
+export function numberingYear(invoice: InvoiceRecord, today: string): number {
+  const date = invoice.invoiceDate && invoice.invoiceDate <= today ? invoice.invoiceDate : today;
+  return Number(date.slice(0, 4));
+}
+
+/**
  * The number an unnumbered invoice would get now: the one the owner asked for, else the next free
  * one of its series, formatted with the series prefix and suffix.
  */
@@ -146,7 +155,7 @@ export async function provisionalNumberFor(
   const [next, { series }] = await Promise.all([
     invoice.requestedNumber
       ? Promise.resolve(invoice.requestedNumber)
-      : nextNumberQuery(Number(today.slice(0, 4)), invoice.seriesId)
+      : nextNumberQuery(numberingYear(invoice, today), invoice.seriesId)
           .queryFn()
           .then((proposal) => proposal.next),
     numberingSeriesQuery.queryFn(),
