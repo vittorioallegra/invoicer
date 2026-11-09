@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { FileText } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { romeDateTime } from "../../shared/cron";
 import { formatMoney, type UiLocale } from "../../shared/format";
@@ -23,6 +23,7 @@ import { Select } from "../components/ui/select";
 import { ListSkeleton } from "../components/ui/skeleton";
 import { clientsQuery } from "../lib/clients-api";
 import { invoiceOverviewQuery } from "../lib/invoices-api";
+import { rememberInvoiceFilters } from "../lib/list-memory";
 import { numberingSeriesQuery } from "../lib/settings-api";
 import { STATUS_MAP } from "../lib/status";
 
@@ -141,6 +142,10 @@ export function InvoicesPage() {
   const { t } = useTranslation();
   const search = route.useSearch();
   const navigate = useNavigate({ from: "/invoices" });
+  // An invoice page's back link returns here with these filters.
+  const searchKey = JSON.stringify(search);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `searchKey` stands for `search`
+  useEffect(() => rememberInvoiceFilters(search), [searchKey]);
   const currentYear = romeDateTime(new Date()).date.slice(0, 4);
   const year = search.year ?? currentYear;
   const clients = useQuery(clientsQuery);

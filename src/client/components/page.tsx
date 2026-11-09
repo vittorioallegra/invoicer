@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { BackLink } from "../lib/back-links";
+import { rememberedInvoiceFilters } from "../lib/list-memory";
 import { cn } from "../lib/utils";
 import { NotificationsLink } from "./notifications-link";
 import { buttonVariants } from "./ui/button";
@@ -36,13 +37,25 @@ export function Page({
   return (
     <div className="flex flex-col gap-6">
       {back ? (
-        <Link
-          to={back.to}
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-3 -mb-3 w-fit")}
-        >
-          <ChevronLeft aria-hidden />
-          {t(back.labelKey)}
-        </Link>
+        back.to === "/invoices" ? (
+          // The Invoices list comes back with the filters it had.
+          <Link
+            to="/invoices"
+            search={rememberedInvoiceFilters()}
+            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-3 -mb-3 w-fit")}
+          >
+            <ChevronLeft aria-hidden />
+            {t(back.labelKey)}
+          </Link>
+        ) : (
+          <Link
+            to={back.to}
+            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-3 -mb-3 w-fit")}
+          >
+            <ChevronLeft aria-hidden />
+            {t(back.labelKey)}
+          </Link>
+        )
       ) : null}
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="min-w-0 flex-1">
