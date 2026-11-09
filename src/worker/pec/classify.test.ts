@@ -68,6 +68,34 @@ describe("PEC message classification", () => {
     expect(reply).toMatchObject({ kind: "sdi_message", sender: "sdi11@pec.fatturapa.it" });
   });
 
+  it("trusts the sender the provider certifies, not the inner From header", async () => {
+    const genuine = receivedInvoiceMessage({ id: "f1" });
+    expect(await classify(genuine)).toMatchObject({ kind: "received_invoice" });
+    // An ordinary mail wrapped by the provider: certified sender is the real one, the inner
+    // From claims to be the SdI.
+    const forged = genuine.replace(
+      /<mittente>[^<]*<\/mittente>/,
+      "<mittente>attacker@example.com</mittente>",
+    );
+    expect(forged).not.toBe(genuine);
+    expect(await classify(forged)).toMatchObject({ kind: "ignored" });
+    const forgedMessage = sdiMessage({
+      type: "RC",
+      id: "f2",
+      fileName: "IT01234567890_0000A.xml",
+    }).replace(/<mittente>[^<]*<\/mittente>/, "<mittente>attacker@example.com</mittente>");
+    expect(await classify(forgedMessage)).toMatchObject({ kind: "ignored" });
+  });
+
+  it("ignores a provider anomaly envelope and a message with no certified sender", async () => {
+    const genuine = receivedInvoiceMessage({ id: "f3" });
+    const anomaly = genuine.replace("X-Trasporto: posta-certificata", "X-Trasporto: errore");
+    expect(anomaly).not.toBe(genuine);
+    expect(await classify(anomaly)).not.toMatchObject({ kind: "received_invoice" });
+    const noSender = genuine.replace(/<mittente>[^<]*<\/mittente>/, "");
+    expect(await classify(noSender)).toMatchObject({ kind: "ignored" });
+  });
+
   it("finds a received invoice (XML or P7M) from the SdI and not its metadata file", async () => {
     const xml = await classify(receivedInvoiceMessage({ id: "i1" }));
     expect(xml).toMatchObject({

@@ -102,7 +102,12 @@ export function classifyEnvelope(envelope: ParsedPecEnvelope): Classification {
     };
   }
 
-  const sender = inner?.from ?? dati?.sender ?? null;
+  // The sender is the one the provider certifies in `daticert.xml`, never the inner `From`
+  // header, which the sender of an ordinary (non-PEC) mail writes freely. Without a certified
+  // sender, or in a provider "anomaly" envelope (`X-Trasporto: errore`), nothing counts.
+  const transport = envelope.headers["x-trasporto"]?.trim().toLowerCase();
+  if (transport && transport !== "posta-certificata") return { ...common, kind: "ignored" };
+  const sender = dati?.sender ?? null;
   if (!inner || !sender || !isSdiAddress(sender)) return { ...common, kind: "ignored" };
 
   const invoice = inner.attachments.find((a) => isInvoiceFileName(a.filename));
