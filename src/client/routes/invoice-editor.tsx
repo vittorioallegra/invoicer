@@ -57,6 +57,7 @@ import { Page } from "../components/page";
 import { PaymentDialog } from "../components/payment-action";
 import { PaymentTermsFields } from "../components/payment-terms-fields";
 import { type Preflight, SendSheet } from "../components/send-sheet";
+import { StoredInvoiceView } from "../components/stored-invoice-view";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
 import { DatePicker } from "../components/ui/date-picker";
@@ -93,6 +94,7 @@ import {
   validateForm,
   withAccount,
 } from "../lib/invoice-form";
+import { buildInvoiceView } from "../lib/invoice-view";
 import {
   createCreditNote,
   createInvoice,
@@ -642,6 +644,17 @@ function EditorForm({ record, clients, accounts, series, tax, send, seed }: Edit
   } else {
     numberError = err("requestedNumber");
   }
+  // View mode: the compact read-only document of the stored invoice (no fields).
+  const storedView = useMemo(
+    () =>
+      buildInvoiceView(form, {
+        client,
+        seriesName: series.length > 1 ? (activeSeries?.name ?? null) : null,
+        linkedNumber: record?.linked?.number ?? null,
+        today,
+      }),
+    [form, client, series, activeSeries, record?.linked?.number, today],
+  );
   const clientProblems = Object.keys(issuing.errors).filter((path) => path.startsWith("client."));
   const credit = form.documentType === "TD04";
 
@@ -989,597 +1002,617 @@ function EditorForm({ record, clients, accounts, series, tax, send, seed }: Edit
           </Banner>
         ) : null}
 
-        <div className="flex min-w-0 flex-col gap-6">
-          <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-6">
-            <section className="flex flex-col gap-4" aria-label={t("invoice.client.label")}>
-              <div className="flex flex-wrap items-end gap-3">
-                <Field
-                  label={t("invoice.client.label")}
-                  error={err("clientId")}
-                  name="clientId"
-                  className="min-w-56 flex-1"
-                >
-                  {(c) => (
-                    <Select
-                      {...c}
-                      value={form.clientId}
-                      onChange={(e) =>
-                        selectClient(clients.find((x) => x.id === e.target.value) ?? null)
-                      }
-                    >
-                      <option value="">{t("invoice.client.choose")}</option>
-                      {clients.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.name}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </Field>
-                {readOnly ? null : (
-                  <Button variant="secondary" onClick={() => setClientSheet("new")}>
-                    {t("invoice.client.new")}
-                  </Button>
-                )}
-                {client && !readOnly ? (
-                  <Button variant="ghost" onClick={() => setClientSheet("edit")}>
-                    <Pencil aria-hidden />
-                    {t("invoice.client.edit")}
-                  </Button>
-                ) : null}
-              </div>
-              <SdiNotes record={record} field="client" />
-              {submitted && client && clientProblems.length > 0 ? (
-                <Banner tone="warning">
-                  <p className="font-medium">{t("invoice.client.incomplete")}</p>
-                  <ul className="list-disc pl-5">
-                    {clientProblems.map((path) => (
-                      <li key={path}>
-                        {t(`clients.form.${path.slice("client.".length).split(".")[0]}`, {
-                          defaultValue: path,
-                        })}
-                        :{" "}
-                        {t(`validation.${issuing.errors[path]}`, {
-                          defaultValue: t("validation.invalid"),
-                        })}
-                      </li>
-                    ))}
-                  </ul>
-                </Banner>
-              ) : null}
-            </section>
-
-            <section className="flex flex-col gap-4" aria-labelledby="inv-document">
-              <h2 id="inv-document" className="text-base font-medium">
-                {t("invoice.document.title")}
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={t("invoice.document.type")}>
-                  {(c) => (
-                    <Select
-                      {...c}
-                      value={form.documentType}
-                      disabled={readOnly || editability === "rejected"}
-                      onChange={(e) =>
-                        patch({
-                          documentType: e.target.value as "TD01" | "TD04",
-                          linkedInvoiceId: "",
-                        })
-                      }
-                    >
-                      <option value="TD01">{t("invoice.document.td01")}</option>
-                      <option value="TD04">{t("invoice.document.td04")}</option>
-                    </Select>
-                  )}
-                </Field>
-                <Field
-                  label={t("invoice.document.invoiceDate")}
-                  error={
-                    // Like the other checks of Finalize, shown once a Finalize was attempted.
-                    submitted && dateBeforeLast
-                      ? t("invoice.document.dateBeforeLast", { date: dateBeforeLast })
-                      : err("invoiceDate")
-                  }
-                  name="invoiceDate"
-                >
-                  {(c) => (
-                    <DatePicker
-                      {...c}
-                      value={form.invoiceDate}
-                      disabled={readOnly || editability === "rejected"}
-                      onChange={text("invoiceDate")}
-                    />
-                  )}
-                </Field>
-                {series.length > 0 ? (
-                  <Field label={t("invoice.document.series")}>
-                    {(c) => (
-                      <Select
-                        {...c}
-                        value={activeSeries?.id ?? ""}
-                        disabled={imported ? !editing : !numberEditable || !editing}
-                        onChange={(event) => {
-                          setNumberTouched(false);
-                          setNumberTaken(false);
-                          const picked = series.find((s) => s.id === event.target.value);
-                          patch(
-                            imported
-                              ? {
-                                  seriesId: event.target.value,
-                                  // The number stays, printed with the new series' prefix and suffix.
-                                  ...(importedPlainNumber && picked && importedProgressive !== null
-                                    ? {
-                                        requestedNumber: formatInvoiceNumber(
-                                          picked,
-                                          importedProgressive,
-                                        ),
-                                      }
-                                    : {}),
-                                }
-                              : { seriesId: event.target.value, requestedNumber: "" },
-                          );
-                        }}
-                      >
-                        {series.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                      </Select>
-                    )}
-                  </Field>
-                ) : null}
-                <Field
-                  label={t("invoice.document.number")}
-                  hint={
-                    importedPlainNumber && form.requestedNumber
-                      ? t("invoice.imported.numberPrinted", { number: form.requestedNumber })
-                      : undefined
-                  }
-                  error={numberEditable || imported ? numberError : undefined}
-                  name={imported ? "number" : "requestedNumber"}
-                >
-                  {(c) => (
-                    <Input
-                      {...c}
-                      inputMode={imported && !importedPlainNumber ? "text" : "numeric"}
-                      maxLength={imported && !importedPlainNumber ? 20 : undefined}
-                      value={
-                        imported
-                          ? importedPlainNumber
-                            ? importedProgressive === null
-                              ? ""
-                              : String(importedProgressive)
-                            : form.requestedNumber
-                          : numberEditable
-                            ? numberText
-                            : (record?.number ?? "")
-                      }
-                      disabled={imported ? !editing : !numberEditable || !editing}
-                      onChange={(event) => {
-                        setNumberTouched(true);
-                        setNumberTaken(false);
-                        const typedText = event.target.value;
-                        if (imported && importedPlainNumber) {
-                          // Digits only; the chosen series prints its prefix and suffix around them.
-                          const digits = typedText.replace(/\D/g, "").slice(0, 9);
-                          patch({
-                            requestedNumber:
-                              digits === "" || !activeSeries
-                                ? ""
-                                : formatInvoiceNumber(activeSeries, Number(digits)),
-                          });
-                        } else if (imported) {
-                          // Free text: the number decides the series, as on import.
-                          const match = matchSeries(typedText.trim(), series);
-                          patch({
-                            requestedNumber: typedText,
-                            ...(match.seriesId && match.progressive !== null
-                              ? { seriesId: match.seriesId }
-                              : {}),
-                          });
-                        } else {
-                          patch({ requestedNumber: typedText });
-                        }
-                      }}
-                    />
-                  )}
-                </Field>
-                <Field label={t("invoice.document.language")} name="language">
-                  {(c) => (
-                    <Select
-                      {...c}
-                      value={form.language}
-                      onChange={(e) => patch({ language: e.target.value as "it" | "en" })}
-                    >
-                      <option value="it">{t("invoice.document.languageIt")}</option>
-                      <option value="en">{t("invoice.document.languageEn")}</option>
-                    </Select>
-                  )}
-                </Field>
-                <Field
-                  label={t("invoice.document.currency")}
-                  error={err("currency")}
-                  name="currency"
-                >
-                  {(c) => (
-                    <Input
-                      {...c}
-                      value={form.currency}
-                      maxLength={3}
-                      autoCapitalize="characters"
-                      onChange={text("currency")}
-                    />
-                  )}
-                </Field>
-                {credit ? (
+        {editing || !record ? (
+          <div className="flex min-w-0 flex-col gap-6">
+            <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-6">
+              <section className="flex flex-col gap-4" aria-label={t("invoice.client.label")}>
+                <div className="flex flex-wrap items-end gap-3">
                   <Field
-                    label={t("invoice.document.linked")}
-                    error={err("linkedInvoiceId")}
-                    name="linkedInvoiceId"
+                    label={t("invoice.client.label")}
+                    error={err("clientId")}
+                    name="clientId"
+                    className="min-w-56 flex-1"
                   >
                     {(c) => (
                       <Select
                         {...c}
-                        value={form.linkedInvoiceId}
-                        onChange={text("linkedInvoiceId")}
+                        value={form.clientId}
+                        onChange={(e) =>
+                          selectClient(clients.find((x) => x.id === e.target.value) ?? null)
+                        }
                       >
-                        <option value="">{t("invoice.document.noLinked")}</option>
-                        {record?.linkedInvoiceId &&
-                        !linkable.some((i) => i.id === record.linkedInvoiceId) ? (
-                          <option value={record.linkedInvoiceId}>
-                            {record.linked?.number ?? record.linkedInvoiceId}
-                          </option>
-                        ) : null}
-                        {linkable.map((invoice) => (
-                          <option key={invoice.id} value={invoice.id}>
-                            {invoice.number
-                              ? formatNumberWithYear(invoice.number, invoice.year)
-                              : ""}{" "}
-                            · {invoice.clientName ?? ""}
-                            {invoice.issueDate ? ` · ${formatDate(invoice.issueDate, locale)}` : ""}
+                        <option value="">{t("invoice.client.choose")}</option>
+                        {clients.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.name}
                           </option>
                         ))}
                       </Select>
                     )}
                   </Field>
+                  {readOnly ? null : (
+                    <Button variant="secondary" onClick={() => setClientSheet("new")}>
+                      {t("invoice.client.new")}
+                    </Button>
+                  )}
+                  {client && !readOnly ? (
+                    <Button variant="ghost" onClick={() => setClientSheet("edit")}>
+                      <Pencil aria-hidden />
+                      {t("invoice.client.edit")}
+                    </Button>
+                  ) : null}
+                </div>
+                <SdiNotes record={record} field="client" />
+                {submitted && client && clientProblems.length > 0 ? (
+                  <Banner tone="warning">
+                    <p className="font-medium">{t("invoice.client.incomplete")}</p>
+                    <ul className="list-disc pl-5">
+                      {clientProblems.map((path) => (
+                        <li key={path}>
+                          {t(`clients.form.${path.slice("client.".length).split(".")[0]}`, {
+                            defaultValue: path,
+                          })}
+                          :{" "}
+                          {t(`validation.${issuing.errors[path]}`, {
+                            defaultValue: t("validation.invalid"),
+                          })}
+                        </li>
+                      ))}
+                    </ul>
+                  </Banner>
                 ) : null}
-              </div>
-            </section>
-          </fieldset>
+              </section>
 
-          <Disclosure
-            id="inv-extras"
-            title={t("invoice.extras.title")}
-            summary={extrasSummaryText}
-            open={extrasOpen}
-            onToggle={() => setExtrasChoice(!extrasOpen)}
-          >
-            <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-4">
-              <GroupBox title={t("clients.form.pensionFund")}>
-                <Field
-                  label={t("clients.form.cassa")}
-                  error={err("data.cassa.type")}
-                  name="data.cassa.type"
-                >
-                  {(c) => (
-                    <Select
-                      {...c}
-                      value={form.cassaType}
-                      onChange={(e) =>
-                        patch({
-                          cassaType: e.target.value,
-                          cassaSubjectToRitenuta: e.target.value
-                            ? defaultCassaSubjectToRitenuta(e.target.value as CassaType)
-                            : false,
-                        })
-                      }
-                    >
-                      <option value="">{t("clients.form.none")}</option>
-                      <option value="rivalsa_inps">{cassaTypeLabel("rivalsa_inps", locale)}</option>
-                      {CASSA_TYPE_CODES.map((code) => (
-                        <option key={code} value={code}>
-                          {cassaTypeLabel(code, locale)}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </Field>
-                {form.cassaType ? (
-                  <div className="flex flex-col gap-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <Field
-                        label={t("clients.form.cassaRate")}
-                        error={err("data.cassa.rateBp")}
-                        name="data.cassa.rateBp"
+              <section className="flex flex-col gap-4" aria-labelledby="inv-document">
+                <h2 id="inv-document" className="text-base font-medium">
+                  {t("invoice.document.title")}
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label={t("invoice.document.type")}>
+                    {(c) => (
+                      <Select
+                        {...c}
+                        value={form.documentType}
+                        disabled={readOnly || editability === "rejected"}
+                        onChange={(e) =>
+                          patch({
+                            documentType: e.target.value as "TD01" | "TD04",
+                            linkedInvoiceId: "",
+                          })
+                        }
                       >
-                        {(c) => (
-                          <Input
-                            {...c}
-                            value={form.cassaRate}
-                            suffix="%"
-                            inputMode="decimal"
-                            disabled={readOnly}
-                            onChange={text("cassaRate")}
-                          />
-                        )}
-                      </Field>
-                      <Field label={t("clients.form.cassaMode")}>
-                        {(c) => (
-                          <Select
-                            {...c}
-                            value={form.cassaMode}
-                            disabled={readOnly}
-                            onChange={text("cassaMode")}
-                          >
-                            <option value="excluded">{t("clients.form.modeExcluded")}</option>
-                            <option value="included">{t("clients.form.modeIncluded")}</option>
-                          </Select>
-                        )}
-                      </Field>
-                    </div>
-                    {form.ritenutaType ? (
-                      <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-                        <input
-                          type="checkbox"
-                          className="size-5"
-                          checked={form.cassaSubjectToRitenuta}
-                          onChange={(e) => patch({ cassaSubjectToRitenuta: e.target.checked })}
-                        />
-                        {t("invoice.extras.cassaSubject")}
-                      </label>
-                    ) : null}
-                  </div>
-                ) : null}
-              </GroupBox>
-              <GroupBox title={t("clients.form.withholding")}>
-                <Field
-                  label={t("clients.form.ritenuta")}
-                  error={err("data.ritenuta.type")}
-                  name="data.ritenuta.type"
-                >
-                  {(c) => (
-                    <Select {...c} value={form.ritenutaType} onChange={text("ritenutaType")}>
-                      <option value="">{t("clients.form.none")}</option>
-                      {RITENUTA_TYPES.map((code) => (
-                        <option key={code} value={code}>
-                          {ritenutaTypeLabel(code, locale)}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </Field>
-                {form.ritenutaType ? (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field
-                      label={t("clients.form.ritenutaRate")}
-                      error={err("data.ritenuta.rateBp")}
-                      name="data.ritenuta.rateBp"
-                    >
-                      {(c) => (
-                        <Input
-                          {...c}
-                          value={form.ritenutaRate}
-                          suffix="%"
-                          inputMode="decimal"
-                          disabled={readOnly}
-                          onChange={text("ritenutaRate")}
-                        />
-                      )}
-                    </Field>
-                    <Field
-                      label={t("clients.form.ritenutaBase")}
-                      error={err("data.ritenuta.baseBp")}
-                      name="data.ritenuta.baseBp"
-                    >
-                      {(c) => (
-                        <Input
-                          {...c}
-                          value={form.ritenutaBase}
-                          suffix="%"
-                          inputMode="decimal"
-                          disabled={readOnly}
-                          onChange={text("ritenutaBase")}
-                        />
-                      )}
-                    </Field>
-                    <Field
-                      label={t("clients.form.ritenutaCausale")}
-                      error={err("data.ritenuta.causale")}
-                      name="data.ritenuta.causale"
-                      className="sm:col-span-2"
-                    >
+                        <option value="TD01">{t("invoice.document.td01")}</option>
+                        <option value="TD04">{t("invoice.document.td04")}</option>
+                      </Select>
+                    )}
+                  </Field>
+                  <Field
+                    label={t("invoice.document.invoiceDate")}
+                    error={
+                      // Like the other checks of Finalize, shown once a Finalize was attempted.
+                      submitted && dateBeforeLast
+                        ? t("invoice.document.dateBeforeLast", { date: dateBeforeLast })
+                        : err("invoiceDate")
+                    }
+                    name="invoiceDate"
+                  >
+                    {(c) => (
+                      <DatePicker
+                        {...c}
+                        value={form.invoiceDate}
+                        disabled={readOnly || editability === "rejected"}
+                        onChange={text("invoiceDate")}
+                      />
+                    )}
+                  </Field>
+                  {series.length > 0 ? (
+                    <Field label={t("invoice.document.series")}>
                       {(c) => (
                         <Select
                           {...c}
-                          value={form.ritenutaCausale}
-                          disabled={readOnly}
-                          onChange={text("ritenutaCausale")}
+                          value={activeSeries?.id ?? ""}
+                          disabled={imported ? !editing : !numberEditable || !editing}
+                          onChange={(event) => {
+                            setNumberTouched(false);
+                            setNumberTaken(false);
+                            const picked = series.find((s) => s.id === event.target.value);
+                            patch(
+                              imported
+                                ? {
+                                    seriesId: event.target.value,
+                                    // The number stays, printed with the new series' prefix and suffix.
+                                    ...(importedPlainNumber &&
+                                    picked &&
+                                    importedProgressive !== null
+                                      ? {
+                                          requestedNumber: formatInvoiceNumber(
+                                            picked,
+                                            importedProgressive,
+                                          ),
+                                        }
+                                      : {}),
+                                  }
+                                : { seriesId: event.target.value, requestedNumber: "" },
+                            );
+                          }}
                         >
-                          {CAUSALE_PAGAMENTO_CODES.map((code) => (
-                            <option key={code} value={code}>
-                              {causalePagamentoLabel(code, locale)}
+                          {series.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
                             </option>
                           ))}
                         </Select>
                       )}
                     </Field>
-                  </div>
-                ) : null}
-              </GroupBox>
-              <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-                <input
-                  type="checkbox"
-                  className="size-5"
-                  checked={form.bollo}
-                  onChange={(e) => patch({ bollo: e.target.checked })}
-                />
-                {t("invoice.extras.bollo")}
-              </label>
-              {form.bollo ? (
-                <fieldset className="flex flex-col gap-1">
-                  <legend className="text-sm font-medium">{t("invoice.extras.bolloCharge")}</legend>
-                  {(["client", "issuer"] as const).map((option) => (
-                    <label key={option} className="flex min-h-11 items-center gap-3 text-sm">
-                      <input
-                        type="radio"
-                        name="bollo-charge"
-                        className="size-5"
-                        value={option}
-                        // A stored issued invoice (legacy) has the stamp in its total, as charged.
-                        checked={(form.bolloCharge === "issuer") === (option === "issuer")}
-                        onChange={() => patch({ bolloCharge: option })}
+                  ) : null}
+                  <Field
+                    label={t("invoice.document.number")}
+                    hint={
+                      importedPlainNumber && form.requestedNumber
+                        ? t("invoice.imported.numberPrinted", { number: form.requestedNumber })
+                        : undefined
+                    }
+                    error={numberEditable || imported ? numberError : undefined}
+                    name={imported ? "number" : "requestedNumber"}
+                  >
+                    {(c) => (
+                      <Input
+                        {...c}
+                        inputMode={imported && !importedPlainNumber ? "text" : "numeric"}
+                        maxLength={imported && !importedPlainNumber ? 20 : undefined}
+                        value={
+                          imported
+                            ? importedPlainNumber
+                              ? importedProgressive === null
+                                ? ""
+                                : String(importedProgressive)
+                              : form.requestedNumber
+                            : numberEditable
+                              ? numberText
+                              : (record?.number ?? "")
+                        }
+                        disabled={imported ? !editing : !numberEditable || !editing}
+                        onChange={(event) => {
+                          setNumberTouched(true);
+                          setNumberTaken(false);
+                          const typedText = event.target.value;
+                          if (imported && importedPlainNumber) {
+                            // Digits only; the chosen series prints its prefix and suffix around them.
+                            const digits = typedText.replace(/\D/g, "").slice(0, 9);
+                            patch({
+                              requestedNumber:
+                                digits === "" || !activeSeries
+                                  ? ""
+                                  : formatInvoiceNumber(activeSeries, Number(digits)),
+                            });
+                          } else if (imported) {
+                            // Free text: the number decides the series, as on import.
+                            const match = matchSeries(typedText.trim(), series);
+                            patch({
+                              requestedNumber: typedText,
+                              ...(match.seriesId && match.progressive !== null
+                                ? { seriesId: match.seriesId }
+                                : {}),
+                            });
+                          } else {
+                            patch({ requestedNumber: typedText });
+                          }
+                        }}
                       />
-                      {t(
-                        option === "client"
-                          ? "invoice.extras.bolloClient"
-                          : "invoice.extras.bolloIssuer",
-                      )}
-                    </label>
-                  ))}
-                </fieldset>
-              ) : null}
-            </fieldset>
-          </Disclosure>
-
-          <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-6">
-            <section className="flex flex-col gap-4" aria-labelledby="inv-lines">
-              <h2 id="inv-lines" className="text-base font-medium">
-                {t("invoice.lines.title")}
-              </h2>
-              <SdiNotes record={record} field="lines" />
-              <InvoiceLines
-                form={form}
-                amounts={lineAmounts}
-                locale={locale}
-                error={err}
-                onChange={setLines}
-                disabled={readOnly}
-              />
-              {totals?.stampLine ? (
-                <div
-                  data-testid="stamp-line"
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-muted px-4 py-3 text-sm"
-                >
-                  <span className="min-w-0">
-                    <span className="block font-medium">{t("invoice.lines.stampLine")}</span>
-                    <span className="block text-muted-foreground">
-                      {t("invoice.lines.stampLineHint")} · {totals.stampLine.natura}
-                    </span>
-                  </span>
-                  <span className="font-medium tabular-nums">
-                    {formatMoney(
-                      totals.stampLine.totals.amountCents,
-                      locale,
-                      form.currency.toUpperCase(),
                     )}
-                  </span>
-                </div>
-              ) : null}
-              {Object.keys(form.naturaTexts).length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  <h3 className="text-sm font-medium">{t("invoice.natura.title")}</h3>
-                  <p className="text-sm text-muted-foreground">{t("invoice.natura.intro")}</p>
-                  {Object.entries(form.naturaTexts).map(([code, value]) => (
+                  </Field>
+                  <Field label={t("invoice.document.language")} name="language">
+                    {(c) => (
+                      <Select
+                        {...c}
+                        value={form.language}
+                        onChange={(e) => patch({ language: e.target.value as "it" | "en" })}
+                      >
+                        <option value="it">{t("invoice.document.languageIt")}</option>
+                        <option value="en">{t("invoice.document.languageEn")}</option>
+                      </Select>
+                    )}
+                  </Field>
+                  <Field
+                    label={t("invoice.document.currency")}
+                    error={err("currency")}
+                    name="currency"
+                  >
+                    {(c) => (
+                      <Input
+                        {...c}
+                        value={form.currency}
+                        maxLength={3}
+                        autoCapitalize="characters"
+                        onChange={text("currency")}
+                      />
+                    )}
+                  </Field>
+                  {credit ? (
                     <Field
-                      key={code}
-                      label={t("invoice.natura.label", { code })}
-                      error={err(`data.naturaTexts.${code}`)}
-                      name={`data.naturaTexts.${code}`}
+                      label={t("invoice.document.linked")}
+                      error={err("linkedInvoiceId")}
+                      name="linkedInvoiceId"
                     >
                       {(c) => (
-                        <Textarea
+                        <Select
                           {...c}
-                          rows={2}
-                          value={value}
-                          onChange={(e) =>
-                            patch({ naturaTexts: { ...form.naturaTexts, [code]: e.target.value } })
-                          }
-                        />
+                          value={form.linkedInvoiceId}
+                          onChange={text("linkedInvoiceId")}
+                        >
+                          <option value="">{t("invoice.document.noLinked")}</option>
+                          {record?.linkedInvoiceId &&
+                          !linkable.some((i) => i.id === record.linkedInvoiceId) ? (
+                            <option value={record.linkedInvoiceId}>
+                              {record.linked?.number ?? record.linkedInvoiceId}
+                            </option>
+                          ) : null}
+                          {linkable.map((invoice) => (
+                            <option key={invoice.id} value={invoice.id}>
+                              {invoice.number
+                                ? formatNumberWithYear(invoice.number, invoice.year)
+                                : ""}{" "}
+                              · {invoice.clientName ?? ""}
+                              {invoice.issueDate
+                                ? ` · ${formatDate(invoice.issueDate, locale)}`
+                                : ""}
+                            </option>
+                          ))}
+                        </Select>
                       )}
                     </Field>
-                  ))}
+                  ) : null}
                 </div>
-              ) : null}
-              <Field
-                label={t("invoice.document.note")}
-                hint={t("invoice.document.noteHint")}
-                error={err("data.note")}
-                name="data.note"
-              >
-                {(c) => (
-                  <Textarea
-                    {...c}
-                    value={form.invoiceNote}
-                    disabled={readOnly}
-                    onChange={text("invoiceNote")}
-                  />
-                )}
-              </Field>
-            </section>
+              </section>
+            </fieldset>
 
-            <section className="flex flex-col gap-4" aria-labelledby="inv-payment">
-              <h2 id="inv-payment" className="text-base font-medium">
-                {t("invoice.payment.title")}
-              </h2>
-              <div className="grid items-end gap-4 sm:grid-cols-4">
-                <PaymentTermsFields
-                  compact
-                  kind={form.termsKind}
-                  days={form.termsDays}
-                  onChange={changeTerms}
-                  kindError={err("data.payment.terms.kind")}
-                  daysError={err("data.payment.terms.days")}
-                />
-                {terms ? (
-                  <Field label={t("invoice.document.dueDate")}>
-                    {(c) => <DatePicker {...c} value={computedDueDate} readOnly />}
+            <Disclosure
+              id="inv-extras"
+              title={t("invoice.extras.title")}
+              summary={extrasSummaryText}
+              open={extrasOpen}
+              onToggle={() => setExtrasChoice(!extrasOpen)}
+            >
+              <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-4">
+                <GroupBox title={t("clients.form.pensionFund")}>
+                  <Field
+                    label={t("clients.form.cassa")}
+                    error={err("data.cassa.type")}
+                    name="data.cassa.type"
+                  >
+                    {(c) => (
+                      <Select
+                        {...c}
+                        value={form.cassaType}
+                        onChange={(e) =>
+                          patch({
+                            cassaType: e.target.value,
+                            cassaSubjectToRitenuta: e.target.value
+                              ? defaultCassaSubjectToRitenuta(e.target.value as CassaType)
+                              : false,
+                          })
+                        }
+                      >
+                        <option value="">{t("clients.form.none")}</option>
+                        <option value="rivalsa_inps">
+                          {cassaTypeLabel("rivalsa_inps", locale)}
+                        </option>
+                        {CASSA_TYPE_CODES.map((code) => (
+                          <option key={code} value={code}>
+                            {cassaTypeLabel(code, locale)}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
                   </Field>
-                ) : null}
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  label={t("invoice.payment.method")}
-                  error={err("data.payment.method")}
-                  name="data.payment.method"
-                >
-                  {(c) => (
-                    <Select {...c} value={form.paymentMethod} onChange={text("paymentMethod")}>
-                      <option value="">{t("clients.form.none")}</option>
-                      {PAYMENT_METHODS.map((code) => (
-                        <option key={code} value={code}>
-                          {t(`invoice.paymentMethods.${code}`)}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </Field>
-                <Field
-                  label={t("invoice.payment.account")}
-                  error={err("data.payment.iban") ?? err("data.payment.bic")}
-                  name="data.payment.iban"
-                  {...(accounts.length === 0 ? { hint: t("invoice.payment.noAccounts") } : {})}
-                >
-                  {(c) => (
-                    <Select {...c} value={accountValue} onChange={chooseAccount}>
-                      <option value="">{t("clients.form.none")}</option>
-                      {accountValue === SNAPSHOT ? (
-                        <option value={SNAPSHOT}>
-                          {t("invoice.payment.accountSaved")} · {maskIban(form.iban)}
-                        </option>
+                  {form.cassaType ? (
+                    <div className="flex flex-col gap-4">
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Field
+                          label={t("clients.form.cassaRate")}
+                          error={err("data.cassa.rateBp")}
+                          name="data.cassa.rateBp"
+                        >
+                          {(c) => (
+                            <Input
+                              {...c}
+                              value={form.cassaRate}
+                              suffix="%"
+                              inputMode="decimal"
+                              disabled={readOnly}
+                              onChange={text("cassaRate")}
+                            />
+                          )}
+                        </Field>
+                        <Field label={t("clients.form.cassaMode")}>
+                          {(c) => (
+                            <Select
+                              {...c}
+                              value={form.cassaMode}
+                              disabled={readOnly}
+                              onChange={text("cassaMode")}
+                            >
+                              <option value="excluded">{t("clients.form.modeExcluded")}</option>
+                              <option value="included">{t("clients.form.modeIncluded")}</option>
+                            </Select>
+                          )}
+                        </Field>
+                      </div>
+                      {form.ritenutaType ? (
+                        <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+                          <input
+                            type="checkbox"
+                            className="size-5"
+                            checked={form.cassaSubjectToRitenuta}
+                            onChange={(e) => patch({ cassaSubjectToRitenuta: e.target.checked })}
+                          />
+                          {t("invoice.extras.cassaSubject")}
+                        </label>
                       ) : null}
-                      {accounts.map((account) => (
-                        <option key={account.id} value={account.id}>
-                          {account.label} · {maskIban(account.iban)}
-                        </option>
-                      ))}
-                    </Select>
+                    </div>
+                  ) : null}
+                </GroupBox>
+                <GroupBox title={t("clients.form.withholding")}>
+                  <Field
+                    label={t("clients.form.ritenuta")}
+                    error={err("data.ritenuta.type")}
+                    name="data.ritenuta.type"
+                  >
+                    {(c) => (
+                      <Select {...c} value={form.ritenutaType} onChange={text("ritenutaType")}>
+                        <option value="">{t("clients.form.none")}</option>
+                        {RITENUTA_TYPES.map((code) => (
+                          <option key={code} value={code}>
+                            {ritenutaTypeLabel(code, locale)}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                  </Field>
+                  {form.ritenutaType ? (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field
+                        label={t("clients.form.ritenutaRate")}
+                        error={err("data.ritenuta.rateBp")}
+                        name="data.ritenuta.rateBp"
+                      >
+                        {(c) => (
+                          <Input
+                            {...c}
+                            value={form.ritenutaRate}
+                            suffix="%"
+                            inputMode="decimal"
+                            disabled={readOnly}
+                            onChange={text("ritenutaRate")}
+                          />
+                        )}
+                      </Field>
+                      <Field
+                        label={t("clients.form.ritenutaBase")}
+                        error={err("data.ritenuta.baseBp")}
+                        name="data.ritenuta.baseBp"
+                      >
+                        {(c) => (
+                          <Input
+                            {...c}
+                            value={form.ritenutaBase}
+                            suffix="%"
+                            inputMode="decimal"
+                            disabled={readOnly}
+                            onChange={text("ritenutaBase")}
+                          />
+                        )}
+                      </Field>
+                      <Field
+                        label={t("clients.form.ritenutaCausale")}
+                        error={err("data.ritenuta.causale")}
+                        name="data.ritenuta.causale"
+                        className="sm:col-span-2"
+                      >
+                        {(c) => (
+                          <Select
+                            {...c}
+                            value={form.ritenutaCausale}
+                            disabled={readOnly}
+                            onChange={text("ritenutaCausale")}
+                          >
+                            {CAUSALE_PAGAMENTO_CODES.map((code) => (
+                              <option key={code} value={code}>
+                                {causalePagamentoLabel(code, locale)}
+                              </option>
+                            ))}
+                          </Select>
+                        )}
+                      </Field>
+                    </div>
+                  ) : null}
+                </GroupBox>
+                <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    className="size-5"
+                    checked={form.bollo}
+                    onChange={(e) => patch({ bollo: e.target.checked })}
+                  />
+                  {t("invoice.extras.bollo")}
+                </label>
+                {form.bollo ? (
+                  <fieldset className="flex flex-col gap-1">
+                    <legend className="text-sm font-medium">
+                      {t("invoice.extras.bolloCharge")}
+                    </legend>
+                    {(["client", "issuer"] as const).map((option) => (
+                      <label key={option} className="flex min-h-11 items-center gap-3 text-sm">
+                        <input
+                          type="radio"
+                          name="bollo-charge"
+                          className="size-5"
+                          value={option}
+                          // A stored issued invoice (legacy) has the stamp in its total, as charged.
+                          checked={(form.bolloCharge === "issuer") === (option === "issuer")}
+                          onChange={() => patch({ bolloCharge: option })}
+                        />
+                        {t(
+                          option === "client"
+                            ? "invoice.extras.bolloClient"
+                            : "invoice.extras.bolloIssuer",
+                        )}
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : null}
+              </fieldset>
+            </Disclosure>
+
+            <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-6">
+              <section className="flex flex-col gap-4" aria-labelledby="inv-lines">
+                <h2 id="inv-lines" className="text-base font-medium">
+                  {t("invoice.lines.title")}
+                </h2>
+                <SdiNotes record={record} field="lines" />
+                <InvoiceLines
+                  form={form}
+                  amounts={lineAmounts}
+                  locale={locale}
+                  error={err}
+                  onChange={setLines}
+                  disabled={readOnly}
+                />
+                {totals?.stampLine ? (
+                  <div
+                    data-testid="stamp-line"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-muted px-4 py-3 text-sm"
+                  >
+                    <span className="min-w-0">
+                      <span className="block font-medium">{t("invoice.lines.stampLine")}</span>
+                      <span className="block text-muted-foreground">
+                        {t("invoice.lines.stampLineHint")} · {totals.stampLine.natura}
+                      </span>
+                    </span>
+                    <span className="font-medium tabular-nums">
+                      {formatMoney(
+                        totals.stampLine.totals.amountCents,
+                        locale,
+                        form.currency.toUpperCase(),
+                      )}
+                    </span>
+                  </div>
+                ) : null}
+                {Object.keys(form.naturaTexts).length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    <h3 className="text-sm font-medium">{t("invoice.natura.title")}</h3>
+                    <p className="text-sm text-muted-foreground">{t("invoice.natura.intro")}</p>
+                    {Object.entries(form.naturaTexts).map(([code, value]) => (
+                      <Field
+                        key={code}
+                        label={t("invoice.natura.label", { code })}
+                        error={err(`data.naturaTexts.${code}`)}
+                        name={`data.naturaTexts.${code}`}
+                      >
+                        {(c) => (
+                          <Textarea
+                            {...c}
+                            rows={2}
+                            value={value}
+                            onChange={(e) =>
+                              patch({
+                                naturaTexts: { ...form.naturaTexts, [code]: e.target.value },
+                              })
+                            }
+                          />
+                        )}
+                      </Field>
+                    ))}
+                  </div>
+                ) : null}
+                <Field
+                  label={t("invoice.document.note")}
+                  hint={t("invoice.document.noteHint")}
+                  error={err("data.note")}
+                  name="data.note"
+                >
+                  {(c) => (
+                    <Textarea
+                      {...c}
+                      value={form.invoiceNote}
+                      disabled={readOnly}
+                      onChange={text("invoiceNote")}
+                    />
                   )}
                 </Field>
-              </div>
-            </section>
-          </fieldset>
-        </div>
+              </section>
+
+              <section className="flex flex-col gap-4" aria-labelledby="inv-payment">
+                <h2 id="inv-payment" className="text-base font-medium">
+                  {t("invoice.payment.title")}
+                </h2>
+                <div className="grid items-end gap-4 sm:grid-cols-4">
+                  <PaymentTermsFields
+                    compact
+                    kind={form.termsKind}
+                    days={form.termsDays}
+                    onChange={changeTerms}
+                    kindError={err("data.payment.terms.kind")}
+                    daysError={err("data.payment.terms.days")}
+                  />
+                  {terms ? (
+                    <Field label={t("invoice.document.dueDate")}>
+                      {(c) => <DatePicker {...c} value={computedDueDate} readOnly />}
+                    </Field>
+                  ) : null}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label={t("invoice.payment.method")}
+                    error={err("data.payment.method")}
+                    name="data.payment.method"
+                  >
+                    {(c) => (
+                      <Select {...c} value={form.paymentMethod} onChange={text("paymentMethod")}>
+                        <option value="">{t("clients.form.none")}</option>
+                        {PAYMENT_METHODS.map((code) => (
+                          <option key={code} value={code}>
+                            {t(`invoice.paymentMethods.${code}`)}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                  </Field>
+                  <Field
+                    label={t("invoice.payment.account")}
+                    error={err("data.payment.iban") ?? err("data.payment.bic")}
+                    name="data.payment.iban"
+                    {...(accounts.length === 0 ? { hint: t("invoice.payment.noAccounts") } : {})}
+                  >
+                    {(c) => (
+                      <Select {...c} value={accountValue} onChange={chooseAccount}>
+                        <option value="">{t("clients.form.none")}</option>
+                        {accountValue === SNAPSHOT ? (
+                          <option value={SNAPSHOT}>
+                            {t("invoice.payment.accountSaved")} · {maskIban(form.iban)}
+                          </option>
+                        ) : null}
+                        {accounts.map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {account.label} · {maskIban(account.iban)}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                  </Field>
+                </div>
+              </section>
+            </fieldset>
+          </div>
+        ) : record ? (
+          <StoredInvoiceView
+            view={storedView}
+            locale={locale}
+            cassa={form.cassaType}
+            customerNotes={<SdiNotes record={record} field="client" />}
+            lineNotes={<SdiNotes record={record} field="lines" />}
+          />
+        ) : null}
 
         {!locked && !imported && !send.ready ? (
           <Banner tone="warning">
@@ -1610,7 +1643,7 @@ function EditorForm({ record, clients, accounts, series, tax, send, seed }: Edit
           </div>
         )}
 
-        <InvoiceTotals totals={totals} form={form} locale={locale} />
+        {editing ? <InvoiceTotals totals={totals} form={form} locale={locale} /> : null}
 
         <SendSheet
           invoiceId={record?.id ?? null}
@@ -1624,6 +1657,8 @@ function EditorForm({ record, clients, accounts, series, tax, send, seed }: Edit
               // Nothing was reserved: show it next to the Number field with the new proposal.
               setNumberTaken(true);
               setFinalizeOpen(false);
+              // The message sits next to the Number field, which only edit mode has.
+              setEditing(true);
               void queryClient.invalidateQueries({ queryKey: ["next-number"] });
             }
           }}

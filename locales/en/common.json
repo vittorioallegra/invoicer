@@ -716,6 +716,14 @@
       "overdue": "Overdue, unpaid",
       "year": "Invoiced in {{year}}",
       "month": "Invoiced in {{month}}"
+    },
+    "view": {
+      "title": "Invoice details",
+      "noLines": "No lines yet.",
+      "noTotals": "The totals appear once every line has a quantity, a price and a VAT rate.",
+      "taxable": "Taxable amount",
+      "customDays": "{{days}} days from the invoice date",
+      "accountHolder": "Account holder"
     }
   },
   "fatturapa": {

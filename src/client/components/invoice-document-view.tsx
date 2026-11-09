@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { ReceivedDocument, ReceivedInvoice, ReceivedParty } from "../../shared/fatturapa";
 import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
 import { decimalToCents } from "../../shared/import";
 import { documentTotalCents } from "../import/summary";
+import { LineList, PartyBox, Row } from "./invoice-document-parts";
 import { GroupBox } from "./ui/group-box";
 
 function useLocale(): UiLocale {
@@ -21,15 +21,6 @@ function useAmount(currency: string) {
   };
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 break-words text-right tabular-nums">{children}</dd>
-    </div>
-  );
-}
-
 /** The name is left out when the page title already shows it. */
 function Party({ title, party }: { title: string; party: ReceivedParty }) {
   const { t } = useTranslation();
@@ -37,25 +28,27 @@ function Party({ title, party }: { title: string; party: ReceivedParty }) {
   const place = [address.postalCode, address.city, address.province && `(${address.province})`]
     .filter(Boolean)
     .join(" ");
+  const rows: { label: string; value: string }[] = [];
+  if (party.vatId) {
+    rows.push({
+      label: t("received.view.vat"),
+      value: `${party.vatId.country}${party.vatId.code}`,
+    });
+  }
+  if (party.taxCode) rows.push({ label: t("received.view.taxCode"), value: party.taxCode });
   return (
-    <GroupBox title={title}>
-      <dl className="flex flex-col gap-1">
-        {party.vatId ? (
-          <Row label={t("received.view.vat")}>{`${party.vatId.country}${party.vatId.code}`}</Row>
-        ) : null}
-        {party.taxCode ? <Row label={t("received.view.taxCode")}>{party.taxCode}</Row> : null}
-      </dl>
-      <p className="text-sm text-muted-foreground">
-        {[[address.street, address.streetNumber].filter(Boolean).join(" "), place, address.country]
-          .filter(Boolean)
-          .join(", ")}
-      </p>
-      {party.email || party.phone ? (
-        <p className="text-sm text-muted-foreground">
-          {[party.email, party.phone].filter(Boolean).join(" · ")}
-        </p>
-      ) : null}
-    </GroupBox>
+    <PartyBox
+      title={title}
+      rows={rows}
+      address={[
+        [address.street, address.streetNumber].filter(Boolean).join(" "),
+        place,
+        address.country,
+      ]
+        .filter(Boolean)
+        .join(", ")}
+      contacts={[party.email, party.phone].filter(Boolean).join(" · ")}
+    />
   );
 }
 
@@ -104,29 +97,21 @@ function DocumentView({
       ) : null}
 
       <GroupBox title={t("received.view.lines")}>
-        <ul className="flex flex-col divide-y divide-border">
-          {document.lines.map((line) => (
-            <li
-              key={line.number}
-              className="flex items-start justify-between gap-4 py-2 first:pt-0 last:pb-0"
-            >
-              <div className="min-w-0">
-                <p className="whitespace-pre-wrap break-words font-medium">{line.description}</p>
-                <p className="text-sm text-muted-foreground">
-                  {[
-                    line.quantity !== null
-                      ? `${Number(line.quantity)}${line.unit ? ` ${line.unit}` : ""} × ${amount(line.unitPrice)}`
-                      : null,
-                    t("received.view.vatOf", { vat: vatLabel(line.vatRate, line.natura) }),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              </div>
-              <p className="shrink-0 font-medium tabular-nums">{amount(line.total)}</p>
-            </li>
-          ))}
-        </ul>
+        <LineList
+          lines={document.lines.map((line) => ({
+            key: String(line.number),
+            description: line.description,
+            detail: [
+              line.quantity !== null
+                ? `${Number(line.quantity)}${line.unit ? ` ${line.unit}` : ""} × ${amount(line.unitPrice)}`
+                : null,
+              t("received.view.vatOf", { vat: vatLabel(line.vatRate, line.natura) }),
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            total: amount(line.total),
+          }))}
+        />
       </GroupBox>
 
       {document.vatSummary.length > 0 ? (

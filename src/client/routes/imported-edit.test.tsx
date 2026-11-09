@@ -290,7 +290,10 @@ describe("imported invoice, edited", () => {
     invoice = edited();
     serve();
     await renderAt("/invoices/i1");
-    expect(await screen.findByDisplayValue("Edited line")).toBeTruthy();
+    // The compact read-only document: the stored lines as text, no fields.
+    expect(await screen.findByText("Edited line")).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Invoice details" })).toBeTruthy();
+    expect(screen.queryByLabelText("Description")).toBeNull();
     expect(screen.getByText("Imported")).toBeTruthy();
     expect(mocks.apiFile).not.toHaveBeenCalled();
     noSendActions();
@@ -313,7 +316,7 @@ describe("imported invoice, edited", () => {
         }),
     );
     await renderAt("/invoices/i1");
-    await screen.findByDisplayValue("Edited line");
+    await screen.findByText("Edited line");
     await openActions();
     fireEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
     const number = screen.getByLabelText("Number") as HTMLInputElement;
@@ -328,7 +331,7 @@ describe("imported invoice, edited", () => {
     invoice = { ...edited(), number: "1/CH", seriesId: "ch", year: 2025, issueDate: "2025-02-28" };
     serve(() => undefined);
     await renderAt("/invoices/i1");
-    await screen.findByDisplayValue("Edited line");
+    await screen.findByText("Edited line");
     await openActions();
     fireEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
     const number = screen.getByLabelText("Number") as HTMLInputElement;
@@ -350,7 +353,7 @@ describe("imported invoice, edited", () => {
     invoice = { ...edited(), number: "1/CH", seriesId: "ch", year: 2025, issueDate: "2025-02-28" };
     serve(() => undefined);
     await renderAt("/invoices/i1");
-    await screen.findByDisplayValue("Edited line");
+    await screen.findByText("Edited line");
     await openActions();
     fireEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
     fireEvent.change(screen.getByLabelText("Series"), { target: { value: "default" } });

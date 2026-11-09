@@ -242,7 +242,15 @@ const patchBody = () => {
   );
   return call ? JSON.parse((call[1] as { body: string }).body) : null;
 };
-const loaded = () => screen.findByRole("combobox", { name: "Client" });
+/** The page is ready: the form (edit mode) or the compact document (view mode of a saved invoice). */
+const loaded = () =>
+  waitFor(() => {
+    const ready =
+      screen.queryByRole("combobox", { name: "Client" }) ??
+      screen.queryByRole("region", { name: "Invoice details" });
+    if (!ready) throw new Error("not loaded");
+    return ready;
+  });
 const openActions = () => fireEvent.click(screen.getByRole("button", { name: "More actions" }));
 const action = (name: string) => fireEvent.click(screen.getByRole("menuitem", { name }));
 const edit = () => {
@@ -279,6 +287,15 @@ async function attemptFinalize() {
   const dialog = await screen.findByRole("dialog");
   expect(await within(dialog).findByText(/cannot be finalised yet/)).toBeTruthy();
   return dialog;
+}
+
+/** Picks the first problem of the Finalize dialog: it closes and the form opens in edit mode. */
+function pickProblem(dialog: HTMLElement) {
+  const button = within(dialog)
+    .getAllByRole("button")
+    .find((b) => b.classList.contains("underline"));
+  if (!button) throw new Error("no problem to pick");
+  fireEvent.click(button);
 }
 
 beforeEach(() => {
@@ -453,6 +470,7 @@ describe("Invoice editor", () => {
     expect(screen.queryByText(message)).toBeNull();
     const dialog = await attemptFinalize();
     dialogHas(dialog, message);
+    pickProblem(dialog);
     expect(screen.getAllByText(message).length).toBeGreaterThan(0);
   });
 
@@ -511,7 +529,7 @@ describe("Invoice editor", () => {
     await renderEditor("/invoices/i1");
     await loaded();
     expect(screen.queryByText(banner)).toBeNull();
-    await attemptFinalize();
+    pickProblem(await attemptFinalize());
     expect(await screen.findByText(banner)).toBeTruthy();
     expect(screen.getAllByText(/check digit does not match/).length).toBeGreaterThan(0);
   });
@@ -537,6 +555,7 @@ describe("Invoice editor", () => {
     expect(screen.queryByText(message)).toBeNull();
     const dialog = await attemptFinalize();
     dialogHas(dialog, message);
+    pickProblem(dialog);
     expect(screen.getAllByText(message).length).toBeGreaterThan(0);
   });
 
@@ -700,6 +719,7 @@ describe("Invoice editor", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Discard changes" }));
     const dialog = await attemptFinalize();
     dialogHas(dialog, message);
+    pickProblem(dialog);
     expect(screen.getAllByText(message).length).toBeGreaterThan(0);
   });
 
@@ -755,6 +775,9 @@ describe("Invoice editor", () => {
     serve({ invoice });
     await renderEditor("/invoices/i1");
     await loaded();
+    // View mode shows the saved details as text; Edit shows the select.
+    expect(screen.getByText("FR1420041010050500013M02606")).toBeTruthy();
+    edit();
     const select = screen.getByLabelText("Bank account") as HTMLSelectElement;
     expect(select.selectedOptions[0]?.textContent).toBe("Saved on this invoice · FR14 •••• 2606");
     // Deleting later from Settings never reaches this copy; clearing it is explicit.
@@ -867,15 +890,19 @@ describe("Invoice editor", () => {
     expect(
       within(screen.getByRole("menuitem", { name: "Delete" })).getByText("Delete").className,
     ).toContain("text-danger");
-    // No save or cancel in view mode, and every field is read-only.
+    // No save or cancel in view mode: the page is a compact read-only document, without fields.
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
-    expect((field("Description") as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByLabelText("Description")).toBeNull();
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(screen.queryByRole("combobox")).toBeNull();
     expect(screen.queryByRole("button", { name: "Add line" })).toBeNull();
     expect(screen.queryByRole("button", { name: "New client" })).toBeNull();
-    // The sticky bar shows totals only.
-    const totals = screen.getByRole("region", { name: "Totals" });
-    expect(within(totals).getAllByRole("button")).toHaveLength(1);
+    const compact = screen.getByRole("region", { name: "Invoice details" });
+    expect(within(compact).getByText("Consulting")).toBeTruthy();
+    // The totals are in the document: no sticky bar in view mode.
+    expect(within(compact).getByRole("group", { name: "Totals" })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Totals" })).toBeNull();
     // Deleting still asks for a confirmation first.
     action("Delete");
     const dialog = await screen.findByRole("dialog", { name: "Delete the invoice?" });
@@ -910,9 +937,32 @@ describe("Invoice editor", () => {
     // Back in view mode with the new text, and the focus on More actions.
     const editButton = await screen.findByRole("button", { name: "More actions" });
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
-    expect((field("Description") as HTMLInputElement).disabled).toBe(true);
-    expect((field("Description") as HTMLInputElement).value).toBe("Consulting, edited");
+    expect(screen.queryByLabelText("Description")).toBeNull();
+    expect(screen.getByText("Consulting, edited")).toBeTruthy();
     await waitFor(() => expect(document.activeElement).toBe(editButton));
+  });
+
+  it("shows the same values in the form that the compact view showed, and Cancel returns to the view", async () => {
+    serve({
+      invoice: savedWith({ invoiceNote: "Thanks", paymentMethod: "MP05" }, { price: "50" }),
+    });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    const compact = screen.getByRole("region", { name: "Invoice details" });
+    expect(within(compact).getByText("Consulting")).toBeTruthy();
+    expect(within(compact).getByText("Thanks")).toBeTruthy();
+    expect(within(compact).getByText("Bank transfer")).toBeTruthy();
+    edit();
+    expect(screen.queryByRole("region", { name: "Invoice details" })).toBeNull();
+    expect((field("Description") as HTMLInputElement).value).toBe("Consulting");
+    expect((field("Unit price") as HTMLInputElement).value).toBe("50");
+    expect((field("Note") as HTMLTextAreaElement).value).toBe("Thanks");
+    expect((field("Payment method") as HTMLSelectElement).value).toBe("MP05");
+    // The sticky totals bar belongs to edit mode.
+    expect(screen.getByRole("region", { name: "Totals" })).toBeTruthy();
+    cancel();
+    expect(screen.getByRole("region", { name: "Invoice details" })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Totals" })).toBeNull();
   });
 
   it("restores the stored values on Cancel, asking only when something changed", async () => {
@@ -930,8 +980,9 @@ describe("Invoice editor", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
     const editButton = screen.getByRole("button", { name: "More actions" });
-    expect((field("Description") as HTMLInputElement).value).toBe("Consulting");
-    expect((field("Description") as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByText("Consulting")).toBeTruthy();
+    expect(screen.queryByText("Typed and abandoned")).toBeNull();
+    expect(screen.queryByLabelText("Description")).toBeNull();
     expect(document.activeElement).toBe(editButton);
     expect(mocks.api).not.toHaveBeenCalledWith(
       "/api/invoices/i1",
@@ -1182,14 +1233,20 @@ describe("Invoice editor", () => {
     mocks.runSend.mockResolvedValue({ messageId: "m1", fileName: "IT1_00001.xml" });
     await renderEditor("/invoices/i1");
     await loaded();
+    // Edit, Save, then Finalize: the invoice that is sent is the one that was edited.
+    edit();
     type("Description", "Consulting, edited");
-    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Finalize" }));
     fireEvent.click(await screen.findByRole("button", { name: "Finalize and send with passkey" }));
     await waitFor(() => expect(mocks.runSend).toHaveBeenCalled());
-    const put = mocks.api.mock.calls.find(
+    const puts = mocks.api.mock.calls.filter(
       ([path, init]) => path === "/api/invoices/i1" && init?.method === "PUT",
     );
-    expect(JSON.parse(put?.[1].body).lines[0].description).toBe("Consulting, edited");
+    expect(puts.length).toBeGreaterThan(0);
+    expect(JSON.parse(puts[puts.length - 1]?.[1].body).lines[0].description).toBe(
+      "Consulting, edited",
+    );
     expect(mocks.runSend.mock.calls[0]?.[0]).toBe("i1");
     expect(mocks.runSend.mock.calls[0]?.[2]).toBe("pec");
   });
@@ -1218,7 +1275,11 @@ describe("Invoice editor", () => {
     });
     await renderEditor("/invoices/i1");
     await screen.findByText(/^No\. 7\/2026/);
-    expect((field("Document type") as HTMLSelectElement).disabled).toBe(true);
+    // The type is read-only text of the compact document: no select, no Edit.
+    expect(screen.queryByLabelText("Document type")).toBeNull();
+    expect(screen.getByText("Invoice (TD01)")).toBeTruthy();
+    openActions();
+    expect(screen.queryByRole("menuitem", { name: "Edit" })).toBeNull();
   });
 
   it("shows an issued invoice read-only, with a payment chip, no save and no read-only banner", async () => {
@@ -1228,7 +1289,8 @@ describe("Invoice editor", () => {
     await renderEditor("/invoices/i1");
     expect(await screen.findByText(/^No\. 7\/2026/)).toBeTruthy();
     expect(screen.queryByText(/can no longer be edited/)).toBeNull();
-    expect((screen.getByLabelText("Description") as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByLabelText("Description")).toBeNull();
+    expect(screen.getByText("Consulting")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
     expect(screen.getByText("Unpaid")).toBeTruthy();
     // The old payment status section and the transmission section are gone.
@@ -1243,7 +1305,13 @@ describe("Invoice editor", () => {
         number: "7",
         year: 2026,
         issueDate: "2026-03-01",
-        data: { ...EMPTY_INVOICE_DATA, bollo: true },
+        data: {
+          ...EMPTY_INVOICE_DATA,
+          bollo: true,
+          bolloCharge: "issuer",
+          cassa: { type: "rivalsa_inps", rateBp: 400, mode: "excluded", subjectToRitenuta: false },
+          ritenuta: { type: "RT01", rateBp: 2000, baseBp: 10000, causale: "A" },
+        },
       }),
     });
     await renderEditor("/invoices/i1");
@@ -1251,16 +1319,14 @@ describe("Invoice editor", () => {
     expect(screen.queryByRole("button", { name: "Add line" })).toBeNull();
     expect(screen.queryByRole("button", { name: "New client" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Edit client/ })).toBeNull();
-    const toggle = screen.getByRole("button", { name: /Contribution, withholding/ });
-    expect((toggle as HTMLButtonElement).disabled).toBe(false);
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    const bollo = screen.getByRole("checkbox", { name: /Bollo|stamp/i }) as HTMLInputElement;
-    expect(bollo.checked).toBe(true);
-    expect(bollo.matches(":disabled")).toBe(true);
-    fireEvent.click(toggle);
-    expect(toggle.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.click(toggle);
-    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    // No fields: the contribution, the withholding tax and the stamp duty are rows of the totals.
+    expect(screen.queryByRole("button", { name: /Contribution, withholding/ })).toBeNull();
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    const totals = screen.getByRole("group", { name: "Totals" });
+    expect(totals.textContent).toContain("Contribution INPS rivalsa 4%");
+    expect(totals.textContent).toContain("Withholding tax 20% on");
+    expect(totals.textContent).toContain("Bollo");
+    expect(totals.textContent).toContain("Borne by me");
   });
 
   describe("bollo charge", () => {
@@ -1285,6 +1351,9 @@ describe("Invoice editor", () => {
       });
       await renderEditor("/invoices/i1");
       await loaded();
+      // View mode lists the stamp duty as a line of the document.
+      expect(screen.getByText(/^Added automatically · N/)).toBeTruthy();
+      edit();
       const client = screen.getByRole("radio", { name: "Charged to the client" });
       expect((client as HTMLInputElement).checked).toBe(true);
       const line = screen.getByTestId("stamp-line");
@@ -1304,6 +1373,7 @@ describe("Invoice editor", () => {
       });
       await renderEditor("/invoices/i1");
       await loaded();
+      edit();
       expect(screen.getByTestId("stamp-line")).toBeTruthy();
       cleanup();
       serve({
@@ -1320,11 +1390,10 @@ describe("Invoice editor", () => {
       await screen.findByText(/^No\. 7\/2026/);
       // Stored as the old rule: no generated line, the 2.00 stays in the total.
       expect(screen.queryByTestId("stamp-line")).toBeNull();
-      expect(
-        (screen.getByRole("radio", { name: "Charged to the client" }) as HTMLInputElement).matches(
-          ":disabled",
-        ),
-      ).toBe(true);
+      expect(screen.queryByText(/Added automatically/)).toBeNull();
+      expect(screen.queryByRole("radio")).toBeNull();
+      const totals = screen.getByRole("group", { name: "Totals" });
+      expect(within(totals).getByText("Bollo").nextElementSibling?.textContent).toContain("2.00");
     });
   });
 
@@ -1396,6 +1465,8 @@ describe("Invoice editor", () => {
   it("lays each line out as a bordered card with the note and the read-only amount", async () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
+    await loaded();
+    edit();
     const line = await screen.findByTestId("invoice-line");
     expect(line.className).toContain("rounded-card");
     expect(within(line).getByLabelText("Note (optional)")).toBeTruthy();
@@ -1405,6 +1476,8 @@ describe("Invoice editor", () => {
   it("right-aligns the line amount with its label", async () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
+    await loaded();
+    edit();
     const line = await screen.findByTestId("invoice-line");
     const label = within(line).getByText("Amount");
     expect(label.parentElement?.className).toContain("text-right");
@@ -1415,13 +1488,15 @@ describe("Invoice editor", () => {
     const two = record().lines.concat(record().lines);
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
+    await loaded();
+    edit();
     await screen.findByTestId("invoice-line");
     expect(screen.queryByRole("button", { name: /^Move (up|down) line/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Remove line/ })).toBeNull();
     cleanup();
     serve({ invoice: record({ lines: two }) });
     await renderEditor("/invoices/i1");
-    await screen.findAllByTestId("invoice-line");
+    await loaded();
     // View mode has no line controls either.
     expect(screen.queryByRole("button", { name: /^Move up line/ })).toBeNull();
     edit();
@@ -1441,7 +1516,9 @@ describe("Invoice editor", () => {
       }),
     });
     await renderEditor("/invoices/i1");
-    await screen.findAllByTestId("invoice-line");
+    await loaded();
+    expect(screen.getAllByText("Consulting")).toHaveLength(2);
+    expect(screen.queryByTestId("invoice-line")).toBeNull();
     expect(screen.queryByRole("button", { name: /^Move (up|down) line/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Remove line/ })).toBeNull();
   });
@@ -1505,9 +1582,12 @@ describe("Invoice editor, number on the invoice", () => {
     serve({ invoice: savedWith({ requestedNumber: "ab" }) });
     await renderEditor("/invoices/i1");
     await loaded();
+    edit();
     expect(screen.queryByText(message)).toBeNull();
+    cancel();
     const dialog = await attemptFinalize();
     dialogHas(dialog, message);
+    pickProblem(dialog);
     expect(screen.getAllByText(message).length).toBeGreaterThan(0);
   });
 
@@ -1524,10 +1604,13 @@ describe("Invoice editor, number on the invoice", () => {
     serve({ invoice: savedWith({ requestedNumber: "3" }) });
     await renderEditor("/invoices/i1");
     await loaded();
+    edit();
     await waitFor(() => expect(numberInput().value).toBe("3"));
     expect(screen.queryByText(message)).toBeNull();
+    cancel();
     const dialog = await attemptFinalize();
     dialogHas(dialog, message);
+    pickProblem(dialog);
     expect(screen.getAllByText(message).length).toBeGreaterThan(0);
   });
 
@@ -1583,6 +1666,7 @@ describe("Invoice editor, number on the invoice", () => {
     serve({ clients: [acme, beta], invoice: record({ clientId: "c3", clientName: "Beta Ltd" }) });
     await renderEditor("/invoices/i1");
     await loaded();
+    edit();
     type("Client", "c1");
     expect((field("Language") as HTMLSelectElement).value).toBe("it");
     expect((field("Payment terms") as HTMLSelectElement).value).toBe("custom");
@@ -1598,6 +1682,10 @@ describe("Invoice editor, number on the invoice", () => {
     serve({ clients: [{ ...acme, pdfLanguage: "en" }], invoice: record() });
     await renderEditor("/invoices/i1");
     await loaded();
+    expect(
+      within(screen.getByRole("group", { name: "Document" })).getByText("English"),
+    ).toBeTruthy();
+    edit();
     expect((field("Language") as HTMLSelectElement).value).toBe("en");
   });
 
@@ -1667,17 +1755,23 @@ describe("Invoice editor, number on the invoice", () => {
     });
     await renderEditor("/invoices/i1");
     await loaded();
-    expect((screen.getByLabelText("Series") as HTMLSelectElement).disabled).toBe(true);
-    expect(numberInput().value).toBe("CH-7");
+    // Read-only text of the compact document and the title row: no Series or Number field.
+    expect(screen.queryByLabelText("Series")).toBeNull();
+    expect(screen.queryByLabelText("Number")).toBeNull();
+    expect(
+      within(screen.getByRole("group", { name: "Document" })).getByText("Svizzera"),
+    ).toBeTruthy();
+    expect(screen.getByText(/^No\. CH-7\/2026/)).toBeTruthy();
   });
 
   it("shows the number requested on a stored draft, editable", async () => {
     serve({ invoice: record({ requestedNumber: 120 }) });
     await renderEditor("/invoices/i1");
     await loaded();
-    await waitFor(() => expect(numberInput().value).toBe("120"));
-    expect(numberInput().disabled).toBe(true);
+    expect(await screen.findByText(`No. 120/${YEAR}`)).toBeTruthy();
+    expect(screen.queryByLabelText("Number")).toBeNull();
     edit();
+    await waitFor(() => expect(numberInput().value).toBe("120"));
     expect(numberInput().disabled).toBe(false);
     expect(
       screen.getByText(new RegExp(`the numbers 8 to 119 of ${YEAR} will stay unused`)),
@@ -1690,8 +1784,8 @@ describe("Invoice editor, number on the invoice", () => {
     });
     await renderEditor("/invoices/i1");
     await loaded();
-    expect(numberInput().value).toBe("7");
-    expect(numberInput().disabled).toBe(true);
+    expect(screen.getByText(/^No\. 7\/2026/)).toBeTruthy();
+    expect(screen.queryByLabelText("Number")).toBeNull();
     expect(mocks.api).not.toHaveBeenCalledWith(expect.stringContaining("next-number"));
   });
 
@@ -1709,8 +1803,7 @@ describe("Invoice editor, number on the invoice", () => {
     );
     await renderEditor("/invoices/i1");
     await loaded();
-    await waitFor(() => expect(numberInput().value).toBe("9"));
-    fireEvent.click(screen.getByRole("button", { name: "Finalize" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Finalize" }));
     fireEvent.click(await screen.findByRole("button", { name: "Finalize and send with passkey" }));
     proposal = 10;
     expect(
@@ -1882,7 +1975,7 @@ describe("Invoice editor, rejected invoices", () => {
     serve({ invoice: record({ ...base, state: "rejected_expired" }) });
     await renderEditor("/invoices/i1");
     expect(await screen.findByText("The resend window has closed.")).toBeTruthy();
-    expect((screen.getByLabelText("Description") as HTMLInputElement).disabled).toBe(true);
+    expect(screen.queryByLabelText("Description")).toBeNull();
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
     expect(screen.getByRole("button", { name: "Reissue as new invoice" })).toBeTruthy();
   });

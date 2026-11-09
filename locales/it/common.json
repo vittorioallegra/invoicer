@@ -716,6 +716,14 @@
       "overdue": "Scadute, non pagate",
       "year": "Fatturato {{year}}",
       "month": "Fatturato di {{month}}"
+    },
+    "view": {
+      "title": "Dettagli della fattura",
+      "noLines": "Ancora nessuna riga.",
+      "noTotals": "I totali compaiono quando ogni riga ha quantità, prezzo e aliquota IVA.",
+      "taxable": "Imponibile",
+      "customDays": "{{days}} giorni dalla data della fattura",
+      "accountHolder": "Intestatario"
     }
   },
   "fatturapa": {
