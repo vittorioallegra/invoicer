@@ -46,7 +46,8 @@ export function ReceivedDetailPage() {
       if (record.data?.received.parseStatus !== "parsed") {
         const summary = summarizeInvoice(loaded.invoice);
         await reportParsed(receivedId, summary ? { summary } : null).catch(() => undefined);
-        await queryClient.invalidateQueries({ queryKey: ["received"], exact: true });
+        // The title and subtitle come from the same record, so refresh it too.
+        await queryClient.invalidateQueries({ queryKey: ["received"] });
       }
       return loaded;
     },
