@@ -210,9 +210,11 @@ describe("imported invoice", () => {
       throw new Error(`unexpected ${path}`);
     });
     await renderAt("/invoices/i1");
-    expect(await screen.findByText("Invoice 123/2014")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "DITTA BETA" })).toBeTruthy();
+    expect(screen.getByText(/^No\. 123\/2014 · /)).toBeTruthy();
     expect(screen.getByText("Imported")).toBeTruthy();
-    expect(await screen.findByText("Supplier")).toBeTruthy();
+    expect(screen.getByText("Paid")).toBeTruthy();
+    expect(await screen.findByText("Customer")).toBeTruthy();
     expect(screen.queryByText("Finalize")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "More actions" }));
     expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([

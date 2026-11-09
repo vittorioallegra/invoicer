@@ -825,6 +825,21 @@ describe("Invoice editor", () => {
     expect(screen.getByRole("region", { name: "Client" })).toBeTruthy();
   });
 
+  it("titles a saved invoice with its client, then number and date, then its chips", async () => {
+    serve({ invoice: record({ state: "sent", number: "7", year: 2026, issueDate: "2026-03-05" }) });
+    await renderEditor("/invoices/i1");
+    await loaded();
+    const title = await screen.findByRole("heading", { level: 1, name: "Acme S.r.l." });
+    const column = title.parentElement as HTMLElement;
+    expect(within(column).getByText(/^No\. 7\/2026 · /)).toBeTruthy();
+    expect(within(column).getByText("Sent")).toBeTruthy();
+    expect(
+      (column.parentElement as HTMLElement).contains(
+        screen.getByRole("button", { name: "More actions" }),
+      ),
+    ).toBe(true);
+  });
+
   it("opens a saved unsent invoice in view mode: Finalize then More actions on the title row, the rest in the menu", async () => {
     serve({ invoice: record() });
     await renderEditor("/invoices/i1");
@@ -843,7 +858,9 @@ describe("Invoice editor", () => {
     const follows = (a: HTMLElement, b: HTMLElement) =>
       Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
     expect(follows(title, more)).toBe(true);
-    expect(follows(finalize, more)).toBe(true);
+    // From md the Finalize group sits left of the menu, which ends the title row.
+    expect(finalize.closest("[class*='md:order-2']")).not.toBeNull();
+    expect(more.closest("[class*='md:order-3']")).not.toBeNull();
     // Nothing to download or pay before finalising; Delete comes last.
     fireEvent.click(more);
     expect(menuItems()).toEqual(["Edit", "Preview", "Duplicate", "Delete"]);
@@ -1024,7 +1041,7 @@ describe("Invoice editor", () => {
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
     await renderEditor("/invoices/i1");
-    await screen.findByText("No. 7/2026");
+    await screen.findByText(/^No\. 7\/2026/);
     expect(screen.queryByRole("button", { name: "Finalize" })).toBeNull();
     const trigger = screen.getByRole("button", { name: "More actions" });
     expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
@@ -1052,7 +1069,7 @@ describe("Invoice editor", () => {
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
     await renderEditor("/invoices/i1");
-    await screen.findByText("No. 7/2026");
+    await screen.findByText(/^No\. 7\/2026/);
     fireEvent.click(screen.getByRole("button", { name: "More actions" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Download PDF" }));
     expect(mocks.downloadUrl).toHaveBeenCalledWith("/api/invoices/i1/pdf");
@@ -1122,7 +1139,7 @@ describe("Invoice editor", () => {
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
     await renderEditor("/invoices/i1");
-    await screen.findByText("No. 7/2026");
+    await screen.findByText(/^No\. 7\/2026/);
     fireEvent.click(screen.getByRole("button", { name: "More actions" }));
     expect(screen.queryByRole("menuitem", { name: /Preview/ })).toBeNull();
   });
@@ -1132,7 +1149,7 @@ describe("Invoice editor", () => {
       invoice: record({ state: "sent", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
     await renderEditor("/invoices/i1");
-    await screen.findByText("No. 7/2026");
+    await screen.findByText(/^No\. 7\/2026/);
     const trigger = screen.getByRole("button", { name: "More actions" });
     fireEvent.click(trigger);
     fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
@@ -1200,7 +1217,7 @@ describe("Invoice editor", () => {
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
     await renderEditor("/invoices/i1");
-    await screen.findByText("No. 7/2026");
+    await screen.findByText(/^No\. 7\/2026/);
     expect((field("Document type") as HTMLSelectElement).disabled).toBe(true);
   });
 
@@ -1209,7 +1226,7 @@ describe("Invoice editor", () => {
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
     await renderEditor("/invoices/i1");
-    expect(await screen.findByText("No. 7/2026")).toBeTruthy();
+    expect(await screen.findByText(/^No\. 7\/2026/)).toBeTruthy();
     expect(screen.queryByText(/can no longer be edited/)).toBeNull();
     expect((screen.getByLabelText("Description") as HTMLInputElement).disabled).toBe(true);
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
@@ -1230,7 +1247,7 @@ describe("Invoice editor", () => {
       }),
     });
     await renderEditor("/invoices/i1");
-    await screen.findByText("No. 7/2026");
+    await screen.findByText(/^No\. 7\/2026/);
     expect(screen.queryByRole("button", { name: "Add line" })).toBeNull();
     expect(screen.queryByRole("button", { name: "New client" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Edit client/ })).toBeNull();
@@ -1300,7 +1317,7 @@ describe("Invoice editor", () => {
         }),
       });
       await renderEditor("/invoices/i1");
-      await screen.findByText("No. 7/2026");
+      await screen.findByText(/^No\. 7\/2026/);
       // Stored as the old rule: no generated line, the 2.00 stays in the total.
       expect(screen.queryByTestId("stamp-line")).toBeNull();
       expect(
@@ -1316,7 +1333,7 @@ describe("Invoice editor", () => {
       invoice: record({ state: "delivered", number: "7", year: 2026, issueDate: "2026-03-01" }),
     });
     await renderEditor("/invoices/i1");
-    await screen.findByText("No. 7/2026");
+    await screen.findByText(/^No\. 7\/2026/);
     openActions();
     action("Record payment");
     const dialog = await screen.findByRole("dialog");

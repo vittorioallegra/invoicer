@@ -3,7 +3,7 @@ import { CircleCheck, CircleX, Download, Ellipsis, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { romeDateTime } from "../../shared/cron";
-import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
+import { formatDate, type UiLocale } from "../../shared/format";
 import type { InvoiceRecord } from "../../shared/invoice";
 import { formatNumberWithYear } from "../../shared/numbering";
 import { InvoiceDocumentView } from "../components/invoice-document-view";
@@ -11,7 +11,7 @@ import { Page } from "../components/page";
 import { PaymentDialog } from "../components/payment-action";
 import { Banner } from "../components/ui/banner";
 import { MenuButton, type MenuItem } from "../components/ui/menu-button";
-import { ImportedBadge, StatusBadge } from "../components/ui/status-badge";
+import { CreditNoteBadge, ImportedBadge, StatusBadge } from "../components/ui/status-badge";
 import { type ImportedSeed, seedImportedForm } from "../import/imported-seed";
 import { loadOriginal } from "../import/original";
 import { INVOICE_LIST_BACK } from "../lib/back-links";
@@ -90,28 +90,36 @@ export function ImportedInvoicePage({
   }
   return (
     <Page
-      title={t(credit ? "import.view.creditNote" : "import.view.invoice", {
-        number: record.number ? formatNumberWithYear(record.number, record.year) : "",
-      })}
+      title={
+        record.clientName ||
+        t(credit ? "import.view.creditNote" : "import.view.invoice", {
+          number: record.number ? formatNumberWithYear(record.number, record.year) : "",
+        })
+      }
       back={INVOICE_LIST_BACK}
-      subtitle={[
-        record.clientName,
-        record.issueDate ? formatDate(record.issueDate, locale) : null,
-        record.totalCents === null ? null : formatMoney(record.totalCents, locale, record.currency),
-      ]
-        .filter(Boolean)
-        .join(" · ")}
-      aside={
+      subtitle={
+        [
+          record.number
+            ? t("invoice.numberYear", { number: formatNumberWithYear(record.number, record.year) })
+            : null,
+          record.issueDate ? formatDate(record.issueDate, locale) : null,
+        ]
+          .filter(Boolean)
+          .join(" · ") || undefined
+      }
+      chips={
         <>
           <ImportedBadge />
-          {credit ? null : <StatusBadge status={record.paymentFlag} />}
-          <MenuButton
-            label={t("invoice.actions.more")}
-            icon={<Ellipsis aria-hidden />}
-            items={items}
-            iconOnly
-          />
+          {credit ? <CreditNoteBadge /> : <StatusBadge status={record.paymentFlag} />}
         </>
+      }
+      actions={
+        <MenuButton
+          label={t("invoice.actions.more")}
+          icon={<Ellipsis aria-hidden />}
+          items={items}
+          iconOnly
+        />
       }
     >
       <Banner tone="info">
@@ -123,7 +131,7 @@ export function ImportedInvoicePage({
         </p>
       ) : null}
       {file.isError ? <Banner tone="danger">{t("received.view.unreadable")}</Banner> : null}
-      {loaded ? <InvoiceDocumentView invoice={loaded.invoice} /> : null}
+      {loaded ? <InvoiceDocumentView invoice={loaded.invoice} counterparty="customer" /> : null}
       <PaymentDialog
         record={record}
         today={romeDateTime(new Date()).date}

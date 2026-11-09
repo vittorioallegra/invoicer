@@ -47,3 +47,18 @@ export function ImportedBadge({ className }: { className?: string }) {
     </span>
   );
 }
+
+/** Marks a credit note (TD04) next to the invoice's name, like the other neutral chips. */
+export function CreditNoteBadge({ className }: { className?: string }) {
+  const { t } = useTranslation();
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground",
+        className,
+      )}
+    >
+      {t("received.docType.TD04")}
+    </span>
+  );
+}

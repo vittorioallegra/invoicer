@@ -795,57 +795,60 @@ function EditorForm({ record, clients, accounts, series, tax, send, seed }: Edit
       onSelect: () => setConfirmDelete(true),
     });
   }
-  const titleActions = editing ? undefined : (
+  const titleActionsAside =
+    editing || !finalizable ? undefined : (
+      <Button
+        type="button"
+        disabled={!online || save.isPending}
+        title={online ? undefined : t("offline.reason")}
+        onClick={() => setFinalizeOpen(true)}
+      >
+        <Send aria-hidden />
+        {t(record?.state === "rejected" ? "invoice.actions.fixResend" : "invoice.actions.finalize")}
+      </Button>
+    );
+  const titleActionsMenu =
+    editing || menuItems.length === 0 ? undefined : (
+      <MenuButton
+        label={t("invoice.actions.more")}
+        icon={<Ellipsis aria-hidden />}
+        items={menuItems}
+        iconOnly
+        triggerRef={editButton}
+      />
+    );
+
+  // A saved invoice is titled with its client, then number and date, then its state chips.
+  const headerName = record ? (client?.name ?? record.clientName ?? "") : "";
+  const headerDateValue = record ? (record.issueDate ?? (form.invoiceDate || null)) : null;
+  const headerDate = headerDateValue ? formatDate(headerDateValue, locale) : null;
+  const headerSubtitle = [printedNumber, headerDate].filter(Boolean).join(" · ");
+  const headerChips = record ? (
     <>
-      {finalizable ? (
-        <Button
-          type="button"
-          disabled={!online || save.isPending}
-          title={online ? undefined : t("offline.reason")}
-          onClick={() => setFinalizeOpen(true)}
-        >
-          <Send aria-hidden />
-          {t(
-            record?.state === "rejected" ? "invoice.actions.fixResend" : "invoice.actions.finalize",
-          )}
-        </Button>
-      ) : null}
-      {menuItems.length > 0 ? (
-        <MenuButton
-          label={t("invoice.actions.more")}
-          icon={<Ellipsis aria-hidden />}
-          items={menuItems}
-          iconOnly
-          triggerRef={editButton}
+      {imported ? <ImportedBadge /> : <StatusBadge status={record.state} />}
+      {payable ? (
+        <StatusBadge
+          status={record.paymentFlag}
+          detail={
+            record.paymentFlag === "paid" && record.paidDate
+              ? t("invoice.paid.paidOn", { date: formatDate(record.paidDate, locale) })
+              : undefined
+          }
         />
       ) : null}
     </>
-  );
+  ) : undefined;
 
   return (
     <Page
-      title={t(record ? "invoice.editTitle" : "invoice.newTitle")}
-      subtitle={printedNumber}
-      aside={titleActions}
+      title={headerName || t(record ? "invoice.editTitle" : "invoice.newTitle")}
+      subtitle={headerSubtitle || null}
+      chips={headerChips}
+      aside={titleActionsAside}
+      actions={titleActionsMenu}
       back={INVOICE_LIST_BACK}
     >
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
-        {record ? (
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            {imported ? <ImportedBadge /> : <StatusBadge status={record.state} />}
-            {payable ? (
-              <StatusBadge
-                status={record.paymentFlag}
-                detail={
-                  record.paymentFlag === "paid" && record.paidDate
-                    ? t("invoice.paid.paidOn", { date: formatDate(record.paidDate, locale) })
-                    : undefined
-                }
-              />
-            ) : null}
-          </div>
-        ) : null}
-
         {record?.number && !imported && record.state !== "draft" && record.state !== "planned" ? (
           <InvoiceDetail
             record={record}

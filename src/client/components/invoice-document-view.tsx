@@ -30,6 +30,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/** The name is left out when the page title already shows it. */
 function Party({ title, party }: { title: string; party: ReceivedParty }) {
   const { t } = useTranslation();
   const address = party.address;
@@ -38,7 +39,6 @@ function Party({ title, party }: { title: string; party: ReceivedParty }) {
     .join(" ");
   return (
     <GroupBox title={title}>
-      <p className="font-medium">{party.name || "–"}</p>
       <dl className="flex flex-col gap-1">
         {party.vatId ? (
           <Row label={t("received.view.vat")}>{`${party.vatId.country}${party.vatId.code}`}</Row>
@@ -65,7 +65,14 @@ function vatLabel(rate: string, natura: string | null): string {
   return natura ? `${shown} ${natura}` : shown;
 }
 
-function DocumentView({ document }: { document: ReceivedDocument }) {
+function DocumentView({
+  document,
+  showHeader,
+}: {
+  document: ReceivedDocument;
+  /** Hidden for a file with one document: its type, number and date are in the page title. */
+  showHeader: boolean;
+}) {
   const { t, i18n } = useTranslation();
   const locale = useLocale();
   const amount = useAmount(document.currency);
@@ -73,16 +80,18 @@ function DocumentView({ document }: { document: ReceivedDocument }) {
   const typeKey = `received.docType.${document.documentType}`;
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-semibold">
-          {i18n.exists(typeKey) ? t(typeKey) : document.documentType}
-          {" · "}
-          {t("received.view.number", { number: document.number })}
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          {t("received.view.dated", { date: formatDate(document.date, locale) })}
-        </p>
-      </div>
+      {showHeader ? (
+        <div>
+          <h2 className="text-lg font-semibold">
+            {i18n.exists(typeKey) ? t(typeKey) : document.documentType}
+            {" · "}
+            {t("received.view.number", { number: document.number })}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t("received.view.dated", { date: formatDate(document.date, locale) })}
+          </p>
+        </div>
+      ) : null}
 
       {document.causali.length > 0 ? (
         <GroupBox title={t("received.view.causali")}>
@@ -214,25 +223,27 @@ function DocumentView({ document }: { document: ReceivedDocument }) {
  */
 export function InvoiceDocumentView({
   invoice,
-  showCustomer = true,
+  counterparty,
 }: {
   invoice: ReceivedInvoice;
-  /** A received invoice is always addressed to the owner, so its page leaves the customer out. */
-  showCustomer?: boolean;
+  /**
+   * The party shown: the supplier on a received invoice, the customer on an issued one. The
+   * owner's own block is never shown, and neither is the counterparty's name (the page title).
+   */
+  counterparty: "supplier" | "customer";
 }) {
   const { t } = useTranslation();
+  const single = invoice.documents.length === 1;
   return (
     <div className="flex flex-col gap-6">
-      <div className={showCustomer ? "grid gap-4 sm:grid-cols-2" : "grid gap-4"}>
-        <Party title={t("received.view.supplier")} party={invoice.supplier} />
-        {showCustomer ? (
-          <Party title={t("received.view.customer")} party={invoice.customer} />
-        ) : null}
-      </div>
+      <Party
+        title={t(counterparty === "supplier" ? "received.view.supplier" : "received.view.customer")}
+        party={counterparty === "supplier" ? invoice.supplier : invoice.customer}
+      />
       {invoice.documents.map((document, index) => (
         // The order of the documents in a file is fixed, so the index is a stable key.
         // biome-ignore lint/suspicious/noArrayIndexKey: documents have no id of their own
-        <DocumentView key={index} document={document} />
+        <DocumentView key={index} document={document} showHeader={!single} />
       ))}
     </div>
   );

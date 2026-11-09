@@ -3,13 +3,13 @@ import { useParams } from "@tanstack/react-router";
 import { CircleCheck, CircleX, Download, Ellipsis, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
+import { formatDate, type UiLocale } from "../../shared/format";
 import { InvoiceDocumentView } from "../components/invoice-document-view";
 import { Page } from "../components/page";
 import { ReceivedEditSheet } from "../components/received-edit-sheet";
 import { Banner } from "../components/ui/banner";
 import { MenuButton, type MenuItem } from "../components/ui/menu-button";
-import { StatusBadge } from "../components/ui/status-badge";
+import { CreditNoteBadge, ImportedBadge, StatusBadge } from "../components/ui/status-badge";
 import { toast } from "../components/ui/toast";
 import { loadOriginal, originalType } from "../import/original";
 import { summarizeInvoice } from "../import/summary";
@@ -104,26 +104,29 @@ export function ReceivedDetailPage() {
         data
           ? [
               data.number ? t("received.view.number", { number: data.number }) : null,
-              !original && data.issueDate ? formatDate(data.issueDate, locale) : null,
-              !original && data.totalCents !== null
-                ? formatMoney(data.totalCents, locale, data.currency)
-                : null,
+              data.issueDate ? formatDate(data.issueDate, locale) : null,
             ]
               .filter(Boolean)
               .join(" · ") || undefined
           : undefined
       }
-      aside={
+      chips={
         data ? (
           <>
             <StatusBadge status={data.paymentFlag} />
-            <MenuButton
-              label={t("invoice.actions.more")}
-              icon={<Ellipsis aria-hidden />}
-              items={items}
-              iconOnly
-            />
+            {data.source === "import" ? <ImportedBadge /> : null}
+            {data.documentType === "TD04" ? <CreditNoteBadge /> : null}
           </>
+        ) : undefined
+      }
+      actions={
+        data ? (
+          <MenuButton
+            label={t("invoice.actions.more")}
+            icon={<Ellipsis aria-hidden />}
+            items={items}
+            iconOnly
+          />
         ) : undefined
       }
     >
@@ -142,7 +145,7 @@ export function ReceivedDetailPage() {
         <Banner tone="info">{t("received.view.noOriginal")}</Banner>
       ) : null}
       {file.isError ? <Banner tone="danger">{t("received.view.unreadable")}</Banner> : null}
-      {loaded ? <InvoiceDocumentView invoice={loaded.invoice} showCustomer={false} /> : null}
+      {loaded ? <InvoiceDocumentView invoice={loaded.invoice} counterparty="supplier" /> : null}
       {data && editing ? (
         <ReceivedEditSheet record={data} open={editing} onOpenChange={setEditing} />
       ) : null}

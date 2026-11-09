@@ -166,6 +166,45 @@ describe("received invoices (AC 10)", () => {
     expect(screen.getByText("Cash")).toBeTruthy();
   });
 
+  it("titles the page with the supplier, then number and date, then the chips, and repeats none of it in the body", async () => {
+    mocks.apiFile.mockResolvedValue({
+      bytes: fixture("IT01234567890_FPR01.xml.p7m"),
+      fileName: null,
+    });
+    mocks.api.mockImplementation(async (path: string) => {
+      if (path === "/api/received/r1") {
+        return {
+          received: record({
+            parseStatus: "parsed",
+            supplierName: "SOCIETA' ALPHA SRL",
+            number: "123",
+            issueDate: "2014-12-18",
+            documentType: "TD04",
+            source: "import",
+            totalCents: 610,
+          }),
+        };
+      }
+      throw new Error(`unexpected ${path}`);
+    });
+    await renderAt("/received/r1");
+    const title = await screen.findByRole("heading", { level: 1, name: "SOCIETA' ALPHA SRL" });
+    const column = title.parentElement as HTMLElement;
+    expect(within(column).getByText(/^No\. 123 · /)).toBeTruthy();
+    for (const chip of ["Unpaid", "Imported", "Credit note"]) {
+      expect(within(column).getByText(chip)).toBeTruthy();
+    }
+    expect(
+      (column.parentElement as HTMLElement).contains(
+        screen.getByRole("button", { name: "More actions" }),
+      ),
+    ).toBe(true);
+    await screen.findByText("Supplier");
+    // The body has the supplier's details but neither its name, nor a second number/date header.
+    expect(screen.getAllByText(/SOCIETA' ALPHA SRL/)).toHaveLength(1);
+    expect(screen.queryByText(/^Dated /)).toBeNull();
+  });
+
   it("explains that an invoice without an original file has none to show and offers no download", async () => {
     mocks.api.mockImplementation(async (path: string) => {
       if (path === "/api/received/r1") {

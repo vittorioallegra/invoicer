@@ -162,7 +162,7 @@ describe("imported invoice, never edited", () => {
   it("offers Edit, the payment and the original in the menu, and nothing to send", async () => {
     serve();
     await renderAt("/invoices/i1");
-    expect(await screen.findByText("Supplier")).toBeTruthy();
+    expect(await screen.findByText("Customer")).toBeTruthy();
     expect(screen.getByText("Imported")).toBeTruthy();
     noSendActions();
     await openActions();
@@ -172,7 +172,7 @@ describe("imported invoice, never edited", () => {
   it("opens the editor on the lines of the XML, with the invoice's own client, number and date, and no way to send", async () => {
     serve();
     await renderAt("/invoices/i1");
-    await screen.findByText("Supplier");
+    await screen.findByText("Customer");
     await openActions();
     await waitFor(() =>
       expect(screen.getByRole("menuitem", { name: "Edit" }).getAttribute("aria-disabled")).not.toBe(
@@ -235,12 +235,12 @@ describe("imported invoice, never edited", () => {
   it("goes back to the file view on Cancel", async () => {
     serve();
     await renderAt("/invoices/i1");
-    await screen.findByText("Supplier");
+    await screen.findByText("Customer");
     await openActions();
     fireEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
     await screen.findByDisplayValue("DESCRIZIONE DELLA FORNITURA");
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(await screen.findByText("Supplier")).toBeTruthy();
+    expect(await screen.findByText("Customer")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
   });
 
