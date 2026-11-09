@@ -34,6 +34,7 @@ import {
   formatNumberWithYear,
   matchSeries,
   type NumberingSeriesRecord,
+  progressiveIn,
 } from "../../shared/numbering";
 import type { SendReadiness } from "../../shared/onboarding";
 import { maskIban, type PaymentMethodRecord } from "../../shared/payment-method";
@@ -321,6 +322,16 @@ function EditorForm({ record, clients, accounts, series, tax, send, seed }: Edit
   // The invoice's series; a series that no longer exists falls back to the default one.
   const defaultSeries = series.find((s) => s.isDefault) ?? series[0] ?? null;
   const activeSeries = series.find((s) => s.id === form.seriesId) ?? defaultSeries;
+  // An imported invoice whose stored number is prefix + digits + suffix of its series is edited as
+  // a plain number: the series adds the prefix and suffix (1 + "/CH" prints "1/CH"). Decided from the
+  // stored invoice, so typing never switches mode; any other (free text) number is edited as text.
+  const storedSeries = record ? series.find((s) => s.id === record.seriesId) : undefined;
+  const importedPlainNumber =
+    imported &&
+    storedSeries !== undefined &&
+    progressiveIn(record?.number ?? "", storedSeries) !== null;
+  const importedProgressive =
+    importedPlainNumber && activeSeries ? progressiveIn(form.requestedNumber, activeSeries) : null;
   const nextNumber = useQuery({
     ...nextNumberQuery(year, activeSeries?.id ?? null),
     enabled: numberEditable,
@@ -1085,9 +1096,21 @@ function EditorForm({ record, clients, accounts, series, tax, send, seed }: Edit
                         onChange={(event) => {
                           setNumberTouched(false);
                           setNumberTaken(false);
+                          const picked = series.find((s) => s.id === event.target.value);
                           patch(
                             imported
-                              ? { seriesId: event.target.value }
+                              ? {
+                                  seriesId: event.target.value,
+                                  // The number stays, printed with the new series' prefix and suffix.
+                                  ...(importedPlainNumber && picked && importedProgressive !== null
+                                    ? {
+                                        requestedNumber: formatInvoiceNumber(
+                                          picked,
+                                          importedProgressive,
+                                        ),
+                                      }
+                                    : {}),
+                                }
                               : { seriesId: event.target.value, requestedNumber: "" },
                           );
                         }}
@@ -1103,17 +1126,26 @@ function EditorForm({ record, clients, accounts, series, tax, send, seed }: Edit
                 ) : null}
                 <Field
                   label={t("invoice.document.number")}
+                  hint={
+                    importedPlainNumber && form.requestedNumber
+                      ? t("invoice.imported.numberPrinted", { number: form.requestedNumber })
+                      : undefined
+                  }
                   error={numberEditable || imported ? numberError : undefined}
                   name={imported ? "number" : "requestedNumber"}
                 >
                   {(c) => (
                     <Input
                       {...c}
-                      inputMode={imported ? "text" : "numeric"}
-                      maxLength={imported ? 20 : undefined}
+                      inputMode={imported && !importedPlainNumber ? "text" : "numeric"}
+                      maxLength={imported && !importedPlainNumber ? 20 : undefined}
                       value={
                         imported
-                          ? form.requestedNumber
+                          ? importedPlainNumber
+                            ? importedProgressive === null
+                              ? ""
+                              : String(importedProgressive)
+                            : form.requestedNumber
                           : numberEditable
                             ? numberText
                             : (record?.number ?? "")
@@ -1123,8 +1155,17 @@ function EditorForm({ record, clients, accounts, series, tax, send, seed }: Edit
                         setNumberTouched(true);
                         setNumberTaken(false);
                         const typedText = event.target.value;
-                        if (imported) {
-                          // The number decides the series, as on import (the owner may still pick one).
+                        if (imported && importedPlainNumber) {
+                          // Digits only; the chosen series prints its prefix and suffix around them.
+                          const digits = typedText.replace(/\D/g, "").slice(0, 9);
+                          patch({
+                            requestedNumber:
+                              digits === "" || !activeSeries
+                                ? ""
+                                : formatInvoiceNumber(activeSeries, Number(digits)),
+                          });
+                        } else if (imported) {
+                          // Free text: the number decides the series, as on import.
                           const match = matchSeries(typedText.trim(), series);
                           patch({
                             requestedNumber: typedText,

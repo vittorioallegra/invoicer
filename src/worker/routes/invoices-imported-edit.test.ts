@@ -234,6 +234,28 @@ describe("PUT /api/invoices/:id on an imported invoice", () => {
     expect(bad.status).toBe(400);
   });
 
+  it("keeps number 1 of a suffix series (1/CH) apart from number 1 of the main series in the same year", async () => {
+    const swiss = await owner.json<{ series: { id: string } }>("/api/numbering-series", {
+      body: { name: "Swiss plain", suffix: "/XX" },
+    });
+    const xx = swiss.body.series.id;
+    // Main series number 1 of 2022 already exists; a second invoice is 1/XX of the same year.
+    await importXml({ number: "1", date: "2022-02-28", totalCents: 111 });
+    const id = await importXml({ number: "1/XX", date: "2022-03-31", totalCents: 222 });
+    const saved = await put(
+      id,
+      editBody({ number: "1/XX", invoiceDate: "2022-03-31", seriesId: xx }),
+    );
+    expect(saved.status).toBe(200);
+    expect(saved.body.invoice).toMatchObject({ number: "1/XX", seriesId: xx, year: 2022 });
+    // The year is the invoice's, not the current one: moving it to 2023 frees 2022 and takes 2023.
+    const moved = await put(
+      id,
+      editBody({ number: "1/XX", invoiceDate: "2023-01-10", seriesId: xx }),
+    );
+    expect(moved.body.invoice).toMatchObject({ number: "1/XX", year: 2023 });
+  });
+
   it("is never sent, numbered, released, reissued, duplicated, credited or deleted", async () => {
     const id = await importXml({ number: "51", date: "2020-04-04" });
     await put(id, editBody({ number: "51", invoiceDate: "2020-04-04" }));

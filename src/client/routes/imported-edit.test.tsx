@@ -98,7 +98,10 @@ function serve(onPut?: (body: Record<string, unknown>) => unknown) {
     if (path === "/api/payment-methods") return { paymentMethods: [] };
     if (path === "/api/numbering-series") {
       return {
-        series: [{ id: "default", name: "Main", prefix: null, suffix: null, isDefault: true }],
+        series: [
+          { id: "default", name: "Main", prefix: null, suffix: null, isDefault: true },
+          { id: "ch", name: "CH", prefix: null, suffix: "/CH", isDefault: false },
+        ],
       };
     }
     if (path === "/api/onboarding") {
@@ -297,8 +300,8 @@ describe("imported invoice, edited", () => {
     expect(mocks.downloadUrl).toHaveBeenCalledWith("/api/invoices/i1/original");
   });
 
-  it("edits the number as free text and shows a taken number clearly", async () => {
-    invoice = edited();
+  it("edits a number that is not prefix + digits + suffix as free text and shows a taken number clearly", async () => {
+    invoice = { ...edited(), number: "X-12/A" };
     serve(
       () =>
         new ApiError({
@@ -319,6 +322,42 @@ describe("imported invoice, edited", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(putBody()?.number).toBe("2014/A"));
     expect(await screen.findAllByText(/already used by another invoice/)).not.toHaveLength(0);
+  });
+  it("edits a number of a series as a plain number, printed with the series prefix and suffix", async () => {
+    // A Swiss invoice: series CH (suffix /CH), printed 1/CH. The field holds just the 1.
+    invoice = { ...edited(), number: "1/CH", seriesId: "ch", year: 2025, issueDate: "2025-02-28" };
+    serve(() => undefined);
+    await renderAt("/invoices/i1");
+    await screen.findByDisplayValue("Edited line");
+    await openActions();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
+    const number = screen.getByLabelText("Number") as HTMLInputElement;
+    expect(number.value).toBe("1");
+    expect((screen.getByLabelText("Series") as HTMLSelectElement).value).toBe("ch");
+    expect(screen.getByText("Printed as 1/CH")).toBeTruthy();
+
+    // Typing never changes the series, and letters are ignored.
+    fireEvent.change(number, { target: { value: "12x" } });
+    expect(number.value).toBe("12");
+    expect((screen.getByLabelText("Series") as HTMLSelectElement).value).toBe("ch");
+    expect(screen.getByText("Printed as 12/CH")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(putBody()?.number).toBe("12/CH"));
+    expect(putBody()?.seriesId).toBe("ch");
+  });
+
+  it("keeps the number when another series is picked and prints it with that series", async () => {
+    invoice = { ...edited(), number: "1/CH", seriesId: "ch", year: 2025, issueDate: "2025-02-28" };
+    serve(() => undefined);
+    await renderAt("/invoices/i1");
+    await screen.findByDisplayValue("Edited line");
+    await openActions();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Series"), { target: { value: "default" } });
+    expect((screen.getByLabelText("Number") as HTMLInputElement).value).toBe("1");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(putBody()?.number).toBe("1"));
+    expect(putBody()?.seriesId).toBe("default");
   });
 });
 

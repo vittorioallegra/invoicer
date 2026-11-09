@@ -506,7 +506,8 @@
         "unreadable": "Non è stato possibile leggere il file originale, quindi le righe partono vuote. Aggiungile come preferisci."
       },
       "totalsHint": "Quando salvi, i totali vengono ricalcolati dalle righe e possono differire di qualche centesimo dalle cifre del file.",
-      "numberTaken": "Questo numero è già usato da un'altra fattura della stessa serie e anno."
+      "numberTaken": "Questo numero è già usato da un'altra fattura della stessa serie e anno.",
+      "numberPrinted": "Stampato come {{number}}"
     },
     "errors": {
       "locked": "Questa fattura non si può più modificare.",

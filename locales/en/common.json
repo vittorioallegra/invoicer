@@ -506,7 +506,8 @@
         "unreadable": "The original file could not be read, so the lines start empty. Add them as you wish."
       },
       "totalsHint": "When you save, the totals are recalculated from the lines and may differ by a few cents from the figures in the file.",
-      "numberTaken": "This number is already used by another invoice of the same series and year."
+      "numberTaken": "This number is already used by another invoice of the same series and year.",
+      "numberPrinted": "Printed as {{number}}"
     },
     "errors": {
       "locked": "This invoice can no longer be edited.",
