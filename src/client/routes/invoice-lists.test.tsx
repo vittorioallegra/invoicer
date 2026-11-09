@@ -153,7 +153,8 @@ describe("invoice lists", () => {
     const list = screen.getByText(/No\. 7/).closest("ul") as HTMLElement;
     expect(within(list).getByText("Delivered")).toBeTruthy();
     expect(within(list).getByText("Overdue")).toBeTruthy();
-    expect(screen.getByText(/Credit note 8/)).toBeTruthy();
+    expect(screen.getByText(/No\. 8/)).toBeTruthy();
+    expect(within(list).getByText("Credit note")).toBeTruthy();
     expect(screen.getByText(/Beta Srl/)).toBeTruthy();
     // A credit note shows as a negative amount.
     expect(screen.getByText(/-€ 50\.00|−€ 50\.00|€ -50\.00/)).toBeTruthy();

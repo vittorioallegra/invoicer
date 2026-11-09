@@ -87,7 +87,7 @@ describe("received invoices (AC 10)", () => {
     );
 
     await renderAt("/received?year=all");
-    expect(await screen.findByText("SOCIETA' ALPHA SRL · No. 123")).toBeTruthy();
+    expect(await screen.findByRole("link", { name: /SOCIETA' ALPHA SRL.*No\. 123/ })).toBeTruthy();
     // The same values the source XML carries (taxable 5.00 + VAT 1.10 = 6.10).
     expect(reported).toEqual([
       {
@@ -273,7 +273,7 @@ describe("received list filters and recap", () => {
   it("lists every year by default with the recap of all of them, one amount per currency", async () => {
     serve(list);
     await renderAt("/received");
-    await screen.findByText(/Alpha Srl · No\. a1/);
+    await screen.findByRole("link", { name: /Alpha Srl.*No\. a1/ });
     expect(screen.getByText(/No\. a2/)).toBeTruthy();
     expect(within(recap()).getByText("3")).toBeTruthy();
     expect(within(recap()).getAllByText(/172[.,]00/).length).toBeGreaterThan(0);
@@ -283,7 +283,7 @@ describe("received list filters and recap", () => {
   it("filters by year and by sender through the URL, and clears the filters", async () => {
     serve(list);
     const router = await renderAt("/received");
-    await screen.findByText(/Alpha Srl · No\. a1/);
+    await screen.findByRole("link", { name: /Alpha Srl.*No\. a1/ });
     fireEvent.change(screen.getByLabelText("Year"), { target: { value: String(thisYear) } });
     await waitFor(() =>
       expect(router.state.location.search).toMatchObject({ year: String(thisYear) }),
@@ -294,8 +294,8 @@ describe("received list filters and recap", () => {
     await waitFor(() =>
       expect(router.state.location.search).toMatchObject({ supplier: "beta gmbh" }),
     );
-    expect(screen.queryByText(/Alpha Srl · No\./)).toBeNull();
-    expect(screen.getByText(/Beta GmbH · No\. b1/)).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Alpha Srl/ })).toBeNull();
+    expect(screen.getByRole("link", { name: /Beta GmbH.*No\. b1/ })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
     await waitFor(() => expect(router.state.location.search).toEqual({}));
   });

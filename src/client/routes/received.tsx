@@ -23,7 +23,7 @@ import { EmptyState } from "../components/ui/empty-state";
 import { Field } from "../components/ui/field";
 import { Select } from "../components/ui/select";
 import { ListSkeleton } from "../components/ui/skeleton";
-import { ImportedBadge, StatusBadge } from "../components/ui/status-badge";
+import { CreditNoteBadge, ImportedBadge, StatusBadge } from "../components/ui/status-badge";
 import { rememberReceivedFilters } from "../lib/list-memory";
 import { receivedListQuery } from "../lib/received-api";
 import { useReadPending } from "../lib/use-read-pending";
@@ -52,10 +52,18 @@ const route = getRouteApi("/received");
 function Row({ item, locale }: { item: ReceivedInvoiceRecord; locale: UiLocale }) {
   const { t } = useTranslation();
   const credit = item.documentType === "TD04";
-  const title =
-    item.parseStatus === "parsed"
-      ? `${item.supplierName ?? "–"} · ${t("received.list.number", { number: item.number })}`
-      : (item.original?.fileName ?? t("received.list.unreadTitle"));
+  const parsed = item.parseStatus === "parsed";
+  const title = parsed
+    ? (item.supplierName ?? "–")
+    : (item.original?.fileName ?? t("received.list.unreadTitle"));
+  const subtitle = parsed
+    ? [
+        item.number ? t("received.list.number", { number: item.number }) : null,
+        item.issueDate ? formatDate(item.issueDate, locale) : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : null;
   return (
     <li>
       <Link
@@ -73,23 +81,22 @@ function Row({ item, locale }: { item: ReceivedInvoiceRecord; locale: UiLocale }
               </span>
             ) : item.parseStatus === "failed" ? (
               t("received.list.failed")
-            ) : item.issueDate ? (
-              t("invoice.list.dated", { date: formatDate(item.issueDate, locale) })
-            ) : null}
+            ) : (
+              subtitle
+            )}
           </span>
+          {item.source === "import" || parsed ? (
+            <span className="mt-1 flex flex-wrap gap-1">
+              {item.source === "import" ? <ImportedBadge /> : null}
+              {parsed && credit ? <CreditNoteBadge /> : null}
+              {parsed && !credit ? <StatusBadge status={item.paymentFlag} /> : null}
+            </span>
+          ) : null}
         </span>
-        <span className="flex flex-col items-end gap-1">
-          <span className="font-medium tabular-nums">
-            {item.totalCents === null
-              ? "–"
-              : formatMoney(credit ? -item.totalCents : item.totalCents, locale, item.currency)}
-          </span>
-          <span className="flex flex-wrap justify-end gap-1">
-            {item.source === "import" ? <ImportedBadge /> : null}
-            {item.parseStatus === "parsed" && !credit ? (
-              <StatusBadge status={item.paymentFlag} />
-            ) : null}
-          </span>
+        <span className="font-medium tabular-nums">
+          {item.totalCents === null
+            ? "–"
+            : formatMoney(credit ? -item.totalCents : item.totalCents, locale, item.currency)}
         </span>
       </Link>
     </li>

@@ -10,7 +10,7 @@ import { useOnline } from "../lib/online";
 import { Banner } from "./ui/banner";
 import { Button } from "./ui/button";
 import { ListSkeleton } from "./ui/skeleton";
-import { ImportedBadge, StatusBadge } from "./ui/status-badge";
+import { CreditNoteBadge, ImportedBadge, StatusBadge } from "./ui/status-badge";
 import { toast } from "./ui/toast";
 
 function useLocale(): UiLocale {
@@ -24,8 +24,15 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
   const credit = invoice.documentType === "TD04";
   // The invoice date only (the issue date of a sent invoice is that same date, as in the XML).
   const date = invoice.issueDate ?? invoice.invoiceDate;
-  const dateLine =
-    date !== null ? t("invoice.list.dated", { date: formatDate(date, locale) }) : null;
+  const subtitle =
+    [
+      invoice.number
+        ? t("invoice.list.number", { number: formatNumberWithYear(invoice.number, invoice.year) })
+        : null,
+      date !== null ? formatDate(date, locale) : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || null;
   // Same rule as the editor chip: finalised, not rejected, not a credit note.
   const payable =
     invoice.state !== "draft" &&
@@ -42,16 +49,10 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
       >
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">
-            {invoice.number
-              ? t(credit ? "invoice.list.creditNoteNumber" : "invoice.list.number", {
-                  number: formatNumberWithYear(invoice.number, invoice.year),
-                })
-              : t(credit ? "invoice.list.creditNote" : "invoice.list.invoice")}
-            {" · "}
             {invoice.clientName ?? t("invoice.list.noClient")}
           </span>
-          {dateLine ? (
-            <span className="block text-sm text-muted-foreground">{dateLine}</span>
+          {subtitle ? (
+            <span className="block text-sm text-muted-foreground">{subtitle}</span>
           ) : null}
           {invoice.state === "rejected" && invoice.rejectionDeadline !== null ? (
             <span className="block text-sm text-danger">
@@ -60,22 +61,21 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
               })}
             </span>
           ) : null}
-        </span>
-        <span className="flex flex-col items-end gap-1">
-          <span className="font-medium tabular-nums">
-            {invoice.totalCents === null
-              ? "–"
-              : formatMoney(
-                  credit ? -invoice.totalCents : invoice.totalCents,
-                  locale,
-                  invoice.currency,
-                )}
-          </span>
-          <span className="flex flex-wrap justify-end gap-1">
+          <span className="mt-1 flex flex-wrap gap-1">
             {invoice.source === "imported" ? <ImportedBadge /> : null}
+            {credit ? <CreditNoteBadge /> : null}
             <StatusBadge status={invoice.state} />
             {payable ? <StatusBadge status={invoice.paymentFlag} /> : null}
           </span>
+        </span>
+        <span className="font-medium tabular-nums">
+          {invoice.totalCents === null
+            ? "–"
+            : formatMoney(
+                credit ? -invoice.totalCents : invoice.totalCents,
+                locale,
+                invoice.currency,
+              )}
         </span>
       </Link>
       {extra ? <div className="px-4 pb-3">{extra}</div> : null}
