@@ -1,8 +1,27 @@
 # Invoicer
 
-Single-user, self-hosted Italian e-invoicing (FatturaPA) PWA on Cloudflare (Worker + D1 +
-Cron), sending to the SdI through the owner's PEC mailbox (SMTP) and polling it (IMAP). Spec: `docs/specs/invoicer.md`. Plan and progress:
-`docs/plans/invoicer.md`.
+A self-hosted app for Italian freelancers and small businesses to issue electronic invoices
+(FatturaPA) and send them to the SdI (Sistema di Interscambio) through their own PEC mailbox, with
+no intermediary service in between. It is a single-user PWA that runs on Cloudflare's free plan.
+
+## Features
+
+- **Issue and send**: create invoices, validate the XML against the official FatturaPA schema,
+  render the PDF, and send the file to the SdI over the owner's PEC mailbox (SMTP).
+- **Track the outcome**: a scheduled job reads the PEC mailbox read-only (IMAP) and moves each
+  invoice through `sending`, `sent`, `delivered`, `not_delivered` or `rejected` from the SdI
+  receipts. Received invoices are stored too.
+- **Secure by design**: sign-in with passkeys (TOTP fallback), and every send needs a fresh
+  passkey assertion bound to that invoice and the hash of its XML.
+- **Extras**: optional courtesy email with the PDF (Resend), push notifications, import of the
+  history from a previous invoicing tool, and a full JSON export of the data.
+- **Cheap to run**: heavy work (XML validation, PDF, signed `.p7m` files) runs in the browser, so
+  the Worker fits the free-plan CPU limits.
+
+**Stack:** React, TypeScript, TanStack Router and Query, Radix UI, react-pdf, Better Auth and
+SimpleWebAuthn, Drizzle ORM on Cloudflare Workers, D1 and Cron Triggers, Vitest and Playwright.
+
+The functional spec is in `docs/specs/invoicer.md`.
 
 ## Local development
 
