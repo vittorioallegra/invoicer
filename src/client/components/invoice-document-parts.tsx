@@ -4,9 +4,9 @@ import { GroupBox } from "./ui/group-box";
 /** A label and its value on one line; both wrap, the value is aligned to the end. */
 export function Row({ label, children }: { label: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex flex-wrap justify-between gap-x-4 gap-y-0.5 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 break-words text-right tabular-nums">{children}</dd>
+    <div className="flex justify-between gap-x-4 text-sm">
+      <dt className="min-w-0 flex-1 text-muted-foreground">{label}</dt>
+      <dd className="max-w-[60%] shrink-0 break-words text-right tabular-nums">{children}</dd>
     </div>
   );
 }

@@ -34,7 +34,7 @@ function Sidebar() {
           <Link
             key={to}
             to={to}
-            activeOptions={{ exact: to === "/" || to === "/invoices", includeSearch: false }}
+            activeOptions={{ exact: to === "/", includeSearch: false }}
             className="flex min-h-11 items-center gap-3 rounded-control px-3 text-sm font-medium text-muted-foreground hover:bg-muted"
             activeProps={{ className: "bg-muted text-foreground", "aria-current": "page" }}
           >
@@ -60,7 +60,7 @@ function BottomTabs() {
         <Link
           key={to}
           to={to}
-          activeOptions={{ exact: to === "/" || to === "/invoices", includeSearch: false }}
+          activeOptions={{ exact: to === "/", includeSearch: false }}
           className="flex min-h-14 flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-medium text-muted-foreground"
           activeProps={{ className: "text-primary", "aria-current": "page" }}
         >
