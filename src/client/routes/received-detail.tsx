@@ -142,7 +142,7 @@ export function ReceivedDetailPage() {
         <Banner tone="info">{t("received.view.noOriginal")}</Banner>
       ) : null}
       {file.isError ? <Banner tone="danger">{t("received.view.unreadable")}</Banner> : null}
-      {loaded ? <InvoiceDocumentView invoice={loaded.invoice} /> : null}
+      {loaded ? <InvoiceDocumentView invoice={loaded.invoice} showCustomer={false} /> : null}
       {data && editing ? (
         <ReceivedEditSheet record={data} open={editing} onOpenChange={setEditing} />
       ) : null}

@@ -212,13 +212,22 @@ function DocumentView({ document }: { document: ReceivedDocument }) {
  * The readable view of a FatturaPA invoice file (supplier, customer, lines, totals, payment
  * data). Everything is rendered as text; the file's own values are never interpreted as markup.
  */
-export function InvoiceDocumentView({ invoice }: { invoice: ReceivedInvoice }) {
+export function InvoiceDocumentView({
+  invoice,
+  showCustomer = true,
+}: {
+  invoice: ReceivedInvoice;
+  /** A received invoice is always addressed to the owner, so its page leaves the customer out. */
+  showCustomer?: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={showCustomer ? "grid gap-4 sm:grid-cols-2" : "grid gap-4"}>
         <Party title={t("received.view.supplier")} party={invoice.supplier} />
-        <Party title={t("received.view.customer")} party={invoice.customer} />
+        {showCustomer ? (
+          <Party title={t("received.view.customer")} party={invoice.customer} />
+        ) : null}
       </div>
       {invoice.documents.map((document, index) => (
         // The order of the documents in a file is fixed, so the index is a stable key.

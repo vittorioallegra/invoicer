@@ -152,6 +152,8 @@ describe("received invoices (AC 10)", () => {
     });
     await renderAt("/received/r1");
     expect(await screen.findByText("Supplier")).toBeTruthy();
+    // The customer of a received invoice is always the owner: not shown.
+    expect(screen.queryByText("Customer")).toBeNull();
     // The actions are in the "more actions" menu, not spread over the title row.
     expect(screen.queryByRole("button", { name: "Download original" })).toBeNull();
     fireEvent.click(await screen.findByRole("button", { name: "More actions" }));
