@@ -9,10 +9,10 @@ import type { CassaDefaults, RitenutaDefaults } from "./tax";
 import { NATURA_TEXTS } from "./totals";
 
 /**
- * The single place that turns what an import found (a Fatture in Cloud summary row, or the real
- * lines of a FatturaPA file) into the body of an unsent invoice created through the editor's save
- * path. Callers describe the content as a `DraftSpec`; everything the editor derives from it
- * (payment terms, legal texts per natura) is derived here.
+ * The single place that turns what an import found (the real lines of a FatturaPA file) into the
+ * body of an unsent invoice created through the editor's save path. Callers describe the content
+ * as a `DraftSpec`; everything the editor derives from it (payment terms, legal texts per natura)
+ * is derived here.
  */
 
 export interface DraftSpec {

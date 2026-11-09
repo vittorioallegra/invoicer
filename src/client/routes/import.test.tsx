@@ -7,7 +7,6 @@ import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { InvoiceRecord } from "../../shared/invoice";
 import { createI18n } from "../i18n";
-import { buildXls, type FixtureCell } from "../import/xls-fixture";
 import { createAppRouter } from "../router";
 
 const mocks = vi.hoisted(() => ({ api: vi.fn(), apiFile: vi.fn() }));
@@ -153,6 +152,20 @@ describe("import page back link", () => {
     expect((await backLink())?.textContent).toBe("Settings");
   });
 
+  it("falls back to the invoices import for the removed summary kind", async () => {
+    await renderAt("/import?kind=summary");
+    const kinds = await screen.findByRole("navigation", { name: "Import" });
+    expect(
+      within(kinds)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Invoices", "Clients"]);
+    expect(within(kinds).getByRole("link", { name: "Invoices" }).getAttribute("aria-current")).toBe(
+      "page",
+    );
+    expect(await screen.findByLabelText("Files")).toBeTruthy();
+  });
+
   it("keeps the Settings back link when switching between the import kinds", async () => {
     await renderAt("/import?kind=issued");
     const kinds = await screen.findByRole("navigation", { name: "Import" });
@@ -209,10 +222,10 @@ describe("imported invoice", () => {
     ]);
   });
 
-  it("explains that a summary import has no original and offers no download", async () => {
+  it("explains that an invoice without an original file has none to show or download", async () => {
     mocks.api.mockImplementation(async (path: string) => {
       if (path === "/api/invoices/i1") {
-        return { invoice: { ...record, hasOriginal: false, clientName: "Name from the summary" } };
+        return { invoice: { ...record, hasOriginal: false, clientName: "Name without a client" } };
       }
       if (path === "/api/clients") return { clients: [] };
       if (path === "/api/payment-methods") return { paymentMethods: [] };
@@ -222,7 +235,7 @@ describe("imported invoice", () => {
     expect(
       await screen.findByText(/only its number, date, customer and total were imported/),
     ).toBeTruthy();
-    expect(screen.getByText(/Name from the summary/)).toBeTruthy();
+    expect(screen.getByText(/Name without a client/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "More actions" }));
     expect(screen.queryByRole("menuitem", { name: "Download original" })).toBeNull();
     expect(mocks.apiFile).not.toHaveBeenCalled();
@@ -267,180 +280,5 @@ describe("clients CSV import (AC 17)", () => {
     expect(sent[0]).toHaveLength(4);
     expect(screen.getByText("Already imported.")).toBeTruthy();
     expect(screen.getAllByText(/Not imported\./)).toHaveLength(2);
-  });
-});
-
-describe("summary import", () => {
-  const sheet = (name: string, rows: FixtureCell[][]) => buildXls([{ name, rows }]);
-  const header = ["# Fattura emessa", "Data", "Cliente", "P.IVA", "CF", "Imponibile", "IVA"];
-  const receivedHeader = [
-    "# Fattura ricevuta",
-    "Data",
-    "Fornitore",
-    "P.IVA",
-    "CF",
-    "Imponibile",
-    "IVA",
-  ];
-  const day = (iso: string) =>
-    (Date.parse(`${iso}T00:00:00Z`) - Date.UTC(1899, 11, 30)) / 86_400_000;
-  const xls = sheet("Summary", [
-    ["Gennaio"],
-    header,
-    ["3/CH", day("2025-03-31"), "Acme Srl", " ", " ", 100, 22],
-    [4, day("2024-05-02"), "Beta Ltd", " ", " ", 10, 0],
-    [5, 0, "No date", " ", " ", 10, 0],
-    ["Totale"],
-    receivedHeader,
-    [7, day("2024-01-05"), "Tool Shop", "98765432109 ", " ", 100, 22],
-    ["Totale"],
-  ]);
-  const asFile = (bytes: Uint8Array) =>
-    new File([bytes as BlobPart], "riepilogo.xls", { type: "application/vnd.ms-excel" });
-
-  it("previews the file, then imports it and shows the result with the skipped rows", async () => {
-    mocks.api.mockImplementation(async (path: string, init?: { body?: string }) => {
-      if (path === "/api/numbering-series" && !init) return { series: [] };
-      if (path === "/api/numbering-series") return { series: {} };
-      const { rows } = JSON.parse(init?.body ?? "{}") as { rows: { number?: string }[] };
-      if (path === "/api/invoices/import-summary") {
-        return {
-          results: rows.map((row) =>
-            row.number === "4"
-              ? { outcome: "duplicate", id: "old" }
-              : { outcome: "imported", id: "n1" },
-          ),
-        };
-      }
-      return { results: rows.map(() => ({ outcome: "imported", id: "r1" })) };
-    });
-    await renderAt("/import?kind=summary");
-    const input = (await screen.findByLabelText("Summary file (.xls)")) as HTMLInputElement;
-    fireEvent.change(input, { target: { files: [asFile(xls)] } });
-    expect(await screen.findByText("2 issued invoices")).toBeTruthy();
-    expect(screen.getByText("1 received invoice")).toBeTruthy();
-    expect(screen.getByText("Years 2024 to 2025")).toBeTruthy();
-    expect(screen.getByText("CH (numbers like 1/CH)")).toBeTruthy();
-    expect(screen.getByText("1 row cannot be read and will be skipped:")).toBeTruthy();
-    expect(screen.getByText(/Row 5 \(issued\)/)).toBeTruthy();
-    expect((screen.getByRole("checkbox") as HTMLInputElement).checked).toBe(true);
-    const start = screen.getByRole("button", { name: "Import" });
-    await waitFor(() => expect((start as HTMLButtonElement).disabled).toBe(false));
-    fireEvent.click(start);
-    expect(await screen.findByText("2 imported, 2 skipped")).toBeTruthy();
-    expect(screen.getByText("Issued 3/CH, 2025-03-31, Acme Srl")).toBeTruthy();
-    expect(screen.getByText("Already imported.")).toBeTruthy();
-    expect(screen.getByText("Received 7, 2024-01-05, Tool Shop")).toBeTruthy();
-    const created = mocks.api.mock.calls.find(
-      (call) => call[0] === "/api/numbering-series" && call[1]?.method === "POST",
-    );
-    expect(JSON.parse(created?.[1].body)).toEqual({ name: "CH", prefix: "", suffix: "/CH" });
-  });
-
-  it("says when the file is not an account summary", async () => {
-    mocks.api.mockResolvedValue({ series: [] });
-    await renderAt("/import?kind=summary");
-    const input = (await screen.findByLabelText("Summary file (.xls)")) as HTMLInputElement;
-    fireEvent.change(input, { target: { files: [new File(["a,b"], "x.xls")] } });
-    expect(
-      await screen.findByText(/could not be read as a Fatture in Cloud account summary/),
-    ).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Import" }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
-  });
-
-  describe("review of the invoices", () => {
-    const future = sheet("Summary", [
-      ["Gennaio"],
-      header,
-      [3, day("2025-03-31"), "Acme Srl", " ", " ", 100, 22],
-      [4, day("2026-10-30"), "Open Client", " ", " ", 10, 0],
-      [5, day("2099-12-31"), "Later Client", " ", " ", 10, 0],
-      ["Totale"],
-      receivedHeader,
-      [7, day("2099-12-30"), "Later Shop", " ", " ", 10, 0],
-      ["Totale"],
-    ]);
-    const body = (path: string) => {
-      const call = mocks.api.mock.calls.find((c) => c[0] === path);
-      return call ? (JSON.parse(call[1].body) as { rows: Record<string, unknown>[] }).rows : [];
-    };
-    const sent = () => body("/api/invoices/import-summary").map((row) => [row.number, row.paid]);
-    beforeEach(() => {
-      mocks.api.mockImplementation(async (path: string, init?: { body?: string }) => {
-        if (path === "/api/numbering-series") return { series: [] };
-        const { rows } = JSON.parse(init?.body ?? "{}") as { rows: unknown[] };
-        return { results: rows.map(() => ({ outcome: "imported", id: "n1" })) };
-      });
-    });
-    const load = async () => {
-      await renderAt("/import?kind=summary");
-      const input = (await screen.findByLabelText("Summary file (.xls)")) as HTMLInputElement;
-      fireEvent.change(input, { target: { files: [asFile(future)] } });
-      await screen.findByText("2 issued invoices");
-    };
-    const start = async () => {
-      const button = screen.getByRole("button", { name: "Import" });
-      await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
-      fireEvent.click(button);
-      await screen.findByText(/imported/);
-    };
-
-    it("creates an issued invoice dated after today as an invoice to send, never paid", async () => {
-      await load();
-      expect(
-        screen.getByText(
-          "1 issued invoice dated after today will be created as an invoice to send (not sent, not paid)",
-        ),
-      ).toBeTruthy();
-      expect(screen.getByText("0 received invoices")).toBeTruthy();
-      fireEvent.click(screen.getByRole("button", { name: /Review the invoices/ }));
-      expect(screen.getByText("Will be created as an invoice to send")).toBeTruthy();
-      const later = screen.getByLabelText("Import Issued 5, 2099-12-31, Later Client");
-      expect((later as HTMLInputElement).checked).toBe(true);
-      // No Paid box is offered for it, the global box does not apply.
-      expect(screen.queryByLabelText("Paid: Issued 5, 2099-12-31, Later Client")).toBeNull();
-      await start();
-      expect(sent()).toEqual([
-        ["3", true],
-        ["4", true],
-      ]);
-      const drafts = body("/api/invoices/import-summary-drafts");
-      expect(drafts).toHaveLength(1);
-      expect(drafts[0]).toMatchObject({
-        number: "5",
-        date: "2099-12-31",
-        amounts: { taxableCents: 1000, taxCents: 0 },
-      });
-      expect(drafts[0]).not.toHaveProperty("paid");
-      expect(
-        screen.getByText(/Created as an invoice to send, check it before sending/),
-      ).toBeTruthy();
-    });
-
-    it("leaves a received invoice dated after today out until it is ticked", async () => {
-      await load();
-      expect(screen.getByText("1 invoice is left out (see the review below).")).toBeTruthy();
-      fireEvent.click(screen.getByRole("button", { name: /Review the invoices/ }));
-      expect(screen.getByText("Not issued yet")).toBeTruthy();
-      const later = screen.getByLabelText("Import Received 7, 2099-12-30, Later Shop");
-      expect((later as HTMLInputElement).checked).toBe(false);
-      fireEvent.click(later);
-      expect(await screen.findByText("1 received invoice")).toBeTruthy();
-      await start();
-      expect(body("/api/received/import-summary")).toHaveLength(1);
-    });
-
-    it("stores an invoice as not paid when its Paid box is unticked", async () => {
-      await load();
-      fireEvent.click(screen.getByRole("button", { name: /Review the invoices/ }));
-      fireEvent.click(screen.getByLabelText("Paid: Issued 4, 2026-10-30, Open Client"));
-      await start();
-      expect(sent()).toEqual([
-        ["3", true],
-        ["4", false],
-      ]);
-    });
   });
 });

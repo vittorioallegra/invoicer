@@ -9,13 +9,13 @@ import { xmlDraftFromInvoice } from "./xml-draft";
 
 /**
  * The starting form of the editor for an imported invoice that was never edited (it has no lines
- * yet). `xml`: the real content of the stored original; `summary`: a summary import has no file,
+ * yet). `xml`: the real content of the stored original; `noOriginal`: the invoice has no file,
  * so one line carries the stored total (the owner chooses its VAT); `unreadable`: the original
  * could not be read, so the line is empty. Whatever the source, the invoice keeps its own client,
  * number, series, date, document type, currency and due date: they are the facts of what was
  * issued, never re-derived from the file.
  */
-export type SeedSource = "xml" | "summary" | "unreadable";
+export type SeedSource = "xml" | "noOriginal" | "unreadable";
 
 export interface ImportedSeed {
   form: InvoiceForm;
@@ -74,7 +74,7 @@ export function seedImportedForm(
           : null,
     };
   } else {
-    source = original === "unreadable" ? "unreadable" : "summary";
+    source = original === "unreadable" ? "unreadable" : "noOriginal";
     spec = {
       documentType: record.documentType,
       currency: record.currency,
@@ -85,7 +85,7 @@ export function seedImportedForm(
           note: "",
           quantityMilli: 1000,
           unit: null,
-          unitPriceCents: source === "summary" ? Math.max(0, record.totalCents ?? 0) : 0,
+          unitPriceCents: source === "noOriginal" ? Math.max(0, record.totalCents ?? 0) : 0,
           vatRateBp: null,
           natura: null,
         },

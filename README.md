@@ -100,7 +100,7 @@ and not fetched in full.
 Moving from the previous invoicing tool (FiC) to Invoicer. Milestone A ends with step 3.
 
 1. Import the FiC history: Settings > Import > Invoices takes the whole FiC export as one ZIP (issued
-   and received XML are told apart automatically; PDFs and spreadsheets in it are ignored; issued
+   and received XML are told apart automatically; PDFs and spreadsheets in it, such as the account summary `.xls`, are ignored; issued
    invoices that were never sent become invoices to send). Or at least set
    the number of the first invoice to the one FiC would issue next (the Number field in the
    invoice editor, prefilled with the next free number of the year; later invoices continue

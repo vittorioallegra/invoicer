@@ -170,26 +170,10 @@ describe("PUT /api/invoices/:id on an imported invoice", () => {
     expect(res.body.invoice.dueDate).toBe("2024-05-01");
   });
 
-  it("edits a summary-style import (no original) the same way, and can change the document type", async () => {
-    const res = await owner.json<{ results: { outcome: string; id: string }[] }>(
-      "/api/invoices/import-summary",
-      {
-        body: {
-          rows: [
-            {
-              number: "77",
-              date: "2023-06-01",
-              documentType: "TD01",
-              currency: "EUR",
-              totalCents: 3000,
-              paid: false,
-              customer: { name: "Summary Co", vatCountry: null, vatCode: null, taxCode: null },
-            },
-          ],
-        },
-      },
-    );
-    const id = res.body.results[0]?.id ?? "";
+  it("edits an import with no original file the same way, and can change the document type", async () => {
+    // Older imports have no stored original: drop it from a fresh one.
+    const id = await importXml({ number: "77", date: "2023-06-01", dueDate: null, paid: false });
+    await env.DB.prepare("DELETE FROM files WHERE invoice_id = ?").bind(id).run();
     const edited = await put(
       id,
       editBody({ number: "77", invoiceDate: "2023-06-01", documentType: "TD04", lines: [line()] }),

@@ -126,7 +126,7 @@ export function ReceivedDetailPage() {
         </p>
       ) : null}
       {data?.parseStatus === "parsed" && !original ? (
-        <Banner tone="info">{t("received.view.summaryOnly")}</Banner>
+        <Banner tone="info">{t("received.view.noOriginal")}</Banner>
       ) : null}
       {file.isError ? <Banner tone="danger">{t("received.view.unreadable")}</Banner> : null}
       {loaded ? <InvoiceDocumentView invoice={loaded.invoice} /> : null}

@@ -155,7 +155,7 @@ describe("received invoices (AC 10)", () => {
     expect(screen.getByText("Cash")).toBeTruthy();
   });
 
-  it("explains that a summary import has no original file and offers no download", async () => {
+  it("explains that an invoice without an original file has none to show and offers no download", async () => {
     mocks.api.mockImplementation(async (path: string) => {
       if (path === "/api/received/r1") {
         return {
@@ -172,7 +172,7 @@ describe("received invoices (AC 10)", () => {
       throw new Error(`unexpected ${path}`);
     });
     await renderAt("/received/r1");
-    expect(await screen.findByText(/there is no original file/)).toBeTruthy();
+    expect(await screen.findByText(/has no original file/)).toBeTruthy();
     expect(screen.queryByText("Download original")).toBeNull();
     expect(mocks.apiFile).not.toHaveBeenCalled();
   });

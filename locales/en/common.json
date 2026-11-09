@@ -499,10 +499,10 @@
     "saved": "Saved.",
     "imported": {
       "noteFile": "Imported invoice: it counts as already sent and is never sent again. Your edits change this record only; the original file is kept.",
-      "noteSummary": "Imported invoice from an account summary: it counts as already sent and is never sent again.",
+      "noteNoOriginal": "Imported invoice without an original file: it counts as already sent and is never sent again.",
       "seed": {
         "xml": "The lines were read from the original file. Check them before saving.",
-        "summary": "The file had no lines: one line holds the imported total. Set its description and VAT, or replace it with the real lines.",
+        "noOriginal": "The invoice has no original file: one line holds the imported total. Set its description and VAT, or replace it with the real lines.",
         "unreadable": "The original file could not be read, so the lines start empty. Add them as you wish."
       },
       "totalsHint": "When you save, the totals are recalculated from the lines and may differ by a few cents from the figures in the file.",
@@ -1149,7 +1149,7 @@
     "view": {
       "reading": "Reading the invoice file…",
       "unreadable": "This file could not be read as an invoice. You can still download the original.",
-      "summaryOnly": "This invoice comes from an account summary, so there is no original file: only the data in the header was imported.",
+      "noOriginal": "This invoice has no original file: only the data in the header was imported.",
       "supplier": "Supplier",
       "customer": "Customer",
       "vat": "VAT number",
@@ -1179,8 +1179,7 @@
     "title": "Import",
     "kinds": {
       "invoices": "Invoices",
-      "clients": "Clients",
-      "summary": "Fatture in Cloud summary (.xls)"
+      "clients": "Clients"
     },
     "invoices": {
       "intro": "Import your invoices from files: XML or signed P7M files, or a ZIP of them (for example the full Fatture in Cloud export, or the ZIP from the Agenzia delle Entrate portal). Each file is told apart automatically: issued by your company, or received from a supplier. Issued invoices are stored as already sent: you can edit them afterwards, but they are never sent again, and their numbers cannot be used again. Issued invoices that were never sent (in a \"not sent\" folder, or dated after today) are created as invoices to send, with their real lines, to check and send from here. Files that are not invoices (PDFs, spreadsheets) are ignored.",
@@ -1195,12 +1194,17 @@
     "noProfile": "Fill in your company details, including the VAT number, first: they tell your own invoices from your suppliers' ones.",
     "noProfileLink": "Open the company details",
     "seriesCreated": "Numbering series created for the issued invoices:",
+    "seriesRow": "{{name}} (numbers like {{example}})",
     "result": {
       "summary": "{{imported}} imported, {{skipped}} skipped",
       "imported": "Imported",
       "again": "Import more files",
       "open": "Open",
-      "draft": "Created as an invoice to send, check it before sending (description, VAT and totals)"
+      "draft": "Created as an invoice to send, check it before sending (description, VAT and totals)",
+      "label": {
+        "issued": "Issued {{number}}, {{date}}, {{name}}",
+        "received": "Received {{number}}, {{date}}, {{name}}"
+      }
     },
     "detail": {
       "no_client": "no client was linked, the customer in the file is incomplete",
@@ -1221,56 +1225,8 @@
     "view": {
       "invoice": "Invoice {{number}}",
       "creditNote": "Credit note {{number}}",
-      "noOriginal": "This invoice comes from an account summary: only its number, date, customer and total were imported, so there is no original file or invoice lines. You can edit it and record its payment.",
+      "noOriginal": "This invoice has no original file: only its number, date, customer and total were imported, so there are no invoice lines. You can edit it and record its payment.",
       "fromFile": "This invoice was imported from a file and is shown as written in it. You can edit it from the menu; it is never sent again."
-    },
-    "summary": {
-      "intro": "Import the account summary spreadsheet exported from Fatture in Cloud (.xls): all issued and received invoices in one file. The summary holds only the number, date, customer or supplier and amounts, so the invoices are stored without lines and without an original file. Numbers with a suffix such as /CH get their own numbering series.",
-      "file": "Summary file (.xls)",
-      "reading": "Reading the file…",
-      "unreadable": "This file could not be read as a Fatture in Cloud account summary.",
-      "found": "Found in the file",
-      "nothing": "There are no invoices to import in this file.",
-      "issuedCount_one": "{{count}} issued invoice",
-      "issuedCount_other": "{{count}} issued invoices",
-      "receivedCount_one": "{{count}} received invoice",
-      "receivedCount_other": "{{count}} received invoices",
-      "year": "Year {{year}}",
-      "years": "Years {{from}} to {{to}}",
-      "series": "Numbering series that will be created:",
-      "seriesRow": "{{name}} (numbers like {{example}})",
-      "invalidCount_one": "{{count}} row cannot be read and will be skipped:",
-      "invalidCount_other": "{{count}} rows cannot be read and will be skipped:",
-      "invalidLabel": "Row {{line}} ({{kind}})",
-      "invalidDetail": "{{field}} cannot be read.",
-      "kind": {
-        "issued": "issued",
-        "received": "received"
-      },
-      "fields": {
-        "number": "Number",
-        "date": "Date",
-        "name": "Name",
-        "amount": "Amount"
-      },
-      "label": {
-        "issued": "Issued {{number}}, {{date}}, {{name}}",
-        "received": "Received {{number}}, {{date}}, {{name}}"
-      },
-      "markPaidHint": "Earlier invoices are usually settled. The paid date is the invoice date. Turn this off to keep them unpaid.",
-      "review": "Review the invoices",
-      "reviewSummary": "Leave an invoice out, or mark one as not paid yet",
-      "reviewHint": "The newest invoices come first. Untick Import to leave an invoice out, and untick Paid for an invoice that has not been collected yet. An issued invoice dated after today is not issued yet: it is created as an invoice to send, never as paid. A received invoice dated after today starts left out.",
-      "rowImport": "Import",
-      "rowPaid": "Paid",
-      "rowImportLabel": "Import {{row}}",
-      "rowPaidLabel": "Paid: {{row}}",
-      "notIssuedYet": "Not issued yet",
-      "leftOut_one": "{{count}} invoice is left out (see the review below).",
-      "leftOut_other": "{{count}} invoices are left out (see the review below).",
-      "willBeToSend": "Will be created as an invoice to send",
-      "toSendCount_one": "{{count}} issued invoice dated after today will be created as an invoice to send (not sent, not paid)",
-      "toSendCount_other": "{{count}} issued invoices dated after today will be created as invoices to send (not sent, not paid)"
     },
     "clients": {
       "intro": "Import clients from a Fatture in Cloud CSV export. You see which column feeds each field and every row with a problem before anything is saved. Clients you already have (same VAT number, tax code or name) are skipped."

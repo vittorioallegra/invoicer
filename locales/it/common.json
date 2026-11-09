@@ -499,10 +499,10 @@
     "saved": "Salvata.",
     "imported": {
       "noteFile": "Fattura importata: vale come già inviata e non viene mai più inviata. Le modifiche cambiano solo questa scheda; il file originale resta conservato.",
-      "noteSummary": "Fattura importata da un riepilogo contabile: vale come già inviata e non viene mai più inviata.",
+      "noteNoOriginal": "Fattura importata senza file originale: vale come già inviata e non viene mai più inviata.",
       "seed": {
         "xml": "Le righe sono state lette dal file originale. Controllale prima di salvare.",
-        "summary": "Il file non aveva righe: una riga contiene il totale importato. Indica descrizione e IVA, oppure sostituiscila con le righe vere.",
+        "noOriginal": "La fattura non ha un file originale:  una riga contiene il totale importato. Indica descrizione e IVA, oppure sostituiscila con le righe vere.",
         "unreadable": "Non è stato possibile leggere il file originale, quindi le righe partono vuote. Aggiungile come preferisci."
       },
       "totalsHint": "Quando salvi, i totali vengono ricalcolati dalle righe e possono differire di qualche centesimo dalle cifre del file.",
@@ -1149,7 +1149,7 @@
     "view": {
       "reading": "Lettura del file della fattura…",
       "unreadable": "Impossibile leggere questo file come fattura. Puoi comunque scaricare l'originale.",
-      "summaryOnly": "Questa fattura arriva da un riepilogo contabile, quindi non c'è un file originale: sono stati importati solo i dati dell'intestazione.",
+      "noOriginal": "Questa fattura non ha un file originale: sono stati importati solo i dati dell'intestazione.",
       "supplier": "Fornitore",
       "customer": "Cliente",
       "vat": "Partita IVA",
@@ -1179,8 +1179,7 @@
     "title": "Importa",
     "kinds": {
       "invoices": "Fatture",
-      "clients": "Clienti",
-      "summary": "Riepilogo Fatture in Cloud (.xls)"
+      "clients": "Clienti"
     },
     "invoices": {
       "intro": "Importa le tue fatture da file: XML o P7M firmati, oppure uno ZIP che li contiene (per esempio l'esportazione completa di Fatture in Cloud, o lo ZIP del portale dell'Agenzia delle Entrate). Ogni file viene riconosciuto da solo: emesso dalla tua azienda, oppure ricevuto da un fornitore. Le fatture emesse sono salvate come già inviate: puoi modificarle dopo, ma non vengono mai più inviate, e i loro numeri non si possono riusare. Le fatture emesse mai inviate (in una cartella \"non inviate\", o con data successiva a oggi) diventano fatture da inviare, con le righe originali, da controllare e inviare da qui. I file che non sono fatture (PDF, fogli di calcolo) vengono ignorati.",
@@ -1195,12 +1194,17 @@
     "noProfile": "Compila prima i dati dell'azienda, partita IVA compresa: servono a distinguere le tue fatture da quelle dei fornitori.",
     "noProfileLink": "Apri i dati dell'azienda",
     "seriesCreated": "Serie di numerazione create per le fatture emesse:",
+    "seriesRow": "{{name}} (numeri come {{example}})",
     "result": {
       "summary": "{{imported}} importate, {{skipped}} saltate",
       "imported": "Importata",
       "again": "Importa altri file",
       "open": "Apri",
-      "draft": "Creata come fattura da inviare, controllala prima di inviarla (descrizione, IVA e totali)"
+      "draft": "Creata come fattura da inviare, controllala prima di inviarla (descrizione, IVA e totali)",
+      "label": {
+        "issued": "Emessa {{number}}, {{date}}, {{name}}",
+        "received": "Ricevuta {{number}}, {{date}}, {{name}}"
+      }
     },
     "detail": {
       "no_client": "nessun cliente collegato, i dati del cliente nel file sono incompleti",
@@ -1221,56 +1225,8 @@
     "view": {
       "invoice": "Fattura {{number}}",
       "creditNote": "Nota di credito {{number}}",
-      "noOriginal": "Questa fattura arriva da un riepilogo contabile: sono stati importati solo numero, data, cliente e totale, quindi non ci sono file originale né righe. Puoi modificarla e registrarne il pagamento.",
+      "noOriginal": "Questa fattura non ha un file originale: sono stati importati solo numero, data, cliente e totale, quindi non ci sono righe. Puoi modificarla e registrarne il pagamento.",
       "fromFile": "Questa fattura è stata importata da un file e si vede come scritta nel file. Puoi modificarla dal menu; non verrà mai più inviata."
-    },
-    "summary": {
-      "intro": "Importa il riepilogo contabile esportato da Fatture in Cloud (.xls): tutte le fatture emesse e ricevute in un solo file. Il riepilogo contiene solo numero, data, cliente o fornitore e importi, quindi le fatture vengono salvate senza righe e senza file originale. I numeri con un suffisso come /CH hanno un loro sezionale.",
-      "file": "File di riepilogo (.xls)",
-      "reading": "Lettura del file…",
-      "unreadable": "Impossibile leggere questo file come riepilogo contabile di Fatture in Cloud.",
-      "found": "Trovato nel file",
-      "nothing": "Nel file non ci sono fatture da importare.",
-      "issuedCount_one": "{{count}} fattura emessa",
-      "issuedCount_other": "{{count}} fatture emesse",
-      "receivedCount_one": "{{count}} fattura ricevuta",
-      "receivedCount_other": "{{count}} fatture ricevute",
-      "year": "Anno {{year}}",
-      "years": "Anni dal {{from}} al {{to}}",
-      "series": "Sezionali che verranno creati:",
-      "seriesRow": "{{name}} (numeri come {{example}})",
-      "invalidCount_one": "{{count}} riga non si può leggere e verrà saltata:",
-      "invalidCount_other": "{{count}} righe non si possono leggere e verranno saltate:",
-      "invalidLabel": "Riga {{line}} ({{kind}})",
-      "invalidDetail": "{{field}} non leggibile.",
-      "kind": {
-        "issued": "emessa",
-        "received": "ricevuta"
-      },
-      "fields": {
-        "number": "Numero",
-        "date": "Data",
-        "name": "Nome",
-        "amount": "Importo"
-      },
-      "label": {
-        "issued": "Emessa {{number}}, {{date}}, {{name}}",
-        "received": "Ricevuta {{number}}, {{date}}, {{name}}"
-      },
-      "markPaidHint": "Le fatture passate sono di solito saldate. La data di pagamento è la data della fattura. Disattiva per lasciarle non pagate.",
-      "review": "Controlla le fatture",
-      "reviewSummary": "Escludi una fattura o segnala quelle non ancora pagate",
-      "reviewHint": "Le più recenti sono in alto. Togli la spunta da Importa per escludere una fattura, e da Pagata per una fattura non ancora incassata. Una fattura emessa con data successiva a oggi non è ancora emessa: viene creata come fattura da inviare, mai come pagata. Una fattura ricevuta con data successiva a oggi parte esclusa.",
-      "rowImport": "Importa",
-      "rowPaid": "Pagata",
-      "rowImportLabel": "Importa {{row}}",
-      "rowPaidLabel": "Pagata: {{row}}",
-      "notIssuedYet": "Non ancora emessa",
-      "leftOut_one": "{{count}} fattura è esclusa (vedi il controllo qui sotto).",
-      "leftOut_other": "{{count}} fatture sono escluse (vedi il controllo qui sotto).",
-      "willBeToSend": "Verrà creata come fattura da inviare",
-      "toSendCount_one": "{{count}} fattura emessa con data successiva a oggi verrà creata come fattura da inviare (non inviata, non pagata)",
-      "toSendCount_other": "{{count}} fatture emesse con data successiva a oggi verranno create come fatture da inviare (non inviate, non pagate)"
     },
     "clients": {
       "intro": "Importa i clienti da un'esportazione CSV di Fatture in Cloud. Prima di salvare vedi quale colonna riempie ogni campo e ogni riga con un problema. I clienti che hai già (stessa partita IVA, codice fiscale o nome) vengono saltati."

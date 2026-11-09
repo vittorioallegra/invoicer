@@ -241,7 +241,7 @@ describe("imported invoice, never edited", () => {
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
   });
 
-  it("seeds a summary import with one line holding the stored total", async () => {
+  it("seeds an import without an original file with one line holding the stored total", async () => {
     invoice = imported({ hasOriginal: false, totalCents: 61000 });
     serve();
     await renderAt("/invoices/i1");
@@ -250,7 +250,7 @@ describe("imported invoice, never edited", () => {
     expect(menu()).toEqual(["Edit", "Undo payment"]);
     fireEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
     expect(((await screen.findByLabelText("Unit price")) as HTMLInputElement).value).toBe("610,00");
-    expect(screen.getByText(/The file had no lines/)).toBeTruthy();
+    expect(screen.getByText(/The invoice has no original file: one line/)).toBeTruthy();
     expect(mocks.apiFile).not.toHaveBeenCalled();
   });
 

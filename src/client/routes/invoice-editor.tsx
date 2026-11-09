@@ -850,7 +850,9 @@ function EditorForm({ record, clients, accounts, series, tax, send, seed }: Edit
           <Banner tone="info">
             <p>
               {t(
-                record?.hasOriginal ? "invoice.imported.noteFile" : "invoice.imported.noteSummary",
+                record?.hasOriginal
+                  ? "invoice.imported.noteFile"
+                  : "invoice.imported.noteNoOriginal",
               )}
             </p>
             {seed ? <p>{t(`invoice.imported.seed.${seed.source}`)}</p> : null}

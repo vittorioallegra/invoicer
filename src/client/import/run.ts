@@ -15,8 +15,8 @@ import {
   seriesRequestBody,
 } from "../../shared/numbering";
 import { api } from "../lib/api";
-import { missingSeries } from "./fic-summary";
 import { type ReadFile, readImportFile } from "./read";
+import { missingSeries } from "./series";
 import { summarizeInvoice, vatIdOf } from "./summary";
 import { xmlDraftFromInvoice } from "./xml-draft";
 

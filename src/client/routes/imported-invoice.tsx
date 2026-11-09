@@ -22,7 +22,7 @@ import { paymentMethodsQuery } from "../lib/settings-api";
 
 /**
  * A historic issued invoice that was never edited: the readable view of the file it was read from
- * (nothing for a summary import), its payment status, and a download of the original. Edit opens
+ * (nothing without an original), its payment status, and a download of the original. Edit opens
  * the editor with a form built from that file (`onEdit`); it is never sent or deleted.
  */
 export function ImportedInvoicePage({
@@ -41,7 +41,7 @@ export function ImportedInvoicePage({
   const file = useQuery({
     queryKey: ["invoice", record.id, "original"],
     retry: false,
-    // A summary import has no original file to read or download.
+    // An import without an original file has nothing to read or download.
     enabled: record.hasOriginal,
     queryFn: () => loadOriginal(`/api/invoices/${record.id}/original`, "invoice.xml", "import"),
   });

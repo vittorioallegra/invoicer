@@ -1,4 +1,4 @@
-import type { SummaryRowOutcome } from "../../shared/import";
+import type { ImportOutcome } from "../../shared/import";
 import type { InvoiceBody } from "../../shared/invoice";
 import type { DraftContext } from "../../shared/invoice-draft";
 import { matchSeries } from "../../shared/numbering";
@@ -6,8 +6,8 @@ import { clientColumns, createImportClient } from "./import";
 import { createInvoice } from "./store";
 
 /**
- * Unsent invoices created by an import (the rows of a Fatture in Cloud account summary dated after
- * today, and the issued FatturaPA files that were never sent). Each becomes a normal unsent
+ * Unsent invoices created by an import (the issued FatturaPA files that were never sent, or dated
+ * after today). Each becomes a normal unsent
  * invoice created through `createInvoice`, the editor's save path, that the owner completes and
  * sends from Invoicer.
  *
@@ -42,7 +42,7 @@ export async function importDrafts(
   db: D1Database,
   candidates: DraftCandidate[],
   now = new Date(),
-): Promise<SummaryRowOutcome[]> {
+): Promise<ImportOutcome[]> {
   const { results: seriesRows } = await db
     .prepare("SELECT id, prefix, suffix, is_default AS isDefault FROM numbering_series")
     .all<{ id: string; prefix: string | null; suffix: string | null; isDefault: number }>();
@@ -102,7 +102,7 @@ export async function importDrafts(
   const answers = lookups.length > 0 ? await db.batch<Record<string, unknown>>(lookups) : [];
   const first = <T>(index: number) => answers[index]?.results[0] as T | undefined;
 
-  const outcomes: SummaryRowOutcome[] = [];
+  const outcomes: ImportOutcome[] = [];
   // Candidates of this request that already asked for a number or took the place of a free-text one.
   const seen = new Map<string, { id: string; date: string }>();
   // Clients created by this request, so a customer shared by two candidates is created once.
@@ -173,7 +173,7 @@ export async function importDrafts(
         id,
         clientLinked: clientId !== null,
         ...(accepted ? {} : { numberNote: progressive === null ? "free_text" : "unavailable" }),
-      } as SummaryRowOutcome);
+      } as ImportOutcome);
     } catch {
       outcomes.push({ outcome: "invalid" });
     }

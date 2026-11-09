@@ -8,7 +8,6 @@ import { formatInvoiceNumber } from "../../shared/numbering";
 import { ClientsImport } from "../components/clients-import";
 import { ImportResult } from "../components/import-result";
 import { Page } from "../components/page";
-import { SummaryImport } from "../components/summary-import";
 import { Banner } from "../components/ui/banner";
 import { Button, buttonVariants } from "../components/ui/button";
 import {
@@ -22,7 +21,7 @@ import { useOnline } from "../lib/online";
 import { numberingSeriesQuery, profileQuery } from "../lib/settings-api";
 import { cn } from "../lib/utils";
 
-export const IMPORT_KINDS = ["invoices", "clients", "summary"] as const;
+export const IMPORT_KINDS = ["invoices", "clients"] as const;
 export type ImportPageKind = (typeof IMPORT_KINDS)[number];
 
 /**
@@ -99,7 +98,7 @@ function InvoiceImport() {
         today: romeDateTime(new Date()).date,
         series: seriesQuery.data?.series ?? [],
         label: (kind, number, date, name) =>
-          t(`import.summary.label.${kind}`, { number, date, name }),
+          t(`import.result.label.${kind}`, { number, date, name }),
         onProgress: setProgress,
       });
     },
@@ -125,7 +124,7 @@ function InvoiceImport() {
               <ul className="list-disc pl-5 text-muted-foreground">
                 {outcome.createdSeries.map((item) => (
                   <li key={`${item.prefix}|${item.suffix}`}>
-                    {t("import.summary.seriesRow", {
+                    {t("import.seriesRow", {
                       name: item.name,
                       example: formatInvoiceNumber(item, 1),
                     })}
@@ -241,13 +240,7 @@ export function ImportPage() {
           </Link>
         ))}
       </nav>
-      {kind === "clients" ? (
-        <ClientsImport />
-      ) : kind === "summary" ? (
-        <SummaryImport />
-      ) : (
-        <InvoiceImport />
-      )}
+      {kind === "clients" ? <ClientsImport /> : <InvoiceImport />}
     </Page>
   );
 }

@@ -195,7 +195,7 @@ export const invoices = sqliteTable(
     paidDate: text("paid_date"),
     source: text("source", { enum: INVOICE_SOURCES }).notNull().default("app"),
     clientId: text("client_id").references(() => clients.id),
-    /** Customer name as written in a summary import (no client record behind it); null otherwise. */
+    /** Customer name as written in the imported file (kept even when a client is linked); null otherwise. */
     counterpartyName: text("counterparty_name"),
     /** Number as printed (imported invoices may carry any string); null while draft. */
     numberRaw: text("number_raw"),

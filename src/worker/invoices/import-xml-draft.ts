@@ -1,4 +1,4 @@
-import type { SummaryRowOutcome, XmlDraft } from "../../shared/import";
+import type { ImportOutcome, XmlDraft } from "../../shared/import";
 import { PAYMENT_METHODS } from "../../shared/invoice";
 import { assembleDraft } from "../../shared/invoice-draft";
 import { importDrafts } from "./import-drafts";
@@ -13,7 +13,7 @@ export async function importXmlDraft(
   db: D1Database,
   draft: XmlDraft,
   now = new Date(),
-): Promise<SummaryRowOutcome> {
+): Promise<ImportOutcome> {
   const iban = draft.payment?.iban?.replaceAll(/\s+/g, "").toUpperCase() ?? null;
   const account = iban
     ? await db
