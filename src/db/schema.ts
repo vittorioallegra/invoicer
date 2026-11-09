@@ -501,9 +501,8 @@ export const jobRuns = sqliteTable(
 export const sendChallenges = sqliteTable("send_challenges", {
   id: id(),
   challenge: text("challenge").notNull().unique(),
-  invoiceId: text("invoice_id")
-    .notNull()
-    .references(() => invoices.id),
+  // Null for a challenge that authorizes a settings change (the PEC servers), not a send.
+  invoiceId: text("invoice_id").references(() => invoices.id),
   xmlSha256: text("xml_sha256").notNull(),
   expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
   usedAt: integer("used_at", { mode: "timestamp_ms" }),

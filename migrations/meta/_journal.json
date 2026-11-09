@@ -50,6 +50,13 @@
       "when": 1794079459538,
       "tag": "0006_glamorous_mister_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794232760013,
+      "tag": "0007_petite_harpoon",
+      "breakpoints": true
     }
   ]
 }

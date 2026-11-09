@@ -1,3 +1,4 @@
+import { startAuthentication } from "@simplewebauthn/browser";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,7 +12,7 @@ import { toast } from "../components/ui/toast";
 import { api } from "../lib/api";
 import { SETTINGS_BACK } from "../lib/back-links";
 import { useOnline } from "../lib/online";
-import { putJson, settingsQuery } from "../lib/settings-api";
+import { postJson, putJson, settingsQuery } from "../lib/settings-api";
 import { useDirty } from "../lib/use-dirty";
 
 interface Features {
@@ -86,18 +87,36 @@ function ServersForm({ online }: { online: boolean }) {
   }, [servers, markSaved]);
 
   const save = useMutation({
-    mutationFn: (submitted: typeof form) =>
-      putJson("/api/settings/pec-servers", {
+    mutationFn: async (submitted: typeof form) => {
+      const servers = {
         imapHost: submitted.imapHost.trim(),
         imapPort: Number(submitted.imapPort),
         smtpHost: submitted.smtpHost.trim(),
         smtpPort: Number(submitted.smtpPort),
-      }),
+      };
+      // The mailbox password goes to these hosts: changing them needs the passkey, like a send.
+      const challenge = await postJson<{ challengeId: string; options: unknown }>(
+        "/api/settings/pec-servers/challenge",
+        servers,
+      );
+      const passkey = await startAuthentication({
+        optionsJSON: challenge.options as Parameters<typeof startAuthentication>[0]["optionsJSON"],
+      });
+      return putJson("/api/settings/pec-servers", {
+        ...servers,
+        answer: { challengeId: challenge.challengeId, passkey },
+      });
+    },
     onSuccess: (_data, submitted) => {
       markSaved(submitted);
       toast.success(t("pec.serversSaved"));
     },
-    onError: () => toast.error(t("pec.serversInvalid")),
+    onError: (error) =>
+      toast.error(
+        error instanceof Error && error.name === "NotAllowedError"
+          ? t("pec.serversCancelled")
+          : t("pec.serversInvalid"),
+      ),
     onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["settings"] }),

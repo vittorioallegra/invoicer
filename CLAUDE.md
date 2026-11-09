@@ -60,6 +60,7 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
   sender, resource IDs) come from env or untracked config; `wrangler.jsonc` holds placeholders
   that CI fills (`scripts/render-wrangler-config.mjs`).
 - Biome ignores Markdown; do not run it over `docs/`. Dependency versions are pinned exactly.
+- Changing the PEC IMAP/SMTP hosts (`PUT /api/settings/pec-servers`) needs the same passkey/TOTP proof as a send (`POST .../pec-servers/challenge` first: a `send_challenges` row with a null `invoice_id`, bound to the proposed servers), and hosts must be public DNS names (no IPs, `localhost`, `.local`, `.internal`): the Worker sends the mailbox password to them.
 - The PEC password gives full mailbox access (one password for IMAP, SMTP, webmail); the IMAP client
   is read-only by design (EXAMINE, PEEK, no delete). One cron trigger only (`*/10 * * * *`): every run polls the mailbox; the daily jobs run
   from it at 09:00 Europe/Rome, once per Rome day (`shouldRunDaily` in `src/shared/cron.ts`).

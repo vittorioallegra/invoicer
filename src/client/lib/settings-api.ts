@@ -66,6 +66,13 @@ export const settingsQuery = {
   queryFn: () => api<SettingsResponse>("/api/settings"),
 };
 
+export const postJson = <T>(path: string, body: unknown) =>
+  api<T>(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
 export const putJson = <T>(path: string, body: unknown) =>
   api<T>(path, {
     method: "PUT",

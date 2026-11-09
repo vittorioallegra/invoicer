@@ -75,7 +75,7 @@ function rpId(env: Bindings, requestUrl: string): string {
 export async function issueSendChallenge(
   env: Bindings,
   requestUrl: string,
-  input: { userId: string; invoiceId: string; xmlSha256: string },
+  input: { userId: string; invoiceId: string | null; xmlSha256: string },
 ) {
   const db = drizzle(env.DB, { schema });
   const passkeys = await db
@@ -134,7 +134,7 @@ export async function issueSendChallenge(
 export async function verifySendAuthorization(
   env: Bindings,
   request: Request,
-  input: { userId: string; invoiceId: string; xmlSha256: string; answer: SendAnswer },
+  input: { userId: string; invoiceId: string | null; xmlSha256: string; answer: SendAnswer },
 ): Promise<SendAuthorization> {
   const now = Date.now();
   const claimed = await env.DB.prepare(
@@ -142,7 +142,7 @@ export async function verifySendAuthorization(
      RETURNING challenge, invoice_id, xml_sha256`,
   )
     .bind(now, input.answer.challengeId, now)
-    .first<{ challenge: string; invoice_id: string; xml_sha256: string }>();
+    .first<{ challenge: string; invoice_id: string | null; xml_sha256: string }>();
 
   if (!claimed) {
     const row = await env.DB.prepare("SELECT used_at FROM send_challenges WHERE id = ?")

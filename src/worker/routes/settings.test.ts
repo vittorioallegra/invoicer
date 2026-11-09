@@ -325,20 +325,21 @@ describe("PEC connection test and the send gate", () => {
       body: { imapHost: "bad host!", imapPort: 993, smtpHost: "smtp.example.it", smtpPort: 465 },
     });
     expect(bad.status).toBe(400);
-    const saved = await owner.json<{ servers: { imapHost: string; smtpPort: number } }>(
-      "/api/settings/pec-servers",
-      {
-        method: "PUT",
-        body: {
-          imapHost: "imap.example.it",
-          imapPort: 1993,
-          smtpHost: "smtp.example.it",
-          smtpPort: 2465,
-        },
-      },
+    // Saving through the API needs a passkey (see pec-servers.test.ts); store the presets directly.
+    const store = (imap: string, imapPort: number, smtp: string, smtpPort: number) =>
+      env.DB.prepare(
+        `INSERT INTO settings (id, pec_imap_host, pec_imap_port, pec_smtp_host, pec_smtp_port, updated_at)
+         VALUES (1, ?1, ?2, ?3, ?4, 0) ON CONFLICT (id) DO UPDATE SET pec_imap_host = ?1,
+         pec_imap_port = ?2, pec_smtp_host = ?3, pec_smtp_port = ?4,
+         pec_test_at = NULL, pec_test_ok = NULL, pec_test_error = NULL`,
+      )
+        .bind(imap, imapPort, smtp, smtpPort)
+        .run();
+    await store("imap.example.it", 1993, "smtp.example.it", 2465);
+    const saved = await owner.json<{ pec: { servers: { imapHost: string; smtpPort: number } } }>(
+      "/api/settings",
     );
-    expect(saved.status).toBe(200);
-    expect(saved.body.servers).toMatchObject({ imapHost: "imap.example.it", smtpPort: 2465 });
+    expect(saved.body.pec.servers).toMatchObject({ imapHost: "imap.example.it", smtpPort: 2465 });
     const opened: string[] = [];
     smtpDeps.connect = async (options) => {
       opened.push(`${options.host}:${options.port}`);
@@ -348,15 +349,7 @@ describe("PEC connection test and the send gate", () => {
     await owner.json("/api/settings/pec-test", { body: {} });
     expect(opened).toEqual(["smtp.example.it:2465"]);
     // A changed server clears the stored test, so the send gate asks for a new one.
-    await owner.json("/api/settings/pec-servers", {
-      method: "PUT",
-      body: {
-        imapHost: "imaps.pec.aruba.it",
-        imapPort: 993,
-        smtpHost: "smtps.pec.aruba.it",
-        smtpPort: 465,
-      },
-    });
+    await store("imaps.pec.aruba.it", 993, "smtps.pec.aruba.it", 465);
     expect((await loadSendReadiness(bindings)).reasons).toEqual(["pec_test_missing"]);
   });
 

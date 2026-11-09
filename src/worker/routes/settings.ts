@@ -4,6 +4,12 @@ import { Hono } from "hono";
 import { z } from "zod";
 import * as schema from "../../db/schema";
 import { emailSettingsInputSchema } from "../../shared/profile";
+import {
+  issueSendChallenge,
+  sendAnswerSchema,
+  sendRefusedError,
+  verifySendAuthorization,
+} from "../auth/send-authorization";
 import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
 import { pecTestFromRow } from "../onboarding";
@@ -88,25 +94,70 @@ settings.put("/ade-guide", async (c) => {
   return c.json({ done: parsed.data.done });
 });
 
+/**
+ * A public DNS name: the mailbox password is sent to this host, so an IP address, a single-label
+ * or internal name (`localhost`, `*.local`, `*.internal`) is refused.
+ */
 const hostSchema = z
   .string()
   .trim()
   .min(1)
   .max(253)
-  .regex(/^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$/, "invalid_host");
+  .regex(/^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$/, "invalid_host")
+  .refine((host) => {
+    const labels = host.toLowerCase().split(".");
+    const last = labels[labels.length - 1] ?? "";
+    return (
+      labels.length >= 2 &&
+      !/^\d+$/.test(last) &&
+      !["local", "localhost", "internal", "lan", "home", "test", "invalid"].includes(last)
+    );
+  }, "invalid_host");
 const portSchema = z.number().int().min(1).max(65535);
-const serversBody = z.object({
+const serversFields = {
   imapHost: hostSchema,
   imapPort: portSchema,
   smtpHost: hostSchema,
   smtpPort: portSchema,
+};
+const serversProposal = z.object(serversFields);
+const serversBody = z.object({ ...serversFields, answer: sendAnswerSchema });
+
+async function serversDigest(servers: z.infer<typeof serversProposal>): Promise<string> {
+  const { imapHost, imapPort, smtpHost, smtpPort } = servers;
+  const text = JSON.stringify([imapHost.toLowerCase(), imapPort, smtpHost.toLowerCase(), smtpPort]);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * The PEC password is sent to these hosts, so changing them needs the owner's presence like a
+ * send does: a challenge bound to the proposed servers, answered with a passkey (or TOTP code).
+ */
+settings.post("/pec-servers/challenge", async (c) => {
+  const parsed = serversProposal.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) throw makeError("bad_request", validationDetail(parsed.error));
+  return c.json(
+    await issueSendChallenge(c.env, c.req.url, {
+      userId: c.get("userId"),
+      invoiceId: null,
+      xmlSha256: await serversDigest(parsed.data),
+    }),
+  );
 });
 
 /** Saves the IMAP/SMTP host and port presets; a changed server invalidates the last test. */
 settings.put("/pec-servers", async (c) => {
   const parsed = serversBody.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) throw makeError("bad_request", validationDetail(parsed.error));
-  const { imapHost, imapPort, smtpHost, smtpPort } = parsed.data;
+  const { imapHost, imapPort, smtpHost, smtpPort, answer } = parsed.data;
+  const authorization = await verifySendAuthorization(c.env, c.req.raw, {
+    userId: c.get("userId"),
+    invoiceId: null,
+    xmlSha256: await serversDigest({ imapHost, imapPort, smtpHost, smtpPort }),
+    answer,
+  });
+  if (!authorization.ok) throw sendRefusedError(authorization.reason);
   await patchSettings(c.env, {
     pecImapHost: imapHost,
     pecImapPort: imapPort,
