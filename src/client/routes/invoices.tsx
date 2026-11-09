@@ -4,7 +4,7 @@ import { FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { romeDateTime } from "../../shared/cron";
-import { formatMoney, type UiLocale } from "../../shared/format";
+import type { UiLocale } from "../../shared/format";
 import {
   INVOICE_STATUS_FILTERS,
   type InvoiceFilters,
@@ -14,6 +14,7 @@ import {
 import { InvoiceRows } from "../components/invoice-list";
 import { NewInvoiceLink } from "../components/new-invoice-link";
 import { Page } from "../components/page";
+import { Amounts, Stat } from "../components/recap-stat";
 import { Banner } from "../components/ui/banner";
 import { Button } from "../components/ui/button";
 import { Disclosure } from "../components/ui/disclosure";
@@ -66,44 +67,6 @@ const FILTER_STATUS = {
 
 function statusLabel(t: (key: string) => string, status: keyof typeof FILTER_STATUS) {
   return t(`status.${STATUS_MAP[FILTER_STATUS[status]].label}`);
-}
-
-function Amounts({
-  values,
-  locale,
-}: {
-  values: { currency: string; cents: number }[];
-  locale: UiLocale;
-}) {
-  return (
-    <>
-      {values.map(({ currency, cents }) => (
-        <span key={currency} className="block text-xl font-semibold tabular-nums">
-          {formatMoney(cents, locale, currency)}
-        </span>
-      ))}
-    </>
-  );
-}
-
-function Stat({
-  label,
-  children,
-  note,
-}: {
-  label: string;
-  children: React.ReactNode;
-  note?: string;
-}) {
-  return (
-    <div className="rounded-card border border-border bg-surface p-4">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="mt-1">
-        {children}
-        {note ? <span className="block text-sm text-muted-foreground">{note}</span> : null}
-      </dd>
-    </div>
-  );
 }
 
 /**

@@ -45,7 +45,8 @@
     "received": {
       "title": "Received",
       "emptyTitle": "No received invoices",
-      "emptyBody": "Invoices from your suppliers appear here."
+      "emptyBody": "Invoices from your suppliers appear here.",
+      "noMatch": "No received invoices match these filters."
     },
     "clients": {
       "title": "Clients",
@@ -1173,6 +1174,20 @@
       "bank": "Bank",
       "linked": "Related invoices",
       "linkedRow": "No. {{number}} dated {{date}}"
+    },
+    "filters": {
+      "title": "Filters",
+      "year": "Year",
+      "allYears": "All years",
+      "supplier": "Sender",
+      "allSuppliers": "All senders",
+      "reset": "Clear filters"
+    },
+    "recap": {
+      "label": "Summary of the listed received invoices",
+      "count": "Invoices",
+      "received": "Received",
+      "toPay": "To pay"
     }
   },
   "import": {

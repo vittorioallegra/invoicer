@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReceivedInvoiceRecord } from "../../shared/received";
@@ -56,6 +56,7 @@ async function renderAt(path: string) {
       </QueryClientProvider>
     </I18nextProvider>,
   );
+  return router;
 }
 
 beforeEach(() => {
@@ -85,7 +86,7 @@ describe("received invoices (AC 10)", () => {
       },
     );
 
-    await renderAt("/received");
+    await renderAt("/received?year=all");
     expect(await screen.findByText("SOCIETA' ALPHA SRL · No. 123")).toBeTruthy();
     // The same values the source XML carries (taxable 5.00 + VAT 1.10 = 6.10).
     expect(reported).toEqual([
@@ -102,8 +103,9 @@ describe("received invoices (AC 10)", () => {
         },
       },
     ]);
-    expect(screen.getByText(/€\s?6\.10/)).toBeTruthy();
-    expect(screen.getByText(/18\/12\/2014|18 Dec 2014|2014/)).toBeTruthy();
+    // Once in the row, once in the recap.
+    expect(screen.getAllByText(/€\s?6\.10/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/18\/12\/2014|18 Dec 2014/).length).toBeGreaterThan(0);
   });
 
   it("marks a file that is not an invoice as failed instead of retrying", async () => {
@@ -124,7 +126,7 @@ describe("received invoices (AC 10)", () => {
         throw new Error(`unexpected ${path}`);
       },
     );
-    await renderAt("/received");
+    await renderAt("/received?year=all");
     expect(await screen.findByText("This file could not be read")).toBeTruthy();
     await waitFor(() => expect(reported).toEqual([{ status: "failed" }]));
   });
@@ -175,5 +177,80 @@ describe("received invoices (AC 10)", () => {
     expect(await screen.findByText(/has no original file/)).toBeTruthy();
     expect(screen.queryByText("Download original")).toBeNull();
     expect(mocks.apiFile).not.toHaveBeenCalled();
+  });
+});
+
+describe("received list filters and recap", () => {
+  const thisYear = Number(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome", year: "numeric" }).format(
+      new Date(),
+    ),
+  );
+  const parsed = (id: string, over: Partial<ReceivedInvoiceRecord>) =>
+    record({
+      id,
+      parseStatus: "parsed",
+      supplierName: "Alpha Srl",
+      supplierVat: "IT01234567890",
+      number: id,
+      documentType: "TD01",
+      issueDate: `${thisYear}-03-10`,
+      totalCents: 10000,
+      source: "import",
+      original: null,
+      ...over,
+    });
+  const serve = (received: ReceivedInvoiceRecord[]) =>
+    mocks.api.mockImplementation(async (path: string) => {
+      if (path === "/api/received") return { received };
+      throw new Error(`unexpected ${path}`);
+    });
+  const list = [
+    parsed("a1", { totalCents: 12200 }),
+    parsed("a2", { issueDate: `${thisYear - 1}-11-02`, totalCents: 5000, paymentFlag: "paid" }),
+    parsed("b1", {
+      supplierName: "Beta GmbH",
+      supplierVat: null,
+      totalCents: 800,
+      currency: "CHF",
+    }),
+  ];
+  const recap = () =>
+    screen.getByRole("region", { name: "Summary of the listed received invoices" });
+
+  it("lists every year by default with the recap of all of them, one amount per currency", async () => {
+    serve(list);
+    await renderAt("/received");
+    await screen.findByText(/Alpha Srl · No\. a1/);
+    expect(screen.getByText(/No\. a2/)).toBeTruthy();
+    expect(within(recap()).getByText("3")).toBeTruthy();
+    expect(within(recap()).getAllByText(/172[.,]00/).length).toBeGreaterThan(0);
+    expect(within(recap()).getAllByText(/CHF/).length).toBeGreaterThan(0);
+  });
+
+  it("filters by year and by sender through the URL, and clears the filters", async () => {
+    serve(list);
+    const router = await renderAt("/received");
+    await screen.findByText(/Alpha Srl · No\. a1/);
+    fireEvent.change(screen.getByLabelText("Year"), { target: { value: String(thisYear) } });
+    await waitFor(() =>
+      expect(router.state.location.search).toMatchObject({ year: String(thisYear) }),
+    );
+    expect(screen.queryByText(/No\. a2/)).toBeNull();
+    expect(within(recap()).getByText("2")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Sender"), { target: { value: "beta gmbh" } });
+    await waitFor(() =>
+      expect(router.state.location.search).toMatchObject({ supplier: "beta gmbh" }),
+    );
+    expect(screen.queryByText(/Alpha Srl · No\./)).toBeNull();
+    expect(screen.getByText(/Beta GmbH · No\. b1/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
+  });
+
+  it("says when nothing matches the filters", async () => {
+    serve(list);
+    await renderAt("/received?year=2001");
+    expect(await screen.findByText("No received invoices match these filters.")).toBeTruthy();
   });
 });

@@ -3,7 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { BackLink } from "../lib/back-links";
-import { rememberedInvoiceFilters } from "../lib/list-memory";
+import { rememberedInvoiceFilters, rememberedReceivedFilters } from "../lib/list-memory";
 import { cn } from "../lib/utils";
 import { NotificationsLink } from "./notifications-link";
 import { buttonVariants } from "./ui/button";
@@ -42,6 +42,15 @@ export function Page({
           <Link
             to="/invoices"
             search={rememberedInvoiceFilters()}
+            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-3 -mb-3 w-fit")}
+          >
+            <ChevronLeft aria-hidden />
+            {t(back.labelKey)}
+          </Link>
+        ) : back.to === "/received" ? (
+          <Link
+            to="/received"
+            search={rememberedReceivedFilters()}
             className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-3 -mb-3 w-fit")}
           >
             <ChevronLeft aria-hidden />

@@ -24,7 +24,7 @@ import { NotFoundPage } from "./routes/pages";
 import { PaymentMethodsPage } from "./routes/payment-methods";
 import { PecSettingsPage } from "./routes/pec-settings";
 import { ProfilePage } from "./routes/profile";
-import { ReceivedPage } from "./routes/received";
+import { ReceivedPage, validateReceivedSearch } from "./routes/received";
 import { ReceivedDetailPage } from "./routes/received-detail";
 import { SettingsPage } from "./routes/settings";
 import { SetupPage } from "./routes/setup";
@@ -62,7 +62,12 @@ const routeTree = rootRoute.addChildren([
       throw redirect({ to: "/invoices", replace: true });
     },
   }),
-  createRoute({ getParentRoute: () => rootRoute, path: "/received", component: ReceivedPage }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/received",
+    validateSearch: validateReceivedSearch,
+    component: ReceivedPage,
+  }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/received/$receivedId",

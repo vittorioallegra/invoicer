@@ -45,7 +45,8 @@
     "received": {
       "title": "Ricevute",
       "emptyTitle": "Nessuna fattura ricevuta",
-      "emptyBody": "Le fatture dei tuoi fornitori compaiono qui."
+      "emptyBody": "Le fatture dei tuoi fornitori compaiono qui.",
+      "noMatch": "Nessuna fattura ricevuta corrisponde ai filtri."
     },
     "clients": {
       "title": "Clienti",
@@ -1173,6 +1174,20 @@
       "bank": "Banca",
       "linked": "Fatture collegate",
       "linkedRow": "n. {{number}} del {{date}}"
+    },
+    "filters": {
+      "title": "Filtri",
+      "year": "Anno",
+      "allYears": "Tutti gli anni",
+      "supplier": "Mittente",
+      "allSuppliers": "Tutti i mittenti",
+      "reset": "Azzera i filtri"
+    },
+    "recap": {
+      "label": "Riepilogo delle fatture ricevute in elenco",
+      "count": "Fatture",
+      "received": "Ricevute",
+      "toPay": "Da pagare"
     }
   },
   "import": {
