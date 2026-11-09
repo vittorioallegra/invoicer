@@ -152,7 +152,14 @@ describe("received invoices (AC 10)", () => {
     });
     await renderAt("/received/r1");
     expect(await screen.findByText("Supplier")).toBeTruthy();
-    expect(await screen.findByText("Download original")).toBeTruthy();
+    // The actions are in the "more actions" menu, not spread over the title row.
+    expect(screen.queryByRole("button", { name: "Download original" })).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "More actions" }));
+    expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+      "Edit",
+      "Mark as paid",
+      "Download original",
+    ]);
     expect(screen.getAllByText(/SOCIETA' ALPHA SRL/).length).toBeGreaterThan(0);
     expect(screen.getByText("Cash")).toBeTruthy();
   });
@@ -175,7 +182,11 @@ describe("received invoices (AC 10)", () => {
     });
     await renderAt("/received/r1");
     expect(await screen.findByText(/has no original file/)).toBeTruthy();
-    expect(screen.queryByText("Download original")).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "More actions" }));
+    expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual([
+      "Edit",
+      "Mark as paid",
+    ]);
     expect(mocks.apiFile).not.toHaveBeenCalled();
   });
 });

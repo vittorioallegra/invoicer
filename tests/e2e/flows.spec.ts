@@ -109,7 +109,8 @@ test("flow: a supplier invoice arrives through the mailbox, is listed and marked
   await page.getByRole("link", { name: /ALPHA SRL/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: /ALPHA SRL/ })).toBeVisible();
   await expect(page.getByText("Unpaid", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Mark as paid" }).click();
+  await page.getByRole("button", { name: "More actions" }).click();
+  await page.getByRole("menuitem", { name: "Mark as paid" }).click();
   await expect(page.getByText("Paid", { exact: true })).toBeVisible();
 });
 

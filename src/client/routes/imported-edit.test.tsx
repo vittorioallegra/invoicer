@@ -392,7 +392,8 @@ describe("received invoice edit sheet", () => {
       },
     );
     await renderAt("/received/r1");
-    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
+    await openActions();
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Edit" }));
     fireEvent.change(await screen.findByLabelText("Number"), { target: { value: "56" } });
     fireEvent.change(screen.getByLabelText("Total"), { target: { value: "99,50" } });
 
@@ -428,7 +429,8 @@ describe("received invoice edit sheet", () => {
       throw new Error(`unexpected ${path}`);
     });
     await renderAt("/received/r1");
-    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
+    await openActions();
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Edit" }));
     fireEvent.change(await screen.findByLabelText("Supplier"), { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findAllByRole("alert")).not.toHaveLength(0);

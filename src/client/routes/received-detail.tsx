@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
-import { Download, Pencil } from "lucide-react";
+import { CircleCheck, CircleX, Download, Ellipsis, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { formatDate, formatMoney, type UiLocale } from "../../shared/format";
@@ -8,7 +8,7 @@ import { InvoiceDocumentView } from "../components/invoice-document-view";
 import { Page } from "../components/page";
 import { ReceivedEditSheet } from "../components/received-edit-sheet";
 import { Banner } from "../components/ui/banner";
-import { Button } from "../components/ui/button";
+import { MenuButton, type MenuItem } from "../components/ui/menu-button";
 import { StatusBadge } from "../components/ui/status-badge";
 import { toast } from "../components/ui/toast";
 import { loadOriginal, originalType } from "../import/original";
@@ -65,6 +65,37 @@ export function ReceivedDetailPage() {
   const data = record.data?.received;
   const paid = data?.paymentFlag === "paid";
   const loaded = file.data;
+  // The actions live in one "⋯" menu, like on the other invoice pages.
+  const items: MenuItem[] = [];
+  if (data?.parseStatus === "parsed") {
+    items.push({
+      key: "edit",
+      label: t("received.edit.action"),
+      icon: <Pencil aria-hidden />,
+      disabled: !online,
+      reason: online ? undefined : t("offline.reason"),
+      onSelect: () => setEditing(true),
+    });
+  }
+  if (data) {
+    items.push({
+      key: "payment",
+      label: t(paid ? "received.markUnpaid" : "received.markPaid"),
+      icon: paid ? <CircleX aria-hidden /> : <CircleCheck aria-hidden />,
+      disabled: !online || pay.isPending,
+      reason: online ? undefined : t("offline.reason"),
+      onSelect: () => pay.mutate(!paid),
+    });
+  }
+  if (loaded) {
+    items.push({
+      key: "download-original",
+      label: t("received.download"),
+      icon: <Download aria-hidden />,
+      separated: true,
+      onSelect: () => downloadBytes(loaded.bytes, loaded.fileName, originalType(loaded.fileName)),
+    });
+  }
   return (
     <Page
       title={data?.supplierName ?? t("pages.received.title")}
@@ -86,30 +117,12 @@ export function ReceivedDetailPage() {
         data ? (
           <>
             <StatusBadge status={data.paymentFlag} />
-            <Button
-              variant="secondary"
-              disabled={!online || pay.isPending}
-              onClick={() => pay.mutate(!paid)}
-            >
-              {t(paid ? "received.markUnpaid" : "received.markPaid")}
-            </Button>
-            {data.parseStatus === "parsed" ? (
-              <Button variant="secondary" disabled={!online} onClick={() => setEditing(true)}>
-                <Pencil aria-hidden />
-                {t("received.edit.action")}
-              </Button>
-            ) : null}
-            {loaded ? (
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  downloadBytes(loaded.bytes, loaded.fileName, originalType(loaded.fileName))
-                }
-              >
-                <Download aria-hidden />
-                {t("received.download")}
-              </Button>
-            ) : null}
+            <MenuButton
+              label={t("invoice.actions.more")}
+              icon={<Ellipsis aria-hidden />}
+              items={items}
+              iconOnly
+            />
           </>
         ) : undefined
       }
