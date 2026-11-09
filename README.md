@@ -478,3 +478,7 @@ fix in `fix`, for example `wrangler secret put PEC_PASSWORD`. Optional features 
 push) stay off without their secrets and Settings shows a banner; only the "Send email" action
 raises this error when `RESEND_API_KEY` is missing, and turning on push on a device raises it
 when `VAPID_PRIVATE_KEY`, `VAPID_PUBLIC_KEY` or `VAPID_SUBJECT` is missing.
+
+## License
+
+[MIT](LICENSE).
