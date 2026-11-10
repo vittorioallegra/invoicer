@@ -254,6 +254,7 @@ async function summarize(
   results: InvoiceRow[],
   reservedOnly: boolean,
   now: Date,
+  taxes: Map<string, InvoiceTaxes> = new Map(),
 ): Promise<InvoiceSummary[]> {
   const reserved = await reservedIds(db);
   const rejections = await loadRejections(
@@ -290,6 +291,8 @@ async function summarize(
     releasable: releasable.has(row.id),
     linkedInvoiceId: row.linked_invoice_id,
     rejectionDeadline: rejections.get(row.id)?.deadline ?? null,
+    vatCents: taxes.get(row.id)?.vatCents ?? null,
+    contributionCents: taxes.get(row.id)?.contributionCents ?? null,
   }));
 }
 
@@ -361,7 +364,7 @@ export async function listFilteredInvoices(
   );
   const taxes = await loadTaxes(db, results, where.join(" AND "), binds);
   return {
-    invoices: await summarize(db, results, false, now),
+    invoices: await summarize(db, results, false, now, taxes),
     recap: recapOf(results, taxes),
     years,
   };
@@ -425,7 +428,7 @@ interface InvoiceTaxes {
 }
 
 /**
- * VAT and contribution of the finalised invoices in the filtered set, worked out from their lines
+ * VAT and contribution of the invoices in the filtered set, worked out from their lines
  * with the totals engine (one query for all the lines; `?1` is the bound date of the filters,
  * always present, which D1 requires to be used). An invoice without lines, for example one
  * imported from a file, is absent from the map: its VAT is unknown.
@@ -436,11 +439,9 @@ async function loadTaxes(
   where: string,
   binds: unknown[],
 ): Promise<Map<string, InvoiceTaxes>> {
-  const finalised = new Map(
-    rows.filter((row) => FINALISED_STATES.includes(row.state)).map((row) => [row.id, row]),
-  );
+  const byId = new Map(rows.map((row) => [row.id, row]));
   const taxes = new Map<string, InvoiceTaxes>();
-  if (finalised.size === 0) return taxes;
+  if (byId.size === 0) return taxes;
   const { results } = await db
     .prepare(
       `SELECT l.invoice_id, l.description, l.note, l.quantity_milli, l.unit, l.unit_price_cents,
@@ -473,7 +474,7 @@ async function loadTaxes(
     });
     lines.set(line.invoice_id, list);
   }
-  for (const [id, row] of finalised) {
+  for (const [id, row] of byId) {
     const own = lines.get(id);
     const data = invoiceDataSchema.safeParse(row.data ? JSON.parse(row.data) : null);
     if (!own || !data.success) continue;
@@ -498,7 +499,6 @@ function recapOf(rows: InvoiceRow[], taxes: Map<string, InvoiceTaxes>): InvoiceR
       found = {
         currency,
         invoicedCents: 0,
-        netInvoicedCents: 0,
         vatCents: 0,
         contributionCents: 0,
         toCollectCents: 0,
@@ -510,6 +510,7 @@ function recapOf(rows: InvoiceRow[], taxes: Map<string, InvoiceTaxes>): InvoiceR
   };
   entry("EUR");
   let toSendCount = 0;
+  let toCollectCount = 0;
   let unknownVatCount = 0;
   for (const row of rows) {
     const sign = row.document_type === "TD04" ? -1 : 1;
@@ -524,15 +525,18 @@ function recapOf(rows: InvoiceRow[], taxes: Map<string, InvoiceTaxes>): InvoiceR
       if (!tax) unknownVatCount += 1;
       const vat = sign * (tax?.vatCents ?? 0);
       sums.vatCents += vat;
-      sums.netInvoicedCents += cents - vat;
       sums.contributionCents += sign * (tax?.contributionCents ?? 0);
-      if (row.payment_flag !== "paid") sums.toCollectCents += cents;
+      if (row.payment_flag !== "paid") {
+        sums.toCollectCents += cents;
+        toCollectCount += 1;
+      }
     }
   }
   const all = [...by.values()];
   return {
     count: rows.length,
     toSendCount,
+    toCollectCount,
     unknownVatCount,
     byCurrency: [
       ...all.filter((sums) => sums.currency === "EUR"),

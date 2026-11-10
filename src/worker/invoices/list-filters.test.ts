@@ -147,15 +147,16 @@ describe("listFilteredInvoices", () => {
     const { recap } = await listFilteredInvoices(env.DB, {}, NOW);
     expect(recap.count).toBe(7);
     expect(recap.toSendCount).toBe(2);
+    // Finalised and unpaid: a, cn (a credit note stays unpaid) and usd.
+    expect(recap.toCollectCount).toBe(3);
     // EUR invoiced: 100000 + 20000 - 30000 (rejected 50000 left out); to collect: 100000 - 30000.
-    // VAT from the lines: a 2288 (4% rivalsa 400 on 10000), b 1100, credit note -440. The net total
-    // is 90000 - 2948 and keeps the contribution. The USD invoice has no lines: VAT unknown.
+    // VAT from the lines: a 2288 (4% rivalsa 400 on 10000), b 1100, credit note -440. The total
+    // is 90000 - 2948 (the contribution stays inside the total). The USD invoice has no lines: VAT unknown.
     expect(recap.unknownVatCount).toBe(1);
     expect(recap.byCurrency).toEqual([
       {
         currency: "EUR",
         invoicedCents: 90000,
-        netInvoicedCents: 87052,
         vatCents: 2948,
         contributionCents: 400,
         toCollectCents: 70000,
@@ -164,13 +165,21 @@ describe("listFilteredInvoices", () => {
       {
         currency: "USD",
         invoicedCents: 7000,
-        netInvoicedCents: 7000,
         vatCents: 0,
         contributionCents: 0,
         toCollectCents: 7000,
         toSendCents: 0,
       },
     ]);
+  });
+
+  it("gives each invoice its VAT worked out from the lines, null without lines", async () => {
+    const { invoices } = await listFilteredInvoices(env.DB, {}, NOW);
+    const vat = Object.fromEntries(invoices.map((invoice) => [invoice.id, invoice.vatCents]));
+    expect(vat.a).toBe(2288);
+    expect(invoices.find((invoice) => invoice.id === "a")?.contributionCents).toBe(400);
+    expect(vat.b).toBe(1100);
+    expect(vat.usd).toBeNull();
   });
 
   it("lists the years that have invoices, newest first", async () => {
@@ -213,12 +222,12 @@ describe("listFilteredInvoices", () => {
     expect(empty.recap).toEqual({
       count: 0,
       toSendCount: 0,
+      toCollectCount: 0,
       unknownVatCount: 0,
       byCurrency: [
         {
           currency: "EUR",
           invoicedCents: 0,
-          netInvoicedCents: 0,
           vatCents: 0,
           contributionCents: 0,
           toCollectCents: 0,

@@ -38,6 +38,8 @@ const ROW = {
   releasable: false,
   linkedInvoiceId: null,
   rejectionDeadline: null,
+  vatCents: null,
+  contributionCents: null,
 };
 
 describe("Home top strip", () => {

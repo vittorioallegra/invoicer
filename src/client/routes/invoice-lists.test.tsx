@@ -40,6 +40,8 @@ const summary = (over: Partial<InvoiceSummary>): InvoiceSummary => ({
   releasable: false,
   linkedInvoiceId: null,
   rejectionDeadline: null,
+  vatCents: null,
+  contributionCents: null,
   ...over,
 });
 
@@ -229,18 +231,53 @@ describe("invoice lists", () => {
     expect(options).toEqual(["All years", String(year), "2024"]);
   });
 
+  it("shows the total, then the contribution and the VAT in grey, only where there are any", async () => {
+    serve({
+      all: [
+        summary({
+          id: "a",
+          clientName: "With Vat",
+          totalCents: 12688,
+          vatCents: 2288,
+          contributionCents: 400,
+        }),
+        summary({ id: "b", clientName: "No Vat", totalCents: 5000, vatCents: 0 }),
+        summary({
+          id: "c",
+          clientName: "Refund Srl",
+          documentType: "TD04",
+          totalCents: 1220,
+          vatCents: 220,
+        }),
+      ],
+    });
+    await renderAt("/invoices");
+    const row = async (name: string) => (await screen.findByText(name)).closest("a") as HTMLElement;
+    const withVat = await row("With Vat");
+    expect(within(withVat).getByText("€ 126.88")).toBeTruthy();
+    expect(within(withVat).getByText("Contribution € 4.00")).toBeTruthy();
+    expect(within(withVat).getByText("VAT € 22.88")).toBeTruthy();
+    const noVat = await row("No Vat");
+    expect(within(noVat).getByText("€ 50.00")).toBeTruthy();
+    expect(within(noVat).queryByText(/VAT|Contribution/)).toBeNull();
+    const credit = await row("Refund Srl");
+    expect(within(credit).getByText("-€ 12.20")).toBeTruthy();
+    expect(within(credit).getByText("VAT -€ 2.20")).toBeTruthy();
+    expect(within(credit).queryByText(/Contribution/)).toBeNull();
+  });
+
   it("shows the server recap in cards, one amount per currency", async () => {
     serve({
       all: [summary({ id: "a" })],
       recap: {
         count: 3,
         toSendCount: 2,
+        toCollectCount: 4,
         unknownVatCount: 0,
         byCurrency: [
           {
             currency: "EUR",
             invoicedCents: 1234567,
-            netInvoicedCents: 1011858,
             vatCents: 222709,
             contributionCents: 40000,
             toCollectCents: 70000,
@@ -249,7 +286,6 @@ describe("invoice lists", () => {
           {
             currency: "USD",
             invoicedCents: 7000,
-            netInvoicedCents: 7000,
             vatCents: 0,
             contributionCents: 0,
             toCollectCents: 0,
@@ -261,15 +297,21 @@ describe("invoice lists", () => {
     await renderAt("/invoices");
     const recap = await screen.findByRole("region", { name: "Summary of the listed invoices" });
     const card = (label: string) => within(recap).getByText(label).closest("div") as HTMLElement;
-    expect(within(card("Invoiced, net of VAT")).getByText("€ 10,118.58")).toBeTruthy();
-    expect(within(card("Invoiced, net of VAT")).getByText("US$ 70.00")).toBeTruthy();
-    expect(within(card("VAT")).getByText("€ 2,227.09")).toBeTruthy();
-    expect(within(card("Contribution")).getByText("€ 400.00")).toBeTruthy();
-    expect(within(card("Total with VAT")).getByText("€ 12,345.67")).toBeTruthy();
+    const invoiced = within(card("Invoiced"));
+    expect(invoiced.getByText("€ 12,345.67")).toBeTruthy();
+    // 12,345.67 - 2,227.09 VAT - 400.00 contribution.
+    expect(invoiced.getByText("Taxable amount € 9,718.58")).toBeTruthy();
+    expect(invoiced.getByText("Contribution € 400.00")).toBeTruthy();
+    expect(invoiced.getByText("VAT € 2,227.09")).toBeTruthy();
+    // The USD line has no contribution: that line is left out.
+    expect(invoiced.getByText("US$ 70.00")).toBeTruthy();
+    expect(invoiced.getByText("Taxable amount US$ 70.00")).toBeTruthy();
+    expect(invoiced.getAllByText(/^Contribution/)).toHaveLength(1);
     expect(within(card("To collect")).getByText("€ 700.00")).toBeTruthy();
+    expect(within(card("To collect")).getByText("4 invoices")).toBeTruthy();
     expect(within(card("To send")).getByText("€ 50.00")).toBeTruthy();
-    expect(within(card("To send")).getByText("2 invoices not sent")).toBeTruthy();
-    expect(within(card("Invoices")).getByText("3")).toBeTruthy();
+    expect(within(card("To send")).getByText("2 invoices")).toBeTruthy();
+    expect(within(recap).queryByText("Invoices")).toBeNull();
   });
 
   it("flags a number reserved but not sent and releases the highest one", async () => {

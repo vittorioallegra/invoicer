@@ -4,7 +4,7 @@ import { FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { romeDateTime } from "../../shared/cron";
-import type { UiLocale } from "../../shared/format";
+import { formatMoney, type UiLocale } from "../../shared/format";
 import {
   INVOICE_STATUS_FILTERS,
   type InvoiceFilters,
@@ -78,41 +78,55 @@ function Recap({ recap }: { recap: InvoiceRecap }) {
   const locale = useLocale();
   const per = (pick: (row: InvoiceRecap["byCurrency"][number]) => number) =>
     recap.byCurrency.map((row) => ({ currency: row.currency, cents: pick(row) }));
+  const money = (cents: number, currency: string) => formatMoney(cents, locale, currency);
   return (
     <section aria-label={t("invoice.recap.label")}>
-      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label={t("invoice.recap.count")}>
-          <span className="block text-xl font-semibold tabular-nums">{recap.count}</span>
-        </Stat>
-        <Stat label={t("invoice.recap.invoiced")} note={t("invoice.recap.invoicedNote")}>
-          <Amounts values={per((row) => row.netInvoicedCents)} locale={locale} />
-        </Stat>
-        <Stat label={t("invoice.recap.toCollect")}>
+      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="col-span-2 lg:col-span-1">
+          <Stat label={t("invoice.recap.invoiced")}>
+            {recap.byCurrency.map((row) => (
+              <span key={row.currency} className="mb-2 block last:mb-0">
+                <span className="block text-xl font-semibold tabular-nums">
+                  {money(row.invoicedCents, row.currency)}
+                </span>
+                <span className="block text-sm text-muted-foreground">
+                  {t("invoice.recap.net", {
+                    amount: money(
+                      row.invoicedCents - row.vatCents - row.contributionCents,
+                      row.currency,
+                    ),
+                  })}
+                </span>
+                {row.contributionCents !== 0 ? (
+                  <span className="block text-sm text-muted-foreground">
+                    {t("invoice.recap.contribution", {
+                      amount: money(row.contributionCents, row.currency),
+                    })}
+                  </span>
+                ) : null}
+                <span className="block text-sm text-muted-foreground">
+                  {t("invoice.recap.vat", { amount: money(row.vatCents, row.currency) })}
+                </span>
+              </span>
+            ))}
+            {recap.unknownVatCount > 0 ? (
+              <span className="block text-sm text-muted-foreground">
+                {t("invoice.recap.unknownVat", { count: recap.unknownVatCount })}
+              </span>
+            ) : null}
+          </Stat>
+        </div>
+        <Stat
+          label={t("invoice.recap.toCollect")}
+          note={t("invoice.recap.invoiceCount", { count: recap.toCollectCount })}
+        >
           <Amounts values={per((row) => row.toCollectCents)} locale={locale} />
         </Stat>
         <Stat
           label={t("invoice.recap.toSend")}
-          note={t("invoice.recap.toSendCount", { count: recap.toSendCount })}
+          note={t("invoice.recap.invoiceCount", { count: recap.toSendCount })}
         >
           <Amounts values={per((row) => row.toSendCents)} locale={locale} />
-        </Stat>
-      </dl>
-      <dl className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label={t("invoice.recap.vat")}>
-          <Amounts values={per((row) => row.vatCents)} locale={locale} />
-        </Stat>
-        <Stat label={t("invoice.recap.contribution")} note={t("invoice.recap.contributionNote")}>
-          <Amounts values={per((row) => row.contributionCents)} locale={locale} />
-        </Stat>
-        <Stat
-          label={t("invoice.recap.gross")}
-          note={
-            recap.unknownVatCount > 0
-              ? t("invoice.recap.unknownVat", { count: recap.unknownVatCount })
-              : undefined
-          }
-        >
-          <Amounts values={per((row) => row.invoicedCents)} locale={locale} />
         </Stat>
       </dl>
     </section>

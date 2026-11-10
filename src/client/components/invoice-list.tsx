@@ -40,6 +40,8 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
     invoice.state !== "rejected" &&
     invoice.state !== "rejected_expired" &&
     !credit;
+  // A credit note is shown negative.
+  const money = (cents: number) => formatMoney(credit ? -cents : cents, locale, invoice.currency);
   return (
     <li className="flex flex-col">
       <Link
@@ -68,14 +70,20 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
             {payable ? <StatusBadge status={invoice.paymentFlag} /> : null}
           </span>
         </span>
-        <span className="font-medium tabular-nums">
-          {invoice.totalCents === null
-            ? "–"
-            : formatMoney(
-                credit ? -invoice.totalCents : invoice.totalCents,
-                locale,
-                invoice.currency,
-              )}
+        <span className="flex flex-col items-end tabular-nums">
+          <span className="font-medium">
+            {invoice.totalCents === null ? "–" : money(invoice.totalCents)}
+          </span>
+          {invoice.totalCents !== null && invoice.contributionCents ? (
+            <span className="text-sm text-muted-foreground">
+              {t("invoice.list.contribution", { amount: money(invoice.contributionCents) })}
+            </span>
+          ) : null}
+          {invoice.totalCents !== null && invoice.vatCents ? (
+            <span className="text-sm text-muted-foreground">
+              {t("invoice.list.vat", { amount: money(invoice.vatCents) })}
+            </span>
+          ) : null}
         </span>
       </Link>
       {extra ? <div className="px-4 pb-3">{extra}</div> : null}

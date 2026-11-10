@@ -498,7 +498,16 @@ export type InvoiceSummary = Pick<
   | "numberReserved"
   | "releasable"
   | "linkedInvoiceId"
-> & { rejectionDeadline: number | null };
+> & {
+  rejectionDeadline: number | null;
+  /**
+   * VAT inside `totalCents`, worked out from the lines by the filtered list (`GET /api/invoices`
+   * with `scope=all`); null elsewhere and when the invoice has no lines.
+   */
+  vatCents: number | null;
+  /** Cassa/rivalsa contribution inside `totalCents`, worked out like `vatCents`. */
+  contributionCents: number | null;
+};
 
 export const INVOICE_LIST_SCOPES = ["to_issue", "issued", "reserved"] as const;
 export type InvoiceListScope = (typeof INVOICE_LIST_SCOPES)[number];

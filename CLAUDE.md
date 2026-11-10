@@ -9,7 +9,7 @@ docs/plans/invoicer.md.
 Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `packageManager`).
 
 - Install: `pnpm install` (CI: `pnpm install --frozen-lockfile`); local secrets: `cp .dev.vars.example .dev.vars`
-- Dev server: `pnpm dev` (Vite + local Worker, D1; PEC, Resend and push off or mocked)
+- Dev server: `pnpm dev` (Vite + local Worker, D1; PEC, Resend and push off or mocked); create the owner once at `/setup` with `SETUP_TOKEN`; `pnpm db:seed` adds demo invoices
 - Build: `pnpm build`; preview the build (service worker on): `pnpm preview`
 - All unit/integration tests (dot reporter): `pnpm test`
 - One Vitest project: `pnpm vitest run --project shared|worker|client --reporter=dot`
@@ -38,7 +38,7 @@ Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `pac
 
 - Everything in the repo is in English; user-facing text only through i18n (`en` base, `it`).
 - Selects and dates: use `Select` and `DatePicker` from `components/ui` (never a bare `<select>` or `<Input type="date">`). Pointer devices get Radix Select / a react-day-picker popover; coarse-pointer phones and jsdom get the native control (`lib/use-native-controls.ts`); tests for the rich path call `setPointer(false)` from `lib/pointer-test-support.ts`. Do not use `Select.Viewport` (inline `<style>`, blocked by the CSP). Date values are `YYYY-MM-DD` strings.
-- The Invoices recap shows the total net of VAT (contribution included), VAT, contribution and the total with VAT: VAT and contribution are computed from the lines at list time (`loadTaxes` in `invoices/store.ts`, one query); an invoice without lines (imported from a file) counts as VAT 0 and is reported. If the list gets slow, store them in columns at save time instead.
+- The Invoices recap's Invoiced card shows the total, then the amount net of VAT and contribution, the contribution and the VAT: VAT and contribution are computed from the lines at list time (`loadTaxes` in `invoices/store.ts`, one query); an invoice without lines (imported from a file) counts as VAT 0 and is reported. If the list gets slow, store them in columns at save time instead.
 - Money is integer cents in domain code; dates for numbering use Europe/Rome. Numbers are per numbering series (`numbering_series`, prefix + progressive + suffix, see docs/notes/invoice-numbering.md); `number_int` is the progressive, `number_raw` the printed number.
 - Unit/integration tests live next to the code as `*.test.ts(x)`; Vitest projects: `shared` (node),
   `worker` (workerd via `@cloudflare/vitest-pool-workers`), `client` (jsdom).
