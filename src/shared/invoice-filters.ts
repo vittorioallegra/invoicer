@@ -42,6 +42,12 @@ export interface CurrencyRecap {
   currency: string;
   /** Finalised invoices, rejected ones excluded. */
   invoicedCents: number;
+  /** Finalised invoices without the VAT (the cassa/rivalsa contribution stays in, it is paid). */
+  netInvoicedCents: number;
+  /** VAT of the finalised invoices. */
+  vatCents: number;
+  /** Cassa/rivalsa contribution of the finalised invoices (already inside the net total). */
+  contributionCents: number;
   /** Finalised, not rejected, not paid. */
   toCollectCents: number;
   /** Invoices not sent yet. */
@@ -51,6 +57,8 @@ export interface CurrencyRecap {
 export interface InvoiceRecap {
   count: number;
   toSendCount: number;
+  /** Finalised invoices whose VAT is unknown (imported without it): counted as VAT 0. */
+  unknownVatCount: number;
   /** One entry per currency present in the set; EUR is always listed first. */
   byCurrency: CurrencyRecap[];
 }

@@ -359,7 +359,12 @@ export async function listFilteredInvoices(
   const years = [...new Set([Number(today.slice(0, 4)), ...yearRows.map((row) => row.y)])].sort(
     (a, b) => b - a,
   );
-  return { invoices: await summarize(db, results, false, now), recap: recapOf(results), years };
+  const taxes = await loadTaxes(db, results, where.join(" AND "), binds);
+  return {
+    invoices: await summarize(db, results, false, now),
+    recap: recapOf(results, taxes),
+    years,
+  };
 }
 
 /**
@@ -414,27 +419,113 @@ export async function dashboardStats(db: D1Database, now = new Date()): Promise<
   };
 }
 
+interface InvoiceTaxes {
+  vatCents: number;
+  contributionCents: number;
+}
+
+/**
+ * VAT and contribution of the finalised invoices in the filtered set, worked out from their lines
+ * with the totals engine (one query for all the lines; `?1` is the bound date of the filters,
+ * always present, which D1 requires to be used). An invoice without lines, for example one
+ * imported from a file, is absent from the map: its VAT is unknown.
+ */
+async function loadTaxes(
+  db: D1Database,
+  rows: InvoiceRow[],
+  where: string,
+  binds: unknown[],
+): Promise<Map<string, InvoiceTaxes>> {
+  const finalised = new Map(
+    rows.filter((row) => FINALISED_STATES.includes(row.state)).map((row) => [row.id, row]),
+  );
+  const taxes = new Map<string, InvoiceTaxes>();
+  if (finalised.size === 0) return taxes;
+  const { results } = await db
+    .prepare(
+      `SELECT l.invoice_id, l.description, l.note, l.quantity_milli, l.unit, l.unit_price_cents,
+         l.vat_rate_bp, l.natura
+       FROM invoice_lines l JOIN invoices i ON i.id = l.invoice_id
+       WHERE ?1 IS NOT NULL ${where ? `AND ${where}` : ""} ORDER BY l.invoice_id, l.position`,
+    )
+    .bind(...binds)
+    .all<{
+      invoice_id: string;
+      description: string;
+      note: string | null;
+      quantity_milli: number;
+      unit: string | null;
+      unit_price_cents: number;
+      vat_rate_bp: number | null;
+      natura: InvoiceRecord["lines"][number]["natura"];
+    }>();
+  const lines = new Map<string, InvoiceBody["lines"]>();
+  for (const line of results) {
+    const list = lines.get(line.invoice_id) ?? [];
+    list.push({
+      description: line.description,
+      note: line.note ?? "",
+      quantityMilli: line.quantity_milli,
+      unit: line.unit,
+      unitPriceCents: line.unit_price_cents,
+      vatRateBp: line.vat_rate_bp,
+      natura: line.natura,
+    });
+    lines.set(line.invoice_id, list);
+  }
+  for (const [id, row] of finalised) {
+    const own = lines.get(id);
+    const data = invoiceDataSchema.safeParse(row.data ? JSON.parse(row.data) : null);
+    if (!own || !data.success) continue;
+    const totals = safeTotals({
+      documentType: row.document_type,
+      currency: row.currency,
+      data: data.data,
+      lines: own,
+    });
+    if (totals)
+      taxes.set(id, { vatCents: totals.vatCents, contributionCents: totals.contributionCents });
+  }
+  return taxes;
+}
+
 /** Recap rules (spec section 6): credit notes subtract; rejected invoices count as not invoiced. */
-function recapOf(rows: InvoiceRow[]): InvoiceRecap {
+function recapOf(rows: InvoiceRow[], taxes: Map<string, InvoiceTaxes>): InvoiceRecap {
   const by = new Map<string, CurrencyRecap>();
   const entry = (currency: string) => {
     let found = by.get(currency);
     if (!found) {
-      found = { currency, invoicedCents: 0, toCollectCents: 0, toSendCents: 0 };
+      found = {
+        currency,
+        invoicedCents: 0,
+        netInvoicedCents: 0,
+        vatCents: 0,
+        contributionCents: 0,
+        toCollectCents: 0,
+        toSendCents: 0,
+      };
       by.set(currency, found);
     }
     return found;
   };
   entry("EUR");
   let toSendCount = 0;
+  let unknownVatCount = 0;
   for (const row of rows) {
-    const cents = (row.document_type === "TD04" ? -1 : 1) * (row.total_cents ?? 0);
+    const sign = row.document_type === "TD04" ? -1 : 1;
+    const cents = sign * (row.total_cents ?? 0);
     const sums = entry(row.currency);
     if (row.state === "draft" || row.state === "planned") {
       toSendCount += 1;
       sums.toSendCents += cents;
     } else if (FINALISED_STATES.includes(row.state)) {
       sums.invoicedCents += cents;
+      const tax = taxes.get(row.id);
+      if (!tax) unknownVatCount += 1;
+      const vat = sign * (tax?.vatCents ?? 0);
+      sums.vatCents += vat;
+      sums.netInvoicedCents += cents - vat;
+      sums.contributionCents += sign * (tax?.contributionCents ?? 0);
       if (row.payment_flag !== "paid") sums.toCollectCents += cents;
     }
   }
@@ -442,6 +533,7 @@ function recapOf(rows: InvoiceRow[]): InvoiceRecap {
   return {
     count: rows.length,
     toSendCount,
+    unknownVatCount,
     byCurrency: [
       ...all.filter((sums) => sums.currency === "EUR"),
       ...all

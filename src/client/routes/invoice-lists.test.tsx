@@ -235,17 +235,37 @@ describe("invoice lists", () => {
       recap: {
         count: 3,
         toSendCount: 2,
+        unknownVatCount: 0,
         byCurrency: [
-          { currency: "EUR", invoicedCents: 1234567, toCollectCents: 70000, toSendCents: 5000 },
-          { currency: "USD", invoicedCents: 7000, toCollectCents: 0, toSendCents: 0 },
+          {
+            currency: "EUR",
+            invoicedCents: 1234567,
+            netInvoicedCents: 1011858,
+            vatCents: 222709,
+            contributionCents: 40000,
+            toCollectCents: 70000,
+            toSendCents: 5000,
+          },
+          {
+            currency: "USD",
+            invoicedCents: 7000,
+            netInvoicedCents: 7000,
+            vatCents: 0,
+            contributionCents: 0,
+            toCollectCents: 0,
+            toSendCents: 0,
+          },
         ],
       },
     });
     await renderAt("/invoices");
     const recap = await screen.findByRole("region", { name: "Summary of the listed invoices" });
     const card = (label: string) => within(recap).getByText(label).closest("div") as HTMLElement;
-    expect(within(card("Invoiced")).getByText("€ 12,345.67")).toBeTruthy();
-    expect(within(card("Invoiced")).getByText("US$ 70.00")).toBeTruthy();
+    expect(within(card("Invoiced, net of VAT")).getByText("€ 10,118.58")).toBeTruthy();
+    expect(within(card("Invoiced, net of VAT")).getByText("US$ 70.00")).toBeTruthy();
+    expect(within(card("VAT")).getByText("€ 2,227.09")).toBeTruthy();
+    expect(within(card("Contribution")).getByText("€ 400.00")).toBeTruthy();
+    expect(within(card("Total with VAT")).getByText("€ 12,345.67")).toBeTruthy();
     expect(within(card("To collect")).getByText("€ 700.00")).toBeTruthy();
     expect(within(card("To send")).getByText("€ 50.00")).toBeTruthy();
     expect(within(card("To send")).getByText("2 invoices not sent")).toBeTruthy();

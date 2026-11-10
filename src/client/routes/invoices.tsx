@@ -84,8 +84,8 @@ function Recap({ recap }: { recap: InvoiceRecap }) {
         <Stat label={t("invoice.recap.count")}>
           <span className="block text-xl font-semibold tabular-nums">{recap.count}</span>
         </Stat>
-        <Stat label={t("invoice.recap.invoiced")}>
-          <Amounts values={per((row) => row.invoicedCents)} locale={locale} />
+        <Stat label={t("invoice.recap.invoiced")} note={t("invoice.recap.invoicedNote")}>
+          <Amounts values={per((row) => row.netInvoicedCents)} locale={locale} />
         </Stat>
         <Stat label={t("invoice.recap.toCollect")}>
           <Amounts values={per((row) => row.toCollectCents)} locale={locale} />
@@ -95,6 +95,24 @@ function Recap({ recap }: { recap: InvoiceRecap }) {
           note={t("invoice.recap.toSendCount", { count: recap.toSendCount })}
         >
           <Amounts values={per((row) => row.toSendCents)} locale={locale} />
+        </Stat>
+      </dl>
+      <dl className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label={t("invoice.recap.vat")}>
+          <Amounts values={per((row) => row.vatCents)} locale={locale} />
+        </Stat>
+        <Stat label={t("invoice.recap.contribution")} note={t("invoice.recap.contributionNote")}>
+          <Amounts values={per((row) => row.contributionCents)} locale={locale} />
+        </Stat>
+        <Stat
+          label={t("invoice.recap.gross")}
+          note={
+            recap.unknownVatCount > 0
+              ? t("invoice.recap.unknownVat", { count: recap.unknownVatCount })
+              : undefined
+          }
+        >
+          <Amounts values={per((row) => row.invoicedCents)} locale={locale} />
         </Stat>
       </dl>
     </section>

@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
+import { EMPTY_INVOICE_DATA } from "../../shared/invoice";
 import { applyMigrations } from "../auth/test-helpers";
 import { listFilteredInvoices } from "./store";
 
@@ -42,6 +43,25 @@ const insert = (s: Seed) =>
       Date.now(),
     )
     .run();
+
+/** One 22% line of `netCents` for invoice `id`, with an optional 4% rivalsa on top. */
+async function addLine(id: string, netCents: number, rivalsa = false) {
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO invoice_lines (id, invoice_id, position, description, quantity_milli,
+         unit_price_cents, vat_rate_bp) VALUES (?, ?, 0, 'Work', 1000, ?, 2200)`,
+    ).bind(`line-${id}`, id, netCents),
+    env.DB.prepare("UPDATE invoices SET data = ? WHERE id = ?").bind(
+      JSON.stringify({
+        ...EMPTY_INVOICE_DATA,
+        cassa: rivalsa
+          ? { type: "rivalsa_inps", rateBp: 400, mode: "excluded", subjectToRitenuta: false }
+          : null,
+      }),
+      id,
+    ),
+  ]);
+}
 
 const ids = (r: Awaited<ReturnType<typeof listFilteredInvoices>>) => r.invoices.map((i) => i.id);
 
@@ -111,6 +131,9 @@ beforeAll(async () => {
     issue: "2025-12-31",
     total: 9900,
   });
+  await addLine("a", 10000, true);
+  await addLine("b", 5000);
+  await addLine("cn", 2000);
 });
 
 describe("listFilteredInvoices", () => {
@@ -125,9 +148,28 @@ describe("listFilteredInvoices", () => {
     expect(recap.count).toBe(7);
     expect(recap.toSendCount).toBe(2);
     // EUR invoiced: 100000 + 20000 - 30000 (rejected 50000 left out); to collect: 100000 - 30000.
+    // VAT from the lines: a 2288 (4% rivalsa 400 on 10000), b 1100, credit note -440. The net total
+    // is 90000 - 2948 and keeps the contribution. The USD invoice has no lines: VAT unknown.
+    expect(recap.unknownVatCount).toBe(1);
     expect(recap.byCurrency).toEqual([
-      { currency: "EUR", invoicedCents: 90000, toCollectCents: 70000, toSendCents: 5000 },
-      { currency: "USD", invoicedCents: 7000, toCollectCents: 7000, toSendCents: 0 },
+      {
+        currency: "EUR",
+        invoicedCents: 90000,
+        netInvoicedCents: 87052,
+        vatCents: 2948,
+        contributionCents: 400,
+        toCollectCents: 70000,
+        toSendCents: 5000,
+      },
+      {
+        currency: "USD",
+        invoicedCents: 7000,
+        netInvoicedCents: 7000,
+        vatCents: 0,
+        contributionCents: 0,
+        toCollectCents: 7000,
+        toSendCents: 0,
+      },
     ]);
   });
 
@@ -171,7 +213,18 @@ describe("listFilteredInvoices", () => {
     expect(empty.recap).toEqual({
       count: 0,
       toSendCount: 0,
-      byCurrency: [{ currency: "EUR", invoicedCents: 0, toCollectCents: 0, toSendCents: 0 }],
+      unknownVatCount: 0,
+      byCurrency: [
+        {
+          currency: "EUR",
+          invoicedCents: 0,
+          netInvoicedCents: 0,
+          vatCents: 0,
+          contributionCents: 0,
+          toCollectCents: 0,
+          toSendCents: 0,
+        },
+      ],
     });
   });
 });
