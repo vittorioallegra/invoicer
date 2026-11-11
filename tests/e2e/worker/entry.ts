@@ -72,6 +72,9 @@ async function e2eRoute(request: Request, env: Bindings): Promise<Response> {
   return new Response("Not found", { status: 404 });
 }
 
+// The class named in wrangler.jsonc must be exported by whatever entry is the Worker's main.
+export { PecPoller } from "../../../src/worker/pec/poller";
+
 export default {
   async fetch(request, env, ctx) {
     const origin = new URL(request.url).origin;

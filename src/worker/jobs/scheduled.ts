@@ -1,6 +1,6 @@
 import { jobForCron, romeDateTime, shouldRunDaily } from "../../shared/cron";
 import type { Bindings } from "../env";
-import { pollMailbox } from "../pec/poll";
+import { pollMailboxPlaced } from "../pec/poller";
 import { processPushNotifications } from "../push/deliver";
 import { remindUnsentInvoices } from "./invoice-due";
 import { notifyOverdueInvoices } from "./invoice-overdue";
@@ -57,7 +57,7 @@ export async function runDailyTasks(
  * once per Rome day from 09:00 (`runDailyTasks`), followed by their pushes.
  */
 export const handlers: { poll: Handler[] } = {
-  poll: [async (env) => void (await pollMailbox(env)), pushNotifications],
+  poll: [async (env) => void (await pollMailboxPlaced(env)), pushNotifications],
 };
 
 /** Rome date of the last completed daily run; backed by `job_runs` from step 3 on. */

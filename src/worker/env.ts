@@ -4,6 +4,8 @@ import { ApiError, ERROR_CODES, ERROR_TYPE_BASE, errorAnchor } from "../shared/e
 export interface Bindings {
   DB: D1Database;
   ASSETS: Fetcher;
+  /** Durable Object the cron polls the mailbox from, pinned to Western Europe (`pec/poller.ts`). */
+  PEC_POLLER?: DurableObjectNamespace<import("./pec/poller").PecPoller>;
 
   // Plain vars (owner-specific, set in the deploy config or `.dev.vars`).
   APP_ORIGIN?: string;

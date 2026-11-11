@@ -33,5 +33,9 @@
   // A single cron trigger: mailbox polling every 10 minutes. The daily jobs run from the same
   // trigger at 09:00 Europe/Rome (shouldRunDaily in src/shared/cron.ts); keep the expression in
   // sync with src/shared/cron.ts.
-  "triggers": { "crons": ["*/10 * * * *"] }
+  "triggers": { "crons": ["*/10 * * * *"] },
+  // The cron polls the mailbox through this Durable Object so the PEC provider always sees the
+  // login from the same Western Europe data centre (src/worker/pec/poller.ts).
+  "durable_objects": { "bindings": [{ "name": "PEC_POLLER", "class_name": "PecPoller" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PecPoller"] }]
 }

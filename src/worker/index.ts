@@ -3,6 +3,8 @@ import type { Bindings } from "./env";
 import { lastCompletedDailyDate } from "./jobs/job-runs";
 import { runScheduled } from "./jobs/scheduled";
 
+export { PecPoller } from "./pec/poller";
+
 export default {
   fetch: app.fetch,
   scheduled(event, env, ctx) {

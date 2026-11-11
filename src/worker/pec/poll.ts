@@ -25,6 +25,9 @@ export const pollDeps: { open: (host: string, port: number) => ImapSocket } = {
   open: connectImap,
 };
 
+/** What one poll did; `null` while the PEC secrets are unset. */
+export type PollOutcome = { ok: boolean; counts: PollCounts; errorCode?: string } | null;
+
 export interface PollCounts {
   /** Messages stored in this run (any kind). */
   stored: number;
@@ -383,10 +386,7 @@ export function pollErrorCode(error: unknown): string {
  * One mailbox poll (the cron job). Read-only on the mailbox. Skipped silently while the PEC
  * secrets are unset. Every run leaves a `job_runs` row; a failure is recorded with its code.
  */
-export async function pollMailbox(
-  env: Bindings,
-  now = Date.now(),
-): Promise<{ ok: boolean; counts: PollCounts; errorCode?: string } | null> {
+export async function pollMailbox(env: Bindings, now = Date.now()): Promise<PollOutcome> {
   if (missingSecrets(env, "pec").length > 0) return null;
   const counts: PollCounts = {
     stored: 0,
