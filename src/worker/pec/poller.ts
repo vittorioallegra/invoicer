@@ -26,12 +26,34 @@ export type PlacedSendResult =
   | { ok: true; messageId: string }
   | { ok: false; code: ChannelErrorCode; outcome: "none" | "unknown" };
 
+/**
+ * Logs the data centre and country this object runs in, from Cloudflare's own trace (no IP, no
+ * secret), so the logs show whether the location hint was respected.
+ */
+async function logPlacement(): Promise<void> {
+  try {
+    const text = await (await fetch("https://cloudflare.com/cdn-cgi/trace")).text();
+    const field = (name: string) => text.match(new RegExp(`^${name}=(.*)$`, "m"))?.[1] ?? "?";
+    console.log("poller_placement", `colo=${field("colo")}`, `loc=${field("loc")}`);
+  } catch {
+    console.log("poller_placement", "unknown");
+  }
+}
+
 export class PecPoller extends DurableObject<Bindings> {
-  poll(): Promise<PollOutcome> {
+  private placementLogged = false;
+
+  async poll(): Promise<PollOutcome> {
+    // Once per object lifetime: enough to read where it was created, without a line per tick.
+    if (!this.placementLogged) {
+      this.placementLogged = true;
+      await logPlacement();
+    }
     return pollMailbox(this.env);
   }
 
-  connectionTest(): Promise<PecTestOutcome> {
+  async connectionTest(): Promise<PecTestOutcome> {
+    await logPlacement();
     return pecConnectionTest(this.env);
   }
 
