@@ -14,7 +14,7 @@ import type { SessionVariables } from "../auth/session";
 import type { Bindings } from "../env";
 import { pecTestFromRow } from "../onboarding";
 import { loadPecServers, PEC_DEFAULTS } from "../pec/config";
-import { pecConnectionTest } from "../pec/connection-test";
+import { pecConnectionTestPlaced } from "../pec/poller";
 import { makeError } from "../problem";
 import { validationDetail } from "../validation";
 
@@ -174,7 +174,7 @@ settings.put("/pec-servers", async (c) => {
 
 /** Runs the PEC connection test (IMAP login, EXAMINE, quota, SMTP login) and stores the result. */
 settings.post("/pec-test", async (c) => {
-  const result = await pecConnectionTest(c.env);
+  const result = await pecConnectionTestPlaced(c.env);
   const at = new Date();
   await patchSettings(c.env, {
     pecTestAt: at,

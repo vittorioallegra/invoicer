@@ -2,6 +2,7 @@ import { createMockChannel } from "../shared/channel/mock";
 import type { Channel } from "../shared/channel/types";
 import { type Bindings, isMockChannel, requireSecrets } from "./env";
 import type { PecServers } from "./pec/config";
+import { createPlacedChannel } from "./pec/poller";
 import { createPecChannel } from "./pec/smtp";
 
 /**
@@ -12,6 +13,9 @@ export const channelDeps: { create: (env: Bindings, servers: PecServers) => Chan
   create(env, servers) {
     if (isMockChannel(env)) return createMockChannel();
     requireSecrets(env, "pec");
+    // The SMTP session is opened by the placed Durable Object (always the same EU data centre).
+    const placed = createPlacedChannel(env, servers);
+    if (placed) return placed;
     return createPecChannel(servers, {
       username: env.PEC_USERNAME as string,
       password: env.PEC_PASSWORD as string,
