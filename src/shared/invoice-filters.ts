@@ -73,10 +73,28 @@ export interface InvoiceOverview {
 /** Invoiced total of a period in one currency: finalised invoices, credit notes subtracted. */
 export interface PeriodTotal {
   currency: string;
+  /** Gross total (taxable amount, contribution and VAT). */
+  invoicedCents: number;
+  /** VAT inside `invoicedCents`; invoices without lines (imported) count as 0. */
+  vatCents: number;
+  /** Cassa/rivalsa contribution inside `invoicedCents`. */
+  contributionCents: number;
+}
+
+/** One calendar month of the trend chart (EUR only): this year against the previous one. */
+export interface MonthlyPoint {
+  /** 1 to 12. */
+  month: number;
+  currentCents: number;
+  previousCents: number;
+}
+
+export interface ClientShare {
+  name: string;
   invoicedCents: number;
 }
 
-/** Home top strip (`GET /api/invoices/dashboard`). */
+/** Home overview (`GET /api/invoices/dashboard`). */
 export interface DashboardStats {
   /** Europe/Rome today, `YYYY-MM-DD`: the year and month below are its. */
   today: string;
@@ -88,6 +106,13 @@ export interface DashboardStats {
   overdueCount: number;
   /** Invoiced in the current year; EUR is always listed first. */
   year: PeriodTotal[];
-  /** Invoiced in the current month; EUR is always listed first. */
-  month: PeriodTotal[];
+  /** Finalised invoices dated in the current year that have no lines: VAT counted as 0. */
+  unknownVatCount: number;
+  /** Finalised, unpaid, all years, EUR. */
+  toCollectCents: number;
+  toCollectCount: number;
+  /** Twelve months, EUR. */
+  monthly: MonthlyPoint[];
+  /** Every client with EUR invoiced this year, the biggest first. */
+  clientShares: ClientShare[];
 }

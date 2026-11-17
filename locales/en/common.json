@@ -719,9 +719,20 @@
       "label": "Overview",
       "toSend": "To send",
       "rejected": "Rejected",
-      "overdue": "Overdue, unpaid",
+      "overdue": "Overdue",
       "year": "Invoiced in {{year}}",
-      "month": "Invoiced in {{month}}"
+      "net": "Taxable amount {{amount}}",
+      "contribution": "Contribution {{amount}}",
+      "vat": "VAT {{amount}}",
+      "unknownVat_one": "VAT unknown for {{count}} invoice",
+      "unknownVat_other": "VAT unknown for {{count}} invoices",
+      "toCollect": "To collect",
+      "invoiceCount_one": "{{count}} invoice",
+      "invoiceCount_other": "{{count}} invoices",
+      "monthly": "Invoiced per month",
+      "cumulative": "Invoiced since January",
+      "noClients": "No invoices this year yet.",
+      "charts": "Trend"
     },
     "view": {
       "title": "Invoice details",

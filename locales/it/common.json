@@ -719,9 +719,20 @@
       "label": "Panoramica",
       "toSend": "Da inviare",
       "rejected": "Scartate",
-      "overdue": "Scadute, non pagate",
+      "overdue": "Scadute",
       "year": "Fatturato {{year}}",
-      "month": "Fatturato di {{month}}"
+      "net": "Imponibile {{amount}}",
+      "contribution": "Contributo {{amount}}",
+      "vat": "IVA {{amount}}",
+      "unknownVat_one": "IVA non nota per {{count}} fattura",
+      "unknownVat_other": "IVA non nota per {{count}} fatture",
+      "toCollect": "Da incassare",
+      "invoiceCount_one": "{{count}} fattura",
+      "invoiceCount_other": "{{count}} fatture",
+      "monthly": "Fatturato per mese",
+      "cumulative": "Fatturato da gennaio",
+      "noClients": "Ancora nessuna fattura quest'anno.",
+      "charts": "Andamento"
     },
     "view": {
       "title": "Dettagli della fattura",

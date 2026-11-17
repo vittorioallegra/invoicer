@@ -12,10 +12,13 @@ import {
   safeTotals,
 } from "../../shared/invoice";
 import {
+  type ClientShare,
   type CurrencyRecap,
   type DashboardStats,
   type InvoiceFilters,
   type InvoiceRecap,
+  type MonthlyPoint,
+  type PeriodTotal,
   STATUS_FILTER_STATES,
 } from "../../shared/invoice-filters";
 import type { InvoiceState, PaymentState } from "../../shared/invoice-state";
@@ -370,10 +373,27 @@ export async function listFilteredInvoices(
   };
 }
 
+/** Totals per currency, EUR first (and always present), the others alphabetical. */
+function periodTotals(by: Map<string, PeriodTotal>): PeriodTotal[] {
+  const eur = by.get("EUR") ?? {
+    currency: "EUR",
+    invoicedCents: 0,
+    vatCents: 0,
+    contributionCents: 0,
+  };
+  return [
+    eur,
+    ...[...by.values()]
+      .filter((row) => row.currency !== "EUR")
+      .sort((a, b) => a.currency.localeCompare(b.currency)),
+  ];
+}
+
 /**
- * Counts and invoiced totals for the Home top strip, all aggregated in SQL (free-plan CPU budget).
- * Totals are by invoice date (issue date, else the date set), finalised and not rejected, credit
- * notes subtracted, in integer cents per currency.
+ * Counts and invoiced totals for the Home overview. Totals are by invoice date (issue date, else
+ * the date set), finalised and not rejected, credit notes subtracted, in integer cents per
+ * currency. The counts are SQL; the invoiced figures read this and last year's finalised
+ * invoices once (VAT and contribution come from the lines, like the list recap).
  */
 export async function dashboardStats(db: D1Database, now = new Date()): Promise<DashboardStats> {
   await expireRejected(db, now);
@@ -385,40 +405,89 @@ export async function dashboardStats(db: D1Database, now = new Date()): Promise<
          COALESCE(SUM(state IN ('draft', 'planned')), 0) AS to_send,
          COALESCE(SUM(state IN ('rejected', 'rejected_expired')), 0) AS rejected,
          COALESCE(SUM(state IN (${finalised}) AND payment_flag <> 'paid' AND document_type <> 'TD04'
-                      AND due_date IS NOT NULL AND due_date < ?1), 0) AS overdue
+                      AND due_date IS NOT NULL AND due_date < ?1), 0) AS overdue,
+         COALESCE(SUM(CASE WHEN state IN (${finalised}) AND payment_flag <> 'paid' AND currency = 'EUR'
+                      THEN (CASE WHEN document_type = 'TD04' THEN -1 ELSE 1 END)
+                           * COALESCE(total_cents, 0) ELSE 0 END), 0) AS to_collect,
+         COALESCE(SUM(state IN (${finalised}) AND payment_flag <> 'paid' AND currency = 'EUR'), 0)
+           AS to_collect_count
        FROM invoices`,
     )
     .bind(today)
-    .first<{ to_send: number; rejected: number; overdue: number }>();
-  const totals = async (length: number) => {
-    const { results } = await db
-      .prepare(
-        `SELECT currency,
-                SUM(CASE WHEN document_type = 'TD04' THEN -COALESCE(total_cents, 0)
-                         ELSE COALESCE(total_cents, 0) END) AS cents
-         FROM invoices
-         WHERE state IN (${finalised})
-           AND substr(COALESCE(issue_date, planned_date, ?1), 1, ${length}) = ?2
-         GROUP BY currency`,
-      )
-      .bind(today, today.slice(0, length))
-      .all<{ currency: string; cents: number }>();
-    const rows = results.map((row) => ({ currency: row.currency, invoicedCents: row.cents }));
-    const eur = rows.find((row) => row.currency === "EUR") ?? { currency: "EUR", invoicedCents: 0 };
-    return [
-      eur,
-      ...rows
-        .filter((row) => row.currency !== "EUR")
-        .sort((a, b) => a.currency.localeCompare(b.currency)),
-    ];
+    .first<{
+      to_send: number;
+      rejected: number;
+      overdue: number;
+      to_collect: number;
+      to_collect_count: number;
+    }>();
+
+  const year = today.slice(0, 4);
+  const previous = String(Number(year) - 1);
+  const where = `i.state IN (${finalised}) AND substr(COALESCE(i.issue_date, i.planned_date, ?1), 1, 4) IN (?2, ?3)`;
+  const binds = [today, year, previous];
+  const { results: rows } = await db
+    .prepare(`${SELECT} WHERE ${where}`)
+    .bind(...binds)
+    .all<InvoiceRow>();
+  const taxes = await loadTaxes(db, rows, where, binds);
+
+  const buckets = {
+    year: new Map<string, PeriodTotal>(),
   };
+  const monthly: MonthlyPoint[] = Array.from({ length: 12 }, (_, index) => ({
+    month: index + 1,
+    currentCents: 0,
+    previousCents: 0,
+  }));
+  const clients = new Map<string, ClientShare>();
+  let unknownVatCount = 0;
+  for (const row of rows) {
+    const date = row.issue_date ?? row.planned_date ?? today;
+    const sign = row.document_type === "TD04" ? -1 : 1;
+    const cents = sign * (row.total_cents ?? 0);
+    const tax = taxes.get(row.id);
+    const add = (bucket: Map<string, PeriodTotal>) => {
+      const sums = bucket.get(row.currency) ?? {
+        currency: row.currency,
+        invoicedCents: 0,
+        vatCents: 0,
+        contributionCents: 0,
+      };
+      sums.invoicedCents += cents;
+      sums.vatCents += sign * (tax?.vatCents ?? 0);
+      sums.contributionCents += sign * (tax?.contributionCents ?? 0);
+      bucket.set(row.currency, sums);
+    };
+    const month = Number(date.slice(5, 7));
+    if (date.startsWith(year)) {
+      add(buckets.year);
+      if (!tax) unknownVatCount += 1;
+      if (row.currency === "EUR") {
+        (monthly[month - 1] as MonthlyPoint).currentCents += cents;
+        const name = row.client_name ?? "";
+        const key = row.client_id ?? `name:${name}`;
+        const client = clients.get(key) ?? { name, invoicedCents: 0 };
+        client.invoicedCents += cents;
+        clients.set(key, client);
+      }
+    } else {
+      if (row.currency === "EUR") (monthly[month - 1] as MonthlyPoint).previousCents += cents;
+    }
+  }
   return {
     today,
     toSendCount: counts?.to_send ?? 0,
     rejectedCount: counts?.rejected ?? 0,
     overdueCount: counts?.overdue ?? 0,
-    year: await totals(4),
-    month: await totals(7),
+    year: periodTotals(buckets.year),
+    unknownVatCount,
+    toCollectCents: counts?.to_collect ?? 0,
+    toCollectCount: counts?.to_collect_count ?? 0,
+    monthly,
+    clientShares: [...clients.values()]
+      .filter((client) => client.invoicedCents > 0)
+      .sort((a, b) => b.invoicedCents - a.invoicedCents),
   };
 }
 

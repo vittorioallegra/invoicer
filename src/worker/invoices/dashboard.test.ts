@@ -103,23 +103,33 @@ describe("dashboardStats", () => {
     expect(stats.overdueCount).toBe(2);
   });
 
-  it("totals the year and the month in cents, credit notes subtracted, EUR first", async () => {
+  it("totals the year in cents, credit notes subtracted, EUR first", async () => {
     const stats = await dashboardStats(env.DB, NOW);
-    expect(stats.month).toEqual([
-      { currency: "EUR", invoicedCents: 75000 },
-      { currency: "USD", invoicedCents: 7000 },
-    ]);
+    const sums = (currency: string, invoicedCents: number) => ({
+      currency,
+      invoicedCents,
+      vatCents: 0,
+      contributionCents: 0,
+    });
     // 100000 - 25000 + 50000 + 30000 + 1000; last year and the rejected invoice are left out.
-    expect(stats.year).toEqual([
-      { currency: "EUR", invoicedCents: 156000 },
-      { currency: "USD", invoicedCents: 7000 },
-    ]);
+    expect(stats.year).toEqual([sums("EUR", 156000), sums("USD", 7000)]);
+  });
+
+  it("gives the monthly trend, the top clients and what is left to collect", async () => {
+    const stats = await dashboardStats(env.DB, NOW);
+    expect(stats.monthly).toHaveLength(12);
+    expect(stats.monthly[10]).toEqual({ month: 11, currentCents: 75000, previousCents: 0 });
+    expect(stats.monthly[11]).toEqual({ month: 12, currentCents: 0, previousCents: 9900 });
+    // m1, o1, o3 and "old" are unpaid EUR (credit note m2 subtracts); o2 is paid.
+    expect(stats.toCollectCents).toBe(100000 - 25000 + 50000 + 1000 + 9900);
+    expect(stats.toCollectCount).toBe(5);
+    expect(stats.clientShares).toEqual([{ name: "", invoicedCents: 156000 }]);
   });
 
   it("lists EUR with zero when nothing is invoiced in the period", async () => {
     const stats = await dashboardStats(env.DB, new Date("2027-02-10T10:00:00Z"));
-    expect(stats.month).toEqual([{ currency: "EUR", invoicedCents: 0 }]);
-    expect(stats.year).toEqual([{ currency: "EUR", invoicedCents: 0 }]);
+    const none = [{ currency: "EUR", invoicedCents: 0, vatCents: 0, contributionCents: 0 }];
+    expect(stats.year).toEqual(none);
   });
 });
 

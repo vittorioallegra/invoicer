@@ -96,7 +96,7 @@ function SendBlocked({ status }: { status: OnboardingStatus }) {
   const { t } = useTranslation();
   if (status.send.ready) return null;
   return (
-    <Banner tone="warning" className="max-w-2xl">
+    <Banner tone="warning">
       <p className="font-medium">{t("onboarding.sendBlocked")}</p>
       <ul className="list-disc pl-5">
         {status.send.reasons.map((reason) => (

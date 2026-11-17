@@ -43,7 +43,7 @@ const ROW = {
 };
 
 describe("Home top strip", () => {
-  it("shows the counts as links to the filtered list and the year and month totals", async () => {
+  it("shows the counts as links to the filtered list and the year by client with its totals", async () => {
     mocks.api.mockImplementation(async (path: string) => {
       if (path === "/api/invoices/dashboard") {
         return {
@@ -51,8 +51,18 @@ describe("Home top strip", () => {
           toSendCount: 2,
           rejectedCount: 1,
           overdueCount: 3,
-          year: [{ currency: "EUR", invoicedCents: 156000 }],
-          month: [{ currency: "EUR", invoicedCents: 75000 }],
+          year: [
+            { currency: "EUR", invoicedCents: 156000, vatCents: 20000, contributionCents: 4000 },
+          ],
+          unknownVatCount: 0,
+          toCollectCents: 33000,
+          toCollectCount: 2,
+          monthly: Array.from({ length: 12 }, (_, index) => ({
+            month: index + 1,
+            currentCents: index < 11 ? 10000 : 0,
+            previousCents: 20000,
+          })),
+          clientShares: [{ name: "Acme", invoicedCents: 156000 }],
         };
       }
       if (path.startsWith("/api/invoices?")) {
@@ -75,13 +85,19 @@ describe("Home top strip", () => {
       </I18nextProvider>,
     );
     const strip = await screen.findByRole("region", { name: "Overview" });
-    const overdue = within(strip).getByRole("link", { name: /Overdue, unpaid/ });
+    const overdue = within(strip).getByRole("link", { name: /Overdue/ });
     expect(overdue.getAttribute("href")).toContain("status=overdue");
     expect(overdue.textContent).toContain("3");
     expect(within(strip).getByRole("link", { name: /Rejected/ }).textContent).toContain("1");
     expect(within(strip).getByText("Invoiced in 2026")).toBeTruthy();
-    expect(within(strip).getByText("Invoiced in November")).toBeTruthy();
-    expect(within(strip).getByText(/1,560\.00/)).toBeTruthy();
-    expect(within(strip).getByText(/750\.00/)).toBeTruthy();
+    // The year total also heads the top client's row.
+    expect(within(strip).getAllByText(/^€\s?1,560\.00$/).length).toBeGreaterThan(0);
+    // Taxable amount, contribution and VAT of the year, as in the Invoices recap.
+    expect(within(strip).getByText(/Taxable amount .*1,320\.00/)).toBeTruthy();
+    expect(within(strip).getByText(/Contribution .*40\.00/)).toBeTruthy();
+    expect(within(strip).getByText(/VAT .*200\.00/)).toBeTruthy();
+    expect(within(strip).getByRole("img", { name: "Invoiced per month" })).toBeTruthy();
+    expect(within(strip).getByRole("img", { name: "Invoiced since January" })).toBeTruthy();
+    expect(within(strip).getByText("Acme")).toBeTruthy();
   });
 });
