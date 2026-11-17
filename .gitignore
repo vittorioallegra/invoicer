@@ -10,3 +10,5 @@ playwright-report/
 test-results/
 coverage/
 *.tsbuildinfo
+.claude/worktrees/
+.claude/settings.local.json
