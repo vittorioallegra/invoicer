@@ -160,3 +160,29 @@ VALUES
   ('demo-2026-10-l1', 'demo-2026-10', 0, 'Consulting', 1000, 150000, 2200, NULL),
   ('demo-2026-11-l1', 'demo-2026-11', 0, 'Consulting', 1000, 110000, 2200, NULL),
   ('demo-2026-12-l1', 'demo-2026-12', 0, 'Training (exempt)', 1000, 290000, NULL, 'N2.2');
+
+-- Invoices still to send, to try the finalise and send flow from Home: with a ritenuta (client pays
+-- 1.530,00 of 1.830,00), with a rivalsa INPS and a ritenuta, and a planned exempt one.
+INSERT OR IGNORE INTO invoices
+  (id, document_type, state, state_rank, payment_flag, source, client_id, series_id, planned_date,
+   currency, data, total_cents, created_at)
+VALUES
+  ('demo-send-1', 'TD01', 'draft', 0, 'unpaid', 'app', 'demo-client-2', 'default', NULL,
+   'EUR',
+   '{"cassa":null,"ritenuta":{"type":"RT01","rateBp":2000,"baseBp":10000,"causale":"A"},"bollo":false,"bolloCharge":"client","bolloSuggestionDismissed":false,"note":"","naturaTexts":{},"language":null,"payment":{"method":null,"iban":null,"bic":null,"accountHolder":null,"bankName":null,"terms":null}}',
+   183000, CAST(strftime('%s', 'now') AS integer) * 1000),
+  ('demo-send-2', 'TD01', 'draft', 0, 'unpaid', 'app', 'demo-client-3', 'default', NULL,
+   'EUR',
+   '{"cassa":{"type":"rivalsa_inps","rateBp":400,"mode":"excluded","subjectToRitenuta":false},"ritenuta":{"type":"RT01","rateBp":2000,"baseBp":10000,"causale":"A"},"bollo":false,"bolloCharge":"client","bolloSuggestionDismissed":false,"note":"","naturaTexts":{},"language":null,"payment":{"method":null,"iban":null,"bic":null,"accountHolder":null,"bankName":null,"terms":null}}',
+   101504, CAST(strftime('%s', 'now') AS integer) * 1000),
+  ('demo-send-3', 'TD01', 'planned', 0, 'unpaid', 'app', 'demo-client', 'default', '2026-12-10',
+   'EUR',
+   '{"cassa":null,"ritenuta":null,"bollo":false,"bolloCharge":"client","bolloSuggestionDismissed":false,"note":"","naturaTexts":{},"language":null,"payment":{"method":null,"iban":null,"bic":null,"accountHolder":null,"bankName":null,"terms":null}}',
+   120000, CAST(strftime('%s', 'now') AS integer) * 1000);
+
+INSERT OR IGNORE INTO invoice_lines
+  (id, invoice_id, position, description, quantity_milli, unit_price_cents, vat_rate_bp, natura)
+VALUES
+  ('demo-send-1-l1', 'demo-send-1', 0, 'Consulting with ritenuta', 1000, 150000, 2200, NULL),
+  ('demo-send-2-l1', 'demo-send-2', 0, 'Design with rivalsa and ritenuta', 1000, 80000, 2200, NULL),
+  ('demo-send-3-l1', 'demo-send-3', 0, 'Training (exempt), planned', 1000, 120000, NULL, 'N2.2');

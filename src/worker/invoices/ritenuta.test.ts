@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { EMPTY_INVOICE_DATA } from "../../shared/invoice";
 import { applyMigrations } from "../auth/test-helpers";
-import { dashboardStats, listFilteredInvoices } from "./store";
+import { dashboardStats, listFilteredInvoices, listInvoices } from "./store";
 
 const NOW = new Date("2026-11-03T10:00:00Z");
 
@@ -48,6 +48,14 @@ describe("ritenuta d'acconto", () => {
     expect(eur?.toCollectCents).toBe(122000 - 20000 + 61000);
     const ritenuta = Object.fromEntries(invoices.map((i) => [i.id, i.ritenutaCents]));
     expect(ritenuta).toEqual({ w: 20000, n: 0 });
+  });
+
+  it("gives the Home to-send list the same VAT and ritenuta as the Invoices list", async () => {
+    await env.DB.prepare("UPDATE invoices SET state = 'draft' WHERE id IN ('w', 'n')").run();
+    const rows = await listInvoices(env.DB, "to_issue", NOW);
+    const by = Object.fromEntries(rows.map((r) => [r.id, [r.vatCents, r.ritenutaCents]]));
+    expect(by).toEqual({ w: [22000, 20000], n: [11000, 0] });
+    await env.DB.prepare("UPDATE invoices SET state = 'delivered' WHERE id IN ('w', 'n')").run();
   });
 
   it("gives Home the same figures", async () => {

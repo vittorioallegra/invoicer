@@ -232,7 +232,7 @@ describe("invoice lists", () => {
     expect(options).toEqual(["All years", String(year), "2024"]);
   });
 
-  it("shows the total, then the contribution and the VAT in grey, only where there are any", async () => {
+  it("shows the total, then the VAT in grey, only where there is any", async () => {
     serve({
       all: [
         summary({
@@ -256,7 +256,8 @@ describe("invoice lists", () => {
     const row = async (name: string) => (await screen.findByText(name)).closest("a") as HTMLElement;
     const withVat = await row("With Vat");
     expect(within(withVat).getByText("€ 126.88")).toBeTruthy();
-    expect(within(withVat).getByText("Contribution € 4.00")).toBeTruthy();
+    // The contribution is not listed per row.
+    expect(within(withVat).queryByText(/Contribution/)).toBeNull();
     expect(within(withVat).getByText("VAT € 22.88")).toBeTruthy();
     const noVat = await row("No Vat");
     expect(within(noVat).getByText("€ 50.00")).toBeTruthy();
@@ -267,12 +268,12 @@ describe("invoice lists", () => {
     expect(within(credit).queryByText(/Contribution/)).toBeNull();
   });
 
-  it("shows what the client pays: the total less the ritenuta, with the withholding in grey", async () => {
+  it("shows what the client pays, the total less the ritenuta, without listing the withholding", async () => {
     serve({
       all: [
         summary({
           id: "w",
-          clientName: "Withholding Srl",
+          clientName: "Acme Ritenuta",
           totalCents: 122000,
           vatCents: 22000,
           ritenutaCents: 20000,
@@ -280,9 +281,9 @@ describe("invoice lists", () => {
       ],
     });
     await renderAt("/invoices");
-    const row = (await screen.findByText("Withholding Srl")).closest("a") as HTMLElement;
+    const row = (await screen.findByText("Acme Ritenuta")).closest("a") as HTMLElement;
     expect(within(row).getByText("€ 1,020.00")).toBeTruthy();
-    expect(within(row).getByText("Withholding € 200.00")).toBeTruthy();
+    expect(within(row).queryByText(/Withholding/)).toBeNull();
     expect(within(row).getByText("VAT € 220.00")).toBeTruthy();
   });
 

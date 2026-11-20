@@ -246,10 +246,13 @@ export async function listInvoices(
     scope === "to_issue"
       ? "i.planned_date IS NULL, i.planned_date ASC, i.created_at DESC"
       : "i.year DESC, i.issue_date DESC, i.number_int DESC, i.created_at DESC";
+  const where = `i.state IN ${SCOPE_STATES[scope]}`;
   const { results } = await db
-    .prepare(`${SELECT} WHERE i.state IN ${SCOPE_STATES[scope]} ORDER BY ${order}`)
+    .prepare(`${SELECT} WHERE ${where} ORDER BY ${order}`)
     .all<InvoiceRow>();
-  return summarize(db, results, scope === "reserved", now);
+  // VAT and ritenuta from the lines, so a row reads the same here as in the Invoices list.
+  const taxes = await loadTaxes(db, results, where, [1]);
+  return summarize(db, results, scope === "reserved", now, taxes);
 }
 
 async function summarize(
