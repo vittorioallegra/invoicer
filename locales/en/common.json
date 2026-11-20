@@ -663,6 +663,7 @@
       "noClient": "No client",
       "contribution": "Contribution {{amount}}",
       "vat": "VAT {{amount}}",
+      "ritenuta": "Withholding {{amount}}",
       "dated": "Dated {{date}}",
       "toSendTitle": "To send",
       "toSendEmpty": "Nothing to send.",

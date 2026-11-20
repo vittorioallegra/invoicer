@@ -40,6 +40,7 @@ const ROW = {
   rejectionDeadline: null,
   vatCents: null,
   contributionCents: null,
+  ritenutaCents: null,
 };
 
 describe("Home top strip", () => {

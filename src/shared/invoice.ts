@@ -507,6 +507,11 @@ export type InvoiceSummary = Pick<
   vatCents: number | null;
   /** Cassa/rivalsa contribution inside `totalCents`, worked out like `vatCents`. */
   contributionCents: number | null;
+  /**
+   * Ritenuta d'acconto the client withholds, worked out like `vatCents` (0 without one). It is
+   * not deducted from `totalCents`, but from what the client pays: `totalCents - ritenutaCents`.
+   */
+  ritenutaCents: number | null;
 };
 
 export const INVOICE_LIST_SCOPES = ["to_issue", "issued", "reserved"] as const;

@@ -42,6 +42,7 @@ const summary = (over: Partial<InvoiceSummary>): InvoiceSummary => ({
   rejectionDeadline: null,
   vatCents: null,
   contributionCents: null,
+  ritenutaCents: null,
   ...over,
 });
 
@@ -264,6 +265,25 @@ describe("invoice lists", () => {
     expect(within(credit).getByText("-€ 12.20")).toBeTruthy();
     expect(within(credit).getByText("VAT -€ 2.20")).toBeTruthy();
     expect(within(credit).queryByText(/Contribution/)).toBeNull();
+  });
+
+  it("shows what the client pays: the total less the ritenuta, with the withholding in grey", async () => {
+    serve({
+      all: [
+        summary({
+          id: "w",
+          clientName: "Withholding Srl",
+          totalCents: 122000,
+          vatCents: 22000,
+          ritenutaCents: 20000,
+        }),
+      ],
+    });
+    await renderAt("/invoices");
+    const row = (await screen.findByText("Withholding Srl")).closest("a") as HTMLElement;
+    expect(within(row).getByText("€ 1,020.00")).toBeTruthy();
+    expect(within(row).getByText("Withholding € 200.00")).toBeTruthy();
+    expect(within(row).getByText("VAT € 220.00")).toBeTruthy();
   });
 
   it("shows the server recap in cards, one amount per currency", async () => {

@@ -296,6 +296,7 @@ async function summarize(
     rejectionDeadline: rejections.get(row.id)?.deadline ?? null,
     vatCents: taxes.get(row.id)?.vatCents ?? null,
     contributionCents: taxes.get(row.id)?.contributionCents ?? null,
+    ritenutaCents: taxes.get(row.id)?.ritenutaCents ?? null,
   }));
 }
 
@@ -405,12 +406,7 @@ export async function dashboardStats(db: D1Database, now = new Date()): Promise<
          COALESCE(SUM(state IN ('draft', 'planned')), 0) AS to_send,
          COALESCE(SUM(state IN ('rejected', 'rejected_expired')), 0) AS rejected,
          COALESCE(SUM(state IN (${finalised}) AND payment_flag <> 'paid' AND document_type <> 'TD04'
-                      AND due_date IS NOT NULL AND due_date < ?1), 0) AS overdue,
-         COALESCE(SUM(CASE WHEN state IN (${finalised}) AND payment_flag <> 'paid' AND currency = 'EUR'
-                      THEN (CASE WHEN document_type = 'TD04' THEN -1 ELSE 1 END)
-                           * COALESCE(total_cents, 0) ELSE 0 END), 0) AS to_collect,
-         COALESCE(SUM(state IN (${finalised}) AND payment_flag <> 'paid' AND currency = 'EUR'), 0)
-           AS to_collect_count
+                      AND due_date IS NOT NULL AND due_date < ?1), 0) AS overdue
        FROM invoices`,
     )
     .bind(today)
@@ -418,9 +414,22 @@ export async function dashboardStats(db: D1Database, now = new Date()): Promise<
       to_send: number;
       rejected: number;
       overdue: number;
-      to_collect: number;
-      to_collect_count: number;
     }>();
+
+  // To collect: what the client will pay, so the document total less the ritenuta it withholds.
+  // The unpaid set is small, so its lines are read to work the ritenuta out (like VAT below).
+  const unpaidWhere = `i.state IN (${finalised}) AND i.payment_flag <> 'paid' AND i.currency = 'EUR' AND ?1 IS NOT NULL`;
+  const { results: unpaid } = await db
+    .prepare(`${SELECT} WHERE ${unpaidWhere}`)
+    .bind(today)
+    .all<InvoiceRow>();
+  const unpaidTaxes = await loadTaxes(db, unpaid, unpaidWhere, [today]);
+  let toCollectCents = 0;
+  for (const row of unpaid) {
+    const sign = row.document_type === "TD04" ? -1 : 1;
+    toCollectCents +=
+      sign * ((row.total_cents ?? 0) - (unpaidTaxes.get(row.id)?.ritenutaCents ?? 0));
+  }
 
   const year = today.slice(0, 4);
   const previous = String(Number(year) - 1);
@@ -482,8 +491,8 @@ export async function dashboardStats(db: D1Database, now = new Date()): Promise<
     overdueCount: counts?.overdue ?? 0,
     year: periodTotals(buckets.year),
     unknownVatCount,
-    toCollectCents: counts?.to_collect ?? 0,
-    toCollectCount: counts?.to_collect_count ?? 0,
+    toCollectCents,
+    toCollectCount: unpaid.length,
     monthly,
     clientShares: [...clients.values()]
       .filter((client) => client.invoicedCents > 0)
@@ -494,6 +503,8 @@ export async function dashboardStats(db: D1Database, now = new Date()): Promise<
 interface InvoiceTaxes {
   vatCents: number;
   contributionCents: number;
+  /** Ritenuta d'acconto: part of the document total the client does not pay. */
+  ritenutaCents: number;
 }
 
 /**
@@ -554,7 +565,11 @@ async function loadTaxes(
       lines: own,
     });
     if (totals)
-      taxes.set(id, { vatCents: totals.vatCents, contributionCents: totals.contributionCents });
+      taxes.set(id, {
+        vatCents: totals.vatCents,
+        contributionCents: totals.contributionCents,
+        ritenutaCents: totals.ritenutaCents,
+      });
   }
   return taxes;
 }
@@ -596,7 +611,8 @@ function recapOf(rows: InvoiceRow[], taxes: Map<string, InvoiceTaxes>): InvoiceR
       sums.vatCents += vat;
       sums.contributionCents += sign * (tax?.contributionCents ?? 0);
       if (row.payment_flag !== "paid") {
-        sums.toCollectCents += cents;
+        // What the client will actually pay: the document total less the ritenuta it withholds.
+        sums.toCollectCents += cents - sign * (tax?.ritenutaCents ?? 0);
         toCollectCount += 1;
       }
     }

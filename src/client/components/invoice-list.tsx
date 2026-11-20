@@ -72,8 +72,15 @@ function Row({ invoice, extra }: { invoice: InvoiceSummary; extra?: ReactNode })
         </span>
         <span className="flex flex-col items-end tabular-nums">
           <span className="font-medium">
-            {invoice.totalCents === null ? "–" : money(invoice.totalCents)}
+            {invoice.totalCents === null
+              ? "–"
+              : money(invoice.totalCents - (invoice.ritenutaCents ?? 0))}
           </span>
+          {invoice.totalCents !== null && invoice.ritenutaCents ? (
+            <span className="text-sm text-muted-foreground">
+              {t("invoice.list.ritenuta", { amount: money(invoice.ritenutaCents) })}
+            </span>
+          ) : null}
           {invoice.totalCents !== null && invoice.contributionCents ? (
             <span className="text-sm text-muted-foreground">
               {t("invoice.list.contribution", { amount: money(invoice.contributionCents) })}
