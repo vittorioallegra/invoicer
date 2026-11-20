@@ -605,7 +605,8 @@ function recapOf(rows: InvoiceRow[], taxes: Map<string, InvoiceTaxes>): InvoiceR
     const sums = entry(row.currency);
     if (row.state === "draft" || row.state === "planned") {
       toSendCount += 1;
-      sums.toSendCents += cents;
+      // Like the rows: what the client will pay, the total less the ritenuta.
+      sums.toSendCents += cents - sign * (taxes.get(row.id)?.ritenutaCents ?? 0);
     } else if (FINALISED_STATES.includes(row.state)) {
       sums.invoicedCents += cents;
       const tax = taxes.get(row.id);

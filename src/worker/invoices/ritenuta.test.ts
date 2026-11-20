@@ -46,6 +46,11 @@ describe("ritenuta d'acconto", () => {
     // Revenue counts the whole document total; the withholding is only not paid by the client.
     expect(eur?.invoicedCents).toBe(122000 + 61000);
     expect(eur?.toCollectCents).toBe(122000 - 20000 + 61000);
+    // The invoices to send are summed the same way as their rows show them.
+    await env.DB.prepare("UPDATE invoices SET state = 'draft' WHERE id IN ('w', 'n')").run();
+    const drafts = await listFilteredInvoices(env.DB, {}, NOW);
+    expect(drafts.recap.byCurrency[0]?.toSendCents).toBe(122000 - 20000 + 61000);
+    await env.DB.prepare("UPDATE invoices SET state = 'delivered' WHERE id IN ('w', 'n')").run();
     const ritenuta = Object.fromEntries(invoices.map((i) => [i.id, i.ritenutaCents]));
     expect(ritenuta).toEqual({ w: 20000, n: 0 });
   });
