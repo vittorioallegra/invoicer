@@ -25,7 +25,7 @@ renewal the owner decides, based on Milestone A, whether to cut over or renew Fi
    and `/api/*`, `wrangler.jsonc` with D1, a cron trigger and documented secret names
    (no values; owner-specific values such as domain, sender address and resource IDs come
    from env / an untracked local config, never from tracked files), Vitest projects (`shared`
-   in node, `worker` in `@cloudflare/vitest-pool-workers`, `client` in jsdom), Playwright
+   in node, `worker` in `@cloudflare/vitest-plugin`, `client` in jsdom), Playwright
    config, Biome (exact version pinned) for lint/format, i18next + react-i18next with `en`
    (base) and `it` locale files, `vite-plugin-pwa` manifest and service worker shell
    (disabled in `dev`; tested in preview/E2E only).
@@ -383,7 +383,7 @@ push and email.
 | PEC send (SMTP over `cloudflare:sockets`) | worker-mailer | 1.3.0 |
 | PEC mail parsing | postal-mime | 4.2.0 |
 | PEC read (IMAP over `cloudflare:sockets`) | minimal in-repo client (`src/worker/pec/imap.ts`), no library | - |
-| Tests | Vitest + `@cloudflare/vitest-pool-workers`, Playwright | 5.0 / 0.23, 1.64 |
+| Tests | Vitest + `@cloudflare/vitest-plugin`, Playwright | 5.1 / 1.8, 1.65 |
 | Lint / format | Biome | exact version pinned at step 1 |
 
 **Rejected alternatives**
