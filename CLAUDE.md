@@ -6,7 +6,7 @@ docs/plans/invoicer.md.
 
 ## Commands
 
-Keep this list in sync with `package.json`. Requires Node 22+ and pnpm (see `packageManager`).
+Keep this list in sync with `package.json`. Requires Node 26+ and pnpm (see `packageManager`).
 
 - Install: `pnpm install` (CI: `pnpm install --frozen-lockfile`); local secrets: `cp .dev.vars.example .dev.vars`
 - Dev server: `pnpm dev` (Vite + local Worker, D1; PEC, Resend and push off or mocked); create the owner once at `/setup` with `SETUP_TOKEN`; `pnpm db:seed` adds demo invoices

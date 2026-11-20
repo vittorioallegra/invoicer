@@ -25,7 +25,7 @@ The functional spec is in `docs/specs/invoicer.md`.
 
 ## Local development
 
-Requirements: Node 22+ and pnpm. No external account is needed: D1 runs locally, and
+Requirements: Node 26+ and pnpm. No external account is needed: D1 runs locally, and
 the PEC mailbox, Resend and push are off or mocked.
 
 ```sh
@@ -153,7 +153,7 @@ Time it as you go (the "timed run" in the plan): note the clock at the start of 
 
 ### 1. Prerequisites
 
-- A Cloudflare account (free), with Node 22+ and pnpm locally (`pnpm install`).
+- A Cloudflare account (free), with Node 26+ and pnpm locally (`pnpm install`).
 - A domain whose DNS is on Cloudflare, where the app gets its own subdomain (for example
   `invoices.<your-domain>`). Passkeys are bound to this host name, so decide it first and do not
   change it later.
