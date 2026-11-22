@@ -1002,7 +1002,7 @@
     },
     "received_invoice": {
       "title": "Invoice received",
-      "body": "A new invoice arrived in the PEC mailbox: {{file}}."
+      "body": "New invoice from {{sender}} in the PEC mailbox ({{file}})."
     },
     "poll_failed": {
       "title": "Mailbox check failed",

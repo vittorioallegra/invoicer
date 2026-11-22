@@ -46,10 +46,28 @@ describe("received invoices", () => {
       {
         type: "received_invoice",
         title: "notifications.received_invoice.title",
-        body: JSON.stringify({ file: "IT09876543211_00007.xml" }),
+        // Nothing known about the supplier yet: the notification names the id of the file name.
+        body: JSON.stringify({ file: "IT09876543211_00007.xml", sender: "IT09876543211" }),
         inv: null,
       },
     ]);
+  });
+
+  it("names the supplier in the notification when an earlier invoice of the same id told it", async () => {
+    await env.DB.prepare(
+      `INSERT INTO received_invoices (id, parse_status, supplier_vat, supplier_name, created_at)
+       VALUES ('old', 'parsed', 'IT09876543211', 'Fornitore Srl', 1)`,
+    ).run();
+    useMailbox([{ uid: 1, source: receivedInvoiceMessage({ id: "i2", content: "<x/>" }) }]);
+    await env.DB.prepare(
+      "INSERT INTO settings (id, mailbox_uid_validity, mailbox_last_uid) VALUES (1, 1000, 0)",
+    ).run();
+    await pollMailbox(pollEnv);
+    const [row] = await all<{ body: string }>("SELECT body FROM notifications");
+    expect(JSON.parse(row?.body ?? "{}")).toEqual({
+      file: "IT09876543211_00007.xml",
+      sender: "Fornitore Srl",
+    });
   });
 
   it("keeps a .p7m byte for byte, parsed later in the browser", async () => {

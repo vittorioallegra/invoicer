@@ -1002,7 +1002,7 @@
     },
     "received_invoice": {
       "title": "Fattura ricevuta",
-      "body": "È arrivata una nuova fattura nella casella PEC: {{file}}."
+      "body": "Nuova fattura da {{sender}} nella casella PEC ({{file}})."
     },
     "poll_failed": {
       "title": "Controllo della casella non riuscito",

@@ -129,6 +129,24 @@ async function sdiAddressOf(db: D1Database): Promise<string | null> {
 }
 
 /** Rows and files the message already has by the time its batch is planned. */
+/**
+ * Who sent a received invoice, for its notification. The Worker does not read the file: the SdI
+ * name starts with the transmitter's tax id (`IT02052910854_0AJ6S.xml`), normally the supplier,
+ * so the name comes from an earlier invoice of the same id, else the id itself.
+ */
+async function senderOf(db: D1Database, fileName: string): Promise<string> {
+  const taxId = /^([A-Z]{2}[A-Za-z0-9]{1,28})_/.exec(fileName)?.[1];
+  if (!taxId) return fileName;
+  const known = await db
+    .prepare(
+      `SELECT supplier_name FROM received_invoices
+       WHERE supplier_vat = ?1 AND supplier_name IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
+    )
+    .bind(taxId)
+    .first<{ supplier_name: string }>();
+  return known?.supplier_name ?? taxId;
+}
+
 export interface MessageContext {
   /** Primary key of the message's `pec_messages` row. */
   id: string;
@@ -264,6 +282,7 @@ export async function planEffects(
 
   if (c.kind === "received_invoice") {
     // Parsing waits for the browser (`parse_status = pending`); the Worker only stores the file.
+    const sender = await senderOf(db, c.fileName);
     return {
       statements: [
         db
@@ -272,7 +291,7 @@ export async function planEffects(
              VALUES (?, ?, 'pending', ?, ?)`,
           )
           .bind(ctx.receivedInvoiceId, ctx.id, ctx.receivedFileId, now),
-        notificationStatement(db, "received_invoice", { file: c.fileName }, now),
+        notificationStatement(db, "received_invoice", { file: c.fileName, sender }, now),
       ],
       processed: true,
     };
